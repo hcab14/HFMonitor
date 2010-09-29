@@ -76,27 +76,51 @@ namespace Result {
   class SpectrumPeak : public Base {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
-    SpectrumPeak(double fReference,
-		 double fMeasured,
-		 double fMeasuredRMS,
-		 double strength,
-		 double strengthRMS)
+    SpectrumPeak(const std::vector<double>& freqs,
+		 const std::vector<double>& ps,
+		 double fReference,
+		 double minRatio)
       : Base("SpectrumPeak")
       , fReference_(fReference) 
-      , fMeasured_(fMeasured) 
-      , fMeasuredRMS_(fMeasuredRMS) 
-      , strength_(strength) 
-      , strengthRMS_(strengthRMS) {}    
+      , fMeasured_(0.) 
+      , fMeasuredRMS_(1.) 
+      , strength_(0.) 
+      , strengthRMS_(1.)
+      , ratio_(1.) {
+      std::vector<double>::const_iterator iMin(std::min_element(ps.begin(), ps.end()));
+      std::vector<double>::const_iterator iMax(std::max_element(ps.begin(), ps.end()));
+      
+      const size_t indexMin(std::distance(ps.begin(), iMin));
+      const size_t indexMax(std::distance(ps.begin(), iMax));
+
+      const double fMin(freqs[indexMin]);
+      const double fMax(freqs[indexMax]);
+
+      double sum(0.0);
+      double weight(0.0);
+      for (size_t u(indexMax-3); u<(indexMax+4); ++u) {
+	weight += ps[u];
+	sum += ps[u] * freqs[u];
+      }
+      ratio_ = (*iMin != 0.0) ? *iMax / *iMin : 1.0;
+      if (ratio_ < minRatio || weight == 0.0)
+	throw std::runtime_error("ratio < minRatio || weight == 0.0");
+      fMeasured_    = sum / weight;
+      fMeasuredRMS_ = 1.0;
+      strength_     = *iMax;
+      strengthRMS_  = *iMax/10.;      
+    }
 
     virtual ~SpectrumPeak() {}
     virtual std::string toString() const { 
       std::stringstream ss; 
       ss << Base::toString() 
-	 << " fReference="         << fReference()
+	 << " fReference="   << fReference()
 	 << " fMeasured="    << fMeasured()
 	 << " fMeasuredRMS=" << fMeasuredRMS()
 	 << " strength="     << strength()
-	 << " strengthRMS="  << strengthRMS();
+	 << " strengthRMS="  << strengthRMS()
+	 << " ratio="        << ratio();
       return ss.str();
     }
     double fReference() const { return fReference_; }
@@ -104,6 +128,7 @@ namespace Result {
     double fMeasuredRMS() const { return fMeasuredRMS_; }
     double strength() const { return strength_; }
     double strengthRMS() const { return strengthRMS_; }
+    double ratio() const { return ratio_; }
 
   private:
     double fReference_;
@@ -111,6 +136,7 @@ namespace Result {
     double fMeasuredRMS_;
     double strength_;
     double strengthRMS_;
+    double ratio_;
   } ;
 
   class Calibration : public Base {
@@ -135,23 +161,19 @@ namespace Result {
       Matrix ata(prod(trans(a),a));
       if (ublas_util::InvertMatrix(ata, q_)) {
 	x_ = prod(q_, Vector(prod(trans(a),y)));
-	std::cout << "a= " << a << std::endl;
-	std::cout << "y= " << y << std::endl;
-	std::cout << "q= " << q_ << std::endl;
-	std::cout << "x= " << x_ << " " << x_(1)-1 << std::endl;
       } else 
 	throw std::runtime_error("Calibration has failed");
     }
     virtual ~Calibration() {}
     virtual std::string toString() const {
       std::stringstream ss;
-      ss << Base::toString() 
-	 << " x=" << x() 
+      ss << Base::toString()
+	 << " x=" << x()
 	 << " q=" << q();
       return ss.str();
     }    
     const Vector& x() const { return x_; } // polynomial coefficients
-    const Matrix& q() const { return q_; } // variance-covariance matrix
+    const Matrix& q() const { return q_; } // variance-covariance matrix for x
     
     // returns a value,RMS pair
     std::pair<double, double> cal2uncal(double fCal) const {
@@ -210,10 +232,13 @@ namespace Action {
       , fReference_(config.get<double>("fRef"))
       , minRatio_(config.get<double>("minRatio"))
       , resultKey_(config.get<std::string>("Name"))
-      , filterType_(config.get<std::string>("Filter.Type")) 
+      , filterType_("None")
       , filterTimeConstant_(1.0) {
-      if (filterType_ != "None")
-	filterTimeConstant_ = config.get<double>("Filter.TimeConstant");
+      if (config.find("Filter") != config.not_found()) {
+	filterType_= config.get<std::string>("Filter.Type");
+	  if (filterType_ != "None")
+	    filterTimeConstant_ = config.get<double>("Filter.TimeConstant");
+      }
     }
     
     virtual void perform(Proxy::Base& p, const Spectrum& s) {
@@ -233,36 +258,21 @@ namespace Action {
 	} else {
 	  const double dt(s.size()/s.sampleRate());
 	  const double x(dt / filterTimeConstant_);
-	  std::cout << "filter: dt,x= "<< dt << " " << x << std::endl;
 	  for (size_t u=i0; u<=i1; ++u) 
 	    ps_[u-i0] = (1-x) * ps_[u-i0] + x * std::abs(s[u]);	  
 	}
       } else {
 	throw std::runtime_error(filterType_ + " unknown filter");
       }
-      std::vector<double>::iterator iMin(std::min_element(ps_.begin(), ps_.end()));
-      std::vector<double>::iterator iMax(std::max_element(ps_.begin(), ps_.end()));
-      
-      const double fMin(s.index2Freq(i0+std::distance(ps_.begin(), iMin)));
-      const double fMax(s.index2Freq(i0+std::distance(ps_.begin(), iMax)));
+      if (freqs_.empty()) 
+	for (size_t u(i0); u<=i1; ++u)
+	  freqs_.push_back(s.index2Freq(u));
 
-      size_t indexMax(std::distance(ps_.begin(), iMax));
-      double sum(0.0);
-      double weight(0.0);
-      for (size_t u(indexMax-3); u<(indexMax+4); ++u) {
-	weight += ps_[u];
-	sum += ps_[u] * s.index2Freq(i0+u);
-      }
-      std::cout << "min: " << *iMin << " " << fMin << std::endl;
-      std::cout << "max: " << *iMax << " " << fMax << " "<< sum/weight << " " << *iMax / *iMin << std::endl;
-
-      const double ratio((*iMin != 0.0) ? *iMax / *iMin : 0.0);
-      if (ratio > minRatio_) {
-	const double fMeasured(sum/weight);
-	p.result(resultKey_, 
-		 Result::Handle(new Result::SpectrumPeak(fReference_, 
-							 fMeasured, s.index2Freq(i0+1)-s.index2Freq(i0),
-							 *iMax,     *iMax/10)));
+      try {
+	Result::Handle rh(new Result::SpectrumPeak(freqs_, ps_, fReference_, minRatio_));
+	p.result(resultKey_, rh);		 
+      } catch (const std::runtime_error& e) {
+	std::cout << e.what() << std::endl;
       }
     }
   private:
@@ -274,6 +284,7 @@ namespace Action {
     std::string filterType_;
     double filterTimeConstant_;
     std::vector<double> ps_;  // holds the last seen spectrum
+    std::vector<double> freqs_;  // frequencies
   } ;
 
   class Calibrator : public Base {
@@ -366,10 +377,10 @@ public:
 
     virtual void result(std::string resultKey, Result::Handle result) {
       std::cout << "FFTProxy::result [" << resultKey << "] " << result << std::endl;
-      std::string key(level() + "_" + resultKey);      
-      if (resultMap_.find(key) !=resultMap_.end())
-	std::cout << "Warning: overwriting key "+key << std::endl;
-      resultMap_[level() + "_" + resultKey] = result;
+      std::string key(level() + "." + resultKey);      
+      if (resultMap_.find(key) != resultMap_.end())
+       	std::cout << "Warning: overwriting key "+key << std::endl;
+      resultMap_[key] = result;
     }
 
     virtual Result::Handle getResult(std::string keyString) const {

@@ -94,22 +94,30 @@ FFT.WindowFunction ........
     <L1>
       <Calibrator>
 	<Inputs>
-	  <Input>L0_TDF_162</Input>
-	  <Input>L0_HBG_75</Input>
-	  <Input>L0_DCF_77</Input>
-	  <Input>L0_GXX_60</Input>
+	  <Input>L0.TDF_162</Input>
+	  <Input>L0.HBG_75</Input>
+	  <Input>L0.DCF_77</Input>
+	  <Input>L0.GXX_60</Input>
 	</Inputs>
 	<Name>CAL</Name>
       </Calibrator>
     </L1>
-    <L2>
-      
-    </L2>
   </Actions>
 </FFT>
 <Dump>
   <SamplesPerFile>1000000</SamplesPerFile>
   <FileNamePattern>data_%08X.bin</FileNamePattern>
 </Dump>
-<!-- EOF -->
-
+<!--
+    <L2>
+    <FieldStrengthRecorder>
+    <Name>TDF_162</Name>	
+    <Filter>
+    <Type>None</Type>
+    </Filter>
+    <frequency>162</frequency>
+    <bandwidth>10</bandwitdth>
+    <CalibrationKey>L1.CAL</CalibrationKey>
+    </FieldStrengthRecorder>
+    </L2>
+-->
