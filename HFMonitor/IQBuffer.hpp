@@ -21,6 +21,11 @@ namespace Internal {
     T m() const { return m_; }
     operator T() const { return t_; }
 
+    void setM(T m) {
+      m_= m;
+      t_ = T(0);
+    }
+
     ModuloCounter& operator++() {
       const T tInc(t_+1);
       t_ = (tInc >= m_) ? T(0) : tInc;
@@ -32,7 +37,7 @@ namespace Internal {
     }
 
   private:
-    const T m_;
+    T m_;
     T t_;
   } ;
 }
@@ -50,11 +55,10 @@ public:
     , counterModN_(n_)
     , counterModM_(m_)
     , counterModNM_(m_*n_) {
+    std::cout << "XXX " << n_ << " " << m_ << " " << overlap << std::endl;
     if (overlap < 0.0 || overlap > 1.0)
       throw std::runtime_error("IQBuffer: overlap < 0.0 || overlap > 1.0");
   }
-
-  virtual ~IQBuffer() {}
 
   // returns the remaining unprocessed samples
   Samples samples() const {
@@ -64,19 +68,27 @@ public:
     return s;
   }
 
+  // update with new parameters
+  void update(size_t n, double overlap) {
+    iqVec_.resize(2*n);
+    n_   = n;
+    m_   = size_t((1.0-overlap)*n_+0.5);
+    lpi_ = 0;
+    counterModN_.setM(n_);
+    counterModM_.setM(m_);
+    counterModNM_.setM(n_*m_);
+  }
+
   size_t n() const { return n_; }
   size_t m() const { return m_; }
   double overlap() const { return 1.0-double(m_)/double(n_); }
  
-  // insert a range of samples
-  void insert(Samples::const_iterator begin, Samples::const_iterator end) {
-    void (IQBuffer::*fp)(Complex)(&IQBuffer::insert);
-    std::for_each(begin, end, boost::bind(fp, this, _1));
-  }
   // insert a single sample
-  void insert(Complex c) {
+  template<typename PROCESSOR>
+  void insert(PROCESSOR* p, Complex c) {
     if (counterModM_ == 0) {
-      procIQ(iqVec_.begin()+counterModN_, iqVec_.begin()+counterModN_+n_);
+      p->procIQ(iqVec_.begin()+counterModN_,
+		iqVec_.begin()+counterModN_+n_);
       lpi_ = (counterModN_+m_) % n_;
     }
     iqVec_[counterModN_] = iqVec_[counterModN_+n_] = c;
@@ -84,9 +96,15 @@ public:
     ++counterModM_;
     ++counterModNM_;
   }
+  // insert a range of samples
+  template<typename PROCESSOR>
+  void insert(PROCESSOR* p, Samples::const_iterator begin, Samples::const_iterator end) {
+    void (IQBuffer::*fp)(PROCESSOR*, Complex)(&IQBuffer::insert<PROCESSOR>);
+    std::for_each(begin, end, boost::bind(fp, this, p, _1));
+  }
 
-  virtual void procIQ(Samples::const_iterator i0, 
-		      Samples::const_iterator i1) {
+  void procIQ(Samples::const_iterator i0, 
+	      Samples::const_iterator i1) {
     std::cout << "*** procIQ ";
     std::copy(i0, i1, 
 	      std::ostream_iterator<std::complex<double> >(std::cout, " "));
@@ -107,8 +125,8 @@ private:
   }
 
   Samples iqVec_;
-  const size_t n_;
-  const size_t m_;
+  size_t n_;
+  size_t m_;
   size_t lpi_;
   Internal::ModuloCounter<size_t> counterModN_;
   Internal::ModuloCounter<size_t> counterModM_;

@@ -8,6 +8,8 @@
 #include <complex>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/integer.hpp>
+
+#include "IQBuffer.hpp"
 #include "protocol.hpp"
 
 template<typename PROCESSOR>
@@ -17,49 +19,49 @@ public:
   RepackProcessor(const boost::property_tree::ptree& config)
     : p_(config)
     , bufferLengthSec_(config.get<double>("Repack.BufferLengthSec"))
+    , overlap_(config.get<double>("Repack.Overlap"))
     , currentHeader_()
-    , buffer_(0)
-    , i_(buffer_.begin()) {}
+    , iqBuffer_(4, 0.0) {}
 
   ~RepackProcessor() {}
 
-  void procIQ(const Header& header, const std::vector<std::complex<double> >& samples) { 
+  void procIQ(const Header& header,
+	      std::vector<std::complex<double> >::const_iterator i0,
+	      std::vector<std::complex<double> >::const_iterator i1) { 
     // std::cout << "RepackProcessor::procIQ " << header << std::endl;
-    if (!currentHeader_.hasEqualParameters(header))
-      update(header);
+    if (!currentHeader_.hasEqualParameters(header)) 
+      update(header);    
 
-    for (typename Buffer::const_iterator j=samples.begin(); j!=samples.end(); ++j) {
-      if (i_ == buffer_.end()) {
-	p_.procIQ(currentHeader_, buffer_);
-	i_ = buffer_.begin();
-      }
-      if (i_ == buffer_.end()) 
-	throw 1;
-      else {
-	*i_++ = *j;
-	currentHeader_.sampleNumber()++;
-      }
+    // keep track of sample numbers
+    for (; i0 != i1; ++i0) {
+      currentHeader_.sampleNumber()++;
+      iqBuffer_.insert(this, *i0);
     }
   }
+  
+  // called from IQBuffer::insert 
+  void procIQ(std::vector<std::complex<double> >::const_iterator i0,
+	      std::vector<std::complex<double> >::const_iterator i1) {
+    p_.procIQ(currentHeader_, i0, i1); 
+  }
+
 
 protected:
   void update(const Header& h) {
     if (h.sampleRate() == 0) 
       throw 1;
-    buffer_.resize(size_t(0.5 + double(h.sampleRate()) * double(bufferLengthSec_)));
-    i_ = buffer_.begin();
+    iqBuffer_.update(h.sampleRate()*bufferLengthSec_, overlap_);
     currentHeader_ = h;
-    // currentHeader_.subtractFromSampleNumber(buffer_.size());
-    currentHeader_.sampleNumber() -= buffer_.size();
-    currentHeader_.setNumberOfSamples(buffer_.size());
+    currentHeader_.sampleNumber() -= iqBuffer_.n();
+    currentHeader_.setNumberOfSamples(iqBuffer_.n());
   }
 
 private:
   PROCESSOR p_;
   double bufferLengthSec_;
+  double overlap_;
   Header currentHeader_;
-  Buffer buffer_;
-  Buffer::iterator i_;
+  IQBuffer iqBuffer_;
 } ;
 
 #endif // _REPACK_PROCESSOR_HPP_cm100818_

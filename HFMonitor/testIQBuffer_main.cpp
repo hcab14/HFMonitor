@@ -17,7 +17,7 @@ int main() {
   IQBuffer b(7, 0.5);
   for (size_t u(0); u<100; ++u) {
     std::cout << "------------------------------\n";
-    b.insert(std::complex<double>(u,0));
+    b.insert(&b, std::complex<double>(u,0));
     const IQBuffer::Samples s(b.samples());
     std::cout << "--- lastIQ ";
     std::copy(s.begin(),s.end(), std::ostream_iterator<std::complex<double> >(std::cout, " "));

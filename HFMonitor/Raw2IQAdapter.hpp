@@ -44,7 +44,7 @@ public:
 	iqs.push_back(cs);
       }
     }
-    p_.procIQ(header, iqs);
+    p_.procIQ(header, iqs.begin(), iqs.end());
   }
 protected:
 private:

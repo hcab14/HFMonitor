@@ -1,4 +1,5 @@
-// -*- c++ -*-
+// -*- C++ -*-
+// $Id$
 #ifndef _FFT_HPP_cm230810_
 #define _FFT_HPP_cm230810_
 
@@ -70,14 +71,21 @@ namespace FFT {
       const fftw_complex& operator[](size_t n) const { return a_[n]; }
       
       template<typename WINDOW_FCN>
-      double fill(const std::vector<std::complex<double> >& v,
+      double fill(const std::vector<std::complex<double> > v,
 		  const WINDOW_FCN& window_fcn) {
-	if (v.size() != n_) resize(v.size());
+	return fill(v.begin(), v.end(), window_fcn);
+      }
+      template<typename WINDOW_FCN>
+      double fill(std::vector<std::complex<double> >::const_iterator i0,
+		  std::vector<std::complex<double> >::const_iterator i1,
+		  const WINDOW_FCN& window_fcn) {
+	const size_t length(std::distance(i0, i1));
+	if (length != n_) resize(length);
 	norm_= 0;
-	for (unsigned u=0; u<n_; ++u) {
+	for (unsigned u=0; u<n_ && i0 != i1; ++u, ++i0) {
 	  const double w(window_fcn(u,n_));
 	  norm_ += w;
-	  const std::complex<double> s(v[u]*w);
+	  const std::complex<double> s((*i0) * w);
 	  a_[u][0] = s.real();
 	  a_[u][1] = s.imag();
 	}
@@ -138,8 +146,15 @@ namespace FFT {
     template<typename WINDOW_FCN>
     void transformVector(const std::vector<std::complex<double> >& v,
 			 const WINDOW_FCN& window_fcn) {
-      if (v.size() != size()) throw 1;
-      in_.fill(v, window_fcn);
+      transformRange(v.begin(), v.end(), window_fcn);
+    }
+    template<typename WINDOW_FCN>
+    void transformRange(std::vector<std::complex<double> >::const_iterator i0,
+			std::vector<std::complex<double> >::const_iterator i1,
+			const WINDOW_FCN& window_fcn) {
+      const size_t length(std::distance(i0, i1));
+      if (length != size()) throw 1;
+      in_.fill(i0, i1, window_fcn);
       normalizationFactor_= 1.0/in_.norm();
       fftw_execute(plan_);
     }

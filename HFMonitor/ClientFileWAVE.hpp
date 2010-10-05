@@ -19,6 +19,7 @@ public:
     , fileNamePattern_(config.get<std::string>("FileNamePattern"))
     , fileNumber_(0)
     , bufferLengthSec_(config.get<double>("Repack.BufferLengthSec"))
+    , overlap_(config.get<double>("Repack.Overlap"))
     , sampleNumber_(0) {
   }
 
@@ -28,8 +29,8 @@ public:
     if (!boost::filesystem::exists(p)) 
       return false;
 
-    WAVE::ProcessFile pf(p.string(), sampleNumber_, samples_);
-    for (size_t N(bufferLengthSec_*pf.chunkFmt().sampleRate()); pf.proc(p_, N) > 0; ) ;
+    WAVE::ProcessFile<PROCESSOR> pf(p_, p.string(), sampleNumber_, samples_, bufferLengthSec_, overlap_);
+    while (pf.proc() > 0) ;
     sampleNumber_ = pf.sampleNumber();
     samples_      = pf.samples();
     fileNumber_++;
@@ -42,6 +43,7 @@ private:
   std::string     fileNamePattern_;
   boost::uint32_t fileNumber_;
   double          bufferLengthSec_;  
+  double          overlap_;  
   boost::uint64_t sampleNumber_;
   std::vector<std::complex<double> > samples_;
 } ;

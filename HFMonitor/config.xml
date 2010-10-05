@@ -40,7 +40,8 @@ FFT.WindowFunction ........
   </fpga>
 </perseus>
 <Repack>
-  <BufferLengthSec>1</BufferLengthSec>
+  <BufferLengthSec>1.0</BufferLengthSec>
+  <Overlap>0.5</Overlap>
 </Repack>
 <FFT>
   <WindowFunction>Blackman</WindowFunction>
