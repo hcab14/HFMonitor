@@ -1,4 +1,4 @@
-// -*- c++ -*-
+// -*- C++ -*-
 // $Id$
 #include <iostream>
 #include <boost/thread.hpp>

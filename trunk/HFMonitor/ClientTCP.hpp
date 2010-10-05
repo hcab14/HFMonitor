@@ -1,3 +1,5 @@
+// -*- C++ -*-
+// $Id$
 #ifndef _CLIENT_TCP_HPP_cm100729_
 #define _CLIENT_TCP_HPP_cm100729_
 

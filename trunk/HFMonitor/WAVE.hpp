@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "protocol.hpp"
+#include "IQBuffer.hpp"
 
 namespace WAVE {
   namespace Chunk {
@@ -115,63 +116,60 @@ namespace WAVE {
     } ;    
   } // namespace Chunk  
 
+  template<typename PROCESSOR>
   class ProcessFile : private boost::noncopyable {
   public:
     typedef std::vector<std::complex<double> > SampleVec;
-    ProcessFile(std::string fileName,
+    ProcessFile(PROCESSOR& p,
+		std::string fileName,
 		boost::uint64_t sampleNumber,
-		const std::vector<std::complex<double> >& samples)
-      : is_(fileName.c_str(), std::ios::in | std::ios::binary)
+		const std::vector<std::complex<double> >& samples,
+		double bufferLengthSec, double overlap)
+      : p_(p)
+      , is_(fileName.c_str(), std::ios::in | std::ios::binary)
       , sampleNumber_(sampleNumber)
-      , samples_(samples)
       , chunkRiff_(readT<Chunk::RIFF>  (is_))
       , chunkFmt_ (readT<Chunk::Format>(is_))
       , chunkRcvr_(readT<Chunk::Rcvr>  (is_))
-      , chunkData_(readT<Chunk::Data>  (is_)) {}
-    
+      , chunkData_(readT<Chunk::Data>  (is_))
+      , iqBuffer_(bufferLengthSec*chunkFmt_.sampleRate(), overlap) {
+      iqBuffer_.insert(this, samples.begin(), samples.end());
+    }
+    ~ProcessFile() {}
+
     Chunk::RIFF     chunkRiff() const { return chunkRiff_; }
     Chunk::Format   chunkFmt()  const { return chunkFmt_; }
     Chunk::Rcvr     chunkRcvr() const { return chunkRcvr_; }
     Chunk::Data     chunkData() const { return chunkData_; }
     boost::uint64_t sampleNumber() const { return sampleNumber_; }
-    const SampleVec& samples() const { return samples_; }
-
-    // virtual procIQ(IQBuffer::Samples::const_iterator i0, 
-    // 		   IQBuffer::Samples::const_iterator i1) {
-    //   const Header header(sampleNumber_ - nSamples, 
-    // 			  chunkFmt().sampleRate(), 
-    // 			  chunkRcvr().nCenterFrequencyHz(),
-    // 			  nSamples,
-    // 			  0, // TODO
-    // 			  chunkRcvr().wAttenId(),
-    // 			  chunkRcvr().bAdcPresel(),
-    // 			  chunkRcvr().bAdcPreamp(),
-    // 			  chunkRcvr().bAdcDither());
-    //   p_.procIQ(header, i0, i1);
-    // }
-    template<typename PROCESSOR>
-    size_t proc(PROCESSOR& p, size_t nSamples) { // read nSamples samples
+    std::vector<std::complex<double> > samples() const { return iqBuffer_.samples(); }
+    
+    // called from IQBuffer::insert
+    void procIQ(IQBuffer::Samples::const_iterator i0, 
+		IQBuffer::Samples::const_iterator i1) {
+      const Header header(sampleNumber_ - iqBuffer_.n(),
+     			  chunkFmt().sampleRate(), 
+     			  chunkRcvr().nCenterFrequencyHz(),
+     			  iqBuffer_.n(),
+     			  0, // TODO
+     			  chunkRcvr().wAttenId(),
+     			  chunkRcvr().bAdcPresel(),
+     			  chunkRcvr().bAdcPreamp(),
+     			  chunkRcvr().bAdcDither());
+      std::cout << "WAVE::ProcessFile::procIQ: " << header << " "<< std::distance(i0,i1) << std::endl;
+      p_.procIQ(header, i0, i1);
+    }
+    
+    size_t proc() {
       size_t nRead(0);
       try {
-	for (size_t u(samples_.size()); u<nSamples; ++u) {
+	while (1) {
 	  const double xi(readRealSample());
 	  const double xq(readRealSample());
-	  samples_.push_back(std::complex<double>(xq,xi));
-// insert(std::complex<double>(xq,xi);
+	  iqBuffer_.insert(this, std::complex<double>(xq,xi));
 	  ++sampleNumber_;
 	  ++nRead;
 	}
-	const Header header(sampleNumber_ - nSamples, 
-			    chunkFmt().sampleRate(), 
-			    chunkRcvr().nCenterFrequencyHz(),
-			    nSamples,
-			    0, // TODO
-			    chunkRcvr().wAttenId(),
-			    chunkRcvr().bAdcPresel(),
-			    chunkRcvr().bAdcPreamp(),
-			    chunkRcvr().bAdcDither());
-	p.procIQ(header, samples_);
-	samples_.clear();
       } catch (...) {
 	std::cout << "End Of File" << std::endl;
       }
@@ -195,14 +193,15 @@ namespace WAVE {
       if (!is) throw std::runtime_error("read failed");
       return data;
     }
-    
+
+    PROCESSOR&          p_;
     std::ifstream       is_;
     boost::uint64_t     sampleNumber_;
-    SampleVec           samples_;      // sample buffer
     const Chunk::RIFF   chunkRiff_;
     const Chunk::Format chunkFmt_;
     const Chunk::Rcvr   chunkRcvr_;
     const Chunk::Data   chunkData_;
+    IQBuffer            iqBuffer_;
   } ;
 } // namespace WAVE
 #endif // _WAVE_HPP_cm100929_

@@ -90,11 +90,11 @@ namespace Result {
       std::vector<double>::const_iterator iMin(std::min_element(ps.begin(), ps.end()));
       std::vector<double>::const_iterator iMax(std::max_element(ps.begin(), ps.end()));
       
-      const size_t indexMin(std::distance(ps.begin(), iMin));
+      // const size_t indexMin(std::distance(ps.begin(), iMin));
       const size_t indexMax(std::distance(ps.begin(), iMax));
 
-      const double fMin(freqs[indexMin]);
-      const double fMax(freqs[indexMax]);
+      // const double fMin(freqs[indexMin]);
+      // const double fMax(freqs[indexMax]);
 
       double sum(0.0);
       double weight(0.0);
@@ -346,6 +346,9 @@ namespace Action {
 
 class FFTProcessor {
 public:
+  typedef std::complex<double> Complex;
+  typedef std::vector<Complex> Samples;
+
   typedef std::string LevelKey;
   typedef class ActionKey {
   public:
@@ -417,18 +420,22 @@ public:
     }
   }
   ~FFTProcessor() {}
+  
 
-  void procIQ(const Header& header, const std::vector<std::complex<double> >& samples) { 
-    if (samples.size() != fftw_.size()) fftw_.resize(samples.size());
+  void procIQ(const Header& header, 
+	      Samples::const_iterator i0,
+	      Samples::const_iterator i1) {
+    const size_t length(std::distance(i0, i1));
+    if (length != fftw_.size()) fftw_.resize(length);
     std::cout << "FFTProcessor::procIQ " << header << std::endl;    
     if (windowFcnName_ == "Rectangular")
-      fftw_.transformVector(samples, FFT::WindowFunction::Rectangular());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular());
     else if (windowFcnName_ == "Hanning")
-      fftw_.transformVector(samples, FFT::WindowFunction::Hanning());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning());
     else if (windowFcnName_ == "Hamming")
-      fftw_.transformVector(samples, FFT::WindowFunction::Hamming());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming());
     else if (windowFcnName_ == "Blackman")
-      fftw_.transformVector(samples, FFT::WindowFunction::Blackman());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman());
     else 
       throw std::runtime_error(windowFcnName_ + ": unknown window function");      
     
