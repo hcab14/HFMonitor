@@ -1,5 +1,7 @@
 // -*- C++ -*-
 // $Id$
+#ifndef _WAVE_HPP_cm100929_
+#define _WAVE_HPP_cm100929_
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -134,6 +136,19 @@ namespace WAVE {
     boost::uint64_t sampleNumber() const { return sampleNumber_; }
     const SampleVec& samples() const { return samples_; }
 
+    // virtual procIQ(IQBuffer::Samples::const_iterator i0, 
+    // 		   IQBuffer::Samples::const_iterator i1) {
+    //   const Header header(sampleNumber_ - nSamples, 
+    // 			  chunkFmt().sampleRate(), 
+    // 			  chunkRcvr().nCenterFrequencyHz(),
+    // 			  nSamples,
+    // 			  0, // TODO
+    // 			  chunkRcvr().wAttenId(),
+    // 			  chunkRcvr().bAdcPresel(),
+    // 			  chunkRcvr().bAdcPreamp(),
+    // 			  chunkRcvr().bAdcDither());
+    //   p_.procIQ(header, i0, i1);
+    // }
     template<typename PROCESSOR>
     size_t proc(PROCESSOR& p, size_t nSamples) { // read nSamples samples
       size_t nRead(0);
@@ -142,6 +157,7 @@ namespace WAVE {
 	  const double xi(readRealSample());
 	  const double xq(readRealSample());
 	  samples_.push_back(std::complex<double>(xq,xi));
+// insert(std::complex<double>(xq,xi);
 	  ++sampleNumber_;
 	  ++nRead;
 	}
@@ -189,4 +205,4 @@ namespace WAVE {
     const Chunk::Data   chunkData_;
   } ;
 } // namespace WAVE
-
+#endif // _WAVE_HPP_cm100929_
