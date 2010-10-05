@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <algorithm>
 #include <vector>
 #include <complex>
 #include <stdexcept>
