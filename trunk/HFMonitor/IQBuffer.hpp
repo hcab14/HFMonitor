@@ -103,6 +103,7 @@ public:
     std::for_each(begin, end, boost::bind(fp, this, p, _1));
   }
 
+  // for debugging purpose only
   void procIQ(Samples::const_iterator i0, 
 	      Samples::const_iterator i1) {
     std::cout << "*** procIQ ";

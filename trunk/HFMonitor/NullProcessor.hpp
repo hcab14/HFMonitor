@@ -15,12 +15,14 @@ public:
   NullProcessor(const boost::property_tree::ptree& config) {}
   ~NullProcessor() {}
 
-  void procRaw(const Header& header, const std::vector<char>& rawData) { 
+  void procRaw(const Header& header, 
+	       std::vector<char>::const_iterator i0,
+	       std::vector<char>::const_iterator i1) {
     std::cout << "NullProcessor::procRaw " << header << std::endl;
   }
   void procIQ(const Header& header, 
 	std::vector<std::complex<double> >::const_iterator i0,
-        std::vector<std::complex<double> >::const_iterator i1 ) { 
+        std::vector<std::complex<double> >::const_iterator i1 ) {
     std::cout << "NullProcessor::procIQ " << header << std::endl;
   }
 protected:

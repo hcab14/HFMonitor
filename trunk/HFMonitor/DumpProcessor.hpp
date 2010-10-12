@@ -22,7 +22,9 @@ public:
     , fileNumber_(0) {}
   ~DumpProcessor() {}
 
-  void procRaw(const Header& header, const std::vector<char>& data) { 
+  void procRaw(const Header& header, 
+	       std::vector<char>::const_iterator i0,
+	       std::vector<char>::const_iterator i1) { 
     std::cout << "procRaw " << header << std::endl;
     if (sampleCounter_ > samplesPerFile_) {
       sampleCounter_= 0;
@@ -33,7 +35,7 @@ public:
       boost::filesystem::remove(p);
     boost::filesystem::ofstream ofs(p, std::ios::binary | std::ios::app);
     ofs.write((const char*)&header, sizeof(Header));
-    ofs.write(&data[0], data.size());
+    ofs.write(i0.operator->(), std::distance(i0, i1));
     sampleCounter_ += header.numberOfSamples();
   }
 

@@ -31,9 +31,9 @@ public:
 	if (!ifs.read((char*)&header, sizeof(Header))) 
 	  break;
 	std::vector<char> data(6*header.numberOfSamples());
-	if (!ifs.read(&data[0], data.size())) 
+	if (!ifs.read(data.begin().operator->(), data.size())) 
 	  return false;
-	p_.procRaw(header, data);
+	p_.procRaw(header, data.begin(), data.end());
       }
       fileNumber_++;
     }

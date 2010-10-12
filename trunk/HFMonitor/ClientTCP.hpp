@@ -67,8 +67,8 @@ protected:
 	async_receive_data();	break;
       case ReceivedData:
 	p_.procRaw(header_,
-		   std::vector<char>(dataBuffer_.begin(),
-					       dataBuffer_.begin()+header_.numberOfSamples()*6));
+		   std::vector<char>::const_iterator(dataBuffer_.begin()),
+		   std::vector<char>::const_iterator(dataBuffer_.begin()+header_.numberOfSamples()*6));
 	async_receive_header();	break;
       default:
 	; // do nothing	
@@ -78,18 +78,18 @@ protected:
 
   void async_receive_header() {
     boost::asio::async_read(socket_, boost::asio::buffer(&header_, sizeof(Header)),
-			  strand_.wrap(boost::bind(&ClientTCP::onReceive,
-						   this,
-						   boost::asio::placeholders::error,
-						   ReceivedHeader)));
+			    strand_.wrap(boost::bind(&ClientTCP::onReceive,
+						     this,
+						     boost::asio::placeholders::error,
+						     ReceivedHeader)));
   }
   void async_receive_data() {
     if (header_.numberOfSamples()*6 < maxBufferSize)
       boost::asio::async_read(socket_, boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
-			    strand_.wrap(boost::bind(&ClientTCP::onReceive,
-						     this,
-						     boost::asio::placeholders::error,
-						     ReceivedData)));
+			      strand_.wrap(boost::bind(&ClientTCP::onReceive,
+						       this,
+						       boost::asio::placeholders::error,
+						       ReceivedData)));
     else
       throw std::runtime_error("header.numberOfSamples()*6 >= maxBufferSize");
   }

@@ -71,7 +71,7 @@ namespace FFT {
       const fftw_complex& operator[](size_t n) const { return a_[n]; }
       
       template<typename WINDOW_FCN>
-      double fill(const std::vector<std::complex<double> > v,
+      double fill(const std::vector<std::complex<double> >& v,
 		  const WINDOW_FCN& window_fcn) {
 	return fill(v.begin(), v.end(), window_fcn);
       }
@@ -82,12 +82,11 @@ namespace FFT {
 	const size_t length(std::distance(i0, i1));
 	if (length != n_) resize(length);
 	norm_= 0;
-	for (unsigned u=0; u<n_ && i0 != i1; ++u, ++i0) {
+	for (unsigned u(0); u<n_ && i0 != i1; ++u, ++i0) {
 	  const double w(window_fcn(u,n_));
 	  norm_ += w;
-	  const std::complex<double> s((*i0) * w);
-	  a_[u][0] = s.real();
-	  a_[u][1] = s.imag();
+	  a_[u][0] = w * i0->real();
+	  a_[u][1] = w * i0->imag();
 	}
 	return norm_;
       }
@@ -153,7 +152,8 @@ namespace FFT {
 			std::vector<std::complex<double> >::const_iterator i1,
 			const WINDOW_FCN& window_fcn) {
       const size_t length(std::distance(i0, i1));
-      if (length != size()) throw 1;
+      if (length != size())
+	resize(length);
       in_.fill(i0, i1, window_fcn);
       normalizationFactor_= 1.0/in_.norm();
       fftw_execute(plan_);
@@ -170,7 +170,7 @@ namespace FFT {
 
     std::vector<std::complex<double> > getBins() const {
       std::vector<std::complex<double> > v(size());
-      for (size_t u=0; u<size(); ++u) 
+      for (size_t u(0); u<size(); ++u) 
 	v[u] = getBin(u);
       return v;
     }
