@@ -30,7 +30,7 @@ public:
   ~Raw2IQAdapter() {}
 
   void procRaw(const Header& header, const std::vector<char>& data) {
-    std::cout << "Raw2IQAdapter::procRaw " << header << " data.size()= " << data.size() << std::endl;
+//    std::cout << "Raw2IQAdapter::procRaw " << header << " data.size()= " << data.size() << std::endl;
     const double norm(1. / double(1<<23));
     std::vector<std::complex<double> > iqs;
     if (data.size() == 6 * header.numberOfSamples()) {

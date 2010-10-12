@@ -63,9 +63,9 @@ public:
       return prodid;
     }
 
-    void fpgaConfig(double sampleRate, std::string fileName) {
+    void fpgaConfig(int sampleRate) {
       sampleRate_= sampleRate;
-      if (perseus_fpga_config(descr_, const_cast<char*>(fileName.c_str())) < 0)
+      if (perseus_set_sampling_rate(descr_, sampleRate) < 0)
 	throw std::runtime_error("perseus_fpga_config: " + std::string(perseus_errorstr()));
     }
 

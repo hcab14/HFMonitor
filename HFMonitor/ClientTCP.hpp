@@ -77,7 +77,7 @@ protected:
   }
 
   void async_receive_header() {
-    socket_.async_receive(boost::asio::buffer(&header_, sizeof(Header)),
+    boost::asio::async_read(socket_, boost::asio::buffer(&header_, sizeof(Header)),
 			  strand_.wrap(boost::bind(&ClientTCP::onReceive,
 						   this,
 						   boost::asio::placeholders::error,
@@ -85,7 +85,7 @@ protected:
   }
   void async_receive_data() {
     if (header_.numberOfSamples()*6 < maxBufferSize)
-      socket_.async_receive(boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
+      boost::asio::async_read(socket_, boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
 			    strand_.wrap(boost::bind(&ClientTCP::onReceive,
 						     this,
 						     boost::asio::placeholders::error,

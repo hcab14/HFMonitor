@@ -4,6 +4,7 @@
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include "protocol.hpp"
 #include "run.h"
@@ -18,7 +19,7 @@ int main(int argc, char* argv[])
 {
   using boost::asio::ip::tcp;
   try {
-    if (argc != 3) {
+    if (argc < 3) {
       std::cerr << "Usage: client <host> <port>" << std::endl;
       return 1;
     }   
@@ -29,9 +30,8 @@ int main(int argc, char* argv[])
     tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 
     boost::property_tree::ptree config;
-    config.put("SamplesPerFile", 1000u*1000u);
-    config.put("FileNamePattern", std::string("data_%08X.bin"));
-    config.put("Repack.BufferLengthSec", 1.0);
+    std::string filename((argc > 3 ) ? argv[3] : "config.xml");
+    read_xml(filename, config); 
 
     ClientTCP<Raw2IQAdapter<RepackProcessor<FFTProcessor> > > c(io_service, endpoint_iterator, config);
 
