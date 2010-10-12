@@ -29,12 +29,15 @@ public:
     : p_(config) {}
   ~Raw2IQAdapter() {}
 
-  void procRaw(const Header& header, const std::vector<char>& data) {
+  void procRaw(const Header& header, 
+	       std::vector<char>::const_iterator i0,
+	       std::vector<char>::const_iterator i1) {
 //    std::cout << "Raw2IQAdapter::procRaw " << header << " data.size()= " << data.size() << std::endl;
+    const size_t size(std::distance(i0, i1));
     const double norm(1. / double(1<<23));
     std::vector<std::complex<double> > iqs;
-    if (data.size() == 6 * header.numberOfSamples()) {
-      for (std::vector<char>::const_iterator i=data.begin(); i!=data.end();) {
+    if (size == 6 * header.numberOfSamples()) {
+      for (std::vector<char>::const_iterator i(i0); i!=i1;) {
 	IQSample s;
 	s.i1 = 0; s.i2 = *i++; s.i3 = *i++; s.i4 = *i++;
 	s.q1 = 0; s.q2 = *i++; s.q3 = *i++; s.q4 = *i++;
@@ -43,6 +46,8 @@ public:
 	// std::cout << cs << std::endl;
 	iqs.push_back(cs);
       }
+    } else {
+      throw std::runtime_error("Raw2IQAdapter::procRaw size != 6 * header.numberOfSamples())");
     }
     p_.procIQ(header, iqs.begin(), iqs.end());
   }
