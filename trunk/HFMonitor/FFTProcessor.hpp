@@ -61,54 +61,60 @@ private:
 namespace Result {
   class Base : private boost::noncopyable {
   public:
+    typedef boost::shared_ptr<Base> Handle;
+
     Base(std::string name) 
       : name_(name) {}
     virtual ~Base() {}
     virtual std::string toString() const { return name(); }
     std::string name() const { return name_; }
+    // void setName(std::string name) { name_= name; }
     friend std::ostream& operator<<(std::ostream& os, const Base& b) {
       return os << b.toString();
     }
-  private:
+  protected:
     std::string name_;
   } ;
 
   class SpectrumPeak : public Base {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
-    SpectrumPeak(const std::vector<double>& freqs,
-		 const std::vector<double>& ps,
-		 double fReference,
-		 double minRatio)
+    SpectrumPeak(double fReference)
       : Base("SpectrumPeak")
       , fReference_(fReference) 
       , fMeasured_(0.) 
       , fMeasuredRMS_(1.) 
       , strength_(0.) 
       , strengthRMS_(1.)
-      , ratio_(1.) {
+      , ratio_(1.) {}
+
+    bool findPeak(const std::vector<double>& freqs,
+		  const std::vector<double>& ps,
+		  double minRatio) {
       std::vector<double>::const_iterator iMin(std::min_element(ps.begin(), ps.end()));
       std::vector<double>::const_iterator iMax(std::max_element(ps.begin(), ps.end()));
       
-      // const size_t indexMin(std::distance(ps.begin(), iMin));
       const size_t indexMax(std::distance(ps.begin(), iMax));
-
-      // const double fMin(freqs[indexMin]);
-      // const double fMax(freqs[indexMax]);
 
       double sum(0.0);
       double weight(0.0);
-      for (size_t u(indexMax-3); u<(indexMax+4); ++u) {
+      for (size_t u(indexMax-std::min(indexMax, size_t(3))); u<(indexMax+4) && u < ps.size(); ++u) {
 	weight += ps[u];
 	sum += ps[u] * freqs[u];
       }
       ratio_ = (*iMin != 0.0) ? *iMax / *iMin : 1.0;
-      if (ratio_ < minRatio || weight == 0.0)
-	throw std::runtime_error("ratio < minRatio || weight == 0.0");
-      fMeasured_    = sum / weight;
-      fMeasuredRMS_ = 1.0;
+      if (ratio_ < minRatio || weight == 0.0) {
+	// throw std::runtime_error("ratio < minRatio || weight == 0.0");
+	std::cout << "ratio < minRatio || weight == 0.0" << std::endl;
+	return false;
+      }
+      // TODO: error propagation
+      const std::pair<double, double> c(cal(sum/weight));
+      fMeasured_    = c.first;
+      fMeasuredRMS_ = c.second;
       strength_     = *iMax;
-      strengthRMS_  = *iMax/10.;      
+      strengthRMS_  = *iMax/10.; // TODO
+      return true;
     }
 
     virtual ~SpectrumPeak() {}
@@ -130,6 +136,10 @@ namespace Result {
     double strengthRMS() const { return strengthRMS_; }
     double ratio() const { return ratio_; }
 
+    // this methos is overwritten e.g. in CalibratedSpectrumPeak
+    virtual std::pair<double, double> cal(double f) const {
+      return std::make_pair(f, double(1));
+    }
   private:
     double fReference_;
     double fMeasured_;
@@ -144,7 +154,7 @@ namespace Result {
     typedef boost::shared_ptr<Calibration> Handle;
     typedef boost::numeric::ublas::matrix<double> Matrix;
     typedef boost::numeric::ublas::vector<double> Vector;
-    
+
     Calibration(const std::vector<Result::SpectrumPeak::Handle>& peaks)
       : Base("Calibration")
       , q_(2,2)
@@ -195,17 +205,40 @@ namespace Result {
     Vector x_;
   } ;
 
-  typedef boost::shared_ptr<Base> Handle;  
+  class CalibratedSpectrumPeak : public SpectrumPeak {
+  public:
+    typedef boost::shared_ptr<SpectrumPeak> Handle;
+    CalibratedSpectrumPeak(double fReference,
+			   Calibration::Handle calibrationHandle)
+      : SpectrumPeak(fReference)
+      , calibrationHandle_(calibrationHandle) {
+      name_= "CalibratedSpectrumPeak";
+    }
+    virtual ~CalibratedSpectrumPeak() {}
+
+    virtual std::string toString() const { 
+      std::stringstream ss; 
+      ss << SpectrumPeak::toString()
+	 << " diff="   << fMeasured()-fReference();
+      return ss.str();
+    }
+
+    virtual std::pair<double, double> cal(double f) const {
+      return calibrationHandle_->uncal2cal(f);
+    }
+  private:
+    Calibration::Handle calibrationHandle_;
+  } ;
 } // namespace Result
 
 namespace Proxy {
   class Base {
   public:
     virtual ~Base() {}
-    virtual void result(std::string resultKey, Result::Handle result) {
+    virtual void result(std::string resultKey, Result::Base::Handle result) {
       std::cout << "Proxy::Base::result [" << resultKey << "] " << result << std::endl;
     }
-    virtual Result::Handle getResult(std::string keyString) const = 0;
+    virtual Result::Base::Handle getResult(std::string keyString) const = 0;
   } ;
   
   typedef boost::shared_ptr<Base> Handle;
@@ -233,11 +266,17 @@ namespace Action {
       , minRatio_(config.get<double>("minRatio"))
       , resultKey_(config.get<std::string>("Name"))
       , filterType_("None")
-      , filterTimeConstant_(1.0) {
+      , filterTimeConstant_(1.0)
+      ,	useCalibration_(false)
+      , calibrationKey_("") {
       if (config.find("Filter") != config.not_found()) {
 	filterType_= config.get<std::string>("Filter.Type");
 	  if (filterType_ != "None")
 	    filterTimeConstant_ = config.get<double>("Filter.TimeConstant");
+      }
+      if (config.find("Calibration") != config.not_found()) {
+	useCalibration_= true;
+	calibrationKey_= config.get<std::string>("Calibration");
       }
     }
     
@@ -245,8 +284,6 @@ namespace Action {
       std::cout << "FindPeak::perform " << std::endl;
       const size_t i0(s.freq2Index(fMin_));
       const size_t i1(s.freq2Index(fMax_));
-      // vector containing the selected power spectrum [fMin_, fMax_]
-      std::cout << "i0,1 = " << i0 <<" " << i1 << std::endl;
       if (filterType_ == "None") {
 	ps_.clear();
 	for (size_t u=i0; u<=i1; ++u) 
@@ -269,22 +306,32 @@ namespace Action {
 	  freqs_.push_back(s.index2Freq(u));
 
       try {
-	Result::Handle rh(new Result::SpectrumPeak(freqs_, ps_, fReference_, minRatio_));
-	p.result(resultKey_, rh);		 
+	Result::SpectrumPeak* 
+	  spp((useCalibration_) 
+	      ? new Result::CalibratedSpectrumPeak(fReference_,
+						   boost::dynamic_pointer_cast<Result::Calibration>
+						   (p.getResult(calibrationKey_)))
+	      : new Result::SpectrumPeak(fReference_));
+	if (spp->findPeak(freqs_, ps_, minRatio_)) {
+	  Result::Base::Handle rh();
+	  p.result(resultKey_, Result::Base::Handle(spp));
+	}
       } catch (const std::runtime_error& e) {
 	std::cout << e.what() << std::endl;
       }
     }
   private:
-    const double fMin_;
-    const double fMax_;
-    const double fReference_;
-    const double minRatio_;
-    std::string resultKey_;
-    std::string filterType_;
-    double filterTimeConstant_;
-    std::vector<double> ps_;  // holds the last seen spectrum
-    std::vector<double> freqs_;  // frequencies
+    const double fMin_;               // min. frequency / Hz
+    const double fMax_;               // max. frequency / Hz 
+    const double fReference_;         // nominal frequency / Hz
+    const double minRatio_;           // min. ratio peak/background
+    std::string resultKey_;           // result key name
+    std::string filterType_;          // type of filter: None, LowPass
+    double filterTimeConstant_;       // filter time constant / seconds
+    bool useCalibration_;             // 
+    std::string calibrationKey_;      // key name for calibration information
+    std::vector<double> ps_;          // holds the last seen spectrum
+    std::vector<double> freqs_;       // frequencies
   } ;
 
   class Calibrator : public Base {
@@ -310,8 +357,8 @@ namespace Action {
       std::vector<Result::SpectrumPeak::Handle> peaks;
       for (std::vector<std::string>::const_iterator i(inputs_.begin()); i!=inputs_.end(); ++i) {
 	try {
-	  Result::SpectrumPeak::Handle sp(boost::dynamic_pointer_cast<Result::SpectrumPeak >(p.getResult(*i)));
-	  if (sp.get() != 0) {
+	  Result::SpectrumPeak::Handle sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(*i)));
+	  if (sp != 0) {
 	    peaks.push_back(sp);
 	  }
 	} catch (...) {
@@ -319,15 +366,15 @@ namespace Action {
 	}
       }
       try {	
-	Result::Handle rh(new Result::Calibration(peaks));
+	Result::Base::Handle rh(new Result::Calibration(peaks));
 	p.result(resultKey_, rh); 
       } catch (...) {
 	// ...
       }
     }
   private:
-    std::string resultKey_;
-    std::vector<std::string> inputs_;
+    std::string resultKey_;           // result key name
+    std::vector<std::string> inputs_; // key names of inputs used for calibration
   } ;
 
   typedef boost::shared_ptr<Base> Handle;
@@ -370,7 +417,7 @@ public:
   typedef std::map<LevelKey, ActionMap> LevelMap;
 
   typedef std::string ResultKey;
-  typedef std::map<ResultKey, Result::Handle> ResultMap;
+  typedef std::map<ResultKey, Result::Base::Handle> ResultMap;
 
   class FFTProxy : public Proxy::Base {
   public:
@@ -378,7 +425,7 @@ public:
       : level_(level)
       , resultMap_(resultMap) {}
 
-    virtual void result(std::string resultKey, Result::Handle result) {
+    virtual void result(std::string resultKey, Result::Base::Handle result) {
       std::cout << "FFTProxy::result [" << resultKey << "] " << result << std::endl;
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
@@ -386,7 +433,7 @@ public:
       resultMap_[key] = result;
     }
 
-    virtual Result::Handle getResult(std::string keyString) const {
+    virtual Result::Base::Handle getResult(std::string keyString) const {
       ResultMap::const_iterator i(resultMap_.find(keyString));
       if (i != resultMap_.end())
 	return i->second;
@@ -395,12 +442,12 @@ public:
     
     std::string level() const { return level_; }
   private:
-    std::string level_;
+    const std::string level_;
     ResultMap& resultMap_;
   } ;
 
   FFTProcessor(const boost::property_tree::ptree& config)
-    : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+    : fftw_(1024, FFTW_BACKWARD, FFTW_MEASURE)
     , counter_(0)
     , windowFcnName_(config.get<std::string>("FFT.WindowFunction")) {
     using boost::property_tree::ptree;
@@ -457,13 +504,6 @@ public:
     for (ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) 
       std::cout << "result: " << i->first << " " << *(i->second) << std::endl;
 
-    // boost::filesystem::path p(boost::str(boost::format("fft_%03d.txt") % counter_++));
-    // boost::filesystem::ofstream ofs(p);  
-    // for (size_t u(0); u<s.size(); ++u)
-    //   ofs << s.index2Freq(u) << " "
-    // 	  << std::abs(fftw_.getBin(u)) << " " 
-    // 	  << std::arg(fftw_.getInBin(u))
-    // 	  << std::endl;
   }
 protected:
 private:

@@ -6,7 +6,6 @@ server.data.port ..........
 server.ctrl.port ..........
 perseus.qrg_Hz ............ DDS frequency / Hz
 perseus.fpga.samplerate ... samplingrate / Hz
-perseus.fpga.rbs .......... FPGA data file
 Repack.BufferLengthSec .... buffer length in seconds for all following processors
 Dump.SamplesPerFile ....... # samples / file
 Dump.FileNamePattern ...... filename pattern for output
@@ -24,23 +23,17 @@ FFT.WindowFunction ........
   <qrg_Hz>250000</qrg_Hz>
   <fpga>
     <samplerate>500000</samplerate>
-    <rbs>perseus500k24v21.rbs</rbs>
 <!--
     <samplerate>95000</samplerate>
-    <rbs>perseus95k24v31.rbs</rbs>
     <samplerate>125000</samplerate>
-    <rbs>perseus125k24v21.rbs</rbs>
     <samplerate>500000</samplerate>
-    <rbs>perseus500k24v21.rbs</rbs>
     <samplerate>1000000</samplerate>
-    <rbs>perseus1m24v21.rbs</rbs>
     <samplerate>2000000</samplerate> 
-    <rbs>perseus2m24v21.rbs</rbs> 
 -->
   </fpga>
 </perseus>
 <Repack>
-  <BufferLengthSec>1.0</BufferLengthSec>
+  <BufferLengthSec>0.5</BufferLengthSec>
   <Overlap>0.5</Overlap>
 </Repack>
 <FFT>
@@ -103,6 +96,20 @@ FFT.WindowFunction ........
 	<Name>CAL</Name>
       </Calibrator>
     </L1>
+    <L2>
+      <FindPeak>
+	<Filter> 
+	  <Type>LowPass</Type>
+	  <TimeConstant>60.0</TimeConstant>
+	</Filter>
+	<fMin>77.2e3</fMin>
+	<fMax>77.7e3</fMax>
+	<fRef>77.5e3</fRef>
+	<minRatio>10</minRatio>
+	<Name>DCF_77</Name>
+	<Calibration>L1.CAL</Calibration>
+      </FindPeak>
+    </L2>
   </Actions>
 </FFT>
 <Dump>

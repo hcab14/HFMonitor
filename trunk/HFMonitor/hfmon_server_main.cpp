@@ -97,7 +97,7 @@ public:
 							   boost::asio::placeholders::error, new_socket)));
     }
     //
-    recPtr_->startAsyncInput(510, server::receiverCallback, this);
+    recPtr_->startAsyncInput(16320, server::receiverCallback, this);
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
@@ -142,7 +142,7 @@ public:
 		  recPtr_->enableDither());
   }
 
-  static int receiverCallback(const void *buf, size_t buf_size, void *extra) {
+  static int receiverCallback(void *buf, int buf_size, void *extra) {
     server* sp= (server* )extra;
     const unsigned nSamples   = buf_size/6;
     const Header   header(sp->getHeader(nSamples));
@@ -213,8 +213,7 @@ int main(int argc, char* argv[])
     Perseus::ReceiverPtr pp(p.getReceiverPtr(0));
 
     pp->downloadFirmware();
-    pp->fpgaConfig(pt.get<double>     ("perseus.fpga.samplerate"),
-		   pt.get<std::string>("perseus.fpga.rbs"));
+    pp->fpgaConfig(pt.get<int>("perseus.fpga.samplerate"));		   
 
     // todo: get from config
     pp->setAttenuator(PERSEUS_ATT_0DB);

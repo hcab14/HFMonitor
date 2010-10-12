@@ -18,7 +18,9 @@ public:
   void procRaw(const Header& header, const std::vector<char>& rawData) { 
     std::cout << "NullProcessor::procRaw " << header << std::endl;
   }
-  void procIQ(const Header& header, const std::vector<std::complex<double> >& samples) { 
+  void procIQ(const Header& header, 
+	std::vector<std::complex<double> >::const_iterator i0,
+        std::vector<std::complex<double> >::const_iterator i1 ) { 
     std::cout << "NullProcessor::procIQ " << header << std::endl;
   }
 protected:
