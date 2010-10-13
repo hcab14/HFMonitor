@@ -410,8 +410,10 @@ namespace Action {
   } ;
 } // namespace Action
 
+template<typename FFTFloat>
 class FFTProcessor {
 public:
+  // typedef float FFTFloat;
   typedef std::complex<double> Complex;
   typedef std::vector<Complex> Samples;
 
@@ -504,14 +506,14 @@ public:
     else 
       throw std::runtime_error(windowFcnName_ + ": unknown window function");      
     
-    const Spectrum<float> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
+    const Spectrum<FFTFloat> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
   
     // operate on Spectrum
     ResultMap resultMap;
-    for (LevelMap::const_iterator i(actions_.begin()); i!=actions_.end(); ++i) {
+    for (typename LevelMap::const_iterator i(actions_.begin()); i!=actions_.end(); ++i) {
       std::string levelName(i->first);
       const ActionMap& levelActions(i->second);
-      for (ActionMap::const_iterator j(levelActions.begin()); j!=levelActions.end(); ++j) {
+      for (typename ActionMap::const_iterator j(levelActions.begin()); j!=levelActions.end(); ++j) {
 	ActionKey actionKey(j->first);
 	FFTProxy proxy(levelName, resultMap);
 	std::cout << levelName << " " << actionKey << std::endl;
@@ -519,13 +521,13 @@ public:
       }
     }
 
-    for (ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) 
+    for (typename ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) 
       std::cout << "result: " << i->first << " " << *(i->second) << std::endl;
 
   }
 protected:
 private:
-  FFT::FFTWTransform<float> fftw_;
+  FFT::FFTWTransform<FFTFloat> fftw_;
   unsigned counter_;
   std::string windowFcnName_;
 

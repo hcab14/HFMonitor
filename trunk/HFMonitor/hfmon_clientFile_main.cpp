@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     read_xml(filename, config);    
     config.put("FileNamePattern", std::string(argv[1]));
 
-    ClientFile<Raw2IQAdapter<RepackProcessor<FFTProcessor> > > c(config);
+    ClientFile<Raw2IQAdapter<RepackProcessor<FFTProcessor<float> > > > c(config);
     while (c.process()) 
       ;
   } catch (const std::exception& e) {

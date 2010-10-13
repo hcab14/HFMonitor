@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     read_xml(filename, config);    
     config.put("FileNamePattern", std::string(argv[1]));
 
-    ClientFileWAVE<FFTProcessor> c(config);
+    ClientFileWAVE<FFTProcessor<float> > c(config);
     while (c.process()) 
       ;
   } catch (const std::exception& e) {
