@@ -20,40 +20,59 @@
 #include "protocol.hpp"
 #include "FFT.hpp"
 
-class Spectrum {
+class SpectrumBase {
 public:
-  Spectrum(const FFT::FFTWTransform& fftw,
-	   double sampleRate,
-	   double centerFrequency)
-    : fftw_(fftw)
-    , sampleRate_(sampleRate)
+  SpectrumBase(double sampleRate,
+	       double centerFrequency)
+    : sampleRate_(sampleRate)
     , centerFrequency_(centerFrequency) {}
 
-  size_t freq2Index(double qrg_Hz) const { // get the nearest bin index
+  typedef std::complex<double> Complex;
+
+  double sampleRate() const { return sampleRate_; }
+  double centerFrequency() const { return centerFrequency_; }
+
+  virtual size_t freq2Index(double qrg_Hz) const = 0;  // get the nearest bin index
+  virtual double index2Freq(size_t index)  const = 0;  // ...
+  virtual size_t size()                    const = 0;  // ...
+  virtual Complex operator[](size_t index) const = 0;  // ...
+
+private:
+  double sampleRate_;
+  double centerFrequency_;
+} ;
+
+template<typename T>
+class Spectrum : public SpectrumBase {
+public:
+  Spectrum(const FFT::FFTWTransform<T>& fftw,
+	   double sampleRate,
+	   double centerFrequency)
+    : SpectrumBase(sampleRate, centerFrequency)
+    , fftw_(fftw) {}
+
+  virtual size_t freq2Index(double qrg_Hz) const { // get the nearest bin index
     const int n(size());
     const int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
     if (i >= -n/2 && i < n/2)
       return (i>=0) ? i : n+i;
     else 
-      throw 1;
+      throw std::runtime_error("freq2Index failed");
   }
 
-  double index2Freq(size_t index) const { //
+  virtual double index2Freq(size_t index) const { //
     const int n(size());
     return centerFrequency() + sampleRate() * (int(index)>=n/2 ? -n+int(index) : int(index)) / double(n);
   }
   
-  size_t size() const { return fftw_.size(); }
-  double sampleRate() const { return sampleRate_; }
-  double centerFrequency() const { return centerFrequency_; }
-
-  std::complex<double> operator[](size_t index) const { return fftw_.getBin(index); }
+  virtual size_t size() const { return fftw_.size(); }
+  virtual std::complex<double> operator[](size_t index) const { return fftw_.getBin(index); }
   
 protected:
 private:
   static int round(double d) { return int(d+((d>=0.0) ? .5 : -.5)); }
 
-  const FFT::FFTWTransform& fftw_;
+  const FFT::FFTWTransform<T>& fftw_;
   double sampleRate_;
   double centerFrequency_;
 } ;
@@ -251,7 +270,7 @@ namespace Action {
       : name_(name) {}
     virtual ~Base() {}
     std::string name() const { return name_; }
-    virtual void perform(Proxy::Base& p , const Spectrum& s) = 0;
+    virtual void perform(Proxy::Base& p, const SpectrumBase& s) = 0;
   private:
     std::string name_;
   } ;
@@ -280,7 +299,7 @@ namespace Action {
       }
     }
     
-    virtual void perform(Proxy::Base& p, const Spectrum& s) {
+    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       std::cout << "FindPeak::perform " << std::endl;
       const size_t i0(s.freq2Index(fMin_));
       const size_t i1(s.freq2Index(fMax_));
@@ -350,8 +369,8 @@ namespace Action {
 	}
       }
     }
-    
-    virtual void perform(Proxy::Base& p, const Spectrum& s) {
+
+    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       std::cout << "Calibrator::perform" << std::endl;
       // count data
       std::vector<Result::SpectrumPeak::Handle> peaks;
@@ -447,7 +466,7 @@ public:
   } ;
 
   FFTProcessor(const boost::property_tree::ptree& config)
-    : fftw_(1024, FFTW_BACKWARD, FFTW_MEASURE)
+    : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , counter_(0)
     , windowFcnName_(config.get<std::string>("FFT.WindowFunction")) {
     using boost::property_tree::ptree;
@@ -468,7 +487,6 @@ public:
   }
   ~FFTProcessor() {}
   
-
   void procIQ(const Header& header, 
 	      Samples::const_iterator i0,
 	      Samples::const_iterator i1) {
@@ -476,17 +494,17 @@ public:
     if (length != fftw_.size()) fftw_.resize(length);
     std::cout << "FFTProcessor::procIQ " << header << std::endl;    
     if (windowFcnName_ == "Rectangular")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<double>());
     else if (windowFcnName_ == "Hanning")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning<double>());
     else if (windowFcnName_ == "Hamming")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<double>());
     else if (windowFcnName_ == "Blackman")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>());
     else 
       throw std::runtime_error(windowFcnName_ + ": unknown window function");      
     
-    const Spectrum s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
+    const Spectrum<float> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
   
     // operate on Spectrum
     ResultMap resultMap;
@@ -507,7 +525,7 @@ public:
   }
 protected:
 private:
-  FFT::FFTWTransform fftw_;
+  FFT::FFTWTransform<float> fftw_;
   unsigned counter_;
   std::string windowFcnName_;
 

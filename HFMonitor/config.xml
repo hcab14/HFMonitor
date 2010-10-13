@@ -127,5 +127,19 @@ FFT.WindowFunction ........
     <bandwidth>10</bandwitdth>
     <CalibrationKey>L1.CAL</CalibrationKey>
     </FieldStrengthRecorder>
+      <RecordFieldStrength>
+	<Function>max</Function>
+	<fRef>153e3</fRef>
+	<Bandwidth>20</Bandwidth>
+	<Name>153_max</Name>
+	<Calibration>L1.CAL</Calibration>
+      </RecordFieldStrength>
+      <RecordFieldStrength>
+	<Function>max</Function>
+	<fRef>225e3</fRef>
+	<Bandwidth>20</Bandwidth>
+	<Name>225_max</Name>
+	<Calibration>L1.CAL</Calibration>
+      </RecordFieldStrength>
     </L2>
 -->
