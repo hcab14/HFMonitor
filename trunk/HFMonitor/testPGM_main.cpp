@@ -6,12 +6,17 @@
 
 class PGMWriter {
 public:
-  PGMWriter(std::string fileName, size_t width)
+  typedef std::vector<std::string> Comments;
+  PGMWriter(std::string fileName, 
+	    size_t width,
+	    const Comments& comments=Comments())
     : os_(fileName.c_str())
     , width_(width)
     , height_(0) {
     if (!os_) throw std::runtime_error("XXX");
-    os_ << "P5\n";
+    writeStr("P5\n");
+    for (Comments::const_iterator i(comments.begin()); i!=comments.end(); ++i) 
+      writeStr("# "+*i+"\n");
     writeStr(str(boost::format("%9d ")  % width_));
     heightPos_ = os_.tellp();
     writeStr(str(boost::format("%9d\n")  % height_));
@@ -47,14 +52,17 @@ protected:
   }
 private:
   std::ofstream os_;
-  size_t width_;
+  const size_t width_;
   size_t height_;
   std::ostream::streampos heightPos_;
 } ;
 
 int main()
 {
-  PGMWriter p("test.pgm", 100);
+  PGMWriter::Comments c;
+  c.push_back("Hello");
+  c.push_back("World!");
+  PGMWriter p("test.pgm", 100, c);
   std::string line;
   for (unsigned u(0); u<100; ++u)
     line.push_back(u);
