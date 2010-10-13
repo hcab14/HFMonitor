@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     std::string filename((argc > 3 ) ? argv[3] : "config.xml");
     read_xml(filename, config); 
 
-    ClientTCP<Raw2IQAdapter<RepackProcessor<FFTProcessor> > > c(io_service, endpoint_iterator, config);
+    ClientTCP<Raw2IQAdapter<RepackProcessor<FFTProcessor<float> > > > c(io_service, endpoint_iterator, config);
 
     run(io_service, c);
 
