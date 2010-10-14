@@ -77,6 +77,25 @@ private:
   double centerFrequency_;
 } ;
 
+class FreqStrength {
+public:
+  FreqStrength(double freq, double strength)
+    : freq_(freq)
+    , strength_(strength) {}
+  
+  double freq() const { return freq_; }
+  double strength() const { return strength_; }
+  double& strength() { return strength_; }
+  
+  static bool cmpStrength(const FreqStrength& fs1, 
+			  const FreqStrength& fs2) {
+    return fs1.strength() < fs2.strength();
+  }
+private:
+  double freq_;
+  double strength_;
+} ;
+
 namespace Result {
   class Base : private boost::noncopyable {
   public:
@@ -107,21 +126,21 @@ namespace Result {
       , strengthRMS_(1.)
       , ratio_(1.) {}
 
-    bool findPeak(const std::vector<double>& freqs,
-		  const std::vector<double>& ps,
-		  double minRatio) {
-      std::vector<double>::const_iterator iMin(std::min_element(ps.begin(), ps.end()));
-      std::vector<double>::const_iterator iMax(std::max_element(ps.begin(), ps.end()));
+    bool findPeak(const std::vector<FreqStrength>& fs, double minRatio) {
+      std::vector<FreqStrength>::const_iterator
+	iMin(std::min_element(fs.begin(), fs.end(), FreqStrength::cmpStrength));
+      std::vector<FreqStrength>::const_iterator
+	iMax(std::max_element(fs.begin(), fs.end(), FreqStrength::cmpStrength));
       
-      const size_t indexMax(std::distance(ps.begin(), iMax));
+      const size_t indexMax(std::distance(fs.begin(), iMax));
 
       double sum(0.0);
       double weight(0.0);
-      for (size_t u(indexMax-std::min(indexMax, size_t(3))); u<(indexMax+4) && u < ps.size(); ++u) {
-	weight += ps[u];
-	sum += ps[u] * freqs[u];
+      for (size_t u(indexMax-std::min(indexMax, size_t(3))); u<(indexMax+4) && u < fs.size(); ++u) {
+	weight += fs[u].strength();
+	sum += fs[u].strength() * fs[u].freq();
       }
-      ratio_ = (*iMin != 0.0) ? *iMax / *iMin : 1.0;
+      ratio_ = (iMin->strength() != 0.0) ? iMax->strength() / iMin->strength() : 1.0;
       if (ratio_ < minRatio || weight == 0.0) {
 	// throw std::runtime_error("ratio < minRatio || weight == 0.0");
 	std::cout << "ratio < minRatio || weight == 0.0" << std::endl;
@@ -131,8 +150,8 @@ namespace Result {
       const std::pair<double, double> c(cal(sum/weight));
       fMeasured_    = c.first;
       fMeasuredRMS_ = c.second;
-      strength_     = *iMax;
-      strengthRMS_  = *iMax/10.; // TODO
+      strength_     = iMax->strength();
+      strengthRMS_  = iMax->strength()/10.; // TODO
       return true;
     }
 
@@ -155,10 +174,11 @@ namespace Result {
     double strengthRMS() const { return strengthRMS_; }
     double ratio() const { return ratio_; }
 
-    // this methos is overwritten e.g. in CalibratedSpectrumPeak
+    // this method is overwritten e.g. in CalibratedSpectrumPeak
     virtual std::pair<double, double> cal(double f) const {
       return std::make_pair(f, double(1));
     }
+
   private:
     double fReference_;
     double fMeasured_;
@@ -174,17 +194,21 @@ namespace Result {
     typedef boost::numeric::ublas::matrix<double> Matrix;
     typedef boost::numeric::ublas::vector<double> Vector;
 
-    Calibration(const std::vector<Result::SpectrumPeak::Handle>& peaks)
+    Calibration(const std::vector<Result::SpectrumPeak::Handle>& peaks,
+		size_t n=2)
       : Base("Calibration")
-      , q_(2,2)
-      , x_(2) {
+      , n_(n)
+      , q_(n,n)
+      , x_(n) {
       using namespace boost::numeric::ublas;
-      Matrix a(peaks.size(), 2);
+      Matrix a(peaks.size(), n);
       Vector y(peaks.size());
       for (size_t u(0); u<peaks.size(); ++u) {
 	y(u)   = peaks[u]->fMeasured();
-	a(u,0) = 1.0;
-	a(u,1) = peaks[u]->fReference();
+	double t(1.0);
+	for (size_t v(0); v<n; ++v) {
+	  a(u,v) = t; t *= peaks[u]->fReference();
+	}
       }
       // least squares inversion
       Matrix ata(prod(trans(a),a));
@@ -207,11 +231,16 @@ namespace Result {
     // returns a value,RMS pair
     std::pair<double, double> cal2uncal(double fCal) const {
       using namespace boost::numeric::ublas;
-      Vector a(2); a(0)=1; a(1)=fCal;
+      Vector a(n_);
+      double t(1.0);
+      for (unsigned u(0); u<n_; ++u) {
+	a(u)=t; t *= fCal;
+      }
       return std::make_pair(inner_prod(a,x_),
 			    std::sqrt(inner_prod(a, Vector(prod(q_, a)))));
     }
     // returns a value,RMS pair
+    // NOTE: for n_ != 2 this is broken
     std::pair<double,double> uncal2cal(double fUncal) const {
       using namespace boost::numeric::ublas;
       const double fCal((fUncal-x_(0))/x_(1));
@@ -220,6 +249,7 @@ namespace Result {
     }
     
   private:
+    size_t n_;
     Matrix q_;
     Vector x_;
   } ;
@@ -271,59 +301,80 @@ namespace Action {
     virtual ~Base() {}
     std::string name() const { return name_; }
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) = 0;
-  private:
+  protected:
     std::string name_;
   } ;
-  
-  class FindPeak : public Base {
+
+  class SpectumInterval : public Base {
   public:
-    FindPeak(const boost::property_tree::ptree& config)
-      : Base("FindPeak")
+    SpectumInterval(const boost::property_tree::ptree& config)
+      : Base("SpectumInterval")
       , fMin_(config.get<double>("fMin"))
       , fMax_(config.get<double>("fMax"))
+      , filterType_(config.find("Filter") != config.not_found() 
+		    ? config.get<std::string>("Filter.Type")
+		    : "None")
+      , filterTimeConstant_((filterType_ != "None") 
+			    ? config.get<double>("Filter.TimeConstant")
+			    : 1.0) {}
+    
+    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
+      const size_t i0(s.freq2Index(fMin_));
+      const size_t i1(s.freq2Index(fMax_));
+      if (filterType_ == "None") {
+	fs_.clear();
+	for (size_t u=i0; u<=i1; ++u) 
+	  fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
+      } else if (filterType_ == "LowPass") {
+	if (fs_.empty()) {
+	  for (size_t u=i0; u<=i1; ++u) 
+	    fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
+	} else {
+	  const double dt(s.size()/s.sampleRate());
+	  const double x(dt / filterTimeConstant_);
+	  for (size_t u=i0; u<=i1; ++u) 
+	    fs_[u-i0].strength() = (1-x) * fs_[u-i0].strength() + x * std::abs(s[u]);
+	}
+      } else {
+	throw std::runtime_error(filterType_ + " unknown filter");
+      }
+
+      proc(p, s, fs_);      
+    }
+
+    virtual void proc(Proxy::Base& p, 
+		      const SpectrumBase& s,
+		      const std::vector<FreqStrength>& fs) {}
+    
+  protected:
+  private:
+    const double fMin_;
+    const double fMax_;
+    const std::string filterType_;
+    const double filterTimeConstant_;
+    std::vector<FreqStrength> fs_;
+  } ;
+
+  class FindPeak : public SpectumInterval {
+  public:
+    FindPeak(const boost::property_tree::ptree& config)
+      : SpectumInterval(config)
       , fReference_(config.get<double>("fRef"))
       , minRatio_(config.get<double>("minRatio"))
       , resultKey_(config.get<std::string>("Name"))
-      , filterType_("None")
-      , filterTimeConstant_(1.0)
       ,	useCalibration_(false)
       , calibrationKey_("") {
-      if (config.find("Filter") != config.not_found()) {
-	filterType_= config.get<std::string>("Filter.Type");
-	  if (filterType_ != "None")
-	    filterTimeConstant_ = config.get<double>("Filter.TimeConstant");
-      }
+      name_ = "FindPeak";
       if (config.find("Calibration") != config.not_found()) {
 	useCalibration_= true;
 	calibrationKey_= config.get<std::string>("Calibration");
       }
     }
     
-    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
+    virtual void proc(Proxy::Base& p, 
+		      const SpectrumBase& s,
+		      const std::vector<FreqStrength>& fs) {
       std::cout << "FindPeak::perform " << std::endl;
-      const size_t i0(s.freq2Index(fMin_));
-      const size_t i1(s.freq2Index(fMax_));
-      if (filterType_ == "None") {
-	ps_.clear();
-	for (size_t u=i0; u<=i1; ++u) 
-	  ps_.push_back(std::abs(s[u]));
-      } else if (filterType_ == "LowPass") {
-	if (ps_.empty()) {
-	  for (size_t u=i0; u<=i1; ++u) 
-	    ps_.push_back(std::abs(s[u]));
-	} else {
-	  const double dt(s.size()/s.sampleRate());
-	  const double x(dt / filterTimeConstant_);
-	  for (size_t u=i0; u<=i1; ++u) 
-	    ps_[u-i0] = (1-x) * ps_[u-i0] + x * std::abs(s[u]);	  
-	}
-      } else {
-	throw std::runtime_error(filterType_ + " unknown filter");
-      }
-      if (freqs_.empty()) 
-	for (size_t u(i0); u<=i1; ++u)
-	  freqs_.push_back(s.index2Freq(u));
-
       try {
 	Result::SpectrumPeak* 
 	  spp((useCalibration_) 
@@ -331,7 +382,7 @@ namespace Action {
 						   boost::dynamic_pointer_cast<Result::Calibration>
 						   (p.getResult(calibrationKey_)))
 	      : new Result::SpectrumPeak(fReference_));
-	if (spp->findPeak(freqs_, ps_, minRatio_)) {
+	if (spp->findPeak(fs, minRatio_)) {
 	  Result::Base::Handle rh();
 	  p.result(resultKey_, Result::Base::Handle(spp));
 	}
@@ -340,17 +391,11 @@ namespace Action {
       }
     }
   private:
-    const double fMin_;               // min. frequency / Hz
-    const double fMax_;               // max. frequency / Hz 
     const double fReference_;         // nominal frequency / Hz
     const double minRatio_;           // min. ratio peak/background
     std::string resultKey_;           // result key name
-    std::string filterType_;          // type of filter: None, LowPass
-    double filterTimeConstant_;       // filter time constant / seconds
     bool useCalibration_;             // 
     std::string calibrationKey_;      // key name for calibration information
-    std::vector<double> ps_;          // holds the last seen spectrum
-    std::vector<double> freqs_;       // frequencies
   } ;
 
   class Calibrator : public Base {
