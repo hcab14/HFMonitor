@@ -10,6 +10,7 @@
 #include <complex>
 
 #include "WAVE.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 template<typename PROCESSOR>
 class ClientFileWAVE : private boost::noncopyable {

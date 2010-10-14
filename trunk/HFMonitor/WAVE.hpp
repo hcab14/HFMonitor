@@ -72,7 +72,7 @@ namespace WAVE {
     public:
       boost::uint32_t nCenterFrequencyHz() const { return nCenterFrequencyHz_; }
       boost::uint32_t nSamplingRateIdx() const { return nSamplingRateIdx_; }
-      time_t          timeStart() const { return timeStart_; }
+      boost::posix_time::ptime timeStart() const { return boost::posix_time::from_time_t(timeStart_); }
       boost::uint16_t wAttenId() const { return wAttenId_; }
       boost::uint8_t  bAdcPresel() const { return bAdcPresel_; }
       boost::uint8_t  bAdcPreamp() const { return bAdcPreamp_; }

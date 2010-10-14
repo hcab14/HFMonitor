@@ -110,6 +110,7 @@ namespace Result {
     friend std::ostream& operator<<(std::ostream& os, const Base& b) {
       return os << b.toString();
     }
+    virtual void dump(std::string path) {}
   protected:
     std::string name_;
   } ;
@@ -338,10 +339,11 @@ namespace Action {
       } else {
 	throw std::runtime_error(filterType_ + " unknown filter");
       }
-
+      // call virtual method
       proc(p, s, fs_);      
     }
 
+    // this method is overwritten by, e.g., FindPeak, see below
     virtual void proc(Proxy::Base& p, 
 		      const SpectrumBase& s,
 		      const std::vector<FreqStrength>& fs) {}
@@ -466,7 +468,7 @@ public:
   typedef class ActionKey {
   public:
     ActionKey(std::string name, size_t number) : name_(name), number_(number) {}
-    std::string name() const {return name_; }
+    std::string name() const { return name_; }
     size_t number() const { return number_; }
     friend std::ostream& operator<<(std::ostream& os, const ActionKey& a) {
       return os << "(" << a.name() << ", " << a.number() << ")";
@@ -474,6 +476,7 @@ public:
     friend bool operator<(const ActionKey& a1, const ActionKey& a2) {
       return a1.makePair() < a2.makePair();
     }
+    std::string toString() const { return name_ + str(boost::format("_%04d")  % number_); }
     std::pair<std::string, size_t> makePair() const { return std::make_pair(name_, number_); }
   private:
     std::string name_;
@@ -515,7 +518,8 @@ public:
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , counter_(0)
-    , windowFcnName_(config.get<std::string>("FFT.WindowFunction")) {
+    , windowFcnName_(config.get<std::string>("FFT.WindowFunction"))
+    , dataPath_(config.get<std::string>("FFT.DataPath")) {
     using boost::property_tree::ptree;
     const ptree& pt(config.get_child("FFT.Actions"));
     // Levels
@@ -575,7 +579,7 @@ private:
   FFT::FFTWTransform<FFTFloat> fftw_;
   unsigned counter_;
   std::string windowFcnName_;
-
+  std::string dataPath_;
   LevelMap actions_;
 } ;
 
