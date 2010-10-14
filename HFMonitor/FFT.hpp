@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // $Id$
-#ifndef _FFT_HPP_cm230810_
-#define _FFT_HPP_cm230810_
+#ifndef _FFT_HPP_cm100823_
+#define _FFT_HPP_cm100823_
 
 #include <complex>
 #include <fftw3.h>
@@ -237,4 +237,4 @@ namespace FFT {
     T normalizationFactor_;
   } ;
 } // namespace FFT
-#endif // _FFT_HPP_cm230810_
+#endif // _FFT_HPP_cm100823_

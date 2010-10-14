@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // $Id$
-#ifndef _NULL_PROCESSOR_HPP_cm100729_
-#define _NULL_PROCESSOR_HPP_cm100729_
+#ifndef _FFT_PROCESSOR_HPP_cm100729_
+#define _FFT_PROCESSOR_HPP_cm100729_
 
 #include <iostream>
 #include <vector>
@@ -579,5 +579,5 @@ private:
   LevelMap actions_;
 } ;
 
-#endif // _NULL_PROCESSOR_HPP_cm100729_
+#endif // _FFT_PROCESSOR_HPP_cm100729_
 
