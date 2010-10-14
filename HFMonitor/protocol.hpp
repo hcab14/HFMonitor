@@ -4,6 +4,7 @@
 #define _PROTOCOL_HPP_cm100625_
 
 #include <boost/cstdint.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 class Header {
 public:

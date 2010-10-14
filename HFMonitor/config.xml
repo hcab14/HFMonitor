@@ -38,6 +38,7 @@ FFT.WindowFunction ........
 </Repack>
 <FFT>
   <WindowFunction>Blackman</WindowFunction>
+  <DataPath>Data</DataPath>
   <Actions>
     <L0>      
       <FindPeak>
@@ -107,6 +108,18 @@ FFT.WindowFunction ........
 	<fRef>77.5e3</fRef>
 	<minRatio>10</minRatio>
 	<Name>DCF_77</Name>
+	<Calibration>L1.CAL</Calibration>
+      </FindPeak>
+      <FindPeak>
+	<Filter> 
+	  <Type>None</Type>
+	  <TimeConstant>60.0</TimeConstant>
+	</Filter>
+	<fMin>176.8e3</fMin>
+	<fMax>177.2e3</fMax>
+	<fRef>177.0e3</fRef>
+	<minRatio>10</minRatio>
+	<Name>DRKultur</Name>
 	<Calibration>L1.CAL</Calibration>
       </FindPeak>
     </L2>

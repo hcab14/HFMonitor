@@ -17,6 +17,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "run.h"
 
@@ -143,6 +144,7 @@ public:
   }
 
   static int receiverCallback(void *buf, int buf_size, void *extra) {
+    std::cout << boost::posix_time::microsec_clock::universal_time() << std::endl;
     server* sp= (server* )extra;
     const unsigned nSamples   = buf_size/6;
     const Header   header(sp->getHeader(nSamples));
