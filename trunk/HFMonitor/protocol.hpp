@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // $Id$
-#ifndef _PROTOCOL_HPP_250610_
-#define _PROTOCOL_HPP_250610_
+#ifndef _PROTOCOL_HPP_cm100625_
+#define _PROTOCOL_HPP_cm100625_
 
 #include <boost/cstdint.hpp>
 
@@ -73,4 +73,4 @@ private:
   boost::uint8_t  adcDither_         : 1;
 } ;
 
-#endif // _PROTOCOL_HPP_250610_
+#endif // _PROTOCOL_HPP_cm100625_
