@@ -72,12 +72,14 @@ public:
   server(boost::asio::io_service& io_service,
 	 const boost::asio::ip::tcp::endpoint& endpoint_ctrl,
 	 const boost::asio::ip::tcp::endpoint& endpoint_data,
-	 Perseus::ReceiverPtr recPtr)
+	 Perseus::ReceiverPtr recPtr,
+	 unsigned usbBufferSize)
     : io_service_(io_service)
     , strand_(io_service)
     , acceptor_ctrl_(io_service, endpoint_ctrl)
     , acceptor_data_(io_service, endpoint_data)
     , recPtr_(recPtr)
+    , usbBufferSize_(usbBufferSize)
     , sampleNumber_(0) {
     // control setup
     {
@@ -98,7 +100,9 @@ public:
 							   boost::asio::placeholders::error, new_socket)));
     }
     //
-    recPtr_->startAsyncInput(16320, server::receiverCallback, this);
+    ptimeOfCallback_ = ptimeOfCallbackInterpolated_ = boost::posix_time::microsec_clock::universal_time();
+    std::cout << "ptime_ = " << ptimeOfCallback_ << std::endl;
+    recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
@@ -144,10 +148,25 @@ public:
   }
 
   static int receiverCallback(void *buf, int buf_size, void *extra) {
-    std::cout << boost::posix_time::microsec_clock::universal_time() << std::endl;
     server* sp= (server* )extra;
     const unsigned nSamples   = buf_size/6;
     const Header   header(sp->getHeader(nSamples));
+
+    const double dt_microseconds(1e6 * double(nSamples) / sp->recPtr_->sampleRate());
+    const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+    const boost::posix_time::time_duration dt(now-sp->ptimeOfCallback_);
+    
+    if (std::abs(dt.total_microseconds() - dt_microseconds) < dt_microseconds/100) {
+      sp->ptimeOfCallbackInterpolated_ = now;
+    } else {
+      sp->ptimeOfCallbackInterpolated_ += dt;
+    }
+    sp->ptimeOfCallback_= now;
+
+    std::cout << "receiverCallback ptCB,ptCBInt, dt_usec, dt_usec,ddt_usec= " 
+	      << sp->ptimeOfCallback_ << " " << sp->ptimeOfCallbackInterpolated_ << " "
+	      << dt_microseconds << " " << dt.total_microseconds() << " "
+	      << std::abs(dt.total_microseconds() - dt_microseconds) << std::endl;;    
 
     const boost::array<boost::asio::const_buffer, 2> bufs = {
       boost::asio::const_buffer(&header, sizeof(Header)),
@@ -188,8 +207,10 @@ private:
   boost::asio::ip::tcp::acceptor acceptor_data_;
   Sockets                        ctrl_sockets_;
   Perseus::ReceiverPtr           recPtr_;
+  unsigned                       usbBufferSize_;
   boost::int64_t                 sampleNumber_;
-  
+  boost::posix_time::ptime        ptimeOfCallback_;
+  boost::posix_time::ptime        ptimeOfCallbackInterpolated_;
   data_connections               data_connections_;
 
   boost::asio::streambuf request_;
@@ -232,7 +253,8 @@ int main(int argc, char* argv[])
 					    pt.get<unsigned>("server.ctrl.port")),
 	     boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
 					    pt.get<unsigned>("server.data.port")),
-	     pp);
+	     pp,
+	     pt.get<unsigned>("perseus.USBBufferSize"));
 
     run(io_service, s);    
   } catch (std::exception &e) {

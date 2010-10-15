@@ -27,18 +27,19 @@ public:
     , adcPreamp_         (adcPreamp)
     , adcDither_         (adcDither) {}
 
-  boost::int64_t  sampleNumber()       const { return sampleNumber_; }
-  boost::int64_t& sampleNumber()             { return sampleNumber_; }
-  boost::uint32_t sampleRate()         const { return sampleRate_; }
-  boost::uint32_t ddcCenterFrequency() const { return ddcCenterFrequency_; }
-  boost::uint32_t numberOfSamples()    const { return numberOfSamples_; }
-  boost::uint8_t  samplingRateIndex()  const { return samplingRateIndex_; }
-  boost::uint8_t  attenId()            const { return attenId_; }
-  boost::uint8_t  adcPresel()          const { return adcPresel_; }
-  boost::uint8_t  adcPreamp()          const { return adcPreamp_; }
-  boost::uint8_t  adcDither()          const { return adcDither_; }
+  boost::int64_t  sampleNumber()        const { return sampleNumber_; }
+  boost::int64_t& sampleNumber()              { return sampleNumber_; }
+  boost::uint32_t sampleRate()          const { return sampleRate_; }
+  boost::uint32_t ddcCenterFrequency()  const { return ddcCenterFrequency_; }
+  boost::uint32_t numberOfSamples()     const { return numberOfSamples_; }
+  boost::uint8_t  samplingRateIndex()   const { return samplingRateIndex_; }
+  boost::uint8_t  attenId()             const { return attenId_; }
+  boost::uint8_t  adcPresel()           const { return adcPresel_; }
+  boost::uint8_t  adcPreamp()           const { return adcPreamp_; }
+  boost::uint8_t  adcDither()           const { return adcDither_; }
+  boost::posix_time::ptime approxPTime() const { return approxPTime_; }
 
-  void setNumberOfSamples(boost::uint32_t n)      { numberOfSamples_ = n; }
+  void setNumberOfSamples(boost::uint32_t n)  { numberOfSamples_ = n; }
 
   friend std::ostream& operator<<(std::ostream& os, const Header& h) {
     return os << "sampleNumber="        << h.sampleNumber() 
@@ -63,15 +64,17 @@ public:
 
 protected:
 private:
-  boost::int64_t  sampleNumber_;
-  boost::uint32_t sampleRate_;
-  boost::uint32_t ddcCenterFrequency_;
-  boost::uint32_t numberOfSamples_;
-  boost::uint8_t  samplingRateIndex_ : 3;
-  boost::uint8_t  attenId_           : 2;
-  boost::uint8_t  adcPresel_         : 1;
-  boost::uint8_t  adcPreamp_         : 1;
-  boost::uint8_t  adcDither_         : 1;
+  boost::int64_t           sampleNumber_;       // 8
+  boost::uint32_t          sampleRate_;         // 4
+  boost::uint32_t          ddcCenterFrequency_; // 4
+  boost::uint32_t          numberOfSamples_;    // 4
+  boost::uint8_t           samplingRateIndex_;  // 1
+  boost::uint8_t           attenId_   :  5;     // 1
+  boost::uint8_t           adcPresel_ :  1;
+  boost::uint8_t           adcPreamp_ :  1;
+  boost::uint8_t           adcDither_ :  1;
+  boost::uint16_t          dummy_;              // 2
+  boost::posix_time::ptime approxPTime_;        // 8
 } ;
 
 #endif // _PROTOCOL_HPP_cm100625_

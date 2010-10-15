@@ -20,6 +20,7 @@ FFT.WindowFunction ........
   <ctrl><port>18001</port></ctrl>
 </server>
 <perseus>
+  <USBBufferSize>16320</USBBufferSize>
   <qrg_Hz>250000</qrg_Hz>
   <fpga>
     <samplerate>500000</samplerate>
