@@ -152,21 +152,27 @@ public:
     const unsigned nSamples   = buf_size/6;
     const Header   header(sp->getHeader(nSamples));
 
-    const double dt_microseconds(1e6 * double(nSamples) / sp->recPtr_->sampleRate());
+    const unsigned tps(boost::posix_time::time_duration::ticks_per_second());
+
+    const boost::posix_time::time_duration dt0(0,0,0, double(nSamples) / sp->recPtr_->sampleRate() * tps);
     const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
-    const boost::posix_time::time_duration dt(now-sp->ptimeOfCallback_);
-    
-    if (std::abs(dt.total_microseconds() - dt_microseconds) < dt_microseconds/100) {
+    const boost::posix_time::time_duration dt(now - sp->ptimeOfCallback_);
+
+    if (std::abs(dt.total_microseconds() - dt0.total_microseconds()) < dt0.total_microseconds()/10) {
       sp->ptimeOfCallbackInterpolated_ = now;
+      std::cout << "OK\n";
     } else {
-      sp->ptimeOfCallbackInterpolated_ += dt;
+      sp->ptimeOfCallbackInterpolated_ += dt0;
+      std::cout << "INTERPOL\n";
     }
+
+    // if (std::abs((sp->ptimeOfCallbackInterpolated_+dt-now).total_microseconds()) < dt.total_microseconds()/10) {
     sp->ptimeOfCallback_= now;
 
     std::cout << "receiverCallback ptCB,ptCBInt, dt_usec, dt_usec,ddt_usec= " 
 	      << sp->ptimeOfCallback_ << " " << sp->ptimeOfCallbackInterpolated_ << " "
-	      << dt_microseconds << " " << dt.total_microseconds() << " "
-	      << std::abs(dt.total_microseconds() - dt_microseconds) << std::endl;;    
+	      << dt << " "<< dt0 << " " << dt-dt0 << " " 
+	      << sp->ptimeOfCallback_ - sp->ptimeOfCallbackInterpolated_ << std::endl;;    
 
     const boost::array<boost::asio::const_buffer, 2> bufs = {
       boost::asio::const_buffer(&header, sizeof(Header)),
