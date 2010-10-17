@@ -16,7 +16,7 @@ CC = gcc
 
 GPSTKDIR  = /Users/chm/insted
 CXXFLAGS  += -I/opt/local/include 
-LDFLAGS   += -L/opt/local/lib -lboost_system -lboost_thread -lboost_filesystem -lperseus-sdr -lfftw3 -lm
+LDFLAGS   += -L/opt/local/lib -lboost_system -lboost_thread -lboost_filesystem -lboost_date_time -lperseus-sdr -lfftw3 -lfftw3f -lm
 
 #LOADLIBES += -L${GPSTKDIR}/lib -lgpstk
 #LOADLIBES += -L${OCTAVEDIR}/lib/octave-3.0.3 -L${OCTAVEDIR}/lib -Wl,-rpath -Wl,${OCTAVEDIR}/lib/octave-3.0.3 -loctinterp -l#octave -lcruft 

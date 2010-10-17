@@ -9,7 +9,7 @@
 
 int main()
 {
-  typedef float FFTType;
+  typedef double FFTType;
   const size_t n(120000);
   std::vector<std::complex<FFTType> > in(n);
   const double f(102.5);
