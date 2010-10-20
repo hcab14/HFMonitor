@@ -28,10 +28,10 @@ LDFLAGS   += -L/opt/local/lib -lboost_system -lboost_thread -lboost_filesystem -
 O=$(OBJDIR)/$(MODE)
 
 $(OBJDIR)/Debug/%.o: CXXFLAGS +=  -pipe -Wall -g 
-$(OBJDIR)/Release/%.o: CXXFLAGS += -pipe -O2 -ffloat-store 
+$(OBJDIR)/Release/%.o: CXXFLAGS += -pipe -O3
 $(OBJDIR)/Profile/%.o: CXXFLAGS += -pipe -g -pg
 $(OBJDIR)/Coverage/%.o: CXXFLAGS += -pipe -fprofile-arcs -ftest-coverage
-$(OBJDIR)/RelProf/%.o: CXXFLAGS += -pipe -O2 -g -pg
+$(OBJDIR)/RelProf/%.o: CXXFLAGS += -pipe -O3 -g -pg
 
 # Make automatic (include) dependency files
 $O/%.d: CXXFLAGS += -MM -MT 'syn/$*.syn' -MT '$$O/$*.o' -MT '$$O/$*.d'
