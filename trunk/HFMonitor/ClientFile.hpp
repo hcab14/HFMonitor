@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _CLIENT_FILE_HPP_cm100816_
 #define _CLIENT_FILE_HPP_cm100816_
@@ -27,13 +27,13 @@ public:
       return false;
     else {
       for (boost::filesystem::ifstream ifs(p, std::ios::binary | std::ios::in); ifs;) {
-	Header header;
-	if (!ifs.read((char*)&header, sizeof(Header))) 
-	  break;
-	std::vector<char> data(6*header.numberOfSamples());
-	if (!ifs.read(data.begin().operator->(), data.size())) 
-	  return false;
-	p_.procRaw(header, data.begin(), data.end());
+        Header header;
+        if (!ifs.read((char*)&header, sizeof(Header))) 
+          break;
+        std::vector<char> data(6*header.numberOfSamples());
+        if (!ifs.read(data.begin().operator->(), data.size())) 
+          return false;
+        p_.procRaw(header, data.begin(), data.end());
       }
       fileNumber_++;
     }

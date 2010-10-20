@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _REPACK_PROCESSOR_HPP_cm100818_
 #define _REPACK_PROCESSOR_HPP_cm100818_
@@ -26,8 +26,8 @@ public:
   ~RepackProcessor() {}
 
   void procIQ(const Header& header,
-	      std::vector<std::complex<double> >::const_iterator i0,
-	      std::vector<std::complex<double> >::const_iterator i1) { 
+              std::vector<std::complex<double> >::const_iterator i0,
+              std::vector<std::complex<double> >::const_iterator i1) { 
     // std::cout << "RepackProcessor::procIQ " << header << std::endl;
     if (!currentHeader_.hasEqualParameters(header)) 
       update(header);    
@@ -41,7 +41,7 @@ public:
   
   // called from IQBuffer::insert 
   void procIQ(std::vector<std::complex<double> >::const_iterator i0,
-	      std::vector<std::complex<double> >::const_iterator i1) {
+              std::vector<std::complex<double> >::const_iterator i1) {
     p_.procIQ(currentHeader_, i0, i1); 
   }
 

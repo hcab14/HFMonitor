@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
 // cf. http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?LU_Matrix_Inversion
@@ -17,7 +17,7 @@
 namespace ublas_util {  
   template<class T>
   bool InvertMatrix(const boost::numeric::ublas::matrix<T>& input, 
-		    boost::numeric::ublas::matrix<T>& inverse) {
+                    boost::numeric::ublas::matrix<T>& inverse) {
     using namespace boost::numeric::ublas;
     // namespace ublas = boost::numeric::ublas;
     typedef permutation_matrix<std::size_t> pmatrix;

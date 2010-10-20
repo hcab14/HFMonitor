@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _IQ_BUFFER_HPP_cm101004_
 #define _IQ_BUFFER_HPP_cm101004_
@@ -47,7 +47,7 @@ public:
   typedef std::complex<double> Complex;
   typedef std::vector<Complex> Samples;
   IQBuffer(size_t n,       // buffer length
-	   double overlap) // overlap [0..1]
+           double overlap) // overlap [0..1]
     : iqVec_(2*n,0)
     , n_(n)
     , m_(size_t((1.0-overlap)*n_+0.5))
@@ -64,7 +64,7 @@ public:
   Samples samples() const {
     Samples s;
     std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), 
-	      std::back_inserter(s));
+              std::back_inserter(s));
     return s;
   }
 
@@ -88,7 +88,7 @@ public:
   void insert(PROCESSOR* p, Complex c) {
     if (counterModM_ == 0) {
       p->procIQ(iqVec_.begin()+counterModN_,
-		iqVec_.begin()+counterModN_+n_);
+                iqVec_.begin()+counterModN_+n_);
       lpi_ = (counterModN_+m_) % n_;
     }
     iqVec_[counterModN_] = iqVec_[counterModN_+n_] = c;
@@ -105,10 +105,10 @@ public:
 
   // for debugging purpose only
   void procIQ(Samples::const_iterator i0, 
-	      Samples::const_iterator i1) {
+              Samples::const_iterator i1) {
     std::cout << "*** procIQ ";
     std::copy(i0, i1, 
-	      std::ostream_iterator<std::complex<double> >(std::cout, " "));
+              std::ostream_iterator<std::complex<double> >(std::cout, " "));
     std::cout << "***" << std::endl;
   }
 
@@ -121,8 +121,8 @@ private:
   // returns last index of not yet processed samples
   size_t lastI1() const {
     return (counterModN_+n_ - lastI0() > n_ 
-	    ? size_t(counterModN_) 
-	    : counterModN_+n_);
+            ? size_t(counterModN_) 
+            : counterModN_+n_);
   }
 
   Samples iqVec_;

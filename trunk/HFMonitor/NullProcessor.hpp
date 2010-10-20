@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _NULL_PROCESSOR_HPP_cm100729_
 #define _NULL_PROCESSOR_HPP_cm100729_
@@ -16,12 +16,12 @@ public:
   ~NullProcessor() {}
 
   void procRaw(const Header& header, 
-	       std::vector<char>::const_iterator i0,
-	       std::vector<char>::const_iterator i1) {
+               std::vector<char>::const_iterator i0,
+               std::vector<char>::const_iterator i1) {
     std::cout << "NullProcessor::procRaw " << header << std::endl;
   }
   void procIQ(const Header& header, 
-	std::vector<std::complex<double> >::const_iterator i0,
+        std::vector<std::complex<double> >::const_iterator i0,
         std::vector<std::complex<double> >::const_iterator i1 ) {
     std::cout << "NullProcessor::procIQ " << header << std::endl;
   }

@@ -1,5 +1,6 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
+
 #include "IQBuffer.hpp"
 
 int main() {

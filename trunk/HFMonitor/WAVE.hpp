@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _WAVE_HPP_cm100929_
 #define _WAVE_HPP_cm100929_
@@ -21,7 +21,7 @@ namespace WAVE {
       std::string     id() const   { return std::string(id_, id_+4); }
       boost::uint32_t size() const { return size_; }
       friend std::ostream& operator<<(std::ostream& os, const Header& h) {
-	return os << "id=" << h.id() << " size=" << h.size();
+        return os << "id=" << h.id() << " size=" << h.size();
       }
     private:
       boost::uint8_t  id_[4];
@@ -33,7 +33,7 @@ namespace WAVE {
       std::string id2() const { return std::string(id2_, id2_+4); }
 
       friend std::ostream& operator<<(std::ostream& os, const RIFF& r) {
-	return os << Header(r) << " id2=" << r.id2();
+        return os << Header(r) << " id2=" << r.id2();
       }
       bool ok() const { return id() == "RIFF" && id2() == "WAVE"; }
     private:
@@ -51,13 +51,13 @@ namespace WAVE {
       bool ok() const { return id() == "fmt "; }
       
       friend std::ostream& operator<<(std::ostream& os, const Format& f) {
-	return os << Header(f)
-		  << " audioFormat=" << f.audioFormat()
-		  << " numChannels=" << f.numChannels()
-		  << " sampleRate=" << f.sampleRate()
-		  << " bytesPerSecond=" << f.bytesPerSecond()
-		  << " bytesPerSample=" << f.bytesPerSample()
-		  << " bitsPerSample=" << f.bitsPerSample();
+        return os << Header(f)
+                  << " audioFormat=" << f.audioFormat()
+                  << " numChannels=" << f.numChannels()
+                  << " sampleRate=" << f.sampleRate()
+                  << " bytesPerSecond=" << f.bytesPerSecond()
+                  << " bytesPerSample=" << f.bytesPerSample()
+                  << " bitsPerSample=" << f.bitsPerSample();
       }      
     private:
       boost::uint16_t audioFormat_;
@@ -83,17 +83,17 @@ namespace WAVE {
       bool ok() const { return id() == "rcvr"; }
       
       friend std::ostream& operator<<(std::ostream& os, const Rcvr& r) {
-	os << Header(r) 
-	   << " nCenterFrequencyHz=" << r.nCenterFrequencyHz()
-	   << " nSamplingRateIdx=" << r.nSamplingRateIdx()
-	   << " timeStart=" << r.timeStart()
-	   << " wAttenId=" << r.wAttenId()
-	   << " bAdcPresel=" << int(r.bAdcPresel())
-	   << " bAdcPreamp=" << int(r.bAdcPreamp())
-	   << " bAdcDither=" << int(r.bAdcDither())
-	   << " bSpare=" << int(r.bSpare())
-	   << " rsvrd="; std::copy(r.rsrvd_, r.rsrvd_+16, std::ostream_iterator<int>(os, " "));
-	return os;
+        os << Header(r) 
+           << " nCenterFrequencyHz=" << r.nCenterFrequencyHz()
+           << " nSamplingRateIdx=" << r.nSamplingRateIdx()
+           << " timeStart=" << r.timeStart()
+           << " wAttenId=" << r.wAttenId()
+           << " bAdcPresel=" << int(r.bAdcPresel())
+           << " bAdcPreamp=" << int(r.bAdcPreamp())
+           << " bAdcDither=" << int(r.bAdcDither())
+           << " bSpare=" << int(r.bSpare())
+           << " rsvrd="; std::copy(r.rsrvd_, r.rsrvd_+16, std::ostream_iterator<int>(os, " "));
+        return os;
       }
     private:
       boost::uint32_t    nCenterFrequencyHz_; // center freq in Hz
@@ -110,7 +110,7 @@ namespace WAVE {
     class Data: public Header {
     public:
       friend std::ostream& operator<<(std::ostream& os, const Data& d) {
-	return os << Header(d);
+        return os << Header(d);
       }
       bool ok() const { return id() == "data"; }
     } ;    
@@ -121,10 +121,10 @@ namespace WAVE {
   public:
     typedef std::vector<std::complex<double> > SampleVec;
     ProcessFile(PROCESSOR& p,
-		std::string fileName,
-		boost::uint64_t sampleNumber,
-		const std::vector<std::complex<double> >& samples,
-		double bufferLengthSec, double overlap)
+                std::string fileName,
+                boost::uint64_t sampleNumber,
+                const std::vector<std::complex<double> >& samples,
+                double bufferLengthSec, double overlap)
       : p_(p)
       , is_(fileName.c_str(), std::ios::in | std::ios::binary)
       , sampleNumber_(sampleNumber)
@@ -146,16 +146,16 @@ namespace WAVE {
     
     // called from IQBuffer::insert
     void procIQ(IQBuffer::Samples::const_iterator i0, 
-		IQBuffer::Samples::const_iterator i1) {
+                IQBuffer::Samples::const_iterator i1) {
       const Header header(sampleNumber_ - iqBuffer_.n(),
-     			  chunkFmt().sampleRate(), 
-     			  chunkRcvr().nCenterFrequencyHz(),
-     			  iqBuffer_.n(),
-     			  0, // TODO
-     			  chunkRcvr().wAttenId(),
-     			  chunkRcvr().bAdcPresel(),
-     			  chunkRcvr().bAdcPreamp(),
-     			  chunkRcvr().bAdcDither());
+                          chunkFmt().sampleRate(), 
+                          chunkRcvr().nCenterFrequencyHz(),
+                          iqBuffer_.n(),
+                          0, // TODO
+                          chunkRcvr().wAttenId(),
+                          chunkRcvr().bAdcPresel(),
+                          chunkRcvr().bAdcPreamp(),
+                          chunkRcvr().bAdcDither());
       std::cout << "WAVE::ProcessFile::procIQ: " << header << " "<< std::distance(i0,i1) << std::endl;
       p_.procIQ(header, i0, i1);
     }
@@ -163,15 +163,15 @@ namespace WAVE {
     size_t proc() {
       size_t nRead(0);
       try {
-	while (1) {
-	  const double xi(readRealSample());
-	  const double xq(readRealSample());
-	  iqBuffer_.insert(this, std::complex<double>(xq,xi));
-	  ++sampleNumber_;
-	  ++nRead;
-	}
+        while (1) {
+          const double xi(readRealSample());
+          const double xq(readRealSample());
+          iqBuffer_.insert(this, std::complex<double>(xq,xi));
+          ++sampleNumber_;
+          ++nRead;
+        }
       } catch (...) {
-	std::cout << "End Of File" << std::endl;
+        std::cout << "End Of File" << std::endl;
       }
       return nRead;
     }
@@ -181,7 +181,7 @@ namespace WAVE {
       boost::uint8_t a(0);
       boost::int32_t sum(0);
       for (size_t u(0); u<chunkFmt().bitsPerSample(); u+=8) 
-	sum |= ((a=readT<boost::uint8_t>(is_)) << u);
+        sum |= ((a=readT<boost::uint8_t>(is_)) << u);
       const boost::int32_t iMax(1 << chunkFmt().bitsPerSample());
       return ((a&0x80) ? sum-iMax : sum) / double(iMax);
     }    

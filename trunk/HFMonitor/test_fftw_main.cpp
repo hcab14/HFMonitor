@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #include <iostream>
 #include <iterator>
@@ -22,5 +22,5 @@ int main()
 
   for (size_t u=0; u<fft.size(); ++u)
     std::cout << u << " " << fft.getInBin(u).real() << " " << fft.getInBin(u).imag() << " "
-	      << std::abs(fft.getBin(u)) << std::endl;
+              << std::abs(fft.getBin(u)) << std::endl;
 }
