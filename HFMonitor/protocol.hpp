@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _PROTOCOL_HPP_cm100625_
 #define _PROTOCOL_HPP_cm100625_
@@ -9,14 +9,14 @@
 class Header {
 public:
   Header(boost::int64_t  sampleNumber=0,
-	 boost::uint32_t sampleRate=1,
-	 boost::uint32_t ddcCenterFrequency=0,
-	 boost::uint32_t numberOfSamples=0,
-	 boost::uint8_t  samplingRateIndex=0,
-	 boost::uint8_t  attenId=0,
-	 boost::uint8_t  adcPresel=1,
-	 boost::uint8_t  adcPreamp=0,
-	 boost::uint8_t  adcDither=0)
+         boost::uint32_t sampleRate=1,
+         boost::uint32_t ddcCenterFrequency=0,
+         boost::uint32_t numberOfSamples=0,
+         boost::uint8_t  samplingRateIndex=0,
+         boost::uint8_t  attenId=0,
+         boost::uint8_t  adcPresel=1,
+         boost::uint8_t  adcPreamp=0,
+         boost::uint8_t  adcDither=0)
     : sampleNumber_      (sampleNumber)
     , sampleRate_        (sampleRate)
     , ddcCenterFrequency_(ddcCenterFrequency)
@@ -43,23 +43,23 @@ public:
 
   friend std::ostream& operator<<(std::ostream& os, const Header& h) {
     return os << "sampleNumber="        << h.sampleNumber() 
-	      << " sampleRate="         << h.sampleRate()
-	      << " ddcCenterFrequency=" << h.ddcCenterFrequency()
-	      << " numberOfSamples="    << h.numberOfSamples()
-	      << " samplingRateIndex="  << int(h.samplingRateIndex())
-	      << " attenId="            << int(h.attenId())
-	      << " adcPreamp="          << int(h.adcPreamp())
-	      << " adcDither="          << int(h.adcDither());
+              << " sampleRate="         << h.sampleRate()
+              << " ddcCenterFrequency=" << h.ddcCenterFrequency()
+              << " numberOfSamples="    << h.numberOfSamples()
+              << " samplingRateIndex="  << int(h.samplingRateIndex())
+              << " attenId="            << int(h.attenId())
+              << " adcPreamp="          << int(h.adcPreamp())
+              << " adcDither="          << int(h.adcDither());
   }
   
   bool hasEqualParameters(const Header& h) const {
     return ( sampleRate_         == h.sampleRate_ &&
-	     ddcCenterFrequency_ == h.ddcCenterFrequency_ &&
-	     samplingRateIndex_  == h.samplingRateIndex_ &&
-	     attenId_            == h.attenId_ &&
-	     adcPresel_          == h.adcPresel_ &&
-	     adcPreamp_          == h.adcPreamp_ &&
-	     adcDither_          == h.adcDither_ );
+             ddcCenterFrequency_ == h.ddcCenterFrequency_ &&
+             samplingRateIndex_  == h.samplingRateIndex_ &&
+             attenId_            == h.attenId_ &&
+             adcPresel_          == h.adcPresel_ &&
+             adcPreamp_          == h.adcPreamp_ &&
+             adcDither_          == h.adcDither_ );
   }
 
 protected:

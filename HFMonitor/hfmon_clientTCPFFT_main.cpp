@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #include <iostream>
 #include <boost/thread.hpp>
@@ -7,7 +7,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "protocol.hpp"
-#include "run.h"
+#include "run.hpp"
 
 #include "ClientTCP.hpp"
 

@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _CLIENT_FILE_WAVE_HPP_cm100925_
 #define _CLIENT_FILE_WAVE_HPP_cm100925_

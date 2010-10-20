@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 #ifndef _DUMP_PROCESSOR_HPP_cm100729_
 #define _DUMP_PROCESSOR_HPP_cm100729_
@@ -23,8 +23,8 @@ public:
   ~DumpProcessor() {}
 
   void procRaw(const Header& header, 
-	       std::vector<char>::const_iterator i0,
-	       std::vector<char>::const_iterator i1) { 
+               std::vector<char>::const_iterator i0,
+               std::vector<char>::const_iterator i1) { 
     std::cout << "procRaw " << header << std::endl;
     if (sampleCounter_ > samplesPerFile_) {
       sampleCounter_= 0;

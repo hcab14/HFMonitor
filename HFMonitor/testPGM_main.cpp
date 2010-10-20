@@ -1,4 +1,6 @@
-// -*- C++ -*-
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id$
+
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -8,8 +10,8 @@ class PGMWriter {
 public:
   typedef std::vector<std::string> Comments;
   PGMWriter(std::string fileName, 
-	    size_t width,
-	    const Comments& comments=Comments())
+            size_t width,
+            const Comments& comments=Comments())
     : os_(fileName.c_str())
     , width_(width)
     , height_(0) {
