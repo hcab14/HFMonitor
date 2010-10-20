@@ -35,7 +35,7 @@ FFT.WindowFunction ........
 </perseus>
 <Repack>
   <BufferLengthSec>1.0</BufferLengthSec>
-  <Overlap>0.5</Overlap>
+  <Overlap>0.0</Overlap>
 </Repack>
 <FFT>
   <WindowFunction>Blackman</WindowFunction>
