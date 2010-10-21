@@ -31,9 +31,19 @@ namespace Internal {
       t_ = (tInc >= m_) ? T(0) : tInc;
       return *this;
     }
+    ModuloCounter operator++(int) {
+      ModuloCounter tmp(*this);
+      ++(*this);
+      return tmp;
+    }
     ModuloCounter& operator--() {
       t_ = (t_ == T(0)) ? m_-1 : t_-1;
       return *this;
+    }
+    ModuloCounter operator--(int) {
+      ModuloCounter tmp(*this);
+      --(*this);
+      return tmp;
     }
 
   private:
@@ -47,18 +57,18 @@ public:
   typedef std::complex<double> Complex;
   typedef std::vector<Complex> Samples;
   IQBuffer(size_t n,       // buffer length
-           double overlap) // overlap [0..1]
+           double overlap) // overlap \in [-1,1]
     : iqVec_(2*n,0)
     , n_(n)
-    , m_(size_t((1.0-overlap)*n_+0.5))
+    , m_(size_t((1. - ol2ol(overlap))*n_+0.5))
     , lpi_(0)
     , counterModN_(n_)
     , counterModM_(m_)
-    , counterModNM_(m_*n_) {
+    , counterModNM_(m_*n_)
+    , counterModL_(ol2l(overlap)) {
     std::cout << "XXX " << n_ << " " << m_ << " " << overlap << std::endl;
-    if (overlap < 0.0 || overlap > 1.0)
-      throw std::runtime_error("IQBuffer: overlap < 0.0 || overlap > 1.0");
   }
+  
 
   // returns the remaining unprocessed samples
   Samples samples() const {
@@ -72,11 +82,12 @@ public:
   void update(size_t n, double overlap) {
     iqVec_.resize(2*n);
     n_   = n;
-    m_   = size_t((1.0-overlap)*n_+0.5);
+    m_   = size_t((1.0-ol2ol(overlap))*n_+0.5);
     lpi_ = 0;
     counterModN_.setM(n_);
     counterModM_.setM(m_);
     counterModNM_.setM(n_*m_);
+    counterModL_.setM(ol2l(overlap));
   }
 
   size_t n() const { return n_; }
@@ -87,8 +98,9 @@ public:
   template<typename PROCESSOR>
   void insert(PROCESSOR* p, Complex c) {
     if (counterModM_ == 0) {
-      p->procIQ(iqVec_.begin()+counterModN_,
-                iqVec_.begin()+counterModN_+n_);
+      if (counterModL_++ == 0)
+        p->procIQ(iqVec_.begin()+counterModN_,
+                  iqVec_.begin()+counterModN_+n_);
       lpi_ = (counterModN_+m_) % n_;
     }
     iqVec_[counterModN_] = iqVec_[counterModN_+n_] = c;
@@ -124,6 +136,14 @@ private:
             ? size_t(counterModN_) 
             : counterModN_+n_);
   }
+  static double ol2ol(double overlap) {
+    if (std::abs(overlap) > 1.) throw std::runtime_error("IQBuffer: std::abs(overlap) > 1.0");
+    return (overlap < 0.) ? 0.5*(1.+overlap) : overlap;
+  }
+  static size_t ol2l(double overlap) {
+    if (std::abs(overlap) > 1.) throw std::runtime_error("IQBuffer: std::abs(overlap) > 1.0");
+    return (overlap < 0.) ? 2 : 1;
+  }
 
   Samples iqVec_;
   size_t n_;
@@ -132,6 +152,7 @@ private:
   Internal::ModuloCounter<size_t> counterModN_;
   Internal::ModuloCounter<size_t> counterModM_;
   Internal::ModuloCounter<size_t> counterModNM_;
+  Internal::ModuloCounter<size_t> counterModL_;
 } ;
 
 
