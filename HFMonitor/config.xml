@@ -20,10 +20,10 @@ FFT.WindowFunction ........
   <ctrl><port>18001</port></ctrl>
 </server>
 <perseus>
-  <USBBufferSize>510</USBBufferSize>
+  <USBBufferSize>16320</USBBufferSize>
   <qrg_Hz>250000</qrg_Hz>
   <fpga>
-    <samplerate>125000</samplerate>
+    <samplerate>500000</samplerate>
 <!--
     <samplerate>95000</samplerate>
     <samplerate>125000</samplerate>
@@ -35,7 +35,7 @@ FFT.WindowFunction ........
   </fpga>
 </perseus>
 <Repack>
-  <BufferLengthSec>1.0</BufferLengthSec>
+  <BufferLengthSec>0.5</BufferLengthSec>
   <Overlap>0.0</Overlap>
 </Repack>
 <FFT>

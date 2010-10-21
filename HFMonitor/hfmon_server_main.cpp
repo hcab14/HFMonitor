@@ -48,8 +48,8 @@ public:
     // TODO check length of listOfPackets_
     if (is_open()) {
       const bool listOfPacketsWasEmpty(isEmpty());
-      std::cout << "push_back " << (listOfPacketsWasEmpty ? "empty " : "non-empty ")
-                << listOfPackets_.size() << std::endl;
+      // std::cout << "push_back " << (listOfPacketsWasEmpty ? "empty " : "non-empty ")
+      //           << listOfPackets_.size() << std::endl;
       listOfPackets_.push_back(data_ptr(new Data(d))); 
       if (listOfPacketsWasEmpty)
         async_write();
@@ -198,7 +198,6 @@ public:
     server* sp= (server* )extra;
     const unsigned nSamples   = buf_size/6;
     const Header   header(sp->getHeader(nSamples));
-
     const unsigned tps(boost::posix_time::time_duration::ticks_per_second());
 
     const boost::posix_time::time_duration dt0(0,0,0, double(nSamples) / sp->recPtr_->sampleRate() * tps);
@@ -216,23 +215,25 @@ public:
     // if (std::abs((sp->ptimeOfCallbackInterpolated_+dt-now).total_microseconds()) < dt.total_microseconds()/10) {
     sp->ptimeOfCallback_= now;
 
+#if 0
     std::cout << "receiverCallback ptCB,ptCBInt, dt_usec, dt_usec,ddt_usec= " 
               << sp->ptimeOfCallback_ << " " << sp->ptimeOfCallbackInterpolated_ << " "
               << dt << " "<< dt0 << " " << dt-dt0 << " " 
               << sp->ptimeOfCallback_ - sp->ptimeOfCallbackInterpolated_ << std::endl;;    
+#endif
 #if 1
     std::vector<char> dataVector;
     std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(dataVector));
     std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(dataVector));
 
     sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, dataVector));
+#endif
 
     boost::system::error_code ec;
     size_t n;
     for (unsigned u(0); (n=sp->io_service_.poll(ec)) > 0; ++u) {
       if (ec) break;
     }
-#endif
     return 0;
   }
   static void sendDataToClients(server* sp, const std::vector<char>& dataVector) {
@@ -312,7 +313,9 @@ int main(int argc, char* argv[])
     server::sptr sp;
     {
       wait_for_signal w;
-      w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
+      w.add_signal(SIGINT)
+       .add_signal(SIGQUIT)
+       .add_signal(SIGTERM);
       sp = server::sptr(new server(io_service,
                                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
                                                                   pt.get<unsigned>("server.ctrl.port")),
