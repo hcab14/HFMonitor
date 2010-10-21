@@ -19,7 +19,7 @@ public:
   RepackProcessor(const boost::property_tree::ptree& config)
     : p_(config)
     , bufferLengthSec_(config.get<double>("Repack.BufferLengthSec"))
-    , overlap_(config.get<double>("Repack.Overlap"))
+    , overlap_(0.01*config.get<double>("Repack.OverlapPercent"))
     , currentHeader_()
     , iqBuffer_(4, 0.0) {}
 

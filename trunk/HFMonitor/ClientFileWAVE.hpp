@@ -20,7 +20,7 @@ public:
     , fileNamePattern_(config.get<std::string>("FileNamePattern"))
     , fileNumber_(0)
     , bufferLengthSec_(config.get<double>("Repack.BufferLengthSec"))
-    , overlap_(config.get<double>("Repack.Overlap"))
+    , overlap_(0.01*config.get<double>("Repack.OverlapPercent"))
     , sampleNumber_(0) {
   }
 

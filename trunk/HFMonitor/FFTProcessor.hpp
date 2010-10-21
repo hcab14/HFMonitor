@@ -545,7 +545,6 @@ public:
   void procIQ(const Header& header, 
               Samples::const_iterator i0,
               Samples::const_iterator i1) {
-    if (counter_++ % 2 == 1) return;
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
     std::cout << "FFTProcessor::procIQ " << header << std::endl;    
