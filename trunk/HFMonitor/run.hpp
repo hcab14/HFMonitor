@@ -16,6 +16,7 @@ public:
     // Block all signals for background thread.
     sigfillset(&_new_mask);
     pthread_sigmask(SIG_BLOCK, &_new_mask, &_old_mask);
+    sigemptyset(&_wait_mask);
   }
 
   ~wait_for_signal() {
@@ -23,23 +24,20 @@ public:
     pthread_sigmask(SIG_SETMASK, &_old_mask, 0);
 
     // Wait for signal indicating time to shut down.
-    sigset_t wait_mask;
-    sigemptyset(&wait_mask);
-    for (std::vector<int>::const_iterator i(_signals.begin()); i!=_signals.end(); ++i)
-      sigaddset(&wait_mask, *i);
-    pthread_sigmask(SIG_BLOCK, &wait_mask, 0);
+    pthread_sigmask(SIG_BLOCK, &_wait_mask, 0);
     int sig(0);
-    sigwait(&wait_mask, &sig);
+    sigwait(&_wait_mask, &sig);
   }
 
   wait_for_signal& add_signal(int s) {
-    _signals.push_back(s);
+    sigaddset(&_wait_mask, s);
+    return *this;
   }
 protected:
 private:
   sigset_t _new_mask;
   sigset_t _old_mask;
-  std::vector<int> _signals;
+  sigset_t _wait_mask;
 } ;
 
 template<typename T>
