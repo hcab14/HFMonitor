@@ -25,21 +25,21 @@ public:
     // Wait for signal indicating time to shut down.
     sigset_t wait_mask;
     sigemptyset(&wait_mask);
-    for (std::vector<sigset_t>::const_iterator i(_signals.begin()); i!=_signals.end(); ++i)
+    for (std::vector<int>::const_iterator i(_signals.begin()); i!=_signals.end(); ++i)
       sigaddset(&wait_mask, *i);
     pthread_sigmask(SIG_BLOCK, &wait_mask, 0);
     int sig(0);
     sigwait(&wait_mask, &sig);
   }
 
-  wait_for_signal& add_signal(sigset_t s) {
+  wait_for_signal& add_signal(int s) {
     _signals.push_back(s);
   }
 protected:
 private:
   sigset_t _new_mask;
   sigset_t _old_mask;
-  std::vector<sigset_t> _signals;
+  std::vector<int> _signals;
 } ;
 
 template<typename T>

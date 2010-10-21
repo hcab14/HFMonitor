@@ -317,7 +317,7 @@ int main(int argc, char* argv[])
                                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
                                                                   pt.get<unsigned>("server.ctrl.port")),
                                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                                                  qpt.get<unsigned>("server.data.port")),
+                                                                  pt.get<unsigned>("server.data.port")),
                                    pp,
                                    pt.get<unsigned>("perseus.USBBufferSize")));
     }
