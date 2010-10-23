@@ -14,6 +14,7 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include "InvertMatrix.hpp"
 
@@ -91,10 +92,30 @@ public:
                           const FreqStrength& fs2) {
     return fs1.strength() < fs2.strength();
   }
+  static bool cmpFreq(const FreqStrength& fs1, 
+                      const FreqStrength& fs2) {
+    return fs1.freq() < fs2.freq();
+  }
 private:
   double freq_;
   double strength_;
 } ;
+
+// class PowerSpectrum {
+// public:
+//   PowerSpectrum() {}
+//   PowerSpectrum(const SpectrumBase& s, double fMin, double fMax) {
+//     const size_t iMin(s.freq2Index(fMin));
+//     const size_t iMax(s.freq2Index(fMax));
+//     for (size_t u(iMin); u<=iMax; ++u)
+//       fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
+//   }
+  
+// protected:
+// private:
+//   std::vector<FreqStrength> fs_;
+// } ;
+
 
 namespace Result {
   class Base : private boost::noncopyable {
@@ -350,7 +371,7 @@ namespace Action {
     // this method is overwritten by, e.g., FindPeak, see below
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
-                      const std::vector<FreqStrength>& fs) {}
+                      const std::vector<FreqStrength>& fs) = 0;
     
   protected:
   private:
@@ -382,15 +403,15 @@ namespace Action {
                       const std::vector<FreqStrength>& fs) {
       std::cout << "FindPeak::perform " << std::endl;
       try {
-        Result::SpectrumPeak* 
-          spp((useCalibration_) 
-              ? new Result::CalibratedSpectrumPeak(fReference_,
-                                                   boost::dynamic_pointer_cast<Result::Calibration>
-                                                   (p.getResult(calibrationKey_)))
-              : new Result::SpectrumPeak(fReference_));
+        Result::SpectrumPeak::Handle 
+          spp((useCalibration_)
+              ? boost::make_shared<
+                Result::CalibratedSpectrumPeak>(fReference_,
+                                                boost::dynamic_pointer_cast<Result::Calibration>
+                                                (p.getResult(calibrationKey_)))
+              : boost::make_shared<Result::SpectrumPeak>(fReference_));
         if (spp->findPeak(fs, minRatio_)) {
-          Result::Base::Handle rh();
-          p.result(resultKey_, Result::Base::Handle(spp));
+          p.result(resultKey_, spp);
         }
       } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;

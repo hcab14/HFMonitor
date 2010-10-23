@@ -7,9 +7,6 @@
 #include <string>
 #include <deque>
 
-#include "perseus++.h"
-#include "protocol.hpp"
-
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
@@ -19,6 +16,9 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "perseus++.h"
+#include "Filter.hpp"
+#include "protocol.hpp"
 #include "run.hpp"
 
 class data_connection : private boost::noncopyable {
@@ -149,9 +149,14 @@ public:
                                                            boost::asio::placeholders::error, new_socket)));
     }
     //
-    ptimeOfCallback_ = ptimeOfCallbackInterpolated_ = boost::posix_time::microsec_clock::universal_time();
-    std::cout << "ptime_ = " << ptimeOfCallback_ << std::endl;
+    const double dt(double(usbBufferSize)/6/recPtr_->sampleRate());
+    ptimeFilter_.add(Filter::PTimeLowPass::make(dt, dt/600.0));
+    ptimeFilter_.add(Filter::PTimeLowPass::make(dt, dt/1.0));
+    const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+    ptimeFilter_.init(now, now);
+    ptimeOfCallback_ = now;
     recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
+    std::cout << "ptime_ = " << ptimeOfCallback_ << " " << "dt= " << dt << std::endl;
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
@@ -182,7 +187,8 @@ public:
     }
   }
 
-  Header getHeader(const unsigned nSamples) {
+  Header getHeader(const unsigned nSamples,
+                   boost::posix_time::ptime approxPTime) {
     return Header((sampleNumber_+=nSamples) - nSamples,
                   recPtr_->sampleRate(),
                   recPtr_->ddcCenterFrequency(),
@@ -191,36 +197,35 @@ public:
                   recPtr_->attenId(),
                   recPtr_->enablePresel(),
                   recPtr_->enablePreamp(),
-                  recPtr_->enableDither());
+                  recPtr_->enableDither(),
+                  approxPTime);
   }
 
   static int receiverCallback(void *buf, int buf_size, void *extra) {
     server* sp= (server* )extra;
     const unsigned nSamples   = buf_size/6;
-    const Header   header(sp->getHeader(nSamples));
     const unsigned tps(boost::posix_time::time_duration::ticks_per_second());
 
     const boost::posix_time::time_duration dt0(0,0,0, double(nSamples) / sp->recPtr_->sampleRate() * tps);
     const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
     const boost::posix_time::time_duration dt(now - sp->ptimeOfCallback_);
 
-    if (std::abs(dt.total_microseconds() - dt0.total_microseconds()) < dt0.total_microseconds()/10) {
-      sp->ptimeOfCallbackInterpolated_ = now;
-      // std::cout << "OK\n";
-    } else {
-      sp->ptimeOfCallbackInterpolated_ += dt0;
-      // std::cout << "INTERPOL\n";
-    }
-
-    // if (std::abs((sp->ptimeOfCallbackInterpolated_+dt-now).total_microseconds()) < dt.total_microseconds()/10) {
+    const boost::posix_time::ptime oldFilterTime(sp->ptimeFilter_.x());
+    const boost::posix_time::ptime
+      nowInterpolated((std::abs(dt.total_microseconds() - dt0.total_microseconds()) < dt0.total_microseconds()/10) 
+                      ? now
+                      : oldFilterTime + dt0);
+    sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
     sp->ptimeOfCallback_= now;
-
-#if 0
-    std::cout << "receiverCallback ptCB,ptCBInt, dt_usec, dt_usec,ddt_usec= " 
-              << sp->ptimeOfCallback_ << " " << sp->ptimeOfCallbackInterpolated_ << " "
-              << dt << " "<< dt0 << " " << dt-dt0 << " " 
-              << sp->ptimeOfCallback_ - sp->ptimeOfCallbackInterpolated_ << std::endl;;    
+#if 1
+    std::cout << "receiverCallback " 
+              << sp->ptimeOfCallback_ << " " 
+              << sp->ptimeFilter_.x() << " "
+              << dt << " "
+              << dt0 << " " 
+              << sp->ptimeOfCallback_ - sp->ptimeFilter_.x() << std::endl;;    
 #endif
+    const Header header(sp->getHeader(nSamples, oldFilterTime));
 #if 1
     std::vector<char> dataVector;
     std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(dataVector));
@@ -272,7 +277,7 @@ private:
   unsigned                       usbBufferSize_;
   boost::int64_t                 sampleNumber_;
   boost::posix_time::ptime       ptimeOfCallback_;
-  boost::posix_time::ptime       ptimeOfCallbackInterpolated_;
+  Filter::Cascaded<boost::posix_time::ptime> ptimeFilter_;
   data_connections               data_connections_;
 
   boost::asio::streambuf request_;
