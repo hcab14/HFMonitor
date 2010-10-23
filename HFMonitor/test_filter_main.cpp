@@ -14,7 +14,7 @@ int main()
   std::vector<ptime> t;
   const double dt(0.01); // sec  
   const unsigned N(1*60/dt); // 1 minutes
-  const double lambda(.1); // filter time constant / sec
+  const double lambda(1.); // filter time constant / sec
   const double noise(dt*0.01);
   for (unsigned u(0); u<N; ++u) {
     const double x(std::max(0., (1+u)*dt + 2*noise*(drand48()-1)));
@@ -24,7 +24,7 @@ int main()
   }
 
   Filter::PTimeLowPass f(dt, lambda);
-  f.init(t[0]);
+  f.init(t[0], t[0]);
 
   Filter::Cascaded<ptime> ff;
   ff.add(Filter::PTimeLowPass::make(dt, 10*lambda));
