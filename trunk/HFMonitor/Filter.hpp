@@ -81,15 +81,15 @@ namespace Filter {
     virtual ~PTimeLowPass() {}
 
     static Base<boost::posix_time::ptime>::sptr make(double dt, double lambda) {
-      return typename Base<boost::posix_time::ptime>::sptr(new PTimeLowPass(dt, lambda));
+      return Base<boost::posix_time::ptime>::sptr(new PTimeLowPass(dt, lambda));
     }
 
-    virtual void init(boost::posix_time::ptime,
+    virtual void init(boost::posix_time::ptime t0,
                       boost::posix_time::ptime t) {
-      this->init(t);
-    }
-    void init(boost::posix_time::ptime t) {
-      LowPassBase<boost::posix_time::ptime>::init(t,t);
+      using namespace boost::posix_time;
+      // compensation for the filter delay
+      t -= time_duration(0,0,0, (lambda_-dt_)*time_duration::ticks_per_second());
+      LowPassBase<ptime>::init(t0,t);
       secondsInDay_ = 1e-6*t.time_of_day().total_microseconds();
     }        
     virtual boost::posix_time::ptime update(boost::posix_time::ptime , 
