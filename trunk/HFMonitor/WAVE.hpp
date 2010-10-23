@@ -72,7 +72,7 @@ namespace WAVE {
     public:
       boost::uint32_t nCenterFrequencyHz() const { return nCenterFrequencyHz_; }
       boost::uint32_t nSamplingRateIdx() const { return nSamplingRateIdx_; }
-      boost::posix_time::ptime timeStart() const { return boost::posix_time::from_time_t(timeStart_); }
+      boost::posix_time::ptime ptimeStart() const { return boost::posix_time::from_time_t(timeStart_); }
       boost::uint16_t wAttenId() const { return wAttenId_; }
       boost::uint8_t  bAdcPresel() const { return bAdcPresel_; }
       boost::uint8_t  bAdcPreamp() const { return bAdcPreamp_; }
@@ -86,7 +86,7 @@ namespace WAVE {
         os << Header(r) 
            << " nCenterFrequencyHz=" << r.nCenterFrequencyHz()
            << " nSamplingRateIdx=" << r.nSamplingRateIdx()
-           << " timeStart=" << r.timeStart()
+           << " ptimeStart=" << r.ptimeStart()
            << " wAttenId=" << r.wAttenId()
            << " bAdcPresel=" << int(r.bAdcPresel())
            << " bAdcPreamp=" << int(r.bAdcPreamp())
@@ -128,6 +128,7 @@ namespace WAVE {
       : p_(p)
       , is_(fileName.c_str(), std::ios::in | std::ios::binary)
       , sampleNumber_(sampleNumber)
+      , sampleNumberInFile_(-samples.size())
       , chunkRiff_(readT<Chunk::RIFF>  (is_))
       , chunkFmt_ (readT<Chunk::Format>(is_))
       , chunkRcvr_(readT<Chunk::Rcvr>  (is_))
@@ -147,15 +148,21 @@ namespace WAVE {
     // called from IQBuffer::insert
     void procIQ(IQBuffer::Samples::const_iterator i0, 
                 IQBuffer::Samples::const_iterator i1) {
-      const Header header(sampleNumber_ - iqBuffer_.n(),
-                          chunkFmt().sampleRate(), 
-                          chunkRcvr().nCenterFrequencyHz(),
-                          iqBuffer_.n(),
-                          0, // TODO
-                          chunkRcvr().wAttenId(),
-                          chunkRcvr().bAdcPresel(),
-                          chunkRcvr().bAdcPreamp(),
-                          chunkRcvr().bAdcDither());
+      using namespace boost::posix_time;
+      // TO be checked:
+      const time_duration 
+        timeOffset(0,0,0, sampleNumberInFile_*time_duration::ticks_per_second()/chunkFmt().sampleRate());
+      const Header 
+        header(sampleNumber_ - iqBuffer_.n(),
+               chunkFmt().sampleRate(), 
+               chunkRcvr().nCenterFrequencyHz(),
+               iqBuffer_.n(),
+               0, // TODO
+               chunkRcvr().wAttenId(),
+               chunkRcvr().bAdcPresel(),
+               chunkRcvr().bAdcPreamp(),
+               chunkRcvr().bAdcDither(),
+               chunkRcvr().ptimeStart() + timeOffset);
       std::cout << "WAVE::ProcessFile::procIQ: " << header << " "<< std::distance(i0,i1) << std::endl;
       p_.procIQ(header, i0, i1);
     }
@@ -168,6 +175,7 @@ namespace WAVE {
           const double xq(readRealSample());
           iqBuffer_.insert(this, std::complex<double>(xq,xi));
           ++sampleNumber_;
+          ++sampleNumberInFile_;
           ++nRead;
         }
       } catch (...) {
@@ -197,6 +205,7 @@ namespace WAVE {
     PROCESSOR&          p_;
     std::ifstream       is_;
     boost::uint64_t     sampleNumber_;
+    boost::int64_t      sampleNumberInFile_;
     const Chunk::RIFF   chunkRiff_;
     const Chunk::Format chunkFmt_;
     const Chunk::Rcvr   chunkRcvr_;
