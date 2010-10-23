@@ -16,7 +16,8 @@ public:
          boost::uint8_t  attenId=0,
          boost::uint8_t  adcPresel=1,
          boost::uint8_t  adcPreamp=0,
-         boost::uint8_t  adcDither=0)
+         boost::uint8_t  adcDither=0,
+         boost::posix_time::ptime approxPTime=boost::posix_time::ptime())
     : sampleNumber_      (sampleNumber)
     , sampleRate_        (sampleRate)
     , ddcCenterFrequency_(ddcCenterFrequency)
@@ -25,7 +26,9 @@ public:
     , attenId_           (attenId)
     , adcPresel_         (adcPresel)
     , adcPreamp_         (adcPreamp)
-    , adcDither_         (adcDither) {}
+    , adcDither_         (adcDither)
+    , dummy_             (0)
+    , approxPTime_       (approxPTime) {}
 
   boost::int64_t  sampleNumber()        const { return sampleNumber_; }
   boost::int64_t& sampleNumber()              { return sampleNumber_; }

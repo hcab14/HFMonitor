@@ -65,7 +65,9 @@ public:
     , counterModN_(n_)
     , counterModM_(m_)
     , counterModNM_(m_*n_)
-    , counterModL_(ol2l(overlap)) {
+    , counterModL_(ol2l(overlap))
+    , isFull_(false)
+    , isFirst_(true) {
     std::cout << "XXX " << n_ << " " << m_ << " " << overlap << std::endl;
   }
   
@@ -88,6 +90,8 @@ public:
     counterModM_.setM(m_);
     counterModNM_.setM(n_*m_);
     counterModL_.setM(ol2l(overlap));
+    isFull_ = false;
+    isFirst_ = true;
   }
 
   size_t n() const { return n_; }
@@ -97,8 +101,12 @@ public:
   // insert a single sample
   template<typename PROCESSOR>
   void insert(PROCESSOR* p, Complex c) {
+    if (isFirst_) 
+      isFirst_ = false;
+    else if (!isFull_) 
+      isFull_ = (counterModN_ == 0);
     if (counterModM_ == 0) {
-      if (counterModL_++ == 0)
+      if (counterModL_++ == 0 && isFull_)
         p->procIQ(iqVec_.begin()+counterModN_,
                   iqVec_.begin()+counterModN_+n_);
       lpi_ = (counterModN_+m_) % n_;
@@ -153,6 +161,8 @@ private:
   Internal::ModuloCounter<size_t> counterModM_;
   Internal::ModuloCounter<size_t> counterModNM_;
   Internal::ModuloCounter<size_t> counterModL_;
+  bool isFull_;
+  bool isFirst_;
 } ;
 
 
