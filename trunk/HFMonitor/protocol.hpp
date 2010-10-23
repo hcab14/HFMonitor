@@ -47,6 +47,7 @@ public:
 
   friend std::ostream& operator<<(std::ostream& os, const Header& h) {
     return os << "sampleNumber="        << h.sampleNumber() 
+              << " approxPTime="        << h.approxPTime()
               << " sampleRate="         << h.sampleRate()
               << " ddcCenterFrequency=" << h.ddcCenterFrequency()
               << " numberOfSamples="    << h.numberOfSamples()
