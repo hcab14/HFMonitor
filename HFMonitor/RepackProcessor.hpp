@@ -32,9 +32,16 @@ public:
     if (!currentHeader_.hasEqualParameters(header)) 
       update(header);    
 
+    // ptime starts from now on
+    currentHeader_.approxPTime() = header.approxPTime();
+
+    // counter_ counts samples relative to currentHeader_.approxPTime()
+    counter_ = 0;
+
     // keep track of sample numbers
     for (; i0 != i1; ++i0) {
-      currentHeader_.sampleNumber()++;
+      ++currentHeader_.sampleNumber();
+      ++counter_;
       iqBuffer_.insert(this, *i0);
     }
   }
@@ -42,9 +49,14 @@ public:
   // called from IQBuffer::insert 
   void procIQ(std::vector<std::complex<double> >::const_iterator i0,
               std::vector<std::complex<double> >::const_iterator i1) {
+    using namespace boost::posix_time;
+    // update ptime of currentHeader
+    currentHeader_.approxPTime() += 
+      time_duration(0,0,0, counter_*time_duration::ticks_per_second()/currentHeader_.sampleRate());
     p_.procIQ(currentHeader_, i0, i1); 
+    // reset counter_
+    counter_ = 0;
   }
-
 
 protected:
   void update(const Header& h) {
@@ -54,6 +66,7 @@ protected:
     currentHeader_ = h;
     currentHeader_.sampleNumber() -= iqBuffer_.n();
     currentHeader_.setNumberOfSamples(iqBuffer_.n());
+    counter_ = 0;
   }
 
 private:
@@ -62,6 +75,7 @@ private:
   double overlap_;
   Header currentHeader_;
   IQBuffer iqBuffer_;
+  boost::int64_t counter_;
 } ;
 
 #endif // _REPACK_PROCESSOR_HPP_cm100818_

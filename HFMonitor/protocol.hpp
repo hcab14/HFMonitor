@@ -40,7 +40,8 @@ public:
   boost::uint8_t  adcPresel()           const { return adcPresel_; }
   boost::uint8_t  adcPreamp()           const { return adcPreamp_; }
   boost::uint8_t  adcDither()           const { return adcDither_; }
-  boost::posix_time::ptime approxPTime() const { return approxPTime_; }
+  boost::posix_time::ptime  approxPTime() const { return approxPTime_; }
+  boost::posix_time::ptime& approxPTime() { return approxPTime_; }
 
   void setNumberOfSamples(boost::uint32_t n)  { numberOfSamples_ = n; }
 
