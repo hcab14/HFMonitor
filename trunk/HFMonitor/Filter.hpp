@@ -9,7 +9,7 @@
 
 namespace Filter {
   template<typename T>
-  class Base : public boost::noncopyable {
+  class Base : private boost::noncopyable {
   public:
     typedef typename boost::shared_ptr<Base<T> > sptr;
     virtual ~Base() {}
@@ -63,8 +63,9 @@ namespace Filter {
     static typename Base<T>::sptr make(double dt, double lambda) {
       return typename Base<T>::sptr(new LowPass(dt, lambda));
     }
-    virtual T update(boost::posix_time::ptime pt, const T& x) {
-      x_ *= (1-a_); x_ += a_*x;
+    virtual T x() const { return x_; }
+    virtual T update(boost::posix_time::ptime pt, T xx) {
+      x_ *= (1-a_); x_ += a_*xx;
       return x();
     }
   private:
