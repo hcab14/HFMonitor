@@ -7,11 +7,12 @@
 #include <string>
 #include <deque>
 
-#include <boost/thread.hpp>
-#include <boost/asio.hpp>
 #include <boost/array.hpp>
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/thread.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -153,18 +154,24 @@ public:
     // PTimeLowpassFilters:
     {
       using boost::property_tree::ptree;
+      using namespace boost::posix_time;
       const ptree& pt(config.get_child("perseus.CascadedPTimeLowPass"));
       std::cout << "Cascaded Lowpass Filters: " << std::endl;
+      const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
       for (ptree::const_iterator i(pt.begin()); i!=pt.end(); ++i) {
-        const ptree& filterPt(i->second);
-        const double filterTimeconstant(filterPt.get<double>("Tau_Sec"));
+        if (i->first != "Tau_Sec") {
+          std::cout << "  + unknown key: [" << i->first << "]" << std::endl;
+          continue;
+        }
+        const double filterTimeconstant(boost::lexical_cast<double>(i->second.data()));
         std::cout << "  + Lowpass Filter " << i->first << "=" << filterTimeconstant << std::endl;
-        ptimeFilter_.add(Filter::PTimeLowPass::make(1e-6*dtCallback_.total_microseconds(), 
-                                                    filterTimeconstant));
+        ptimeFilter_.add(Filter::PTimeLowPass::make(dtCallbackSec, filterTimeconstant));
+        dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));
         
       }
-      const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+      const ptime now(microsec_clock::universal_time());
       ptimeFilter_.init(now, now);
+      dtFilter_.init(now, dtCallbackSec);
       ptimeOfCallback_ = now;
     }
     recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
@@ -215,18 +222,21 @@ public:
   }
 
   static int receiverCallback(void *buf, int buf_size, void *extra) {
+    using namespace boost::posix_time;
     server* sp= (server* )extra;
-    const unsigned nSamples   = buf_size/6;
+    const unsigned nSamples = buf_size/6;
 
-    const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
-    const boost::posix_time::time_duration dt(now - sp->ptimeOfCallback_);
+    const ptime now(microsec_clock::universal_time());
+    const time_duration dt(now - sp->ptimeOfCallback_);
 
-    const boost::posix_time::ptime oldFilterTime(sp->ptimeFilter_.x());
-    const boost::posix_time::ptime
-      nowInterpolated((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) 
-                      ? now
-                      : oldFilterTime + sp->dtCallback_);
+    const ptime oldFilterTime(sp->ptimeFilter_.x());
+    const bool doInterpolation(std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtCallback_.ticks()/10); 
+    const ptime
+      nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
     sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
+    sp->dtFilter_.update(nowInterpolated, (doInterpolation 
+                                           ? double(sp->dtCallback_.ticks())
+                                           : double(dt.ticks())) / time_duration::ticks_per_second());
     sp->ptimeOfCallback_= now;
 #if 1
     std::cout << "receiverCallback " 
@@ -234,8 +244,10 @@ public:
               << sp->ptimeFilter_.x() << " "
               << dt << " "
               << sp->dtCallback_ << " "
-              << double((sp->ptimeFilter_.x()-oldFilterTime).ticks()) / double(sp->dtCallback_.ticks())-1. << " "
-              << sp->ptimeOfCallback_ - sp->ptimeFilter_.x() << std::endl;;    
+              << (sp->ptimeFilter_.x()-oldFilterTime).ticks() << " " << sp->dtCallback_.ticks() << " "
+              << sp->dtFilter_.x() << " " << sp->dtFilter_.x() / double(sp->dtCallback_.ticks())*time_duration::ticks_per_second()-1. << " "
+              << sp->ptimeOfCallback_ - sp->ptimeFilter_.x() << " "
+              << ((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) ? "OK" : "IP") <<  std::endl;
 #endif
     const Header header(sp->getHeader(nSamples, oldFilterTime));
 #if 1
@@ -291,6 +303,7 @@ private:
   boost::posix_time::time_duration dtCallback_;
   boost::posix_time::ptime         ptimeOfCallback_;
   Filter::Cascaded<boost::posix_time::ptime> ptimeFilter_;
+  Filter::Cascaded<double>                   dtFilter_;
   data_connections               data_connections_;
 
   boost::asio::streambuf request_;
