@@ -21,6 +21,10 @@ FFT.WindowFunction ........
 </server>
 <perseus>
   <USBBufferSize>16320</USBBufferSize>
+  <CascadedPTimeLowPass>
+    <Tau_Sec>600.</Tau_Sec>
+    <Tau_Sec>60.</Tau_Sec>
+  </CascadedPTimeLowPass>    
   <qrg_Hz>250000</qrg_Hz>
   <fpga>
     <samplerate>500000</samplerate>
