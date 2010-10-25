@@ -118,6 +118,8 @@ public:
   typedef std::set<tcp_socket_ptr> Sockets;
   typedef boost::shared_ptr<data_connection> data_connection_ptr;
   typedef std::set<data_connection_ptr> data_connections;
+  typedef boost::posix_time::ptime ptime;
+  typedef boost::posix_time::time_duration time_duration;
 
   server(boost::asio::io_service& io_service,
          const boost::asio::ip::tcp::endpoint& endpoint_ctrl,
@@ -132,7 +134,7 @@ public:
     , usbBufferSize_(config.get<unsigned>("perseus.USBBufferSize"))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
-                  usbBufferSize_/6*boost::posix_time::time_duration::ticks_per_second()/recPtr_->sampleRate()) {
+                  usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) {
     // control setup
     {
       acceptor_ctrl_.set_option(boost::asio::socket_base::reuse_address(true));
@@ -154,7 +156,6 @@ public:
     // PTimeLowpassFilters:
     {
       using boost::property_tree::ptree;
-      using namespace boost::posix_time;
       const ptree& pt(config.get_child("perseus.CascadedPTimeLowPass"));
       std::cout << "Cascaded Lowpass Filters: " << std::endl;
       const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
@@ -169,7 +170,7 @@ public:
         dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));
         
       }
-      const ptime now(microsec_clock::universal_time());
+      const ptime now(boost::posix_time::microsec_clock::universal_time());
       ptimeFilter_.init(now, now);
       dtFilter_.init(now, dtCallbackSec);
       ptimeOfCallback_ = now;
@@ -207,8 +208,7 @@ public:
     }
   }
 
-  Header getHeader(const unsigned nSamples,
-                   boost::posix_time::ptime approxPTime) {
+  Header getHeader(const unsigned nSamples, ptime approxPTime) {
     return Header((sampleNumber_+=nSamples) - nSamples,
                   recPtr_->sampleRate(),
                   recPtr_->ddcCenterFrequency(),
@@ -222,32 +222,32 @@ public:
   }
 
   static int receiverCallback(void *buf, int buf_size, void *extra) {
-    using namespace boost::posix_time;
     server* sp= (server* )extra;
     const unsigned nSamples = buf_size/6;
 
-    const ptime now(microsec_clock::universal_time());
+    const ptime now(boost::posix_time::microsec_clock::universal_time());
     const time_duration dt(now - sp->ptimeOfCallback_);
 
     const ptime oldFilterTime(sp->ptimeFilter_.x());
     const bool doInterpolation(std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtCallback_.ticks()/10); 
-    const ptime
-      nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
+    const ptime nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
     sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
     sp->dtFilter_.update(nowInterpolated, (doInterpolation 
                                            ? double(sp->dtCallback_.ticks())
                                            : double(dt.ticks())) / time_duration::ticks_per_second());
     sp->ptimeOfCallback_= now;
 #if 1
-    std::cout << "receiverCallback " 
-              << sp->ptimeOfCallback_ << " " 
+    std::cout << "receiverCallback "
+              << sp->ptimeOfCallback_ << " "
               << sp->ptimeFilter_.x() << " "
               << dt << " "
               << sp->dtCallback_ << " "
               << (sp->ptimeFilter_.x()-oldFilterTime).ticks() << " " << sp->dtCallback_.ticks() << " "
-              << sp->dtFilter_.x() << " " << sp->dtFilter_.x() / double(sp->dtCallback_.ticks())*time_duration::ticks_per_second()-1. << " "
+              << sp->dtFilter_.x() << " " 
+              << sp->dtFilter_.x() / double(sp->dtCallback_.ticks())*time_duration::ticks_per_second()-1. << " "
               << sp->ptimeOfCallback_ - sp->ptimeFilter_.x() << " "
-              << ((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) ? "OK" : "IP") <<  std::endl;
+              << ((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) ? "OK" : "IP") 
+              <<  std::endl;
 #endif
     const Header header(sp->getHeader(nSamples, oldFilterTime));
 #if 1
@@ -259,10 +259,8 @@ public:
 #endif
 
     boost::system::error_code ec;
-    size_t n;
-    for (unsigned u(0); (n=sp->io_service_.poll(ec)) > 0; ++u) {
+    for (unsigned u(0); sp->io_service_.poll(ec) > 0 && u < 10000; ++u)
       if (ec) break;
-    }
     return 0;
   }
   static void sendDataToClients(server* sp, const std::vector<char>& dataVector) {
@@ -300,10 +298,10 @@ private:
   Perseus::ReceiverPtr           recPtr_;
   unsigned                       usbBufferSize_;
   boost::int64_t                 sampleNumber_;
-  boost::posix_time::time_duration dtCallback_;
-  boost::posix_time::ptime         ptimeOfCallback_;
-  Filter::Cascaded<boost::posix_time::ptime> ptimeFilter_;
-  Filter::Cascaded<double>                   dtFilter_;
+  time_duration                  dtCallback_;
+  ptime                          ptimeOfCallback_;
+  Filter::Cascaded<ptime>        ptimeFilter_;
+  Filter::Cascaded<double>       dtFilter_;
   data_connections               data_connections_;
 
   boost::asio::streambuf request_;

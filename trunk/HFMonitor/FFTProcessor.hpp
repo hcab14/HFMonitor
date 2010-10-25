@@ -11,6 +11,7 @@
 #include <boost/integer.hpp>
 
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
 #include <boost/shared_ptr.hpp>
@@ -23,36 +24,21 @@
 
 class SpectrumBase {
 public:
+  typedef std::complex<double> Complex;
+
   SpectrumBase(double sampleRate,
                double centerFrequency)
     : sampleRate_(sampleRate)
     , centerFrequency_(centerFrequency) {}
-
-  typedef std::complex<double> Complex;
+  virtual ~SpectrumBase() {}
 
   double sampleRate() const { return sampleRate_; }
   double centerFrequency() const { return centerFrequency_; }
 
-  virtual size_t freq2Index(double qrg_Hz) const = 0;  // get the nearest bin index
-  virtual double index2Freq(size_t index)  const = 0;  // ...
-  virtual size_t size()                    const = 0;  // ...
-  virtual Complex operator[](size_t index) const = 0;  // ...
-
-private:
-  double sampleRate_;
-  double centerFrequency_;
-} ;
-
-template<typename T>
-class Spectrum : public SpectrumBase {
-public:
-  Spectrum(const FFT::FFTWTransform<T>& fftw,
-           double sampleRate,
-           double centerFrequency)
-    : SpectrumBase(sampleRate, centerFrequency)
-    , fftw_(fftw) {}
-
-  virtual size_t freq2Index(double qrg_Hz) const { // get the nearest bin index
+  virtual size_t size()                    const = 0;
+  virtual Complex operator[](size_t index) const = 0;
+  
+  size_t freq2Index(double qrg_Hz) const { // get the nearest bin index
     const int n(size());
     const int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
     if (i >= -n/2 && i < n/2)
@@ -60,61 +46,145 @@ public:
     else 
       throw std::runtime_error("freq2Index failed");
   }
-
-  virtual double index2Freq(size_t index) const { //
+  
+  double index2Freq(size_t index) const {
     const int n(size());
     return centerFrequency() + sampleRate() * (int(index)>=n/2 ? -n+int(index) : int(index)) / double(n);
-  }
-  
-  virtual size_t size() const { return fftw_.size(); }
-  virtual std::complex<double> operator[](size_t index) const { return fftw_.getBin(index); }
-  
-protected:
+  }  
 private:
   static int round(double d) { return int(d+((d>=0.0) ? .5 : -.5)); }
 
+  double sampleRate_;
+  double centerFrequency_;
+} ;
+
+template<typename T>
+class FFTWSpectrum : public SpectrumBase {
+public:
+  FFTWSpectrum(const FFT::FFTWTransform<T>& fftw,
+               double sampleRate,
+               double centerFrequency)
+    : SpectrumBase(sampleRate, centerFrequency)
+    , fftw_(fftw) {}
+  virtual ~FFTWSpectrum() {}
+
+  virtual size_t size() const { return fftw_.size(); }
+  virtual std::complex<double> operator[](size_t index) const { return fftw_.getBin(index); }  
+protected:
+private:
   const FFT::FFTWTransform<T>& fftw_;
   double sampleRate_;
   double centerFrequency_;
 } ;
 
-class FreqStrength {
+// class FreqStrength {
+// public:
+//   FreqStrength(double freq, double strength)
+//     : freq_(freq)
+//     , strength_(strength) {}
+  
+//   double freq() const { return freq_; }
+//   double strength() const { return strength_; }
+//   double& strength() { return strength_; }
+  
+//   static bool cmpStrength(const FreqStrength& fs1, 
+//                           const FreqStrength& fs2) {
+//     return fs1.strength() < fs2.strength();
+//   }
+//   static bool cmpFreq(const FreqStrength& fs1, 
+//                       const FreqStrength& fs2) {
+//     return fs1.freq() < fs2.freq();
+//   }
+// private:
+//   double freq_;
+//   double strength_;
+// } ;
+
+class PowerSpectrum {
 public:
-  FreqStrength(double freq, double strength)
-    : freq_(freq)
-    , strength_(strength) {}
-  
-  double freq() const { return freq_; }
-  double strength() const { return strength_; }
-  double& strength() { return strength_; }
-  
-  static bool cmpStrength(const FreqStrength& fs1, 
-                          const FreqStrength& fs2) {
-    return fs1.strength() < fs2.strength();
+  typedef std::pair<double, double> FreqStrength;
+  typedef std::vector<FreqStrength> Vec;
+  typedef Vec::iterator       iterator;
+  typedef Vec::const_iterator const_iterator;
+
+  PowerSpectrum(double fMin, double fMax)
+    : fMin_(fMin)
+    , fMax_(fMax) {}
+
+  PowerSpectrum(double fMin, double fMax, const SpectrumBase& s)
+    : fMin_(fMin)
+    , fMax_(fMax) {
+    fill(s);
   }
-  static bool cmpFreq(const FreqStrength& fs1, 
+  
+  double fMin() const { return fMin_; }
+  double fMax() const { return fMax_; }
+
+  void fill(const SpectrumBase& s) {
+    ps_.clear();
+    const size_t i0(s.freq2Index(fMin_));
+    const size_t i1(s.freq2Index(fMax_));
+    for (size_t u=i0; u<=i1; ++u) 
+      ps_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
+  }
+  const FreqStrength& operator[](unsigned index) const { return ps_[index]; }
+  void clear() { ps_.clear(); }
+  size_t size() const { return ps_.size(); }
+  bool empty() const { return ps_.empty(); }
+  iterator       begin()       { return ps_.begin(); }
+  const_iterator begin() const { return ps_.begin(); }
+  iterator       end()       { return ps_.end(); }
+  const_iterator end() const { return ps_.end(); }
+
+  static bool cmpFreq(const FreqStrength& fs1,
                       const FreqStrength& fs2) {
-    return fs1.freq() < fs2.freq();
+    return fs1.first < fs2.first;
+  }
+  static bool cmpStrength(const FreqStrength& fs1,
+                          const FreqStrength& fs2) {
+    return fs1.second < fs2.second;
+  }
+
+  PowerSpectrum& operator+=(const PowerSpectrum& ps) {
+    if (size() != ps.size())
+      throw 1; // TODO
+    const_iterator j(ps.begin());
+    for (iterator i(begin()); i!=end(); ++i,++j) {
+      if (i->first != j->first) throw 1; // TODO
+      i->second += j->second;
+    }
+    return *this;
+  }
+  PowerSpectrum& operator-=(const PowerSpectrum& ps) {
+    if (size() != ps.size())
+      throw 1; // TODO
+    const_iterator j(ps.begin());
+    for (iterator i(begin()); i!=end(); ++i,++j) {
+      if (i->first != j->first) throw 1; //TODO
+      i->second -= j->second;
+    }
+    return *this;
+  }
+  PowerSpectrum& operator*=(double f) {
+    for (iterator i(begin()); i!=end(); ++i)
+      i->second *= f;
+    return *this;
+  }
+  friend PowerSpectrum operator*(const PowerSpectrum& p,
+                                 double f) {
+    PowerSpectrum r(p); r*=f;
+    return r;
+  }
+  friend PowerSpectrum operator*(double f,
+                                 const PowerSpectrum& p) {    
+    PowerSpectrum r(p); r*=f;
+    return r;
   }
 private:
-  double freq_;
-  double strength_;
+  const double fMin_;
+  const double fMax_;
+  Vec ps_;
 } ;
-
-// class PowerSpectrum {
-// public:
-//   PowerSpectrum() {}
-//   PowerSpectrum(const SpectrumBase& s, double fMin, double fMax) {
-//     const size_t iMin(s.freq2Index(fMin));
-//     const size_t iMax(s.freq2Index(fMax));
-//     for (size_t u(iMin); u<=iMax; ++u)
-//       fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
-//   }
-  
-// protected:
-// private:
-//   std::vector<FreqStrength> fs_;
-// } ;
 
 
 namespace Result {
@@ -127,11 +197,45 @@ namespace Result {
     virtual ~Base() {}
     virtual std::string toString() const { return name(); }
     std::string name() const { return name_; }
-    // void setName(std::string name) { name_= name; }
+
     friend std::ostream& operator<<(std::ostream& os, const Base& b) {
       return os << b.toString();
     }
-    virtual void dump(std::string path) {}
+
+    void dump(std::string path,
+              std::string tag,
+              boost::posix_time::ptime t) const {      
+      boost::filesystem::path p(getFilePath(path, tag, t));
+      const bool writeHeader(not boost::filesystem::exists(p));
+      boost::filesystem::ofstream ofs(p, std::ios::app);
+      if (writeHeader)
+        dumpHeader(ofs, t) << lineBreak();
+      dumpData(ofs, t) << lineBreak();
+    }
+  protected:
+    virtual std::string lineBreak() const { return "\n"; }
+    virtual std::ostream& dumpData(std::ostream& os,
+                                   boost::posix_time::ptime t) const {
+      return os << boost::posix_time::to_iso_string(t) << " ";
+    }
+    virtual std::ostream& dumpHeader(std::ostream& os,
+                                     boost::posix_time::ptime t) const {
+      return os << "# Time ";
+    }
+    virtual boost::filesystem::path getFilePath(std::string basePath,
+                                                std::string tag,
+                                                boost::posix_time::ptime t) const {
+      using namespace boost::gregorian;
+      boost::filesystem::path p(basePath+"/"+tag);
+      boost::filesystem::create_directories(p);
+      std::stringstream oss;
+      oss.imbue(std::locale(oss.getloc(), new date_facet("%Y-%m-%d")));
+      oss << "/" << t.date() << "." << fileExtenstion();
+      return p/=(oss.str());
+    }
+    virtual std::string fileExtenstion() const {
+      return "txt";
+    }
   protected:
     std::string name_;
   } ;
@@ -148,32 +252,31 @@ namespace Result {
       , strengthRMS_(1.)
       , ratio_(1.) {}
 
-    bool findPeak(const std::vector<FreqStrength>& fs, double minRatio) {
-      std::vector<FreqStrength>::const_iterator
-        iMin(std::min_element(fs.begin(), fs.end(), FreqStrength::cmpStrength));
-      std::vector<FreqStrength>::const_iterator
-        iMax(std::max_element(fs.begin(), fs.end(), FreqStrength::cmpStrength));
+    bool findPeak(const PowerSpectrum& ps, double minRatio) {
+      PowerSpectrum::const_iterator
+        iMin(std::min_element(ps.begin(), ps.end(), PowerSpectrum::cmpStrength));
+      PowerSpectrum::const_iterator
+        iMax(std::max_element(ps.begin(), ps.end(), PowerSpectrum::cmpStrength));
       
-      const size_t indexMax(std::distance(fs.begin(), iMax));
+      const size_t indexMax(std::distance(ps.begin(), iMax));
 
       double sum(0.0);
       double weight(0.0);
-      for (size_t u(indexMax-std::min(indexMax, size_t(3))); u<(indexMax+4) && u < fs.size(); ++u) {
-        weight += fs[u].strength();
-        sum += fs[u].strength() * fs[u].freq();
+      for (size_t u(indexMax-std::min(indexMax, size_t(3))); u<(indexMax+4) && u < ps.size(); ++u) {
+        weight += ps[u].second;
+        sum += ps[u].second * ps[u].first;
       }
-      ratio_ = (iMin->strength() != 0.0) ? iMax->strength() / iMin->strength() : 1.0;
+      ratio_ = (iMin->second != 0.0) ? iMax->second / iMin->second : 1.0;
       if (ratio_ < minRatio || weight == 0.0) {
-        // throw std::runtime_error("ratio < minRatio || weight == 0.0");
-        std::cout << "ratio < minRatio || weight == 0.0" << std::endl;
+        std::cout << "ratio < minRatio || weight == 0.0: " << ratio_ << " " << sum << " " << weight << std::endl;
         return false;
       }
       // TODO: error propagation
       const std::pair<double, double> c(cal(sum/weight));
       fMeasured_    = c.first;
       fMeasuredRMS_ = c.second;
-      strength_     = iMax->strength();
-      strengthRMS_  = iMax->strength()/10.; // TODO
+      strength_     = iMax->second;
+      strengthRMS_  = iMax->second/10.; // TODO
       return true;
     }
 
@@ -199,6 +302,22 @@ namespace Result {
     // this method is overwritten e.g. in CalibratedSpectrumPeak
     virtual std::pair<double, double> cal(double f) const {
       return std::make_pair(f, double(1));
+    }
+
+    virtual std::ostream& dumpData(std::ostream& os,
+                                   boost::posix_time::ptime t) const {
+      return Base::dumpData(os, t)
+        << boost::format("%12.3f") % fReference() << " "
+        << boost::format("%12.3f") % fMeasured() << " "
+        << boost::format("%6.3f")  % fMeasuredRMS() << " "
+        << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
+        << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " "
+        << boost::format("%5.2f")  % std::log10(ratio()) << " ";
+    }
+    virtual std::ostream& dumpHeader(std::ostream& os,
+                                     boost::posix_time::ptime t) const {      
+      return Base::dumpHeader(os, t) 
+        << "fReference_Hz fMeasured_Hz fMeasuredRMS_Hz strength_dB strengthRMS_dB log10(ratio) ";
     }
 
   private:
@@ -270,6 +389,19 @@ namespace Result {
       return std::make_pair(fCal, std::sqrt(inner_prod(a, Vector(prod(q_, a)))));       
     }
     
+    virtual std::ostream& dumpData(std::ostream& os,
+                                   boost::posix_time::ptime t) const {
+      return Base::dumpData(os, t) 
+        << boost::format("%6.3f")  % x_(0) << " "
+        << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
+        << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "
+        << boost::format("%7.2f")  % (1e6*std::sqrt(q_(1,1))) << " ";
+    }
+    virtual std::ostream& dumpHeader(std::ostream& os,
+                                     boost::posix_time::ptime t) const {      
+      return Base::dumpHeader(os, t) 
+        << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
+    }
   private:
     size_t n_;
     Matrix q_;
@@ -290,13 +422,25 @@ namespace Result {
     virtual std::string toString() const { 
       std::stringstream ss; 
       ss << SpectrumPeak::toString()
-         << " diff="   << fMeasured()-fReference();
+         << " diff=" << fMeasured()-fReference();
       return ss.str();
     }
 
     virtual std::pair<double, double> cal(double f) const {
       return calibrationHandle_->uncal2cal(f);
     }
+
+    virtual std::ostream& dumpData(std::ostream& os,
+                                   boost::posix_time::ptime t) const {
+      return SpectrumPeak::dumpData(os, t) 
+        << boost::format("%8.3f")  % (fMeasured()-fReference()) << " ";
+    }
+    virtual std::ostream& dumpHeader(std::ostream& os,
+                                     boost::posix_time::ptime t) const {      
+      return SpectrumPeak::dumpHeader(os, t) 
+        << "diff_Hz ";
+    }
+
   private:
     Calibration::Handle calibrationHandle_;
   } ;
@@ -306,7 +450,7 @@ namespace Proxy {
   class Base {
   public:
     virtual ~Base() {}
-    virtual void result(std::string resultKey, Result::Base::Handle result) {
+    virtual void putResult(std::string resultKey, Result::Base::Handle result) {
       std::cout << "Proxy::Base::result [" << resultKey << "] " << result << std::endl;
     }
     virtual Result::Base::Handle getResult(std::string keyString) const = 0;
@@ -331,8 +475,8 @@ namespace Action {
   public:
     SpectumInterval(const boost::property_tree::ptree& config)
       : Base("SpectumInterval")
-      , fMin_(config.get<double>("fMin"))
-      , fMax_(config.get<double>("fMax"))
+      , ps_(config.get<double>("fMin"), 
+            config.get<double>("fMax"))
       , filterType_(config.find("Filter") != config.not_found() 
                     ? config.get<std::string>("Filter.Type")
                     : "None")
@@ -342,27 +486,23 @@ namespace Action {
     
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       try {
-        const size_t i0(s.freq2Index(fMin_));
-        const size_t i1(s.freq2Index(fMax_));
-      if (filterType_ == "None") {
-        fs_.clear();
-        for (size_t u=i0; u<=i1; ++u) 
-          fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
-      } else if (filterType_ == "LowPass") {
-        if (fs_.empty()) {
-          for (size_t u=i0; u<=i1; ++u) 
-            fs_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
+        if (filterType_ == "None") {
+          ps_.clear();
+          ps_.fill(s);
+        } else if (filterType_ == "LowPass") {
+          if (ps_.empty()) {
+            ps_.fill(s);
         } else {
-          const double dt(s.size()/s.sampleRate());
-          const double x(dt / filterTimeConstant_);
-          for (size_t u=i0; u<=i1; ++u) 
-            fs_[u-i0].strength() = (1-x) * fs_[u-i0].strength() + x * std::abs(s[u]);
+            const double dt(s.size()/s.sampleRate());
+            const double x(dt / filterTimeConstant_);
+            ps_ *= (1-x);
+            ps_ += x * PowerSpectrum(ps_.fMin(), ps_.fMax(), s);
         }
       } else {
         throw std::runtime_error(filterType_ + " unknown filter");
       }
       // call virtual method
-      proc(p, s, fs_);      
+      proc(p, s, ps_);      
       } catch (...) {
         return;
       }
@@ -371,15 +511,13 @@ namespace Action {
     // this method is overwritten by, e.g., FindPeak, see below
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
-                      const std::vector<FreqStrength>& fs) = 0;
+                      const PowerSpectrum& ps) = 0;
     
   protected:
   private:
-    const double fMin_;
-    const double fMax_;
+    PowerSpectrum ps_;
     const std::string filterType_;
     const double filterTimeConstant_;
-    std::vector<FreqStrength> fs_;
   } ;
 
   class FindPeak : public SpectumInterval {
@@ -400,7 +538,7 @@ namespace Action {
     
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
-                      const std::vector<FreqStrength>& fs) {
+                      const PowerSpectrum& ps) {
       std::cout << "FindPeak::perform " << std::endl;
       try {
         Result::SpectrumPeak::Handle 
@@ -410,8 +548,8 @@ namespace Action {
                                                 boost::dynamic_pointer_cast<Result::Calibration>
                                                 (p.getResult(calibrationKey_)))
               : boost::make_shared<Result::SpectrumPeak>(fReference_));
-        if (spp->findPeak(fs, minRatio_)) {
-          p.result(resultKey_, spp);
+        if (spp->findPeak(ps, minRatio_)) {
+          p.putResult(resultKey_, spp);
         }
       } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
@@ -458,7 +596,7 @@ namespace Action {
       }
       try {     
         Result::Base::Handle rh(new Result::Calibration(peaks));
-        p.result(resultKey_, rh); 
+        p.putResult(resultKey_, rh); 
       } catch (...) {
         // ...
       }
@@ -519,7 +657,7 @@ public:
       : level_(level)
       , resultMap_(resultMap) {}
 
-    virtual void result(std::string resultKey, Result::Base::Handle result) {
+    virtual void putResult(std::string resultKey, Result::Base::Handle result) {
       std::cout << "FFTProxy::result [" << resultKey << "] " << result << std::endl;
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
@@ -570,17 +708,17 @@ public:
     if (length != fftw_.size()) fftw_.resize(length);
     std::cout << "FFTProcessor::procIQ " << header << std::endl;    
     if (windowFcnName_ == "Rectangular")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<double>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<Complex::value_type>());
     else if (windowFcnName_ == "Hanning")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning<double>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning<Complex::value_type>());
     else if (windowFcnName_ == "Hamming")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<double>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<Complex::value_type>());
     else if (windowFcnName_ == "Blackman")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<Complex::value_type>());
     else 
       throw std::runtime_error(windowFcnName_ + ": unknown window function");      
     
-    const Spectrum<FFTFloat> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
+    const FFTWSpectrum<FFTFloat> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
   
     // operate on Spectrum
     ResultMap resultMap;
@@ -595,8 +733,11 @@ public:
       }
     }
 
-    for (typename ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) 
+    // output of results
+    for (typename ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) {
       std::cout << "result: " << i->first << " " << *(i->second) << std::endl;
+      i->second->dump(dataPath_, i->first, header.approxPTime());
+    }
 
   }
 protected:
