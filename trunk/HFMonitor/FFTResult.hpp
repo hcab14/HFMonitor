@@ -4,14 +4,25 @@
 #define _FFT_RESULT_HPP_cm101026_
 
 #include <string>
+#include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include "Spectrum.hpp"
+#include "netpbm.hpp"
 
 namespace Result {
   class Base : private boost::noncopyable {
   public:
     typedef boost::shared_ptr<Base> Handle;
+    typedef enum FilePeriod {
+      PeriodDay,
+      PeriodHour,
+      Period5Minutes,
+      Period1Minute
+    } FilePeriod;
 
     Base(std::string name) 
       : name_(name) {}
@@ -27,38 +38,103 @@ namespace Result {
               std::string tag,
               boost::posix_time::ptime t) const {      
       boost::filesystem::path p(getFilePath(path, tag, t));
-      const bool writeHeader(not boost::filesystem::exists(p));
-      boost::filesystem::ofstream ofs(p, std::ios::app);
-      if (writeHeader)
+      const bool file_exists(boost::filesystem::exists(p));
+      if (not file_exists) {
+        boost::filesystem::fstream ofs(p, std::ios::out);
         dumpHeader(ofs, t) << lineBreak();
+      }
+      boost::filesystem::fstream ofs(p, std::ios::in | std::ios::out);
+      ofs.seekp(0, std::ios::end);
       dumpData(ofs, t) << lineBreak();
     }
   protected:
     virtual std::string lineBreak() const { return "\n"; }
-    virtual std::ostream& dumpData(std::ostream& os,
-                                   boost::posix_time::ptime t) const {
-      return os << boost::posix_time::to_iso_string(t) << " ";
+    virtual std::string fileExtension() const { return "txt"; }
+    virtual FilePeriod filePeriod() const { return PeriodDay; }
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
+                                                   boost::posix_time::ptime t) const {
+      os << "# Time_UTC ";
+      return os;
     }
-    virtual std::ostream& dumpHeader(std::ostream& os,
-                                     boost::posix_time::ptime t) const {
-      return os << "# Time ";
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
+                                                 boost::posix_time::ptime t) const {
+      std::stringstream oss;
+      oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y%m%dT%H%M%s")));
+      oss << t;
+      os << oss.str() << " ";
+      return os;
     }
     virtual boost::filesystem::path getFilePath(std::string basePath,
                                                 std::string tag,
                                                 boost::posix_time::ptime t) const {
-      using namespace boost::gregorian;
       boost::filesystem::path p(basePath+"/"+tag);
       boost::filesystem::create_directories(p);
       std::stringstream oss;
-      oss.imbue(std::locale(oss.getloc(), new date_facet("%Y-%m-%d")));
-      oss << "/" << t.date() << "." << fileExtenstion();
+      oss.imbue(std::locale(oss.getloc(), 
+                            new boost::posix_time::time_facet(makeTimeFormat(filePeriod()).c_str())));        
+      if (filePeriod() == Period5Minutes) {
+        const boost::posix_time::time_duration td(t.time_of_day());         
+        t= boost::posix_time::ptime(t.date(), 
+                                    boost::posix_time::time_duration(td.hours(), 5*(td.minutes()/5), 0));
+      }
+      oss << "/" << t << "." << fileExtension();
       return p/=(oss.str());
     }
-    virtual std::string fileExtenstion() const {
-      return "txt";
-    }
+
   protected:
     std::string name_;
+
+  private:
+    static std::string makeTimeFormat(FilePeriod p) {
+      std::string time_facet_format;
+      switch (p) {
+      case PeriodDay:
+        time_facet_format="y%Y-m%m-d%d"; 
+       break;
+      case PeriodHour:
+        time_facet_format="y%Y-m%m-d%d_H%H";
+        break;
+      case Period5Minutes:
+      case Period1Minute:
+        time_facet_format="y%Y-m%m-d%d_H%HM%M";
+        break;
+      default:
+        throw std::runtime_error("requested FilePeriod is not supported");
+      }
+      return time_facet_format;
+    }
+  } ;
+
+  class PowerSpectrumLine : public Base {
+  public:
+    typedef boost::shared_ptr<PowerSpectrumLine> Handle;
+    PowerSpectrumLine(std::string line)
+      : Base("PowerSpectrumLine")
+      , line_(line) {}
+    ~PowerSpectrumLine() {}
+    virtual std::string toString() const { 
+      return Base::toString() + " size=" + boost::lexical_cast<std::string>(line_.size());
+    }
+
+    virtual std::string lineBreak() const { return ""; }
+    virtual std::string fileExtension() const { return "pnm";  }
+    virtual FilePeriod filePeriod() const { return Base::Period5Minutes; }
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
+                                                   boost::posix_time::ptime t) const {
+      netpbm::pgm_writer pw(line_.size(), os);
+      pw.write_header();
+      return os;
+    }
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
+                                                 boost::posix_time::ptime t) const {
+      netpbm::pgm_writer pw(line_.size(), os);
+      pw.read_header();
+      pw.write_line(line_);
+      return os;
+    }
+  protected:
+  private:
+    std::string line_;
   } ;
 
   class SpectrumPeak : public Base {
@@ -125,20 +201,22 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual std::ostream& dumpData(std::ostream& os,
-                                   boost::posix_time::ptime t) const {
-      return Base::dumpData(os, t)
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
+                                                   boost::posix_time::ptime t) const {      
+      Base::dumpHeader(os, t) 
+        << "fReference_Hz fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
+      return os;
+    }
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
+                                                 boost::posix_time::ptime t) const {
+      Base::dumpData(os, t)
         << boost::format("%12.3f") % fReference() << " "
         << boost::format("%12.3f") % fMeasured() << " "
         << boost::format("%6.3f")  % fMeasuredRMS() << " "
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " "
-        << boost::format("%5.2f")  % std::log10(ratio()) << " ";
-    }
-    virtual std::ostream& dumpHeader(std::ostream& os,
-                                     boost::posix_time::ptime t) const {      
-      return Base::dumpHeader(os, t) 
-        << "fReference_Hz fMeasured_Hz fMeasuredRMS_Hz strength_dB strengthRMS_dB log10(ratio) ";
+        << boost::format("%7.2f")  % (20.*std::log10(ratio())) << " ";
+      return os;
     }
 
   private:
@@ -210,18 +288,20 @@ namespace Result {
       return std::make_pair(fCal, std::sqrt(inner_prod(a, Vector(prod(q_, a)))));       
     }
     
-    virtual std::ostream& dumpData(std::ostream& os,
-                                   boost::posix_time::ptime t) const {
-      return Base::dumpData(os, t) 
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
+                                                   boost::posix_time::ptime t) const {      
+      Base::dumpHeader(os, t) 
+        << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
+      return os;
+    }
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
+                                                 boost::posix_time::ptime t) const {
+      Base::dumpData(os, t) 
         << boost::format("%6.3f")  % x_(0) << " "
         << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
         << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "
         << boost::format("%7.2f")  % (1e6*std::sqrt(q_(1,1))) << " ";
-    }
-    virtual std::ostream& dumpHeader(std::ostream& os,
-                                     boost::posix_time::ptime t) const {      
-      return Base::dumpHeader(os, t) 
-        << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
+      return os;
     }
   private:
     size_t n_;
@@ -251,15 +331,17 @@ namespace Result {
       return calibrationHandle_->uncal2cal(f);
     }
 
-    virtual std::ostream& dumpData(std::ostream& os,
-                                   boost::posix_time::ptime t) const {
-      return SpectrumPeak::dumpData(os, t) 
-        << boost::format("%8.3f")  % (fMeasured()-fReference()) << " ";
-    }
-    virtual std::ostream& dumpHeader(std::ostream& os,
-                                     boost::posix_time::ptime t) const {      
-      return SpectrumPeak::dumpHeader(os, t) 
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
+                                                   boost::posix_time::ptime t) const {      
+      SpectrumPeak::dumpHeader(os, t) 
         << "diff_Hz ";
+      return os;
+    }
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
+                                                 boost::posix_time::ptime t) const {
+      SpectrumPeak::dumpData(os, t) 
+        << boost::format("%8.3f")  % (fMeasured()-fReference()) << " ";
+      return os;
     }
 
   private:

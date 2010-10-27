@@ -20,36 +20,38 @@ namespace netpbm {
   public:
     typedef std::vector<std::string> string_vector;
     typedef boost::shared_ptr<pgm_writer> sptr;
-    
-    pgm_writer(boost::filesystem::path p,
-	       size_t width,
-	       const string_vector& comments=string_vector())
-      : file_exists_(boost::filesystem::exists(p))
-      , os_(p, (file_exists_) ? std::ios::in | std::ios::out : std::ios::out)
+
+    pgm_writer(size_t width,
+               boost::filesystem::fstream& os) 
+      : file_exists_(true)
+      , os_(os)
       , width_(width)
       , height_(0)
-      , need_height_update_(false) {
-      if (not os_.is_open()) throw std::runtime_error("PGMWriter::PGMWriter open file failed");
-      if (not file_exists_) {
-	write_str("P5\n");
-	write_str(str(boost::format("%9d")  % width_));
-	height_pos_= os_.tellp();
-	write_str(str(boost::format(" %9d\n")  % height_));
-	for (string_vector::const_iterator i(comments.begin()); i!=comments.end(); ++i) 
-	  write_str("# " + *i + "\n");
-	write_str("255\n");
-      } else { // check consistency and determine height_pos_
-	std::string pgm_magic; os_ >> pgm_magic;
-	if (pgm_magic != "P5") 
-	  throw std::runtime_error("PGMWriter::PGMWriter tying to append to a non-PGM file :" + pgm_magic);
-	size_t width; os_ >> width;
-	if (width != width_)
-	  throw std::runtime_error("PGMWriter::PGMWriter width != width_");
-	height_pos_= os_.tellg();
-	os_ >> height_;
-	os_.seekp(0, std::ios::end);
-      }
+      , need_height_update_(false) {}
+    
+    boost::filesystem::fstream& write_header() {
+      write_str("P5\n");
+      write_str(str(boost::format("%9d")  % width_));
+      height_pos_= os_.tellp();
+      write_str(str(boost::format(" %9d\n")  % height_));
+      write_str("255\n");
+      return os_;
     }
+
+    boost::filesystem::fstream& read_header() {
+      os_.seekp(0, std::ios::beg);
+      std::string pgm_magic; os_ >> pgm_magic;
+      if (pgm_magic != "P5") 
+        throw std::runtime_error("PGMWriter::PGMWriter tying to append to a non-PGM file :" + pgm_magic);
+      size_t width; os_ >> width;
+      if (width != width_)
+        throw std::runtime_error("PGMWriter::PGMWriter width != width_");
+      height_pos_= os_.tellg();
+      os_ >> height_;
+      os_.seekp(0, std::ios::end);
+      return os_;
+    }    
+
     ~pgm_writer() {
       update_height();
     }
@@ -57,7 +59,7 @@ namespace netpbm {
     size_t width() const { return width_; }
     size_t height() const { return height_; }
     
-    bool write_line(std::string s, bool perform_height_update=true) {
+    bool write_line(std::string s, bool perform_height_update=false) {
       if (!os_ || s.size() != width_) return false;
       if (not write_str(s, false)) return false;
       ++height_;
@@ -88,7 +90,7 @@ namespace netpbm {
     }
 
     const bool file_exists_;
-    boost::filesystem::fstream os_;
+    boost::filesystem::fstream& os_;
     const size_t width_;
     size_t height_;
     std::ostream::streampos height_pos_;
