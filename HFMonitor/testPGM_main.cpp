@@ -17,8 +17,18 @@ int main()
   c.push_back("Hello");
   c.push_back("World!");
   const size_t width(256);
-  pgm_writer p("test.pgm", width, c);
+  
+  boost::filesystem::path path("test.pgm");
+  const bool file_exists(boost::filesystem::exists(path));
+  if (not file_exists) {
+    boost::filesystem::fstream fs(path, std::ios::out);
+    pgm_writer p(width, fs);
+    p.write_header();
+  }
+  boost::filesystem::fstream fs(path, std::ios::in | std::ios::out);
+  pgm_writer p(width, fs); 
 
+  p.read_header();
   boost::mt19937 gen;
   const boost::uniform_int<> dist(0, 255);
   boost::variate_generator<boost::mt19937&, boost::uniform_int<> > die(gen, dist);

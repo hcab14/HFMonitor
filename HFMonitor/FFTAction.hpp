@@ -80,7 +80,8 @@ namespace Action {
       , minRatio_(config.get<double>("minRatio"))
       , resultKey_(config.get<std::string>("Name"))
       , useCalibration_(config.find("Calibration") != config.not_found())
-      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration") : "") {
+      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration") : "")
+      , plotSpectrum_(config.get<bool>("PlotSpectrum", false)) {
       name_ = "FindPeak";
     }
     
@@ -91,24 +92,25 @@ namespace Action {
       try {
         Result::SpectrumPeak::Handle 
           spp((useCalibration_)
-              ? boost::make_shared<
-                Result::CalibratedSpectrumPeak>(fReference_,
-                                                boost::dynamic_pointer_cast<Result::Calibration>
-                                                (p.getResult(calibrationKey_)))
+              ? boost::make_shared<Result::CalibratedSpectrumPeak>
+              (fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey_)))
               : boost::make_shared<Result::SpectrumPeak>(fReference_));
-        if (spp->findPeak(ps, minRatio_)) {
+        if (spp->findPeak(ps, minRatio_))
           p.putResult(resultKey_, spp);
-        }
+        if (plotSpectrum_)
+          p.putResult(resultKey_+"_plot",
+                      boost::make_shared<Result::PowerSpectrumLine>(ps.pgmLine(p.getApproxPTime())));
       } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
       }
     }
   private:
-    const double fReference_;         // nominal frequency / Hz
-    const double minRatio_;           // min. ratio peak/background
-    std::string resultKey_;           // result key name
-    bool useCalibration_;             // 
-    std::string calibrationKey_;      // key name for calibration information
+    const double fReference_;          // nominal frequency / Hz
+    const double minRatio_;            // min. ratio peak/background
+    const std::string resultKey_;      // result key name
+    const bool useCalibration_;        // 
+    const std::string calibrationKey_; // key name for calibration information
+    const bool plotSpectrum_;          //
   } ;
 
   class Calibrator : public Base {

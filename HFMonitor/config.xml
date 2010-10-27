@@ -40,7 +40,7 @@ FFT.WindowFunction ........
 </perseus>
 <Repack>
   <BufferLengthSec>1.0</BufferLengthSec>
-  <OverlapPercent>-100</OverlapPercent>
+  <OverlapPercent>50</OverlapPercent>
 </Repack>
 <FFT>
   <WindowFunction>Blackman</WindowFunction>
@@ -52,7 +52,7 @@ FFT.WindowFunction ........
 	  <Type>LowPass</Type>
 	  <TimeConstant>60.0</TimeConstant>
 	</Filter>
-	<fMin>77.2e3</fMin>
+	<fMin>77.3e3</fMin>
 	<fMax>77.7e3</fMax>
 	<fRef>77.5e3</fRef>
 	<minRatio>10</minRatio>
@@ -106,10 +106,21 @@ FFT.WindowFunction ........
     <L2>
       <FindPeak>
 	<Filter> 
-	  <Type>LowPass</Type>
+	  <Type>None</Type>
 	  <TimeConstant>60.0</TimeConstant>
 	</Filter>
-	<fMin>77.2e3</fMin>
+	<fMin>59.8e3</fMin>
+	<fMax>60.2e3</fMax>
+	<fRef>60.0e3</fRef>
+	<minRatio>30</minRatio>
+	<Name>GXX_60</Name>
+      </FindPeak>
+      <FindPeak>
+	<Filter> 
+	  <Type>None</Type>
+	  <TimeConstant>60.0</TimeConstant>
+	</Filter>
+	<fMin>77.3e3</fMin>
 	<fMax>77.7e3</fMax>
 	<fRef>77.5e3</fRef>
 	<minRatio>10</minRatio>
@@ -126,6 +137,7 @@ FFT.WindowFunction ........
 	<fRef>177.0e3</fRef>
 	<minRatio>10</minRatio>
 	<Name>DRKultur</Name>
+	<PlotSpectrum>true</PlotSpectrum>
 	<Calibration>L1.CAL</Calibration>
       </FindPeak>
     </L2>

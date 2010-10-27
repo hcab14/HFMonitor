@@ -59,8 +59,9 @@ public:
 
   class FFTProxy : public Proxy::Base {
   public:
-    FFTProxy(std::string level, ResultMap& resultMap)
-      : level_(level)
+    FFTProxy(ptime approxPTime, std::string level, ResultMap& resultMap)
+      : approxPTime_(approxPTime)
+      , level_(level)
       , resultMap_(resultMap) {}
 
     virtual void putResult(std::string resultKey, Result::Base::Handle result) {
@@ -77,9 +78,11 @@ public:
         return i->second;
       else throw std::runtime_error(keyString+": getResult not found");
     }
-    
-    std::string level() const { return level_; }
+    virtual ptime getApproxPTime() const { return approxPTime_; }
+
   private:
+    std::string level() const { return level_; }
+    const ptime approxPTime_;
     const std::string level_;
     ResultMap& resultMap_;
   } ;
@@ -133,7 +136,7 @@ public:
       const ActionMap& levelActions(i->second);
       for (typename ActionMap::const_iterator j(levelActions.begin()); j!=levelActions.end(); ++j) {
         ActionKey actionKey(j->first);
-        FFTProxy proxy(levelName, resultMap);
+        FFTProxy proxy(header.approxPTime(), levelName, resultMap);
         std::cout << levelName << " " << actionKey << std::endl;
         j->second->perform(proxy, s);
       }
