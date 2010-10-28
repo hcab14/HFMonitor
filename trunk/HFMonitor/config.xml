@@ -160,7 +160,7 @@ FFT.WindowFunction ........
 	</Filter>
 	<fMin>138.0e3</fMin>
 	<fMax>140.0e3</fMax>
-	<fRef>138.830e3></fRef>
+	<fRef>138.830e3</fRef>
 	<bandwidth>10</bandwidth>
 	<Name>EFR_Burg</Name>
 	<PlotSpectrum>true</PlotSpectrum>

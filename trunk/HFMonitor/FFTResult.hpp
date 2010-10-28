@@ -374,7 +374,7 @@ namespace Result {
           sum2 += ps[u].second * ps[u].second;
         }
         strength_   = (counter != 0) ? sum/counter : 0.;
-        strengthRMS_= (counter != 0) ? std::sqrt(sum2-sum*sum)/counter : 1.;
+        strengthRMS_= (counter != 0) ? std::sqrt(sum2/counter-strength_*strength_) : 1.;
         return true;
       } catch (const std::runtime_error& e) {
         std::cout << "SpectrumPowerInInterval::proc " << e.what() << std::endl;
