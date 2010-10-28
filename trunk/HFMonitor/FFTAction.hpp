@@ -34,8 +34,19 @@ namespace Action {
                     : "None")
       , filterTimeConstant_((filterType_ != "None") 
                             ? config.get<double>("Filter.TimeConstant")
-                            : 1.0) {}
-    
+                            : 1.0)
+      , resultKey_(config.get<std::string>("Name"))
+      , useCalibration_(config.find("Calibration") != config.not_found())
+      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration") : "")
+      , plotSpectrum_(config.get<bool>("PlotSpectrum", false)) {}
+
+    virtual ~SpectumInterval() {}    
+
+    std::string resultKey() const { return resultKey_; }
+    bool useCalibration() const { return useCalibration_; }
+    std::string calibrationKey() const { return calibrationKey_; }
+    bool plotSpectrum() const { return plotSpectrum_; }
+
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       try {
         if (filterType_ == "None") {
@@ -55,8 +66,10 @@ namespace Action {
       }
       // call virtual method
       proc(p, s, ps_);      
+      } catch (const std::runtime_error& e) {
+        std::cout << "SpectumInterval::perform " << e.what() << std::endl;
       } catch (...) {
-        return;
+        std::cout << "SpectumInterval::perform unknown error" << std::endl;
       }
     }
 
@@ -70,6 +83,10 @@ namespace Action {
     PowerSpectrum ps_;
     const std::string filterType_;
     const double filterTimeConstant_;
+    const std::string resultKey_;
+    const bool useCalibration_;
+    const std::string calibrationKey_;
+    const bool plotSpectrum_;
   } ;
 
   class FindPeak : public SpectumInterval {
@@ -77,28 +94,24 @@ namespace Action {
     FindPeak(const boost::property_tree::ptree& config)
       : SpectumInterval(config)
       , fReference_(config.get<double>("fRef"))
-      , minRatio_(config.get<double>("minRatio"))
-      , resultKey_(config.get<std::string>("Name"))
-      , useCalibration_(config.find("Calibration") != config.not_found())
-      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration") : "")
-      , plotSpectrum_(config.get<bool>("PlotSpectrum", false)) {
+      , minRatio_(config.get<double>("minRatio")) {
       name_ = "FindPeak";
     }
-    
+    virtual ~FindPeak() {}
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
                       const PowerSpectrum& ps) {
       std::cout << "FindPeak::perform " << std::endl;
       try {
         Result::SpectrumPeak::Handle 
-          spp((useCalibration_)
+          spp((useCalibration())
               ? boost::make_shared<Result::CalibratedSpectrumPeak>
-              (fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey_)))
+              (fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
               : boost::make_shared<Result::SpectrumPeak>(fReference_));
         if (spp->findPeak(ps, minRatio_))
-          p.putResult(resultKey_, spp);
-        if (plotSpectrum_)
-          p.putResult(resultKey_+"_plot",
+          p.putResult(resultKey(), spp);
+        if (plotSpectrum())
+          p.putResult(resultKey()+"_plot",
                       boost::make_shared<Result::PowerSpectrumLine>(ps.pgmLine(p.getApproxPTime())));
       } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
@@ -107,10 +120,40 @@ namespace Action {
   private:
     const double fReference_;          // nominal frequency / Hz
     const double minRatio_;            // min. ratio peak/background
-    const std::string resultKey_;      // result key name
-    const bool useCalibration_;        // 
-    const std::string calibrationKey_; // key name for calibration information
-    const bool plotSpectrum_;          //
+  } ;
+
+  class AverageDensity : public SpectumInterval {
+  public:
+    AverageDensity(const boost::property_tree::ptree& config)
+      : SpectumInterval(config)
+      , fReference_(config.get<double>("fRef"))
+      , bandwidth_(config.get<double>("bandwidth")) {
+      name_ = "FindPeak";
+    }
+    
+    virtual void proc(Proxy::Base& p, 
+                      const SpectrumBase& s,
+                      const PowerSpectrum& ps) {
+      std::cout << "AverageDensity::perform " << std::endl;
+      try {
+        Result::SpectrumPowerInInterval::Handle 
+          spp((useCalibration())
+              ? boost::make_shared<Result::CalibratedSpectrumPowerInInterval>
+              (fReference_, bandwidth_, boost::dynamic_pointer_cast<Result::Calibration>
+               (p.getResult(calibrationKey())))
+              : boost::make_shared<Result::SpectrumPowerInInterval>(fReference_, bandwidth_));
+        if (spp->proc(ps))
+          p.putResult(resultKey(), spp);
+        if (plotSpectrum())
+          p.putResult(resultKey()+"_plot",
+                      boost::make_shared<Result::PowerSpectrumLine>(ps.pgmLine(p.getApproxPTime())));
+      } catch (const std::runtime_error& e) {
+        std::cout << e.what() << std::endl;
+      }
+    }
+  private:
+    const double fReference_;          // nominal frequency / Hz
+    const double bandwidth_;           // bandwidth / Hz
   } ;
 
   class Calibrator : public Base {
@@ -129,7 +172,7 @@ namespace Action {
         }
       }
     }
-
+    virtual ~Calibrator() {}
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       std::cout << "Calibrator::perform" << std::endl;
       // count data
@@ -164,6 +207,8 @@ namespace Action {
         return Handle(new FindPeak(pt));
       if (name == "Calibrator")
         return Handle(new Calibrator(pt));
+      if (name == "AverageDensity")
+        return Handle(new AverageDensity(pt));
       else
         throw std::runtime_error(name+": action not supported");
     }

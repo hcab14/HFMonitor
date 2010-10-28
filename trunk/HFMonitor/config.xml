@@ -140,6 +140,32 @@ FFT.WindowFunction ........
 	<PlotSpectrum>true</PlotSpectrum>
 	<Calibration>L1.CAL</Calibration>
       </FindPeak>
+      <FindPeak>
+	<Filter> 
+	  <Type>None</Type>
+	  <TimeConstant>60.0</TimeConstant>
+	</Filter>
+	<fMin>138.0e3</fMin>
+	<fMax>140.0e3</fMax>
+	<fRef>139.0e3</fRef>
+	<minRatio>10</minRatio>
+	<Name>EFR_Burg_Peak</Name>
+	<PlotSpectrum>true</PlotSpectrum>
+	<Calibration>L1.CAL</Calibration>
+      </FindPeak>
+      <AverageDensity>
+	<Filter> 
+	  <Type>None</Type>
+	  <TimeConstant>60.0</TimeConstant>
+	</Filter>
+	<fMin>138.0e3</fMin>
+	<fMax>140.0e3</fMax>
+	<fRef>138.830e3></fRef>
+	<bandwidth>10</bandwidth>
+	<Name>EFR_Burg</Name>
+	<PlotSpectrum>true</PlotSpectrum>
+	<Calibration>L1.CAL</Calibration>
+      </AverageDensity>
     </L2>
   </Actions>
 </FFT>

@@ -113,10 +113,19 @@ public:
   double fMin() const { return fMin_; }
   double fMax() const { return fMax_; }
 
+  size_t freq2Index(double f) const {
+    if (f >= fMin_ && f <= fMax_)
+      return size_t(0.5+(f-fMin_)/(fMax_-fMin_) * ps_.size());
+    else
+      throw std::runtime_error("freq2Index: f out of range");
+  }
+
   void fill(const SpectrumBase& s) {
     ps_.clear();
     const size_t i0(s.freq2Index(fMin_));
     const size_t i1(s.freq2Index(fMax_));
+    fMin_ = s.index2Freq(i0);
+    fMax_ = s.index2Freq(i1);
     for (size_t u=i0; u<=i1; ++u) 
       ps_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
   }
@@ -140,20 +149,22 @@ public:
 
   PowerSpectrum& operator+=(const PowerSpectrum& ps) {
     if (size() != ps.size())
-      throw 1; // TODO
+      throw std::runtime_error("PowerSpectrum::operator+= (size() != ps.size())");
     const_iterator j(ps.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
-      if (i->first != j->first) throw 1; // TODO
+      if (i->first != j->first) 
+        throw std::runtime_error("PowerSpectrum::operator+= (i->first != j->first)");
       i->second += j->second;
     }
     return *this;
   }
   PowerSpectrum& operator-=(const PowerSpectrum& ps) {
     if (size() != ps.size())
-      throw 1; // TODO
+      throw std::runtime_error("PowerSpectrum::operator-= (size() != ps.size())");
     const_iterator j(ps.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
-      if (i->first != j->first) throw 1; //TODO
+      if (i->first != j->first)
+        throw std::runtime_error("PowerSpectrum::operator-= (i->first != j->first)");
       i->second -= j->second;
     }
     return *this;
@@ -198,8 +209,8 @@ public:
   }
 
 private:
-  const double fMin_;
-  const double fMax_;
+  double fMin_;
+  double fMax_;
   Vec ps_;
 } ;
 
