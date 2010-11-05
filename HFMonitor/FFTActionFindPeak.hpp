@@ -14,6 +14,7 @@
 #include "Spectrum.hpp"
 #include "FFTResultSpectrumPeak.hpp"
 #include "FFTResultCalibration.hpp"
+#include "FFTResultCalibratedSpectrumPeak.hpp"
 #include "FFTResultPowerSpectrumLine.hpp"
 #include "FFTProxy.hpp"
 #include "FFTActionSpectrumInterval.hpp"

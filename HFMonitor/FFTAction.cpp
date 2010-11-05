@@ -2,8 +2,8 @@
 // $Id$
 
 #include "FFTAction.hpp"
-#include "FFTActionFindPeak.hpp"
 #include "FFTActionCalibrator.hpp"
+#include "FFTActionFindPeak.hpp"
 #include "FFTActionAverageDensity.hpp"
 
 namespace Action {
