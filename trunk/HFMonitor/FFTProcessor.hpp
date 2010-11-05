@@ -24,7 +24,7 @@
 #include "Spectrum.hpp"
 #include "FFTProxy.hpp"
 #include "FFTResult.hpp"
-#include "FFTAction.hpp"
+#include "FFTAction.hpp" 
 
 template<typename FFTFloat>
 class FFTProcessor {
