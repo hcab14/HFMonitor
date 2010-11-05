@@ -173,30 +173,3 @@ FFT.WindowFunction ........
   <SamplesPerFile>1000000</SamplesPerFile>
   <FileNamePattern>data_%08X.bin</FileNamePattern>
 </Dump>
-<!--
-    <L2>
-    <FieldStrengthRecorder>
-    <Name>TDF_162</Name>	
-    <Filter>
-    <Type>None</Type>
-    </Filter>
-    <frequency>162</frequency>
-    <bandwidth>10</bandwitdth>
-    <CalibrationKey>L1.CAL</CalibrationKey>
-    </FieldStrengthRecorder>
-      <RecordFieldStrength>
-	<Function>max</Function>
-	<fRef>153e3</fRef>
-	<Bandwidth>20</Bandwidth>
-	<Name>153_max</Name>
-	<Calibration>L1.CAL</Calibration>
-      </RecordFieldStrength>
-      <RecordFieldStrength>
-	<Function>max</Function>
-	<fRef>225e3</fRef>
-	<Bandwidth>20</Bandwidth>
-	<Name>225_max</Name>
-	<Calibration>L1.CAL</Calibration>
-      </RecordFieldStrength>
-    </L2>
--->
