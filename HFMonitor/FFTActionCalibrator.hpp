@@ -10,6 +10,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/foreach.hpp>
 
 #include "Spectrum.hpp"
 #include "FFTResultCalibration.hpp"
@@ -23,13 +24,12 @@ namespace Action {
       : Base("Calibrator")
       , resultKey_(config.get<std::string>("Name")) {
       using boost::property_tree::ptree;
-      const ptree& pt(config.get_child("Inputs"));
-      for (ptree::const_iterator i(pt.begin()); i!=pt.end(); ++i) {
-        if (i->first == "Input") {
-          std::cout << "Calibrator::Calibrator Input." << i->second.get<std::string>("") << std::endl;
-          inputs_.push_back(i->second.get<std::string>(""));
+      BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
+        if (input.first == "Input") {
+          std::cout << "Calibrator::Calibrator Input." << input.second.get<std::string>("") << std::endl;
+          inputs_.push_back(input.second.get<std::string>(""));
         } else {
-          std::cout << "Calibrator::calibrate unknown field " << i->first << std::endl;
+          std::cout << "Calibrator::calibrate unknown field " << input.first << std::endl;
         }
       }
     }
@@ -38,9 +38,10 @@ namespace Action {
       std::cout << "Calibrator::perform" << std::endl;
       // count data
       std::vector<Result::SpectrumPeak::Handle> peaks;
-      for (std::vector<std::string>::const_iterator i(inputs_.begin()); i!=inputs_.end(); ++i) {
+      BOOST_FOREACH(const std::string& input, inputs_) {
         try {
-          Result::SpectrumPeak::Handle sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(*i)));
+          Result::SpectrumPeak::Handle 
+            sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(input)));
           if (sp != 0) {
             peaks.push_back(sp);
           }

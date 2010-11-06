@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <boost/noncopyable.hpp>
+#include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "FFT.hpp"
@@ -202,8 +203,8 @@ public:
     const float slMax(std::log10(iMax->second));
     std::copy((char*)&slMax, (char*)&slMax+sizeof(slMax), std::back_inserter(line));
 
-    for (const_iterator i(ps_.begin()); i!=ps_.end(); ++i)
-      line.push_back((unsigned char)((std::log10(i->second) - slMin)/(slMax-slMin)*255));
+    BOOST_FOREACH(const Vec::value_type& fs, ps_)
+      line.push_back((unsigned char)((std::log10(fs.second) - slMin)/(slMax-slMin)*255));
     
     return line;
   }
