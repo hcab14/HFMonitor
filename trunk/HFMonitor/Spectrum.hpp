@@ -10,7 +10,6 @@
 
 #include <boost/noncopyable.hpp>
 #include <boost/foreach.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "FFT.hpp"
 
@@ -30,16 +29,16 @@ public:
   virtual size_t size()                    const = 0;
   virtual Complex operator[](size_t index) const = 0;
 
-  size_t freq2Index(double qrg_Hz) const { // get the nearest bin index
+  size_t freq2index(double qrg_Hz) const { // get the nearest bin index
     const int n(size());
     const int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
     if (i >= -n/2 && i < n/2)
       return (i>=0) ? i : n+i;
     else 
-      throw std::runtime_error("freq2Index failed");
+      throw std::runtime_error("freq2index failed");
   }
   
-  double index2Freq(size_t index) const {
+  double index2freq(size_t index) const {
     const int n(size());
     return centerFrequency() + sampleRate() * (int(index)>=n/2 ? -n+int(index) : int(index)) / double(n);
   }  
@@ -70,149 +69,127 @@ private:
   double centerFrequency_;
 } ;
 
-// class FreqStrength {
-// public:
-//   FreqStrength(double freq, double strength)
-//     : freq_(freq)
-//     , strength_(strength) {}
-  
-//   double freq() const { return freq_; }
-//   double strength() const { return strength_; }
-//   double& strength() { return strength_; }
-  
-//   static bool cmpStrength(const FreqStrength& fs1, 
-//                           const FreqStrength& fs2) {
-//     return fs1.strength() < fs2.strength();
-//   }
-//   static bool cmpFreq(const FreqStrength& fs1, 
-//                       const FreqStrength& fs2) {
-//     return fs1.freq() < fs2.freq();
-//   }
-// private:
-//   double freq_;
-//   double strength_;
-// } ;
-
-class PowerSpectrum {
+template<typename T>
+class frequency_vector {
 public:
-  typedef std::pair<double, double> FreqStrength;
-  typedef std::vector<FreqStrength> Vec;
-  typedef Vec::iterator       iterator;
-  typedef Vec::const_iterator const_iterator;
-  typedef boost::posix_time::ptime ptime;
+  typedef double freq_type;
+  typedef typename std::pair<freq_type, T> value_type;
+  typedef typename std::vector<value_type> vector_type;
+  typedef typename vector_type::iterator iterator;
+  typedef typename vector_type::const_iterator const_iterator;
 
-  PowerSpectrum(double fMin, double fMax)
-    : fMin_(fMin)
-    , fMax_(fMax) {}
+  frequency_vector(freq_type fmin, freq_type fmax)
+    : fmin_(fmin), fmax_(fmax) {}
+  
+  template<typename FUNCTION>
+  frequency_vector(freq_type fmin, freq_type fmax,
+                   const SpectrumBase& s, FUNCTION func) 
+    : fmin_(fmin), fmax_(fmax) { fill(s, func); }
+  
+  freq_type fmin() const { return fmin_; }
+  freq_type fmax() const { return fmax_; }
+  
+  template<typename FUNCTION>
+  frequency_vector<T> fill(const SpectrumBase& s, const FUNCTION& func) {
+    v_.clear();
+    const size_t i0(s.freq2index(fmin()));
+    const size_t i1(s.freq2index(fmax()));
+    fmin_ = s.index2freq(i0);
+    fmax_ = s.index2freq(i1);
+    for (size_t u=i0; u<=i1; ++u) 
+      v_.push_back(value_type(s.index2freq(u), func(s[u])));
+    return *this;
+  }
+  template<typename FUNCTION>
+  frequency_vector<T> apply(const FUNCTION& func) {
+    BOOST_FOREACH(value_type& x, v_)
+      x.second= func(x.second);
+    return *this;
+  }
 
-  PowerSpectrum(double fMin, double fMax, const SpectrumBase& s)
-    : fMin_(fMin)
-    , fMax_(fMax) {
-    fill(s);
+  size_t freq2index(freq_type f) const {
+    if (f >= fmin_ && f <= fmax_)
+      return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * v_.size());
+    else
+      throw std::runtime_error("freq2index: f out of range");
   }
   
-  double fMin() const { return fMin_; }
-  double fMax() const { return fMax_; }
+  const value_type& operator[](unsigned index) const { return v_[index]; }
+  void clear() { v_.clear(); }
+  size_t size() const { return v_.size(); }
+  bool empty() const { return v_.empty(); }
+  iterator       begin()       { return v_.begin(); }
+  const_iterator begin() const { return v_.begin(); }
+  iterator       end()       { return v_.end(); }
+  const_iterator end() const { return v_.end(); }
 
-  size_t freq2Index(double f) const {
-    if (f >= fMin_ && f <= fMax_)
-      return size_t(0.5+(f-fMin_)/(fMax_-fMin_) * ps_.size());
-    else
-      throw std::runtime_error("freq2Index: f out of range");
+  static bool cmpFreq(const value_type& x1, const value_type& x2) {
+    return x1.first < x2.first;
+  }
+  static bool cmpSecond(const value_type& x1, const value_type& x2) {
+    return x1.second < x2.second;
   }
 
-  void fill(const SpectrumBase& s) {
-    ps_.clear();
-    const size_t i0(s.freq2Index(fMin_));
-    const size_t i1(s.freq2Index(fMax_));
-    fMin_ = s.index2Freq(i0);
-    fMax_ = s.index2Freq(i1);
-    for (size_t u=i0; u<=i1; ++u) 
-      ps_.push_back(FreqStrength(s.index2Freq(u), std::abs(s[u])));
-  }
-  const FreqStrength& operator[](unsigned index) const { return ps_[index]; }
-  void clear() { ps_.clear(); }
-  size_t size() const { return ps_.size(); }
-  bool empty() const { return ps_.empty(); }
-  iterator       begin()       { return ps_.begin(); }
-  const_iterator begin() const { return ps_.begin(); }
-  iterator       end()       { return ps_.end(); }
-  const_iterator end() const { return ps_.end(); }
-
-  static bool cmpFreq(const FreqStrength& fs1,
-                      const FreqStrength& fs2) {
-    return fs1.first < fs2.first;
-  }
-  static bool cmpStrength(const FreqStrength& fs1,
-                          const FreqStrength& fs2) {
-    return fs1.second < fs2.second;
-  }
-
-  PowerSpectrum& operator+=(const PowerSpectrum& ps) {
-    if (size() != ps.size())
-      throw std::runtime_error("PowerSpectrum::operator+= (size() != ps.size())");
-    const_iterator j(ps.begin());
+  frequency_vector<T>& operator+=(const frequency_vector<T>& v) {
+    if (size() != v.size())
+      throw std::runtime_error("frequency_vector<T>::operator+= (size() != v.size())");
+    const_iterator j(v.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
       if (i->first != j->first) 
-        throw std::runtime_error("PowerSpectrum::operator+= (i->first != j->first)");
+        throw std::runtime_error("frequency_vector<T>::operator+= (i->first != j->first)");
       i->second += j->second;
     }
     return *this;
   }
-  PowerSpectrum& operator-=(const PowerSpectrum& ps) {
-    if (size() != ps.size())
-      throw std::runtime_error("PowerSpectrum::operator-= (size() != ps.size())");
-    const_iterator j(ps.begin());
+  frequency_vector<T>& operator-=(const frequency_vector<T>& v) {
+    if (size() != v.size())
+      throw std::runtime_error("frequency_vector<T>::operator-= (size() != v.size())");
+    const_iterator j(v.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
       if (i->first != j->first)
-        throw std::runtime_error("PowerSpectrum::operator-= (i->first != j->first)");
+        throw std::runtime_error("frequency_vector<T>::operator-= (i->first != j->first)");
       i->second -= j->second;
     }
     return *this;
   }
-  PowerSpectrum& operator*=(double f) {
+  frequency_vector<T>& operator*=(double f) {
     for (iterator i(begin()); i!=end(); ++i)
       i->second *= f;
     return *this;
   }
-  friend PowerSpectrum operator*(const PowerSpectrum& p,
-                                 double f) {
-    PowerSpectrum r(p); r*=f;
+  friend frequency_vector<T> operator*(const frequency_vector<T>& v, double f) {
+    frequency_vector<T> r(v); r*=f;
     return r;
   }
-  friend PowerSpectrum operator*(double f,
-                                 const PowerSpectrum& p) {    
-    PowerSpectrum r(p); r*=f;
+  friend frequency_vector<T> operator*(double f, const frequency_vector<T>& v) {    
+    frequency_vector<T> r(v); r*=f;
     return r;
   }
-
-  size_t pgmSize() const {
-    return sizeof(ptime) + 2*sizeof(float) + ps_.size();
+  frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
+    if (size() != v.size()) 
+      throw std::runtime_error("frequency_vector<T>::operator*= (size() != p.size())");
+    const_iterator j(v.begin());
+    for (iterator i(begin()); i!=end(); ++i,++j) {
+      if (i->first != j->first) 
+        throw std::runtime_error("frequency_vector<T>::operator*= (i->first != j->first)");
+      i->second *= j->second;
+    }
+    return *this;
   }
-  std::string pgmLine(ptime t) const {
-    std::string line;
-    std::copy((char*)&t, (char*)&t+sizeof(t), std::back_inserter(line));
-    if (ps_.empty())
-      return line.append(2*sizeof(float), char(0));
-
-    const_iterator iMin(std::min_element(ps_.begin(), ps_.end(), cmpStrength));
-    const float slMin(std::log10(iMin->second));
-    std::copy((char*)&slMin, (char*)&slMin+sizeof(slMin), std::back_inserter(line));
-
-    const_iterator iMax(std::max_element(ps_.begin(), ps_.end(), cmpStrength));
-    const float slMax(std::log10(iMax->second));
-    std::copy((char*)&slMax, (char*)&slMax+sizeof(slMax), std::back_inserter(line));
-
-    BOOST_FOREACH(const Vec::value_type& fs, ps_)
-      line.push_back((unsigned char)((std::log10(fs.second) - slMin)/(slMax-slMin)*255));
-    
-    return line;
+  friend frequency_vector<T> operator*(const frequency_vector<T>& v1,
+                                       const frequency_vector<T>& v2) {
+    frequency_vector<T> r(v1); r*=v2;
+    return r;
+  }
+  
+  friend frequency_vector<T> sqrt(frequency_vector<T> v) {
+    return v.apply(std::sqrt<T>);
   }
 
+protected:
 private:
-  double fMin_;
-  double fMax_;
-  Vec ps_;
+  freq_type fmin_;
+  freq_type fmax_;
+  vector_type v_;
 } ;
-
 #endif // _SPECTRUM_HPP_cm101026_

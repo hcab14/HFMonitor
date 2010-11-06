@@ -18,6 +18,7 @@ namespace Result {
   class SpectrumPeak : public Base {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
+    typedef frequency_vector<double> PowerSpectrum;
     SpectrumPeak(double fReference)
       : Base("SpectrumPeak")
       , fReference_(fReference) 
@@ -29,9 +30,9 @@ namespace Result {
 
     bool findPeak(const SpectrumBase& s, const PowerSpectrum& ps, double minRatio) {
       PowerSpectrum::const_iterator
-        iMin(std::min_element(ps.begin(), ps.end(), PowerSpectrum::cmpStrength));
+        iMin(std::min_element(ps.begin(), ps.end(), PowerSpectrum::cmpSecond));
       PowerSpectrum::const_iterator
-        iMax(std::max_element(ps.begin(), ps.end(), PowerSpectrum::cmpStrength));
+        iMax(std::max_element(ps.begin(), ps.end(), PowerSpectrum::cmpSecond));
       
       const size_t indexMax(std::distance(ps.begin(), iMax));
 
@@ -43,7 +44,7 @@ namespace Result {
       }
       for (int i=-2; i<=2; ++i) {
         std::cout << "FP_ " << ps[indexMax+i].first << " " << ps[indexMax+i].second << " "
-                  << std::arg(s[s.freq2Index(ps[indexMax+i].first)])/(2*M_PI) 
+                  << std::arg(s[s.freq2index(ps[indexMax+i].first)])/(2*M_PI) 
 		  << std::endl;
       }
       ratio_ = (iMin->second != 0.0) ? iMax->second / iMin->second : 1.0;

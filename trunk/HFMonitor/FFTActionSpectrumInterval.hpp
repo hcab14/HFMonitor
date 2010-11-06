@@ -18,6 +18,7 @@
 namespace Action {
   class SpectrumInterval : public Base {
   public:
+    typedef frequency_vector<double> PowerSpectrum;
     SpectrumInterval(const boost::property_tree::ptree& config)
       : Base("SpectrumInterval")
       , ps_(config.get<double>("fMin"), 
@@ -43,22 +44,21 @@ namespace Action {
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
       try {
         if (filterType_ == "None") {
-          ps_.clear();
-          ps_.fill(s);
+          ps_.fill(s, std::abs<double>);
         } else if (filterType_ == "LowPass") {
           if (ps_.empty()) {
-            ps_.fill(s);
-        } else {
+            ps_.fill(s, std::abs<double>);
+          } else {
             const double dt(s.size()/s.sampleRate());
             const double x(dt / filterTimeConstant_);
             ps_ *= (1-x);
-            ps_ += x * PowerSpectrum(ps_.fMin(), ps_.fMax(), s);
+            ps_ += x * PowerSpectrum(ps_.fmin(), ps_.fmax(), s, std::abs<double>);
+          }
+        } else {
+          throw std::runtime_error(filterType_ + " unknown filter");
         }
-      } else {
-        throw std::runtime_error(filterType_ + " unknown filter");
-      }
-      // call virtual method
-      proc(p, s, ps_);      
+        // call virtual method
+        proc(p, s, ps_);
       } catch (const std::runtime_error& e) {
         std::cout << "SpectrumInterval::perform " << e.what() << std::endl;
       } catch (...) {
