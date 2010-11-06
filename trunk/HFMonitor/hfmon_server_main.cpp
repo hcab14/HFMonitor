@@ -16,6 +16,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/foreach.hpp>
 
 #include "perseus++.h"
 #include "Filter.hpp"
@@ -159,16 +160,15 @@ public:
       const ptree& pt(config.get_child("perseus.CascadedPTimeLowPass"));
       std::cout << "Cascaded Lowpass Filters: " << std::endl;
       const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
-      for (ptree::const_iterator i(pt.begin()); i!=pt.end(); ++i) {
-        if (i->first != "Tau_Sec") {
-          std::cout << "  + unknown key: [" << i->first << "]" << std::endl;
+      BOOST_FOREACH(const ptree::value_type& filter, config.get_child("perseus.CascadedPTimeLowPass")) {
+        if (filter.first != "Tau_Sec") {
+          std::cout << "  + unknown key: [" << filter.first << "]" << std::endl;
           continue;
         }
-        const double filterTimeconstant(boost::lexical_cast<double>(i->second.data()));
-        std::cout << "  + Lowpass Filter " << i->first << "=" << filterTimeconstant << std::endl;
+        const double filterTimeconstant(boost::lexical_cast<double>(filter.second.data()));
+        std::cout << "  + Lowpass Filter " << filter.first << "=" << filterTimeconstant << std::endl;
         ptimeFilter_.add(Filter::PTimeLowPass::make(dtCallbackSec, filterTimeconstant));
-        dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));
-        
+        dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));        
       }
       const ptime now(boost::posix_time::microsec_clock::universal_time());
       ptimeFilter_.init(now, now);

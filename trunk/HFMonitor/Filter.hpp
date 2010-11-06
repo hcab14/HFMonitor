@@ -4,6 +4,7 @@
 #define _FILTER_HPP_cm101017_
 
 #include <vector>
+#include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -137,14 +138,12 @@ namespace Filter {
       filters_.push_back(fp);
     }
     virtual void init(boost::posix_time::ptime pt, T x) {
-      for (typename std::vector<typename Base<T>::sptr>::iterator i(filters_.begin());
-           i!=filters_.end(); ++i) 
-        (*i)->init(pt,x);      
+      BOOST_FOREACH(typename Base<T>::sptr filter, filters_) 
+        filter->init(pt,x);      
     }
     virtual T update(boost::posix_time::ptime pt, T x) {
-      for (typename std::vector<typename Base<T>::sptr>::iterator i(filters_.begin());
-           i!=filters_.end(); ++i) 
-        x = (*i)->update(pt, x);
+      BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
+        x = filter->update(pt, x);
       return x;
     }
     virtual T x() const {
@@ -153,9 +152,8 @@ namespace Filter {
     virtual bool isInEquilibrium() const {
       if (filters_.empty())
         return false;
-      for (typename std::vector<typename Base<T>::sptr>::const_iterator i(filters_.begin());
-           i!=filters_.end(); ++i) 
-        if (not (*i)->isInEquilibrium()) return false;
+      BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
+        if (not filter->isInEquilibrium()) return false;
       return true;
     }
   private:

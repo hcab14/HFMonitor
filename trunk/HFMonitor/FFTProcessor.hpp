@@ -16,6 +16,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/foreach.hpp>
 
 #include "InvertMatrix.hpp"
 
@@ -93,18 +94,15 @@ public:
     , windowFcnName_(config.get<std::string>("FFT.WindowFunction"))
     , dataPath_(config.get<std::string>("FFT.DataPath")) {
     using boost::property_tree::ptree;
-    const ptree& pt(config.get_child("FFT.Actions"));
     // Levels
-    for (ptree::const_iterator levelIt(pt.begin()); levelIt!=pt.end(); ++levelIt) {
-      LevelKey levelKey(levelIt->first);
-      const ptree& levelPt(levelIt->second);
-      std::cout << "Level:" << levelKey << std::endl;
+    BOOST_FOREACH(const ptree::value_type& level, config.get_child("FFT.Actions")) {
+      std::cout << "Level:" << level.first << std::endl;
+      // Actions
       size_t counter(0);
-      for (ptree::const_iterator actionIt(levelPt.begin()); actionIt!=levelPt.end(); ++actionIt, ++counter) {
-        ActionKey actionKey(actionIt->first, counter);
-        const ptree& actionPt(actionIt->second);
+      BOOST_FOREACH(const ptree::value_type& action, level.second) {
+        const ActionKey actionKey(action.first, counter++);
         std::cout << " +--- Action: " << actionKey << std::endl;        
-        actions_[levelKey][actionKey] = Action::Factory::makeAction(actionKey.name(), actionPt);
+        actions_[level.first][actionKey] = Action::Factory::makeAction(actionKey.name(), action.second);
       }
     }
   }
@@ -131,23 +129,19 @@ public:
   
     // operate on Spectrum
     ResultMap resultMap;
-    for (typename LevelMap::const_iterator i(actions_.begin()); i!=actions_.end(); ++i) {
-      std::string levelName(i->first);
-      const ActionMap& levelActions(i->second);
-      for (typename ActionMap::const_iterator j(levelActions.begin()); j!=levelActions.end(); ++j) {
-        ActionKey actionKey(j->first);
-        FFTProxy proxy(header.approxPTime(), levelName, resultMap);
-        std::cout << levelName << " " << actionKey << std::endl;
-        j->second->perform(proxy, s);
+    BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
+      BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
+        FFTProxy proxy(header.approxPTime(), level.first, resultMap);
+        std::cout << level.first << " " << action.first << std::endl;
+        action.second->perform(proxy, s);
       }
     }
-
+    
     // output of results
-    for (typename ResultMap::const_iterator i(resultMap.begin()); i!=resultMap.end(); ++i) {
-      std::cout << "result: " << i->first << " " << *(i->second) << std::endl;
-      i->second->dump(dataPath_, i->first, header.approxPTime());
+    BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
+      std::cout << "result: " << result.first << " " << *(result.second) << std::endl;
+      result.second->dump(dataPath_, result.first, header.approxPTime());
     }
-
   }
 protected:
 private:
