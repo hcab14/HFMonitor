@@ -42,7 +42,7 @@ namespace Action {
           p.putResult(resultKey(), spp);
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",
-                      boost::make_shared<Result::PowerSpectrumLine>(ps.pgmLine(p.getApproxPTime())));
+                      boost::make_shared<Result::PowerSpectrumLine>(p.getApproxPTime(), ps));
       } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
       }

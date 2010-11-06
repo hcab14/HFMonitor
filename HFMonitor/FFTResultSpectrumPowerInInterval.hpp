@@ -19,6 +19,8 @@ namespace Result {
   class SpectrumPowerInInterval : public Base {
   public:
     typedef boost::shared_ptr<SpectrumPowerInInterval> Handle;
+    typedef frequency_vector<double> PowerSpectrum;
+
     SpectrumPowerInInterval(double fReference, double bandwidth)
       : Base("SpectrumPowerInInterval")
       , fReference_(fReference) 
@@ -32,8 +34,8 @@ namespace Result {
       try {
         const std::pair<double, double> fMin(cal(fReference() - 0.5*bandwidth()));
         const std::pair<double, double> fMax(cal(fReference() + 0.5*bandwidth()));
-        const size_t indexBeg(ps.freq2Index(fMin.first));
-        const size_t indexEnd(ps.freq2Index(fMax.first));
+        const size_t indexBeg(ps.freq2index(fMin.first));
+        const size_t indexEnd(ps.freq2index(fMax.first));
 
         double sum(0), sum2(0);
         size_t counter(0);
