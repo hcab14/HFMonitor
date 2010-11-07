@@ -71,6 +71,7 @@ namespace Filter {
       t_ = pt;
       a_ = dt / lambda_;
       x_ *= (1-a_); x_ += a_*xx;
+      std::cout << "Filter::Update " << dt << " " << a_<< std::endl;
       return x();
     }
   private:
@@ -134,28 +135,34 @@ namespace Filter {
     double secondsInDay_;  // filter state 
   } ;
 
-  template<typename T>
-  class WithRMS : Base<T> {
+  template<typename T,
+           template<class > class VECTOR>
+  class WithRMS : Base<VECTOR<T> > {
   public:
-    WithRMS(typename Base<T>::sptr filterX,
-            typename Base<T>::sptr filterRMS,
+    typedef  VECTOR<T> vector_type;
+    WithRMS(typename Base<vector_type>::sptr filterX,
+            typename Base<vector_type>::sptr filterRMS,
             const T& initRMS)
       : filterX_(filterX)
       , filterRMS_(filterRMS)
       , initRMS_(initRMS) {}
     virtual ~WithRMS() {}
 
-    virtual void init(boost::posix_time::ptime pt, const T& x) {
+    virtual void init(boost::posix_time::ptime pt, const vector_type& x) {
       filterX_->init(pt, x);
-      filterRMS_->init(pt, initRMS_*initRMS_);
+      const vector_type rms2(x.fmin(), x.fmax(), x.size(), initRMS_*initRMS_);
+      std::cout << "rms2= " << rms2.size() 
+                // << " " << rms2[0].first << " " << rms2[0].second 
+                << std::endl;
+      filterRMS_->init(pt, rms2);
     }
-    virtual T update(boost::posix_time::ptime pt, const T& x) {
-      const T res(filterX_->update(pt, x.first));
+    virtual vector_type update(boost::posix_time::ptime pt, const vector_type& x) {
+      const vector_type res(filterX_->update(pt, x));
       filterRMS_->update(pt, (x-res)*(x-res));
       return res;
     }
-    virtual T x() const   { return filterX_.x(); }
-    virtual T rms() const { return sqrt(filterRMS_.x()); }
+    virtual vector_type x() const   { return filterX_->x(); }
+    virtual vector_type rms() const { return sqrt(filterRMS_->x()); }
     virtual bool isInEquilibrium() const {
       if (filterX_ == 0 || filterRMS_ == 0)
         return false;
@@ -164,9 +171,9 @@ namespace Filter {
 
   protected:
   private:
-    typename Base<T>::sptr filterX_;
-    typename Base<T>::sptr filterRMS_;
-    const T initRMS_;
+    typename Base<vector_type>::sptr filterX_;
+    typename Base<vector_type>::sptr filterRMS_;
+    T initRMS_;
   } ;
 
   template<typename T>
@@ -179,27 +186,27 @@ namespace Filter {
       filters_.push_back(fp);
     }
     virtual void init(boost::posix_time::ptime pt, const T& x) {
+      x_= x;
       BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
         filter->init(pt, x);
     }
     virtual T update(boost::posix_time::ptime pt, const T& x) {
-      T result(x);
+      x_= x;
       BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
-        result = filter->update(pt, result);
-      return result;
+        x_ = filter->update(pt, x_);
+      return x_;
     }
     virtual T x() const {
-      return filters_.back()->x();
+      return filters_.empty() ? x_ : filters_.back()->x();
     }
     virtual bool isInEquilibrium() const {
-      if (filters_.empty())
-        return false;
       BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
         if (not filter->isInEquilibrium()) return false;
       return true;
     }
   private:
     std::vector<typename Base<T>::sptr> filters_;
+    T x_;
   } ;
 }
 #endif // _FILTER_HPP_cm101017_
