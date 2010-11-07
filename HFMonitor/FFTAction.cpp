@@ -5,6 +5,7 @@
 #include "FFTActionCalibrator.hpp"
 #include "FFTActionFindPeak.hpp"
 #include "FFTActionAverageDensity.hpp"
+#include "FFTActionPhaseDifferentiation.hpp"
 
 namespace Action {
   Handle Factory::makeAction(std::string name,
@@ -15,6 +16,8 @@ namespace Action {
       return Handle(new Calibrator(pt));
     if (name == "AverageDensity")
       return Handle(new AverageDensity(pt));
+    if (name == "PhaseDifferentiation")
+      return Handle(new PhaseDifferentiation(pt));
     else
       throw std::runtime_error(name+": action not supported");
   }

@@ -78,17 +78,36 @@ public:
   typedef typename vector_type::iterator iterator;
   typedef typename vector_type::const_iterator const_iterator;
 
-  frequency_vector(freq_type fmin, freq_type fmax)
+  frequency_vector(freq_type fmin=freq_type(0), 
+                   freq_type fmax=freq_type(1))
     : fmin_(fmin), fmax_(fmax) {}
+  
+  frequency_vector(freq_type fmin, freq_type fmax, size_t size, const T& value)
+    : fmin_(fmin), fmax_(fmax) {
+    for (unsigned u(0); u<size; ++u)
+      v_.push_back(std::make_pair(fmin+(fmax-fmin)/(size-1)*u, value));
+  }
   
   template<typename FUNCTION>
   frequency_vector(freq_type fmin, freq_type fmax,
                    const SpectrumBase& s, FUNCTION func) 
     : fmin_(fmin), fmax_(fmax) { fill(s, func); }
-  
+
+  frequency_vector(const frequency_vector& f) 
+    : fmin_(f.fmin_), fmax_(f.fmax_), v_(f.v_) {} 
+
+  frequency_vector& operator=(const frequency_vector& f) {
+    frequency_vector tmp(f);
+    std::swap(fmin_, tmp.fmin_);
+    std::swap(fmax_, tmp.fmax_);
+    std::swap(v_,    tmp.v_);
+    return *this;
+  }
+ 
   freq_type fmin() const { return fmin_; }
   freq_type fmax() const { return fmax_; }
-  
+  freq_type deltaf() const { return v_.empty() ? 0.0 : (fmax() - fmin()) / (size()-1); }
+
   template<typename FUNCTION>
   frequency_vector<T> fill(const SpectrumBase& s, const FUNCTION& func) {
     v_.clear();
@@ -109,7 +128,7 @@ public:
 
   size_t freq2index(freq_type f) const {
     if (f >= fmin_ && f <= fmax_)
-      return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * v_.size());
+      return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * (v_.size()-1));
     else
       throw std::runtime_error("freq2index: f out of range");
   }
@@ -129,7 +148,7 @@ public:
   static bool cmpSecond(const value_type& x1, const value_type& x2) {
     return x1.second < x2.second;
   }
-
+  // addition
   frequency_vector<T>& operator+=(const frequency_vector<T>& v) {
     if (size() != v.size())
       throw std::runtime_error("frequency_vector<T>::operator+= (size() != v.size())");
@@ -141,6 +160,13 @@ public:
     }
     return *this;
   }
+  friend frequency_vector<T> operator+(const frequency_vector<T>& v1,
+                                       const frequency_vector<T>& v2) {
+    frequency_vector<T> r(v1); r+=v2;
+    return r;
+  }
+
+  // subtraction
   frequency_vector<T>& operator-=(const frequency_vector<T>& v) {
     if (size() != v.size())
       throw std::runtime_error("frequency_vector<T>::operator-= (size() != v.size())");
@@ -152,19 +178,35 @@ public:
     }
     return *this;
   }
+  friend frequency_vector<T> operator-(const frequency_vector<T>& v1,
+                                       const frequency_vector<T>& v2) {
+    frequency_vector<T> r(v1); r-=v2;
+    return r;
+  }
+
+  // multiplication/division with scalar factor
   frequency_vector<T>& operator*=(double f) {
-    for (iterator i(begin()); i!=end(); ++i)
-      i->second *= f;
+    BOOST_FOREACH(value_type& x, v_) x.second *= f;
+    return *this;
+  }
+  frequency_vector<T>& operator/=(double f) {
+    BOOST_FOREACH(value_type& x, v_) x.second /= f;
     return *this;
   }
   friend frequency_vector<T> operator*(const frequency_vector<T>& v, double f) {
     frequency_vector<T> r(v); r*=f;
     return r;
   }
+  friend frequency_vector<T> operator/(const frequency_vector<T>& v, double f) {
+    frequency_vector<T> r(v); r/=f;
+    return r;
+  }
   friend frequency_vector<T> operator*(double f, const frequency_vector<T>& v) {    
     frequency_vector<T> r(v); r*=f;
     return r;
   }
+
+  // component-wise multiplication 
   frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
     if (size() != v.size()) 
       throw std::runtime_error("frequency_vector<T>::operator*= (size() != p.size())");
@@ -181,13 +223,15 @@ public:
     frequency_vector<T> r(v1); r*=v2;
     return r;
   }
-  
+  // use sqrt_ (defined below) in order to avoid sqrt: double -> complex
   friend frequency_vector<T> sqrt(frequency_vector<T> v) {
-    return v.apply(std::sqrt<T>);
+    return v.apply(sqrt_);
   }
 
 protected:
 private:
+  static T sqrt_(T x) { return sqrt(x); }
+
   freq_type fmin_;
   freq_type fmax_;
   vector_type v_;
