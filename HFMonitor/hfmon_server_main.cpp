@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <sstream>
 #include <deque>
 
 #include <boost/array.hpp>
@@ -45,6 +46,13 @@ public:
 
   void close() {  tcp_socket_ptr_->close(); isOpen_= false; }
   bool is_open() const { return isOpen_; }
+
+  boost::asio::ip::tcp::endpoint local_endpoint(boost::system::error_code& ec) const { 
+    return tcp_socket_ptr_->local_endpoint(ec); 
+  }
+  boost::asio::ip::tcp::endpoint remote_endpoint(boost::system::error_code& ec) const { 
+    return tcp_socket_ptr_->remote_endpoint(ec); 
+  }
 
   bool push_back(const Data& d) { 
     // TODO check length of listOfPackets_
@@ -101,7 +109,15 @@ public:
       }
     }
   }
-  
+
+  size_t size() const { return listOfPackets_.size(); }
+  size_t total_size() const {
+    size_t sum(0);
+    BOOST_FOREACH(const ListOfPackets::value_type& lp, listOfPackets_)
+      sum += lp->size();
+    return sum;
+  }
+
 protected:
   
 private:
@@ -173,7 +189,7 @@ public:
       const ptime now(boost::posix_time::microsec_clock::universal_time());
       ptimeFilter_.init(now, now);
       dtFilter_.init(now, dtCallbackSec);
-      ptimeOfCallback_ = now;
+      ptimeOfCallback_ = ptimeDataMeasure_ = now;
     }
     recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
     std::cout << "ptime_ = " << ptimeOfCallback_ << " " 
@@ -263,16 +279,41 @@ public:
       if (ec) break;
     return 0;
   }
-  static void sendDataToClients(server* sp, const std::vector<char>& dataVector) {
-    if (sp->sampleNumber_ % 85000 == 0)
-      std::cout << "data_connections_.size*() = " << sp->data_connections_.size() 
-                << " sampleNumber=" << sp->sampleNumber_ << std::endl;
-    for (data_connections::iterator i(sp->data_connections_.begin()); i!=sp->data_connections_.end();) {
+
+  void sendDataToClients(const std::vector<char>& dataVector) {
+    bc_status();
+    for (data_connections::iterator i(data_connections_.begin()); i!=data_connections_.end();) {
       if ((*i)->push_back(dataVector))
         ++i;
-      else
-        sp->data_connections_.erase(i++);
+      else 
+        data_connections_.erase(i++);
     }
+  }
+
+  void bc_status() {
+    if (sampleNumber_ % 85000 == 0) {
+      const double dt(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
+                      / double(time_duration::ticks_per_second()));      
+      std::stringstream logMessage;
+      logMessage << "data_connections_.size*() = " << data_connections_.size() 
+                 << " sampleNumber=" << sampleNumber_ << " "
+                 << " dataRate= " << 85000.0 / dt;
+      log(logMessage.str());
+      ptimeDataMeasure_ = ptimeOfCallback_;
+    }
+    BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
+      std::stringstream logMessage;
+      boost::system::error_code ecl, ecr;
+      logMessage << dc->local_endpoint(ecl) << " - "
+                 << dc->remote_endpoint(ecr) 
+                 << " : delay[ms] = " 
+                 << 1e3*double(dc->total_size()/6) / recPtr_->sampleRate();
+      log(logMessage.str());
+    }
+  }
+
+  void log(std::string message) {
+    std::cout << message << std::endl;
   }
 
   void stop() {
@@ -300,6 +341,7 @@ private:
   boost::int64_t                 sampleNumber_;
   time_duration                  dtCallback_;
   ptime                          ptimeOfCallback_;
+  ptime                          ptimeDataMeasure_;
   Filter::Cascaded<ptime>        ptimeFilter_;
   Filter::Cascaded<double>       dtFilter_;
   data_connections               data_connections_;
