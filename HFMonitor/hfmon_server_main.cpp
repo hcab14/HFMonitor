@@ -24,21 +24,42 @@
 #include "protocol.hpp"
 #include "run.hpp"
 
+class processor_status : private boost::noncopyable {
+public:
+  typedef boost::posix_time::ptime ptime;
+  processor_status() {}
+  ~processor_status() {}
+  
+protected:
+
+private:
+  
+} ;
+
 class data_connection : private boost::noncopyable {
 public:
+  typedef boost::posix_time::ptime ptime;
+  typedef boost::posix_time::time_duration time_duration;
+
   typedef boost::shared_ptr<data_connection> sptr;
   typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
   typedef std::vector<char> Data;
   typedef boost::shared_ptr<Data> data_ptr;
-  typedef std::deque<data_ptr> ListOfPackets;
+  typedef std::pair<ptime, data_ptr> ptime_data_pair;
+  typedef std::deque<ptime_data_pair> ListOfPackets;
 
   data_connection(boost::asio::io_service& io_service,
                   boost::asio::strand& strand,
-                  tcp_socket_ptr p)
+                  tcp_socket_ptr p,
+                  size_t max_total_size=10*1024*1024,
+                  time_duration max_queue_delay=boost::posix_time::minutes(5))
     : io_service_(io_service)
     , strand_(strand)
     , tcp_socket_ptr_(p)
-    , isOpen_(true) {}
+    , isOpen_(true) 
+    , max_total_size_(max_total_size)
+    , max_queue_delay_(max_queue_delay)
+    , max_delay_(boost::posix_time::seconds(0)) {}
 
   ~data_connection() {
     close();
@@ -47,6 +68,22 @@ public:
   void close() {  tcp_socket_ptr_->close(); isOpen_= false; }
   bool is_open() const { return isOpen_; }
 
+  void pop_front() { listOfPackets_.pop_front(); }
+  void pop_back()  { listOfPackets_.pop_back(); }
+
+  ListOfPackets::const_reference front() const { return listOfPackets_.front(); }
+  ListOfPackets::const_reference back() const  { return listOfPackets_.back(); }
+
+  bool   empty() const { return listOfPackets_.empty(); }
+  size_t size()  const { return listOfPackets_.size(); }
+
+  size_t total_size() const {
+    size_t sum(0);
+    BOOST_FOREACH(const ListOfPackets::value_type& lp, listOfPackets_)
+      sum += lp.second->size();
+    return sum;
+  }
+
   boost::asio::ip::tcp::endpoint local_endpoint(boost::system::error_code& ec) const { 
     return tcp_socket_ptr_->local_endpoint(ec); 
   }
@@ -54,77 +91,58 @@ public:
     return tcp_socket_ptr_->remote_endpoint(ec); 
   }
 
-  bool push_back(const Data& d) { 
-    // TODO check length of listOfPackets_
+  time_duration delay(ptime t) const {
+    return (empty()) ? boost::posix_time::seconds(0) : t - back().first;
+  }
+
+  time_duration max_delay() const { return max_delay_; }
+  void reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
+
+  bool push_back(ptime t, const data_ptr& dp) { 
+    max_delay_ = std::max(max_delay_, delay(t));
+    while (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
+      // TODO message
+      pop_front();
+    }
     if (is_open()) {
-      const bool listOfPacketsWasEmpty(isEmpty());
-      // std::cout << "push_back " << (listOfPacketsWasEmpty ? "empty " : "non-empty ")
-      //           << listOfPackets_.size() << std::endl;
-      listOfPackets_.push_back(data_ptr(new Data(d))); 
+      const bool listOfPacketsWasEmpty(empty());
+      listOfPackets_.push_back(std::make_pair(t, dp));
       if (listOfPacketsWasEmpty)
         async_write();
       return true;
     }
     return false;
   }
-  bool isEmpty() const { 
-    return listOfPackets_.empty(); 
-  }
-  void pop_front() { 
-    listOfPackets_.pop_front(); 
-  }
-  ListOfPackets::const_reference front() const { 
-    return listOfPackets_.front(); 
-  }
 
   void async_write() {
-    if (!isEmpty()) {
-      ListOfPackets::const_reference dataPtr(front());
+    if (!empty()) {
+      data_ptr dataPtr(front().second);
       boost::asio::async_write(*tcp_socket_ptr_,
                                boost::asio::buffer(&dataPtr->front(), dataPtr->size()),
-                               strand_.wrap(boost::bind(&data_connection::handle_write, 
+                               strand_.wrap(boost::bind(&data_connection::handle_write,
                                                         this,
                                                         boost::asio::placeholders::error,
                                                         boost::asio::placeholders::bytes_transferred)));
     }
   }
-  
-  void handle_write(const boost::system::error_code& error,
-                    std::size_t bytes_transferred) {
-    if (error) {
+
+  void handle_write(const boost::system::error_code& ec, std::size_t bytes_transferred) {
+    if (ec) {
       close();
     } else {
       pop_front();
       async_write();
     }
   }
-
-  void send(boost::array<boost::asio::const_buffer, 2> bufs) {
-    if (is_open()) {
-      try {
-        tcp_socket_ptr_->send(bufs);
-      } catch (const boost::system::system_error& e) {
-        std::cout << "send error:_ " << e.what() << std::endl;
-        close();
-      }
-    }
-  }
-
-  size_t size() const { return listOfPackets_.size(); }
-  size_t total_size() const {
-    size_t sum(0);
-    BOOST_FOREACH(const ListOfPackets::value_type& lp, listOfPackets_)
-      sum += lp->size();
-    return sum;
-  }
-
-protected:
-  
+protected:  
 private:
   boost::asio::io_service& io_service_;
   boost::asio::strand&     strand_;
   tcp_socket_ptr           tcp_socket_ptr_;
   bool                     isOpen_;
+  const size_t             max_total_size_;
+  const time_duration      max_queue_delay_;
+  time_duration            max_delay_;  
   ListOfPackets            listOfPackets_;
 } ;
 
@@ -265,25 +283,25 @@ public:
               << ((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) ? "OK" : "IP") 
               <<  std::endl;
 #endif
+    // keep only one copy of the data in memory even when there are several clients
     const Header header(sp->getHeader(nSamples, oldFilterTime));
-#if 1
-    std::vector<char> dataVector;
-    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(dataVector));
-    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(dataVector));
+    data_connection::data_ptr dp(new std::vector<char>);
+    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
+    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
 
-    sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, dataVector));
-#endif
+    sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
 
     boost::system::error_code ec;
-    for (unsigned u(0); sp->io_service_.poll(ec) > 0 && u < 10000; ++u)
+    const size_t max_poll_actions(100*1000);
+    for (size_t u(0); sp->io_service_.poll(ec) > 0 && u < max_poll_actions; ++u)
       if (ec) break;
     return 0;
   }
 
-  void sendDataToClients(const std::vector<char>& dataVector) {
+  void sendDataToClients(const ptime& t, const data_connection::data_ptr& dp) {
     bc_status();
     for (data_connections::iterator i(data_connections_.begin()); i!=data_connections_.end();) {
-      if ((*i)->push_back(dataVector))
+      if ((*i)->push_back(t, dp))
         ++i;
       else 
         data_connections_.erase(i++);
@@ -291,28 +309,35 @@ public:
   }
 
   void bc_status() {
-    if (sampleNumber_ % 85000 == 0) {
+    const unsigned buffers_per_second(0.5 + double(recPtr_->sampleRate()) / double(usbBufferSize_));
+    const unsigned moduloSize(0.5 + buffers_per_second * recPtr_->sampleRate());
+    // every 1 second status -> log
+    if (sampleNumber_ % moduloSize == 0) {
       const double dt(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
                       / double(time_duration::ticks_per_second()));      
+      const size_t m(0.5+ 85. / moduloSize * recPtr_->sampleRate());
+      const size_t rate(size_t(0.5 + double(moduloSize) / dt / m) * m); 
       std::stringstream logMessage;
       logMessage << "data_connections_.size*() = " << data_connections_.size() 
                  << " sampleNumber=" << sampleNumber_ << " "
-                 << " dataRate= " << 85000.0 / dt;
+                 << " dataRate= " << rate;
       log(logMessage.str());
       ptimeDataMeasure_ = ptimeOfCallback_;
-    }
-    BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
-      std::stringstream logMessage;
-      boost::system::error_code ecl, ecr;
-      logMessage << dc->local_endpoint(ecl) << " - "
-                 << dc->remote_endpoint(ecr) 
-                 << " : delay[ms] = " 
-                 << 1e3*double(dc->total_size()/6) / recPtr_->sampleRate();
-      log(logMessage.str());
+      BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
+        std::stringstream logMessage;
+        boost::system::error_code ecl, ecr;
+        logMessage << dc->local_endpoint(ecl) << " - "
+                   << dc->remote_endpoint(ecr)
+                   << " : delay[ms] = "
+                   << 1000*dc->max_delay().ticks() / time_duration::ticks_per_second();
+        dc->reset_max_delay();
+        log(logMessage.str());
+      }
     }
   }
 
   void log(std::string message) {
+    // TBD
     std::cout << message << std::endl;
   }
 
@@ -396,9 +421,9 @@ int main(int argc, char* argv[])
                                    pt));
     }
     sp->stop();
-    // run(io_service, s);    
   } catch (std::exception &e) {
     std::cout << "Error: " << e.what() << "\n";
+    return 1;
   }
   return 0;
 }
