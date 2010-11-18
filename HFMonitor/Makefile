@@ -52,7 +52,7 @@ $O/%.d: %.cpp
 # Make automatic "link" files (containing link module dependencies)
 #                                           this pattern must by in a header file to find the implementation (basename at 5 word)
 #                                           v
-LINK_GEN = $(CC) -E $(CXXFLAGS) $< | awk '/.*___ Implemented in .*/ { v[$$5]=1 }; \
+LINK_GEN = $(CC) -E -C $(CXXFLAGS) $< | awk '/.*___ Implemented in .*/ { v[$$5]=1 }; \
 END { printf "$$(OBJDIR)/Profile/$(@:$O/%.link=%): CXXFLAGS += -g -pg\n$$(OBJDIR)/RelProf/$(@:$O/%.link=%): CXXFLAGS += -g -pg\n$$O/$(@:$O/%.link=%):$$O/$(@:$O/%.link=%_main.o) " ;\
       for(i in v) { printf "$$O/%s.o ",i } ; printf "\n\t$$(LINK.cc) $$^ $$(LOADLIBES) $$(LDLIBS) -o $$@\n"; \
       for(i in v) { printf "OBJS += $O/%s.o\n",i }}' - >$@
