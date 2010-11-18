@@ -51,7 +51,7 @@ public:
   data_connection(boost::asio::io_service& io_service,
                   boost::asio::strand& strand,
                   tcp_socket_ptr p,
-                  size_t max_total_size=10*1024*1024,
+                  size_t max_total_size=40*1024*1024,
                   time_duration max_queue_delay=boost::posix_time::minutes(5))
     : io_service_(io_service)
     , strand_(strand)
@@ -92,7 +92,7 @@ public:
   }
 
   time_duration delay(ptime t) const {
-    return (empty()) ? boost::posix_time::seconds(0) : t - back().first;
+    return (empty()) ? boost::posix_time::seconds(0) : t - front().first;
   }
 
   time_duration max_delay() const { return max_delay_; }
@@ -100,10 +100,11 @@ public:
 
   bool push_back(ptime t, const data_ptr& dp) { 
     max_delay_ = std::max(max_delay_, delay(t));
-    while (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-      // TODO message
+    size_t n_omit(0);
+    for (; not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t); ++n_omit)
       pop_front();
-    }
+    if (n_omit != 0)
+      std::cout << "omitted " << n_omit << "data packets " << std::endl;
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
       listOfPackets_.push_back(std::make_pair(t, dp));
@@ -310,13 +311,14 @@ public:
 
   void bc_status() {
     const unsigned buffers_per_second(0.5 + double(recPtr_->sampleRate()) / double(usbBufferSize_));
-    const unsigned moduloSize(0.5 + buffers_per_second * recPtr_->sampleRate());
+    const unsigned moduloSize(0.5 + buffers_per_second * usbBufferSize_);
     // every 1 second status -> log
     if (sampleNumber_ % moduloSize == 0) {
-      const double dt(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
-                      / double(time_duration::ticks_per_second()));      
-      const size_t m(0.5+ 85. / moduloSize * recPtr_->sampleRate());
-      const size_t rate(size_t(0.5 + double(moduloSize) / dt / m) * m); 
+      // round dt modulo [time of 850 samples]
+      const int dt_usec (0.5 + 1e6*(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
+                                   / double(time_duration::ticks_per_second())));
+      const int dt0_usec(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
+      const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
       std::stringstream logMessage;
       logMessage << "data_connections_.size*() = " << data_connections_.size() 
                  << " sampleNumber=" << sampleNumber_ << " "
