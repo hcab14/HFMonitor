@@ -29,10 +29,16 @@ namespace Result {
       , ratio_(1.) {}
 
     bool findPeak(const SpectrumBase& s, const PowerSpectrum& ps, double minRatio) {
+      return ps.empty() ? false : findPeak(s, ps, ps.front().first, ps.back().first, minRatio);
+    }
+    bool findPeak(const SpectrumBase& s, const PowerSpectrum& ps,
+                  double fMin, double fMax, double minRatio) {
+      const size_t i0(ps.freq2index(fMin));
+      const size_t i1(ps.freq2index(fMax));
       PowerSpectrum::const_iterator
-        iMin(std::min_element(ps.begin(), ps.end(), PowerSpectrum::cmpSecond));
+        iMin(std::min_element(ps.begin()+i0, ps.begin()+i1, PowerSpectrum::cmpSecond));
       PowerSpectrum::const_iterator
-        iMax(std::max_element(ps.begin(), ps.end(), PowerSpectrum::cmpSecond));
+        iMax(std::max_element(ps.begin()+i0, ps.begin()+i1, PowerSpectrum::cmpSecond));
       
       const size_t indexMax(std::distance(ps.begin(), iMax));
 
