@@ -56,7 +56,7 @@ public:
     : io_service_(io_service)
     , strand_(strand)
     , tcp_socket_ptr_(p)
-    , isOpen_(true) 
+    , isOpen_(true)
     , max_total_size_(max_total_size)
     , max_queue_delay_(max_queue_delay)
     , max_delay_(boost::posix_time::seconds(0)) {}
@@ -84,11 +84,11 @@ public:
     return sum;
   }
 
-  boost::asio::ip::tcp::endpoint local_endpoint(boost::system::error_code& ec) const { 
-    return tcp_socket_ptr_->local_endpoint(ec); 
+  boost::asio::ip::tcp::endpoint local_endpoint(boost::system::error_code& ec) const {
+    return tcp_socket_ptr_->local_endpoint(ec);
   }
-  boost::asio::ip::tcp::endpoint remote_endpoint(boost::system::error_code& ec) const { 
-    return tcp_socket_ptr_->remote_endpoint(ec); 
+  boost::asio::ip::tcp::endpoint remote_endpoint(boost::system::error_code& ec) const {
+    return tcp_socket_ptr_->remote_endpoint(ec);
   }
 
   time_duration delay(ptime t) const {
@@ -98,13 +98,13 @@ public:
   time_duration max_delay() const { return max_delay_; }
   void reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
 
-  bool push_back(ptime t, const data_ptr& dp) { 
+  bool push_back(ptime t, const data_ptr& dp) {
     max_delay_ = std::max(max_delay_, delay(t));
     size_t n_omit(0);
     for (; not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t); ++n_omit)
       pop_front();
     if (n_omit != 0)
-      std::cout << "omitted " << n_omit << "data packets " << std::endl;
+      std::cout << "omitted #" << n_omit << " data packets" << std::endl;
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
       listOfPackets_.push_back(std::make_pair(t, dp));
@@ -135,7 +135,7 @@ public:
       async_write();
     }
   }
-protected:  
+protected:
 private:
   boost::asio::io_service& io_service_;
   boost::asio::strand&     strand_;
@@ -143,7 +143,7 @@ private:
   bool                     isOpen_;
   const size_t             max_total_size_;
   const time_duration      max_queue_delay_;
-  time_duration            max_delay_;  
+  time_duration            max_delay_;
   ListOfPackets            listOfPackets_;
 } ;
 
@@ -192,7 +192,6 @@ public:
     // PTimeLowpassFilters:
     {
       using boost::property_tree::ptree;
-      const ptree& pt(config.get_child("perseus.CascadedPTimeLowPass"));
       std::cout << "Cascaded Lowpass Filters: " << std::endl;
       const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
       BOOST_FOREACH(const ptree::value_type& filter, config.get_child("perseus.CascadedPTimeLowPass")) {

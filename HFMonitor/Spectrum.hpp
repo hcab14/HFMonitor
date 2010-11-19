@@ -134,13 +134,25 @@ public:
   }
   
   const value_type& operator[](unsigned index) const { return v_[index]; }
+
   void clear() { v_.clear(); }
+
   size_t size() const { return v_.size(); }
+
   bool empty() const { return v_.empty(); }
+
   iterator       begin()       { return v_.begin(); }
   const_iterator begin() const { return v_.begin(); }
+
   iterator       end()       { return v_.end(); }
   const_iterator end() const { return v_.end(); }
+
+  const value_type& front() const { return v_.front(); }
+  value_type&       front()       { return v_.front(); }
+
+  const value_type& back() const { return v_.back(); }
+  value_type&       back()       { return v_.back(); }
+
 
   static bool cmpFreq(const value_type& x1, const value_type& x2) {
     return x1.first < x2.first;
