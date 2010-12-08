@@ -39,6 +39,7 @@ namespace Result {
          << " strength="       << strength_
          << " strengthRef="    << peakRef_->strength()
          << " strengthShift="  << peakShift_->strength()
+         << " noise="          << noise_->strength()
          << " ratio="          << ratio_;
       return ss.str();
     }

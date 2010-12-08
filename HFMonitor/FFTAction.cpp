@@ -19,7 +19,7 @@ namespace Action {
       return Handle(new AverageDensity(pt));
     if (name == "PhaseDifferentiation")
       return Handle(new PhaseDifferentiation(pt));
-    if (name == "FFTActionFSKStrength")
+    if (name == "FSKStrength")
       return Handle(new FSKStrength(pt));
     else
       throw std::runtime_error(name+": action not supported");
