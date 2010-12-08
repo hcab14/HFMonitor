@@ -35,8 +35,8 @@ FFT.WindowFunction ........
   </fpga>
 </perseus>
 <Repack>
-  <BufferLengthSec>1.0</BufferLengthSec>
-  <OverlapPercent>50</OverlapPercent>
+  <BufferLengthSec>0.5</BufferLengthSec>
+  <OverlapPercent>-100</OverlapPercent>
 </Repack>
 <FFT>
   <WindowFunction>Blackman</WindowFunction>
@@ -162,6 +162,13 @@ FFT.WindowFunction ........
 	<PlotSpectrum>true</PlotSpectrum>
 	<Calibration>L1.CAL</Calibration>
       </AverageDensity>
+      <FSKStrength>
+	<Name>EFR_Burg_FSK</Name>
+	<minRatio>1</minRatio>
+	<fRef>139.0e3</fRef>
+	<fShift>170</fShift>
+	<Calibration>L1.CAL</Calibration>
+      </FSKStrength>
     </L2>
   </Actions>
 </FFT>

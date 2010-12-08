@@ -189,8 +189,12 @@ namespace FFT {
         out_.resize(n);
         destroy_plan(plan_);
         plan_ = plan_dft_1d(in_.size(), in_.begin(), out_.begin(), sign_, flags_);
+        // normalizationFactor_ has to be updated by hand
       }
     }
+
+    // norm of window
+    double normWindow() const { return in_.size() / normalizationFactor_; }
 
     template<typename V,
              template <typename U> class WINDOW_FCN>
@@ -212,19 +216,20 @@ namespace FFT {
     }
 
     size_t size() const { return in_.size(); }
-    std::complex<T> getBin(size_t u) const { 
+
+    // corrected for spread due to window function
+    std::complex<T> getBin(size_t u) const {
       return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]); 
     }
-
-    std::complex<T> getInBin(size_t u) const { 
-      return std::complex<T>(in_[u][0], in_[u][1]);
-    }
-
     std::vector<Complex> getBins() const {
       std::vector<Complex> v(size());
       for (size_t u(0); u<size(); ++u) 
         v[u] = getBin(u);
       return v;
+    }
+
+    std::complex<T> getInBin(size_t u) const { 
+      return std::complex<T>(in_[u][0], in_[u][1]);
     }
 
   protected:

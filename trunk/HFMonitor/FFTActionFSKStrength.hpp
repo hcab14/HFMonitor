@@ -43,8 +43,8 @@ namespace Action {
         Result::SpectrumPeak::Handle
           sppRef((useCalibration())
                  ? boost::make_shared<Result::CalibratedSpectrumPeak>
-                   (fRef_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                 : boost::make_shared<Result::SpectrumPeak>(fRef_));
+                   (fRef_-fShift_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
+                 : boost::make_shared<Result::SpectrumPeak>(fRef_-fShift_));
 
         Result::SpectrumPeak::Handle
           sppShift((useCalibration())
@@ -55,12 +55,12 @@ namespace Action {
         Result::SpectrumPowerInInterval::Handle
           spiRef((useCalibration())
                  ? boost::make_shared<Result::CalibratedSpectrumPowerInInterval>
-                   (fRef_+0.5*fShift_, 0.7*fShift_,
+                   (fRef_, 1.5*fShift_,
                     boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                 : boost::make_shared<Result::SpectrumPowerInInterval>(fRef_+0.5*fShift_, 0.7*fShift_));
+                 : boost::make_shared<Result::SpectrumPowerInInterval>(fRef_, 1.5*fShift_));
         
-        sppRef->findPeak(s, ps, 0.99);
-        sppShift->findPeak(s, ps, 0.99);
+        sppRef->findPeak  (s, ps, fRef_+0.5*fShift_, fRef_+1.5*fShift_, 1.0);
+        sppShift->findPeak(s, ps, fRef_-1.5*fShift_, fRef_-0.5*fShift_, 1.0);
         spiRef->proc(ps);
 
         const double strengthFSK(sppRef->strength() + sppShift->strength());
@@ -83,13 +83,13 @@ namespace Action {
                                                        double fRef,
                                                        double fShift) {
       boost::property_tree::ptree result(config);
-      result.put("fMin", boost::lexical_cast<std::string>(fRef-1.2*fShift));
-      result.put("fMax", boost::lexical_cast<std::string>(fRef+2.2*fShift));
+      result.put("fMin", boost::lexical_cast<std::string>(fRef-2*fShift));
+      result.put("fMax", boost::lexical_cast<std::string>(fRef+2*fShift));
       return result;
     }
     const double fRef_;            // nominal (mark) frequency / Hz
     const double fShift_;          // shift frequency / Hz
-    const double minRatio_;            // min. ratio peak/background
+    const double minRatio_;        // min. ratio peak/background
   } ;
 } // namespace Action
 

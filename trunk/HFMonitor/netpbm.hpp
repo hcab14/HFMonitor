@@ -66,6 +66,7 @@ namespace netpbm {
       need_height_update_= true;
       if (perform_height_update)
 	update_height();
+      return true;
     }
     
   private:

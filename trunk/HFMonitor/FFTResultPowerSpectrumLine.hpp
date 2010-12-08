@@ -59,7 +59,8 @@ namespace Result {
                                                  boost::posix_time::ptime t) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.read_header();
-      pw.write_line(line_);
+      if (not pw.write_line(line_))
+        throw std::runtime_error("dumpData failed");
       return os;
     }
   protected:

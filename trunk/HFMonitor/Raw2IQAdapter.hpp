@@ -21,7 +21,7 @@ private:
     struct __attribute__((__packed__)) {
       boost::uint8_t i1,i2,i3,i4;
       boost::uint8_t q1,q2,q3,q4;
-    } ;
+    } samples;
   } IQSample;
 
 public:
@@ -39,8 +39,8 @@ public:
     if (size == 6 * header.numberOfSamples()) {
       for (std::vector<char>::const_iterator i(i0); i!=i1;) {
         IQSample s;
-        s.i1 = 0; s.i2 = *i++; s.i3 = *i++; s.i4 = *i++;
-        s.q1 = 0; s.q2 = *i++; s.q3 = *i++; s.q4 = *i++;
+        s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
+        s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;
         const std::complex<double> cs(s.iq.q*norm,
                                       s.iq.i*norm);
         // std::cout << cs << std::endl;
