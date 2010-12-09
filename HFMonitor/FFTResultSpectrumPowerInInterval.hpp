@@ -21,11 +21,15 @@ namespace Result {
     typedef boost::shared_ptr<SpectrumPowerInInterval> Handle;
     typedef frequency_vector<double> PowerSpectrum;
 
-    SpectrumPowerInInterval(double fReference, double bandwidth)
+    SpectrumPowerInInterval(double fReference, 
+                            double bandwidth,
+                            double normWindow)
       : Base("SpectrumPowerInInterval")
       , fReference_(fReference) 
       , bandwidth_(bandwidth)
+      , normWindow_(normWindow)
       , strength_(0.) 
+      , averageStrength_(0.) 
       , strengthRMS_(1.) {}
 
     virtual ~SpectrumPowerInInterval() {}
@@ -43,8 +47,9 @@ namespace Result {
           sum += ps[u].second;
           sum2 += ps[u].second * ps[u].second;
         }
-        strength_   = (counter != 0) ? sum/counter : 0.;
-        strengthRMS_= (counter != 0) ? std::sqrt(sum2/counter-strength_*strength_) : 1.;
+        strength_        = sum / normWindow(); // here we do _not_ correct for window gain
+        averageStrength_ = (counter != 0) ? sum/counter : 0.;
+        strengthRMS_     = (counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.;
         return true;
       } catch (const std::runtime_error& e) {
         std::cout << "SpectrumPowerInInterval::proc " << e.what() << std::endl;
@@ -55,16 +60,19 @@ namespace Result {
     virtual std::string toString() const { 
       std::stringstream ss; 
       ss << Base::toString() 
-         << " fReference="   << fReference()
-         << " strength="     << strength()
-         << " strengthRMS="  << strengthRMS()
-         << " bandwidth="    << bandwidth();
+         << " fReference="      << fReference()
+         << " strength="        << strength()
+         << " averageStrength=" << averageStrength()
+         << " strengthRMS="     << strengthRMS()
+         << " bandwidth="       << bandwidth();
       return ss.str();
     }
     double fReference() const { return fReference_; }
-    double strength() const { return strength_; }
-    double strengthRMS() const { return strengthRMS_; }
     double bandwidth() const { return bandwidth_; }
+    double normWindow() const { return normWindow_; }
+    double strength() const { return strength_; }
+    double averageStrength() const { return averageStrength_; }
+    double strengthRMS() const { return strengthRMS_; }
 
     // this method is overwritten e.g. in CalibratedSpectrumPeak
     virtual std::pair<double, double> cal(double f) const {
@@ -74,7 +82,7 @@ namespace Result {
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
       Base::dumpHeader(os, t) 
-        << "fReference_Hz Bandwidth_Hz strength_dBm strengthRMS_dBm ";
+        << "fReference_Hz Bandwidth_Hz strength_dBm averageStrength_dBm strengthRMS_dBm ";
       return os;
     }
     virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
@@ -83,6 +91,7 @@ namespace Result {
         << boost::format("%12.3f") % fReference() << " "
         << boost::format("%9.3f")  % bandwidth() << " "
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
+        << boost::format("%7.2f")  % (20.*std::log10(averageStrength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " ";
       return os;
     }
@@ -90,7 +99,9 @@ namespace Result {
   private:
     double fReference_;
     double bandwidth_;
+    double normWindow_;
     double strength_;
+    double averageStrength_;
     double strengthRMS_;
   } ;
 
@@ -99,8 +110,9 @@ namespace Result {
     typedef boost::shared_ptr<SpectrumPeak> Handle;
     CalibratedSpectrumPowerInInterval(double fReference,
                                       double bandwidth,
+                                      double normWindow,
                                       Calibration::Handle calibrationHandle)
-      : SpectrumPowerInInterval(fReference, bandwidth)
+      : SpectrumPowerInInterval(fReference, bandwidth, normWindow)
       , calibrationHandle_(calibrationHandle) {
       name_= "CalibratedSpectrumPowerInInterval";
     }
