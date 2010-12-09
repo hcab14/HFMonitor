@@ -35,9 +35,9 @@ namespace Action {
         Result::SpectrumPowerInInterval::Handle 
           spp((useCalibration())
               ? boost::make_shared<Result::CalibratedSpectrumPowerInInterval>
-              (fReference_, bandwidth_, boost::dynamic_pointer_cast<Result::Calibration>
+              (fReference_, bandwidth_, s.normWindow(), boost::dynamic_pointer_cast<Result::Calibration>
                (p.getResult(calibrationKey())))
-              : boost::make_shared<Result::SpectrumPowerInInterval>(fReference_, bandwidth_));
+              : boost::make_shared<Result::SpectrumPowerInInterval>(fReference_, bandwidth_, s.normWindow()));
         if (spp->proc(ps))
           p.putResult(resultKey(), spp);
         if (plotSpectrum())
