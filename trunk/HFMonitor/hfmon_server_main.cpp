@@ -168,8 +168,8 @@ public:
     , acceptor_data_(io_service, endpoint_data)
     , recPtr_(recPtr)
     , usbBufferSize_(config.get<unsigned>("perseus.<xmlattr>.USBBufferSize"))
-    , max_queue_total_size_(1024*1024*config.get<size_t>("server.<xmlattr>.maxQueueSize_MB"))
-    , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("server.<xmlattr>.maxQueueDelay_Minutes")))
+    , max_queue_total_size_(1024*1024*config.get<size_t>("data.<xmlattr>.maxQueueSize_MB"))
+    , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("data.<xmlattr>.maxQueueDelay_Minutes")))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
                   usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) {
@@ -389,48 +389,52 @@ int main(int argc, char* argv[])
 {
   try {
     std::string filename((argc > 1 ) ? argv[1] : "config.xml");
-    boost::property_tree::ptree pt;
-    read_xml(filename, pt);
-    std::cout << "debug.filename= " << pt.get<std::string>("debug.<xmlattr>.filename") << " "
-              << "debug.level= " << pt.get<int>("debug.<xmlattr>.level") << std::endl;
+    boost::property_tree::ptree config;
+    read_xml(filename, config);
+    const boost::property_tree::ptree& config_server(config.get_child("server"));
+    const std::string debugFileName(config_server.get<std::string>("debug.<xmlattr>.filename"));
+    const int         debugLevel   (config_server.get<int>        ("debug.<xmlattr>.level"));
+    std::cout << "server.debug.filename= " << debugFileName << " "
+              << "server.debug.level= "    << debugLevel << std::endl;
 
-    perseus_set_debug(3);
+    perseus_set_debug(debugLevel);
 
     Perseus p;
     const unsigned numPerseus(p.numPerseus());
     if (numPerseus == 0)
       throw std::runtime_error("numPerseus == 0");
 
-    Perseus::ReceiverPtr pp(p.getReceiverPtr(0));
+    Perseus::ReceiverPtr recPtr(p.getReceiverPtr(0));
 
-    pp->downloadFirmware();
-    pp->fpgaConfig(pt.get<int>("perseus.<xmlattr>.samplerate"));                
+    const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
+    recPtr->downloadFirmware();
+    recPtr->fpgaConfig(config_perseus.get<int>("<xmlattr>.samplerate"));                
 
-    // todo: get from config
-    pp->setAttenuator(PERSEUS_ATT_0DB);
+    recPtr->setAttenuator(config_perseus.get<unsigned>("<xmlattr>.attenuator"));
 
-    // todo: get flags from config
-    pp->setADC(true, false);
+    recPtr->setADC(config_perseus.get<bool>("<xmlattr>.enableDither"), 
+                   config_perseus.get<bool>("<xmlattr>.enablePreamp"));
 
-    // todo: get flag from config
-    pp->setDdcCenterFreq(pt.get<double>("perseus.<xmlattr>.qrg_Hz"), 1);
+    recPtr->setDdcCenterFreq(config_perseus.get<double>("<xmlattr>.qrg_Hz"), 
+                             config_perseus.get<bool>  ("<xmlattr>.enablePresel"));
 
     boost::asio::io_service io_service;
-    server::sptr sp;
+    server::sptr serverPtr;
     {
       wait_for_signal w;
       w.add_signal(SIGINT)
        .add_signal(SIGQUIT)
        .add_signal(SIGTERM);
-      sp = server::sptr(new server(io_service,
-                                   boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                                                  pt.get<unsigned>("server.ctrl.<xmlattr>.port")),
-                                   boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                                                  pt.get<unsigned>("server.data.<xmlattr>.port")),
-                                   pp,
-                                   pt));
+      serverPtr = server::sptr
+        (new server
+         (io_service,
+          boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
+                                         config_server.get<unsigned>("ctrl.<xmlattr>.port")),
+          boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
+                                         config_server.get<unsigned>("data.<xmlattr>.port")),
+          recPtr, config_server));
     }
-    sp->stop();
+    serverPtr->stop();
   } catch (std::exception &e) {
     std::cout << "Error: " << e.what() << "\n";
     return 1;
