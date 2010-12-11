@@ -167,7 +167,9 @@ public:
     , acceptor_ctrl_(io_service, endpoint_ctrl)
     , acceptor_data_(io_service, endpoint_data)
     , recPtr_(recPtr)
-    , usbBufferSize_(config.get<unsigned>("perseus.USBBufferSize"))
+    , usbBufferSize_(config.get<unsigned>("perseus.<xmlattr>.USBBufferSize"))
+    , max_queue_total_size_(1024*1024*config.get<size_t>("server.<xmlattr>.maxQueueSize_MB"))
+    , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("server.<xmlattr>.maxQueueDelay_Minutes")))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
                   usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) {
@@ -232,11 +234,14 @@ public:
     std::cout << "servce::handle_accept_data error_code= " << ec << std::endl;
     if (!ec) {
       std::cout << "remote endpoint= " << socket->remote_endpoint() << std::endl;
-      data_connections_.insert(data_connection_ptr(new data_connection(io_service_, strand_, socket)));
-      tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_data_.get_io_service()));
-      acceptor_data_.async_accept(*new_socket,
-                                  strand_.wrap(boost::bind(&server::handle_accept_data, this,
-                                                           boost::asio::placeholders::error, new_socket)));
+      data_connections_.insert
+        (data_connection_ptr(new data_connection(io_service_, strand_, socket,
+                                                 max_queue_total_size_, max_queue_delay_)));
+      tcp_socket_ptr new_socket
+        (new boost::asio::ip::tcp::socket(acceptor_data_.get_io_service()));
+      acceptor_data_.async_accept
+        (*new_socket, strand_.wrap(boost::bind(&server::handle_accept_data, this,
+                                               boost::asio::placeholders::error, new_socket)));
     } else {
       // error 
     }
@@ -364,6 +369,9 @@ private:
   Sockets                        ctrl_sockets_;
   Perseus::ReceiverPtr           recPtr_;
   unsigned                       usbBufferSize_;
+  const size_t                   max_queue_total_size_;
+  const time_duration            max_queue_delay_;
+  unsigned                       maxQueuSize_;
   boost::int64_t                 sampleNumber_;
   time_duration                  dtCallback_;
   ptime                          ptimeOfCallback_;
@@ -383,7 +391,8 @@ int main(int argc, char* argv[])
     std::string filename((argc > 1 ) ? argv[1] : "config.xml");
     boost::property_tree::ptree pt;
     read_xml(filename, pt);
-    std::cout << "debug.filename=" << pt.get<std::string>("debug.filename") << std::endl;
+    std::cout << "debug.filename= " << pt.get<std::string>("debug.<xmlattr>.filename") << " "
+              << "debug.level= " << pt.get<int>("debug.<xmlattr>.level") << std::endl;
 
     perseus_set_debug(3);
 
@@ -395,7 +404,7 @@ int main(int argc, char* argv[])
     Perseus::ReceiverPtr pp(p.getReceiverPtr(0));
 
     pp->downloadFirmware();
-    pp->fpgaConfig(pt.get<int>("perseus.fpga.samplerate"));                
+    pp->fpgaConfig(pt.get<int>("perseus.<xmlattr>.samplerate"));                
 
     // todo: get from config
     pp->setAttenuator(PERSEUS_ATT_0DB);
@@ -404,7 +413,7 @@ int main(int argc, char* argv[])
     pp->setADC(true, false);
 
     // todo: get flag from config
-    pp->setDdcCenterFreq(pt.get<double>("perseus.qrg_Hz"), 1);
+    pp->setDdcCenterFreq(pt.get<double>("perseus.<xmlattr>.qrg_Hz"), 1);
 
     boost::asio::io_service io_service;
     server::sptr sp;
@@ -415,9 +424,9 @@ int main(int argc, char* argv[])
        .add_signal(SIGTERM);
       sp = server::sptr(new server(io_service,
                                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                                                  pt.get<unsigned>("server.ctrl.port")),
+                                                                  pt.get<unsigned>("server.ctrl.<xmlattr>.port")),
                                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                                                  pt.get<unsigned>("server.data.port")),
+                                                                  pt.get<unsigned>("server.data.<xmlattr>.port")),
                                    pp,
                                    pt));
     }

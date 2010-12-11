@@ -11,28 +11,21 @@ Dump.SamplesPerFile ....... # samples / file
 Dump.FileNamePattern ...... filename pattern for output
 FFT.WindowFunction ........
   -->
-<debug>
-  <filename>debug.log</filename>
-  <level>2</level>
+<debug filename="debug.log" 
+       level="2">
 </debug>
-<server>
-  <data>
-    <port>18000</port>
-  </data>
-  <ctrl>
-    <port>18001</port>
-  </ctrl>
+<server maxQueueDelay_Minutes="5"
+	maxQueueSize_MB="100">
+  <data port="18000"></data>
+  <ctrl port="18001"></ctrl>
 </server>
-<perseus>
-  <USBBufferSize>16320</USBBufferSize>
+<perseus samplerate="500000"
+	 qrg_Hz    ="250000"
+	 USBBufferSize="16320" >
   <CascadedPTimeLowPass>
     <Tau_Sec>600.</Tau_Sec>
     <Tau_Sec>60.</Tau_Sec>
   </CascadedPTimeLowPass>    
-  <qrg_Hz>250000</qrg_Hz>
-  <fpga>
-    <samplerate>500000</samplerate>
-  </fpga>
 </perseus>
 <Repack>
   <BufferLengthSec>0.5</BufferLengthSec>
