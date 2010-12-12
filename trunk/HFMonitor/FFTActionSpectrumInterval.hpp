@@ -23,9 +23,9 @@ namespace Action {
     typedef Filter::Cascaded<PowerSpectrum> filter_type;
     SpectrumInterval(const boost::property_tree::ptree& config)
       : Base("SpectrumInterval")
-      , fMin_(config.get<double>("fMin_Hz"))
-      , fMax_(config.get<double>("fMax_Hz"))
-      , resultKey_(config.get<std::string>("name"))
+      , fMin_(config.get<double>("<xmlattr>.fMin_Hz"))
+      , fMax_(config.get<double>("<xmlattr>.fMax_Hz"))
+      , resultKey_(config.get<std::string>("<xmlattr>.name"))
       , useCalibration_(config.find("Calibration") != config.not_found())
       , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration.<xmlattr>.key") : "")
       , plotSpectrum_(config.get<bool>("<xmlattr>.plotSpectrum", false)) {
