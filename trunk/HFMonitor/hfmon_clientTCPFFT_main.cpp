@@ -30,10 +30,11 @@ int main(int argc, char* argv[])
     tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 
     boost::property_tree::ptree config;
-    std::string filename((argc > 3 ) ? argv[3] : "config.xml");
-    read_xml(filename, config); 
+    std::string filename((argc > 3 ) ? argv[3] : "config_FFTProcessor.xml");
+    read_xml(filename, config);
 
-    ClientTCP<Raw2IQAdapter<RepackProcessor<FFTProcessor<float> > > > c(io_service, endpoint_iterator, config);
+    ClientTCP<Raw2IQAdapter<RepackProcessor<FFTProcessor<float> > > > 
+      c(io_service, endpoint_iterator, config.get_child("FFTProcessor"));
 
     run(io_service, c);
 
