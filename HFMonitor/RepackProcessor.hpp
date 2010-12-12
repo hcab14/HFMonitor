@@ -18,8 +18,8 @@ public:
   typedef typename std::vector<std::complex<double> > Buffer;
   RepackProcessor(const boost::property_tree::ptree& config)
     : p_(config)
-    , bufferLengthSec_(config.get<double>("<xmlattr>.bufferLength_sec"))
-    , overlap_(   0.01*config.get<double>("<xmlattr>.overlap_percent"))
+    , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
+    , overlap_(   0.01*config.get<double>("Repack.<xmlattr>.overlap_percent"))
     , currentHeader_()
     , iqBuffer_(4, 0.0) {}
 
