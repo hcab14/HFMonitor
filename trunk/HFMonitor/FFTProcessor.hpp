@@ -91,7 +91,7 @@ public:
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , counter_(0)
-    , windowFcnName_(config.get<std::string>("<xmlattr>.WindowFunction"))
+    , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , dataPath_(config.get<std::string>("Data.<xmlattr>.path")) {
     using boost::property_tree::ptree;
     // Levels
