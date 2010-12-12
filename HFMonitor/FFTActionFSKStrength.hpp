@@ -26,11 +26,11 @@ namespace Action {
   public:
     FSKStrength(const boost::property_tree::ptree& config)
       : SpectrumInterval(addKeysToConfig(config,
-                                         config.get<double>("fRef_Hz"),
-                                         config.get<double>("fShift_Hz")))
-      , fRef_(config.get<double>("fRef_Hz"))
-      , fShift_(config.get<double>("fShift_Hz"))
-      , minRatio_(config.get<double>("minRatio")) {
+                                         config.get<double>("<xmlattr>.fRef_Hz"),
+                                         config.get<double>("<xmlattr>.fShift_Hz")))
+      , fRef_(config.get<double>("<xmlattr>.fRef_Hz"))
+      , fShift_(config.get<double>("<xmlattr>.fShift_Hz"))
+      , minRatio_(config.get<double>("<xmlattr>.minRatio")) {
       name_ = "FSKStrength";
     }
 
