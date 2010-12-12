@@ -21,9 +21,11 @@ namespace Action {
   class AverageDensity : public SpectrumInterval {
   public:
     AverageDensity(const boost::property_tree::ptree& config)
-      : SpectrumInterval(config)
-      , fReference_(config.get<double>("fRef"))
-      , bandwidth_(config.get<double>("bandwidth")) {
+      : SpectrumInterval(addKeysToConfig(config,
+                                         config.get<double>("<xmlattr>.fRef_Hz"),
+                                         config.get<double>("<xmlattr>.bandwidth_Hz")))
+      , fReference_(config.get<double>("<xmlattr>.fRef_Hz"))
+      , bandwidth_ (config.get<double>("<xmlattr>.bandwidth_Hz")) {
       name_ = "FindPeak";
     }
     
@@ -48,6 +50,15 @@ namespace Action {
       }
     }
   private:
+    // add keys "<xmlattr>.f{Min,Max}_Hz"
+    static boost::property_tree::ptree addKeysToConfig(const boost::property_tree::ptree& config,
+                                                       double fRef,
+                                                       double bandwidth) {
+      boost::property_tree::ptree result(config);
+      result.put("<xmlattr>.fMin_Hz", boost::lexical_cast<std::string>(fRef-0.5*bandwidth));
+      result.put("<xmlattr>.fMax_Hz", boost::lexical_cast<std::string>(fRef+0.5*bandwidth));
+      return result;
+    }
     const double fReference_;          // nominal frequency / Hz
     const double bandwidth_;           // bandwidth / Hz
   } ;

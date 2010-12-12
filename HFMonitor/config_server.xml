@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<server>
+  <debug filename="debug.log" level="2"></debug>
+  <data port="18000"
+	maxQueueDelay_Minutes="5"
+	maxQueueSize_MB="100"></data>
+  <ctrl port="18001"></ctrl>
+  <perseus samplerate="500000"
+	   qrg_Hz    ="250000"
+	   attenuator="0"
+	   enableDither="1"
+	   enablePreamp="0"
+	   enablePresel="0"
+	   USBBufferSize="16320">
+    <CascadedPTimeLowPass>
+      <Tau_Sec>600.</Tau_Sec>
+      <Tau_Sec>60.</Tau_Sec>
+    </CascadedPTimeLowPass>
+  </perseus>
+</server>

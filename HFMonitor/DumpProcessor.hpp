@@ -17,8 +17,8 @@ class DumpProcessor {
 public:
   DumpProcessor(const boost::property_tree::ptree& config)
     : sampleCounter_(0)
-    , samplesPerFile_(config.get<unsigned>("Dump.SamplesPerFile"))
-    , fileNamePattern_(config.get<std::string>("Dump.FileNamePattern"))
+    , samplesPerFile_(config.get<unsigned>("<xmlattr>.SamplesPerFile"))
+    , fileNamePattern_(config.get<std::string>("<xmlattr>.FileNamePattern"))
     , fileNumber_(0) {}
   ~DumpProcessor() {}
 

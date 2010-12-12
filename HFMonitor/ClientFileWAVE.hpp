@@ -19,8 +19,8 @@ public:
     : p_(config)
     , fileNamePattern_(config.get<std::string>("FileNamePattern"))
     , fileNumber_(0)
-    , bufferLengthSec_(config.get<double>("Repack.BufferLengthSec"))
-    , overlap_(0.01*config.get<double>("Repack.OverlapPercent"))
+    , bufferLengthSec_(config.get<double>("<xmlattr>.bufferLength_sec"))
+    , overlap_(0.01*config.get<double>("<xmlattr>.overlap_percent"))
     , sampleNumber_(0) {
   }
 

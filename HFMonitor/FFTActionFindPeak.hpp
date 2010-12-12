@@ -24,8 +24,8 @@ namespace Action {
   public:
     FindPeak(const boost::property_tree::ptree& config)
       : SpectrumInterval(config)
-      , fReference_(config.get<double>("fRef"))
-      , minRatio_(config.get<double>("minRatio")) {
+      , fReference_(config.get<double>("<xmlattr>.fRef_Hz"))
+      , minRatio_(config.get<double>("<xmlattr>.minRatio")) {
       name_ = "FindPeak";
     }
     virtual ~FindPeak() {}
