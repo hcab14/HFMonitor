@@ -17,10 +17,10 @@ class ClientFileWAVE : private boost::noncopyable {
 public:
   ClientFileWAVE(const boost::property_tree::ptree& config)
     : p_(config)
-    , fileNamePattern_(config.get<std::string>("FileNamePattern"))
+    , fileNamePattern_(config.get<std::string>("Input.<xmlattr>.fileNamePattern"))
     , fileNumber_(0)
-    , bufferLengthSec_(config.get<double>("<xmlattr>.bufferLength_sec"))
-    , overlap_(0.01*config.get<double>("<xmlattr>.overlap_percent"))
+    , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
+    , overlap_(0.01*config.get<double>("Repack.<xmlattr>.overlap_percent"))
     , sampleNumber_(0) {
   }
 

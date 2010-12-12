@@ -20,9 +20,9 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     std::string filename((argc > 2 ) ? argv[2] : "config.xml");
     read_xml(filename, config);    
-    config.put("FileNamePattern", std::string(argv[1]));
+    config.put("FFTProcessor.Input.<xmlattr>.fileNamePattern", std::string(argv[1]));
 
-    ClientFileWAVE<FFTProcessor<float> > c(config);
+    ClientFileWAVE<FFTProcessor<float> > c(config.get_child("FFTProcessor"));
     while (c.process()) 
       ;
   } catch (const std::exception& e) {
