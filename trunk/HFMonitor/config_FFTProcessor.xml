@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<FFTProcessor windowFunction="Blackman">
+  <Repack bufferLength_sec="0.5"
+	  overlap_percent="-100">
+  </Repack>
+  <Data path="Data"></Data>
+  <Actions>
+    <L0>
+      <FindPeak name="077500_DCF"
+		fMin_Hz="77.300e3"
+		fMax_Hz="77.700e3"
+		fRef_Hz="77.500e3"
+		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+      </FindPeak>
+      <FindPeak name="060000_GXX"
+		fMin_Hz="59.800e3"
+		fMax_Hz="60.200e3"
+		fRef_Hz="60.000e3"
+		minRatio="30">
+	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+      </FindPeak>
+      <FindPeak name="075000_HBG"
+		fMin_Hz="74.800e3"
+		fMax_Hz="75.200e3"
+		fRef_Hz="75.000e3"
+		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+      </FindPeak>
+      <FindPeak name="162000_TDF"
+		fMin_Hz="161.800e3"
+		fMax_Hz="162.200e3"
+		fRef_Hz="162.000e3"
+		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+      </FindPeak>
+    </L0>
+    <L1>
+      <Calibrator name="CAL">
+	<Inputs>
+	  <Input>L0.077500_DCF</Input>
+	  <Input>L0.060000_GXX</Input>
+	  <Input>L0.075000_HBG</Input>
+	  <Input>L0.162000_TDF</Input>
+	</Inputs>
+      </Calibrator>
+    </L1>
+    <L2>
+      <FindPeak name="060000_GXX"
+		fMin_Hz="59.800e3"
+		fMax_Hz="60.200e3"
+		fRef_Hz="60.000e3"
+		minRatio="30">
+	<Filter type="None" timeConstant_sec="60.0"></Filter>
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="L0.077500_DCF"
+		fMin_Hz="77.300e3"
+		fMax_Hz="77.700e3"
+		fRef_Hz="77.500e3"
+		minRatio="10">
+	<Filter type="None" timeConstant_sec="60.0"></Filter>
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="177000_DRKultur"
+		fMin_Hz="176.800e3"
+		fMax_Hz="177.200e3"
+		fRef_Hz="177.000e3"
+		minRatio="10"
+		plotSpectrum="1">
+	<Filter type="None" timeConstant_sec="60.0"></Filter>
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="139000_EFR_Burg_Peak"
+		fMin_Hz="138.000e3"
+		fMax_Hz="140.000e3"
+		fRef_Hz="139.000e3"
+		minRatio="10"
+		plotSpectrum="1">
+	<Filter type="None" timeConstant_sec="60.0"></Filter>
+	<Name>EFR_Burg_Peak</Name>
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <AverageDensity name="139000_EFR_Burg_AverageDensity"
+		      fRef_Hz="139.000e3"
+		      bandwidth_Hz="340"
+		      plotSpectrum="1">
+	<Filter type="None" timeConstant_sec="60.0"></Filter>
+	<PlotSpectrum>true</PlotSpectrum>
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <FSKStrength name="139000_EFR_Burg_FSK"
+		   fRef_Hz="138.830e3"
+		   fShift_Hz="170"
+		   minRatio="1"
+		   plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FSKStrength>
+    </L2>
+  </Actions>
+</FFTProcessor>

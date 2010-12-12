@@ -91,11 +91,11 @@ public:
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , counter_(0)
-    , windowFcnName_(config.get<std::string>("FFT.WindowFunction"))
-    , dataPath_(config.get<std::string>("FFT.DataPath")) {
+    , windowFcnName_(config.get<std::string>("<xmlattr>.WindowFunction"))
+    , dataPath_(config.get<std::string>("Data.<xmlattr>.path")) {
     using boost::property_tree::ptree;
     // Levels
-    BOOST_FOREACH(const ptree::value_type& level, config.get_child("FFT.Actions")) {
+    BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
       std::cout << "Level:" << level.first << std::endl;
       // Actions
       size_t counter(0);

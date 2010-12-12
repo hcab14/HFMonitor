@@ -22,7 +22,7 @@ namespace Action {
   public:
     Calibrator(const boost::property_tree::ptree& config)
       : Base("Calibrator")
-      , resultKey_(config.get<std::string>("Name")) {
+      , resultKey_(config.get<std::string>("<xmlattr>.name")) {
       using boost::property_tree::ptree;
       BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
         if (input.first == "Input") {

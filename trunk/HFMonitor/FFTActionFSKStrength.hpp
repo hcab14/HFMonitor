@@ -26,10 +26,10 @@ namespace Action {
   public:
     FSKStrength(const boost::property_tree::ptree& config)
       : SpectrumInterval(addKeysToConfig(config,
-                                         config.get<double>("fRef"),
-                                         config.get<double>("fShift")))
-      , fRef_(config.get<double>("fRef"))
-      , fShift_(config.get<double>("fShift"))
+                                         config.get<double>("fRef_Hz"),
+                                         config.get<double>("fShift_Hz")))
+      , fRef_(config.get<double>("fRef_Hz"))
+      , fShift_(config.get<double>("fShift_Hz"))
       , minRatio_(config.get<double>("minRatio")) {
       name_ = "FSKStrength";
     }
@@ -78,13 +78,13 @@ namespace Action {
       }
     }
   private:
-    // add keys "fMin" and "fMax"
+    // add keys "<xmlattr>.f{Min,Max}_Hz"
     static boost::property_tree::ptree addKeysToConfig(const boost::property_tree::ptree& config,
                                                        double fRef,
                                                        double fShift) {
       boost::property_tree::ptree result(config);
-      result.put("fMin", boost::lexical_cast<std::string>(fRef-2*fShift));
-      result.put("fMax", boost::lexical_cast<std::string>(fRef+2*fShift));
+      result.put("<xmlattr>.fMin_Hz", boost::lexical_cast<std::string>(fRef-2*fShift));
+      result.put("<xmlattr>.fMax_Hz", boost::lexical_cast<std::string>(fRef+2*fShift));
       return result;
     }
     const double fRef_;            // nominal (mark) frequency / Hz

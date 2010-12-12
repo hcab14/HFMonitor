@@ -23,19 +23,20 @@ namespace Action {
     typedef Filter::Cascaded<PowerSpectrum> filter_type;
     SpectrumInterval(const boost::property_tree::ptree& config)
       : Base("SpectrumInterval")
-      , fMin_(config.get<double>("fMin"))
-      , fMax_(config.get<double>("fMax"))
-      , resultKey_(config.get<std::string>("Name"))
+      , fMin_(config.get<double>("fMin_Hz"))
+      , fMax_(config.get<double>("fMax_Hz"))
+      , resultKey_(config.get<std::string>("name"))
       , useCalibration_(config.find("Calibration") != config.not_found())
-      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration") : "")
-      , plotSpectrum_(config.get<bool>("PlotSpectrum", false)) {
+      , calibrationKey_(useCalibration_ ? config.get<std::string>("Calibration.<xmlattr>.key") : "")
+      , plotSpectrum_(config.get<bool>("<xmlattr>.plotSpectrum", false)) {
       if (config.find("Filter") != config.not_found()) {
-        if (config.get<std::string>("Filter.Type") == "None") {
+        if (config.get<std::string>("Filter.<xmlattr>.type") == "None") {
           // nop
-        } else if (config.get<std::string>("Filter.Type") == "LowPass") {
-          filter_.add(Filter::LowPass<PowerSpectrum>::make(1.0, config.get<double>("Filter.TimeConstant")));
+        } else if (config.get<std::string>("Filter.<xmlattr>.type") == "LowPass") {
+          filter_.add(Filter::LowPass<PowerSpectrum>::make
+                      (1.0, config.get<double>("Filter.<xmlattr>.timeConstant_sec")));
         } else {
-          throw std::runtime_error(config.get<std::string>("Filter.Type") + ": unknown filter");
+          throw std::runtime_error(config.get<std::string>("Filter.<xmlattr>.type") + ": unknown filter");
         }
       }
     }
