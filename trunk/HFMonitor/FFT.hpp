@@ -194,7 +194,7 @@ namespace FFT {
     }
 
     // norm of window
-    double normWindow() const { return in_.size() / normalizationFactor_; }
+    double normWindow() const { return in_.size() * normalizationFactor_; }
 
     template<typename V,
              template <typename U> class WINDOW_FCN>

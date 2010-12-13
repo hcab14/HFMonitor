@@ -128,14 +128,14 @@ namespace Result {
 
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
+      os << "# fReference_Hz= " << boost::format("%12.3f") % fReference() << "\n";
       Base::dumpHeader(os, t) 
-        << "fReference_Hz fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
+        << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
       return os;
     }
     virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
                                                  boost::posix_time::ptime t) const {
       Base::dumpData(os, t)
-        << boost::format("%12.3f") % fReference() << " "
         << boost::format("%12.3f") % fMeasured() << " "
         << boost::format("%6.3f")  % fMeasuredRMS() << " "
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "

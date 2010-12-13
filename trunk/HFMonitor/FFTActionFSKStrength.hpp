@@ -55,9 +55,9 @@ namespace Action {
         Result::SpectrumPowerInInterval::Handle
           spiRef((useCalibration())
                  ? boost::make_shared<Result::CalibratedSpectrumPowerInInterval>
-                   (fRef_, 1.5*fShift_, s.normWindow(),
+                   (fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow(),
                     boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                 : boost::make_shared<Result::SpectrumPowerInInterval>(fRef_, 1.5*fShift_, s.normWindow()));
+                 : boost::make_shared<Result::SpectrumPowerInInterval>(fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow()));
         
         sppRef->findPeak  (s, ps, fRef_+0.5*fShift_, fRef_+1.5*fShift_, 1.0);
         sppShift->findPeak(s, ps, fRef_-1.5*fShift_, fRef_-0.5*fShift_, 1.0);

@@ -36,8 +36,8 @@ namespace Result {
 
     bool proc(const PowerSpectrum& ps) { 
       try {
-        const std::pair<double, double> fMin(cal(fReference() - 0.5*bandwidth()));
-        const std::pair<double, double> fMax(cal(fReference() + 0.5*bandwidth()));
+        const std::pair<double, double> fMin(cal(fReference() - 0.75*bandwidth()));
+        const std::pair<double, double> fMax(cal(fReference() + 0.75*bandwidth()));
         const size_t indexBeg(ps.freq2index(fMin.first));
         const size_t indexEnd(ps.freq2index(fMax.first));
 
@@ -47,6 +47,7 @@ namespace Result {
           sum += ps[u].second;
           sum2 += ps[u].second * ps[u].second;
         }
+        std::cout << "**** " << sum << " " << counter << " " << normWindow() << std::endl;
         strength_        = sum / normWindow(); // here we do _not_ correct for window gain
         averageStrength_ = (counter != 0) ? sum/counter : 0.;
         strengthRMS_     = (counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.;
@@ -81,15 +82,15 @@ namespace Result {
 
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
+      os << "# fReference_Hz= " << boost::format("%12.3f") % fReference() << "\n"
+         << "# Bandwidth_Hz= "  << boost::format("%9.3f")  % bandwidth()  << "\n";
       Base::dumpHeader(os, t) 
-        << "fReference_Hz Bandwidth_Hz strength_dBm averageStrength_dBm strengthRMS_dBm ";
+        << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
       return os;
     }
     virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
                                                  boost::posix_time::ptime t) const {
       Base::dumpData(os, t)
-        << boost::format("%12.3f") % fReference() << " "
-        << boost::format("%9.3f")  % bandwidth() << " "
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(averageStrength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " ";
