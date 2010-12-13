@@ -55,8 +55,8 @@ namespace Action {
                                                        double fRef,
                                                        double bandwidth) {
       boost::property_tree::ptree result(config);
-      result.put("<xmlattr>.fMin_Hz", boost::lexical_cast<std::string>(fRef-0.5*bandwidth));
-      result.put("<xmlattr>.fMax_Hz", boost::lexical_cast<std::string>(fRef+0.5*bandwidth));
+      result.put("<xmlattr>.fMin_Hz", boost::lexical_cast<std::string>(fRef-bandwidth));
+      result.put("<xmlattr>.fMax_Hz", boost::lexical_cast<std::string>(fRef+bandwidth));
       return result;
     }
     const double fReference_;          // nominal frequency / Hz
