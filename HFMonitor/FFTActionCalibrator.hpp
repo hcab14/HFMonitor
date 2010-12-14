@@ -26,8 +26,8 @@ namespace Action {
       using boost::property_tree::ptree;
       BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
         if (input.first == "Input") {
-          std::cout << "Calibrator::Calibrator Input." << input.second.get<std::string>("") << std::endl;
-          inputs_.push_back(input.second.get<std::string>(""));
+          std::cout << "Calibrator::Calibrator Input." << input.second.get<std::string>("<xmlattr>.key") << std::endl;
+          inputs_.push_back(input.second.get<std::string>("<xmlattr>.key"));
         } else {
           std::cout << "Calibrator::calibrate unknown field " << input.first << std::endl;
         }
