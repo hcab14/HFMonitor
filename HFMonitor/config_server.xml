@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <server>
-  <debug filename="debug.log" level="2"></debug>
+  <debug filename="debug.log" level="3"></debug>
   <data port="18000"
 	maxQueueDelay_Minutes="5"
 	maxQueueSize_MB="100"></data>
   <ctrl port="18001"></ctrl>
   <perseus samplerate="500000"
 	   qrg_Hz    ="250000"
-	   attenuator="0"
-	   enableDither="1"
+	   attenuator="1"
+	   enableDither="0"
 	   enablePreamp="0"
-	   enablePresel="0"
+	   enablePresel="1"
 	   USBBufferSize="16320">
     <CascadedPTimeLowPass>
       <Tau_Sec>600.</Tau_Sec>
@@ -19,3 +19,4 @@
     </CascadedPTimeLowPass>
   </perseus>
 </server>
+

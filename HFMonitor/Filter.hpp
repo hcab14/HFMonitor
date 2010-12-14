@@ -71,7 +71,7 @@ namespace Filter {
       t_ = pt;
       a_ = dt / lambda_;
       x_ *= (1-a_); x_ += a_*xx;
-      std::cout << "Filter::Update " << dt << " " << a_<< std::endl;
+      // std::cout << "Filter::Update " << dt << " " << a_<< std::endl;
       return x();
     }
   private:

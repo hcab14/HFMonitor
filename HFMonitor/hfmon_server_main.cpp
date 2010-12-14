@@ -275,7 +275,7 @@ public:
                                            ? double(sp->dtCallback_.ticks())
                                            : double(dt.ticks())) / time_duration::ticks_per_second());
     sp->ptimeOfCallback_= now;
-#if 1
+#if 0
     std::cout << "receiverCallback "
               << sp->ptimeOfCallback_ << " "
               << sp->ptimeFilter_.x() << " "
@@ -324,8 +324,8 @@ public:
       const int dt0_usec(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
       const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
       std::stringstream logMessage;
-      logMessage << "data_connections_.size*() = " << data_connections_.size() 
-                 << " sampleNumber=" << sampleNumber_ << " "
+      logMessage << "STATUS[" << ptimeOfCallback_ << "]: #connections= " << data_connections_.size() 
+                 << " sampleNumber= " << sampleNumber_ << " "
                  << " dataRate= " << rate;
       log(logMessage.str());
       ptimeDataMeasure_ = ptimeOfCallback_;
