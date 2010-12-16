@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman">
-  <Repack bufferLength_sec=".5"
+  <Repack bufferLength_sec="1"
 	  overlap_percent="-100">
   </Repack>
   <Data path="Data"></Data>
@@ -63,6 +63,11 @@
       </Calibrator>
     </L1>
     <L2>
+      <AverageDensity name="014800_Navy_unid"
+		      fRef_Hz="14.8e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <AverageDensity name="016400_Navy_Novika"
 		      fRef_Hz="16.4e3"
 		      bandwidth_Hz="100">
@@ -93,6 +98,11 @@
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
+      <AverageDensity name="022100_Navy_Skelton"
+		      fRef_Hz="22.1e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <AverageDensity name="023400_Navy_DHO38"
 		      fRef_Hz="23.4e3"
 		      bandwidth_Hz="200">
@@ -115,6 +125,11 @@
       </AverageDensity>
       <AverageDensity name="040400_Navy_Karlsborg"
 		      fRef_Hz="40.4e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="044200_Navy_unid"
+		      fRef_Hz="44.2e3"
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
@@ -186,6 +201,16 @@
       <AverageDensity name="081000_Navy_UK"
 		      fRef_Hz="81e3"
 		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="124500_FSK_SXJ"
+		      fRef_Hz="124.5e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="146500_FSK_SAV"
+		      fRef_Hz="146.5e3"
+		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
       <FindPeak name="129100_EFR_Mainflingen"
