@@ -9,6 +9,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/integer.hpp>
 
+#include "logging.hpp"
 #include "IQBuffer.hpp"
 #include "protocol.hpp"
 
@@ -60,8 +61,7 @@ public:
 
 protected:
   void update(const Header& h) {
-    if (h.sampleRate() == 0) 
-      throw 1;
+    ASSERT_THROW(h.sampleRate() != 0);
     iqBuffer_.update(h.sampleRate()*bufferLengthSec_, overlap_);
     currentHeader_ = h;
     currentHeader_.sampleNumber() -= iqBuffer_.n();

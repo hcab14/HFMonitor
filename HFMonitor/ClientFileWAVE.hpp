@@ -4,13 +4,15 @@
 #define _CLIENT_FILE_WAVE_HPP_cm100925_
 
 #include <iostream>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/format.hpp>
 #include <vector>
 #include <complex>
 
-#include "WAVE.hpp"
+#include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/ptree.hpp>
+
+#include "logging.hpp"
+#include "WAVE.hpp"
 
 template<typename PROCESSOR>
 class ClientFileWAVE : private boost::noncopyable {
@@ -26,7 +28,7 @@ public:
 
   bool process() {
     boost::filesystem::path p(boost::str(boost::format(fileNamePattern_) % fileNumber_));    
-    std::cout << "ClientFile::process() p = " << p << std::endl;
+    LOG_INFO(str(boost::format("ClientFileWAVE::process() p = %s") % p));
     if (!boost::filesystem::exists(p)) 
       return false;
 

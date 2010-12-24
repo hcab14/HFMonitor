@@ -3,7 +3,6 @@
 #ifndef _FFT_PROCESSOR_HPP_cm100729_
 #define _FFT_PROCESSOR_HPP_cm100729_
 
-#include <iostream>
 #include <vector>
 #include <map>
 #include <complex>
@@ -18,6 +17,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/foreach.hpp>
 
+#include "logging.hpp"
 #include "InvertMatrix.hpp"
 
 #include "protocol.hpp"
@@ -66,18 +66,17 @@ public:
       , resultMap_(resultMap) {}
 
     virtual void putResult(std::string resultKey, Result::Base::Handle result) {
-      std::cout << "FFTProxy::result [" << resultKey << "] " << result << std::endl;
+      LOG_INFO(str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
-        std::cout << "Warning: overwriting key "+key << std::endl;
+        LOG_WARNING(str(boost::format("overwriting key %s") % key));
       resultMap_[key] = result;
     }
 
     virtual Result::Base::Handle getResult(std::string keyString) const {
       ResultMap::const_iterator i(resultMap_.find(keyString));
-      if (i != resultMap_.end())
-        return i->second;
-      else throw std::runtime_error(keyString+": getResult not found");
+      ASSERT_THROW(i != resultMap_.end());
+      return i->second;
     }
     virtual ptime getApproxPTime() const { return approxPTime_; }
 
@@ -96,12 +95,12 @@ public:
     using boost::property_tree::ptree;
     // Levels
     BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
-      std::cout << "Level:" << level.first << std::endl;
+      LOG_INFO(str(boost::format("Level: %s") % level.first));
       // Actions
       size_t counter(0);
       BOOST_FOREACH(const ptree::value_type& action, level.second) {
         const ActionKey actionKey(action.first, counter++);
-        std::cout << " +--- Action: " << actionKey << std::endl;        
+        LOG_INFO(str(boost::format(" +--- Action: %s") % actionKey));
         actions_[level.first][actionKey] = Action::Factory::makeAction(actionKey.name(), action.second);
       }
     }
@@ -113,7 +112,7 @@ public:
               Samples::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
-    std::cout << "FFTProcessor::procIQ " << header << std::endl;    
+    LOG_INFO(str(boost::format("FFTProcessor::procIQ %s") % header));
     if (windowFcnName_ == "Rectangular")
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<Complex::value_type>());
     else if (windowFcnName_ == "Hanning")
@@ -123,7 +122,7 @@ public:
     else if (windowFcnName_ == "Blackman")
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<Complex::value_type>());
     else 
-      throw std::runtime_error(windowFcnName_ + ": unknown window function");      
+      throw std::runtime_error(THROW_SITE_INFO(windowFcnName_ + ": unknown window function"));
     
     const FFTWSpectrum<FFTFloat> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
   
@@ -132,15 +131,21 @@ public:
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
         FFTProxy proxy(header.approxPTime(), level.first, resultMap);
-        std::cout << level.first << " " << action.first << std::endl;
+        LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
         action.second->perform(proxy, s);
       }
     }
-    
+
+    std::cout << "resultMap.size()= " << resultMap.size() << std::endl;
+
     // output of results
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
-      std::cout << "result: " << result.first << " " << *(result.second) << std::endl;
-      result.second->dump(dataPath_, result.first, header.approxPTime());
+      LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
+      try {
+        result.second->dump(dataPath_, result.first, header.approxPTime());
+      } catch (const std::exception& e) {
+        LOG_WARNING(e.what());
+      }
     }
   }
 protected:

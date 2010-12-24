@@ -11,6 +11,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/foreach.hpp>
 
+#include "logging.hpp"
 #include "FFT.hpp"
 
 class SpectrumBase : private boost::noncopyable {
@@ -33,10 +34,8 @@ public:
   size_t freq2index(double qrg_Hz) const { // get the nearest bin index
     const int n(size());
     const int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
-    if (i >= -n/2 && i < n/2)
-      return (i>=0) ? i : n+i;
-    else 
-      throw std::runtime_error("freq2index failed");
+    ASSERT_THROW(i >= -n/2 && i < n/2);
+    return (i>=0) ? i : n+i;
   }
   
   double index2freq(size_t index) const {
@@ -129,10 +128,8 @@ public:
   }
 
   size_t freq2index(freq_type f) const {
-    if (f >= fmin_ && f <= fmax_)
-      return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * (v_.size()-1));
-    else
-      throw std::runtime_error("freq2index: f out of range");
+    ASSERT_THROW(f >= fmin_ && f <= fmax_);
+    return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * (v_.size()-1));
   }
   
   const value_type& operator[](unsigned index) const { return v_[index]; }
@@ -164,12 +161,10 @@ public:
   }
   // addition
   frequency_vector<T>& operator+=(const frequency_vector<T>& v) {
-    if (size() != v.size())
-      throw std::runtime_error("frequency_vector<T>::operator+= (size() != v.size())");
+    ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
-      if (i->first != j->first) 
-        throw std::runtime_error("frequency_vector<T>::operator+= (i->first != j->first)");
+      ASSERT_THROW(i->first == j->first);
       i->second += j->second;
     }
     return *this;
@@ -182,12 +177,10 @@ public:
 
   // subtraction
   frequency_vector<T>& operator-=(const frequency_vector<T>& v) {
-    if (size() != v.size())
-      throw std::runtime_error("frequency_vector<T>::operator-= (size() != v.size())");
+    ASSERT_THROW(size() != v.size());
     const_iterator j(v.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
-      if (i->first != j->first)
-        throw std::runtime_error("frequency_vector<T>::operator-= (i->first != j->first)");
+      ASSERT_THROW(i->first == j->first);
       i->second -= j->second;
     }
     return *this;
@@ -222,12 +215,10 @@ public:
 
   // component-wise multiplication 
   frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
-    if (size() != v.size()) 
-      throw std::runtime_error("frequency_vector<T>::operator*= (size() != p.size())");
+    ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
     for (iterator i(begin()); i!=end(); ++i,++j) {
-      if (i->first != j->first) 
-        throw std::runtime_error("frequency_vector<T>::operator*= (i->first != j->first)");
+      ASSERT_THROW(i->first == j->first);
       i->second *= j->second;
     }
     return *this;

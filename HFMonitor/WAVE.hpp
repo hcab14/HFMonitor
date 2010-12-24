@@ -163,7 +163,7 @@ namespace WAVE {
                chunkRcvr().bAdcPreamp(),
                chunkRcvr().bAdcDither(),
                chunkRcvr().ptimeStart() + timeOffset);
-      std::cout << "WAVE::ProcessFile::procIQ: " << header << " "<< std::distance(i0,i1) << std::endl;
+      LOG_INFO(str(boost::format("IQBuffer::procIQ %s %d") % header % std::distance(i0,i1)));
       p_.procIQ(header, i0, i1);
     }
     
@@ -179,7 +179,7 @@ namespace WAVE {
           ++nRead;
         }
       } catch (...) {
-        std::cout << "End Of File" << std::endl;
+        LOG_INFO("End Of File");
       }
       return nRead;
     }
@@ -198,7 +198,7 @@ namespace WAVE {
     T readT(std::istream& is) {
       T data;
       is.read((char *)(&data), sizeof(T));
-      if (!is) throw std::runtime_error("read failed");
+      if (!is) throw std::runtime_error(THROW_SITE_INFO("read failed"));
       return data;
     }
 

@@ -184,7 +184,6 @@ namespace FFT {
 
     void resize(size_t n) {
       if (n != size()) {
-        std::cout << "#FFTW resize " << n << std::endl;
         in_.resize(n);
         out_.resize(n);
         destroy_plan(plan_);

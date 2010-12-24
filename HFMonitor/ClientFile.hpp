@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include "logging.hpp"
 #include "protocol.hpp"
 
 template<typename PROCESSOR>
@@ -22,7 +23,7 @@ public:
 
   bool process() {
     boost::filesystem::path p(boost::str(boost::format(fileNamePattern_) % fileNumber_));    
-    std::cout << "ClientFile::process() p = " << p << std::endl;
+    LOG_INFO(str(boost::format("ClientFile::process() p = %s") % p));
     if (!boost::filesystem::exists(p)) 
       return false;
     else {

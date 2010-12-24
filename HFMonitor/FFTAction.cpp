@@ -8,6 +8,8 @@
 #include "FFTActionPhaseDifferentiation.hpp"
 #include "FFTActionFSKStrength.hpp"
 
+#include "logging.hpp"
+
 namespace Action {
   Handle Factory::makeAction(std::string name,
                              const boost::property_tree::ptree& pt) {
@@ -22,6 +24,6 @@ namespace Action {
     if (name == "FSKStrength")
       return Handle(new FSKStrength(pt));
     else
-      throw std::runtime_error(name+": action not supported");
+      throw std::runtime_error(THROW_SITE_INFO(name+": action not supported"));
   }
 } // namespace Action 

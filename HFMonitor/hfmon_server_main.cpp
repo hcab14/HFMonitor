@@ -11,8 +11,9 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -21,7 +22,9 @@
 
 #include "perseus++.h"
 #include "Filter.hpp"
+#include "logging.hpp"
 #include "protocol.hpp"
+#include "IQBuffer.hpp"
 #include "run.hpp"
 
 class processor_status : private boost::noncopyable {
@@ -104,7 +107,7 @@ public:
     for (; not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t); ++n_omit)
       pop_front();
     if (n_omit != 0)
-      std::cout << "omitted #" << n_omit << " data packets" << std::endl;
+      LOG_WARNING(str(boost::format("omitted #%d data packets") % n_omit));
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
       listOfPackets_.push_back(std::make_pair(t, dp));
@@ -172,7 +175,8 @@ public:
     , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("data.<xmlattr>.maxQueueDelay_Minutes")))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
-                  usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) {
+                  usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) 
+    , counter_(4) {
     // control setup
     {
       acceptor_ctrl_.set_option(boost::asio::socket_base::reuse_address(true));
@@ -194,15 +198,17 @@ public:
     // PTimeLowpassFilters:
     {
       using boost::property_tree::ptree;
-      std::cout << "Cascaded Lowpass Filters: " << std::endl;
+      LOG_INFO("Cascaded Lowpass Filters: ");
       const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
       BOOST_FOREACH(const ptree::value_type& filter, config.get_child("perseus.CascadedPTimeLowPass")) {
         if (filter.first != "Tau_Sec") {
-          std::cout << "  + unknown key: [" << filter.first << "]" << std::endl;
+          LOG_WARNING(str(boost::format("  + unknown key: [%s]") % filter.first));
           continue;
         }
         const double filterTimeconstant(boost::lexical_cast<double>(filter.second.data()));
-        std::cout << "  + Lowpass Filter " << filter.first << "=" << filterTimeconstant << std::endl;
+        LOG_INFO(str(boost::format("  + Lowpass Filter %s = %f")  
+                     % filter.first 
+                     % filterTimeconstant));
         ptimeFilter_.add(Filter::PTimeLowPass::make(dtCallbackSec, filterTimeconstant));
         dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));        
       }
@@ -212,18 +218,19 @@ public:
       ptimeOfCallback_ = ptimeDataMeasure_ = now;
     }
     recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
-    std::cout << "ptime_ = " << ptimeOfCallback_ << " " 
-              << "dt= " << 1e-6*dtCallback_.total_microseconds() << std::endl;
+    LOG_INFO(str(boost::format("ptime_ = %s dt = %d ms") 
+                 % ptimeOfCallback_
+                 % int(0.5+1e-6*dtCallback_.total_microseconds())));
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    std::cout << "servce::handle_accept_ctrl error_code= " << ec << std::endl;
-    std::cout << "remote endpoint= " << socket->remote_endpoint() << std::endl;
+    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code= %s") % ec));
+    LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
     if (!ec) {
       ctrl_sockets_.insert(socket);
-      std::cout << "socket remote_ep = " << socket->remote_endpoint() << " "
-                << (socket->is_open() ? "open" : "closed") << std::endl;
-      
+      LOG_INFO(str(boost::format("remote endpoint= %s %s")
+                   % socket->remote_endpoint()
+                   % (socket->is_open() ? "open" : "closed")));
       tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_ctrl_.get_io_service()));      
       acceptor_ctrl_.async_accept(*new_socket,
                                   strand_.wrap(boost::bind(&server::handle_accept_ctrl, this,
@@ -231,9 +238,9 @@ public:
     }
   }
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    std::cout << "servce::handle_accept_data error_code= " << ec << std::endl;
+    LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
     if (!ec) {
-      std::cout << "remote endpoint= " << socket->remote_endpoint() << std::endl;
+      LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
       data_connections_.insert
         (data_connection_ptr(new data_connection(io_service_, strand_, socket,
                                                  max_queue_total_size_, max_queue_delay_)));
@@ -290,11 +297,19 @@ public:
 #endif
     // keep only one copy of the data in memory even when there are several clients
     const Header header(sp->getHeader(nSamples, oldFilterTime));
-    data_connection::data_ptr dp(new std::vector<char>);
-    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
-    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
+    // std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
+    // std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
 
-    sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
+    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(sp->data_));
+    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(sp->data_));
+
+    sp->counter_++;
+    if (sp->counter_ == 0 && not sp->data_.empty()) {
+      data_connection::data_ptr dp(new data_connection::Data);      
+      std::copy(sp->data_.begin(), sp->data_.end(), std::back_inserter(*dp));
+      sp->data_.clear();
+      sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
+    }
 
     boost::system::error_code ec;
     const size_t max_poll_actions(100*1000);
@@ -323,28 +338,21 @@ public:
                                    / double(time_duration::ticks_per_second())));
       const int dt0_usec(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
       const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
-      std::stringstream logMessage;
-      logMessage << "STATUS[" << ptimeOfCallback_ << "]: #connections= " << data_connections_.size() 
-                 << " sampleNumber= " << sampleNumber_ << " "
-                 << " dataRate= " << rate;
-      log(logMessage.str());
+      LOG_STATUS(str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%8d")
+                     % data_connections_.size()
+                     % sampleNumber_
+                     % rate));
       ptimeDataMeasure_ = ptimeOfCallback_;
       BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
-        std::stringstream logMessage;
         boost::system::error_code ecl, ecr;
-        logMessage << dc->local_endpoint(ecl) << " - "
-                   << dc->remote_endpoint(ecr)
-                   << " : delay[ms] = "
-                   << 1000*dc->max_delay().ticks() / time_duration::ticks_per_second();
+        LOG_STATUS(str(boost::format("   %s - %s : delay[ms] = %d")
+                       % dc->local_endpoint(ecl) 
+                       % dc->local_endpoint(ecr) 
+                       % int(0.5+1000*dc->max_delay().ticks() 
+                             / time_duration::ticks_per_second())));
         dc->reset_max_delay();
-        log(logMessage.str());
       }
     }
-  }
-
-  void log(std::string message) {
-    // TBD
-    std::cout << message << std::endl;
   }
 
   void stop() {
@@ -379,6 +387,8 @@ private:
   Filter::Cascaded<ptime>        ptimeFilter_;
   Filter::Cascaded<double>       dtFilter_;
   data_connections               data_connections_;
+  std::vector<char>              data_;
+  Internal::ModuloCounter<size_t> counter_;
 
   boost::asio::streambuf request_;
   boost::asio::streambuf response_;
@@ -387,26 +397,22 @@ private:
 
 int main(int argc, char* argv[])
 {
+  LOGGER_INIT("./Log", argv[0]);
   try {
     std::string filename((argc > 1 ) ? argv[1] : "config.xml");
     boost::property_tree::ptree config;
     read_xml(filename, config);
-    const boost::property_tree::ptree& config_server(config.get_child("server"));
-    const std::string debugFileName(config_server.get<std::string>("debug.<xmlattr>.filename"));
-    const int         debugLevel   (config_server.get<int>        ("debug.<xmlattr>.level"));
-    std::cout << "server.debug.filename= " << debugFileName << " "
-              << "server.debug.level= "    << debugLevel << std::endl;
 
-    perseus_set_debug(debugLevel);
+    const boost::property_tree::ptree& config_server(config.get_child("server"));
+    const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
+
+    perseus_set_debug(config_perseus.get<int>("<xmlattr>.debugLevel"));
 
     Perseus p;
     const unsigned numPerseus(p.numPerseus());
-    if (numPerseus == 0)
-      throw std::runtime_error("numPerseus == 0");
-
+    ASSERT_THROW(numPerseus != 0);
     Perseus::ReceiverPtr recPtr(p.getReceiverPtr(0));
 
-    const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
     recPtr->downloadFirmware();
     recPtr->fpgaConfig(config_perseus.get<int>("<xmlattr>.samplerate"));                
 
@@ -435,8 +441,9 @@ int main(int argc, char* argv[])
           recPtr, config_server));
     }
     serverPtr->stop();
-  } catch (std::exception &e) {
-    std::cout << "Error: " << e.what() << "\n";
+  } catch (const std::exception &e) {
+    LOG_ERROR(e.what()); 
+    std::cerr << e.what() << std::endl;
     return 1;
   }
   return 0;

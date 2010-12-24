@@ -26,16 +26,16 @@ namespace Action {
       using boost::property_tree::ptree;
       BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
         if (input.first == "Input") {
-          std::cout << "Calibrator::Calibrator Input." << input.second.get<std::string>("<xmlattr>.key") << std::endl;
+          LOG_INFO(str(boost::format("Calibrator::Calibrator Input.%s") 
+                       % input.second.get<std::string>("<xmlattr>.key")));
           inputs_.push_back(input.second.get<std::string>("<xmlattr>.key"));
         } else {
-          std::cout << "Calibrator::calibrate unknown field " << input.first << std::endl;
+          LOG_WARNING(str(boost::format("Calibrator::calibrate unknown field %s") % input.first));
         }
       }
     }
     virtual ~Calibrator() {}
     virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
-      std::cout << "Calibrator::perform" << std::endl;
       // count data
       std::vector<Result::SpectrumPeak::Handle> peaks;
       BOOST_FOREACH(const std::string& input, inputs_) {
@@ -45,15 +45,15 @@ namespace Action {
           if (sp != 0) {
             peaks.push_back(sp);
           }
-        } catch (...) {
-          // TODO ...
+        } catch (const std::runtime_error& e) {
+          LOG_WARNING(e.what());
         }
       }
       try {     
         Result::Base::Handle rh(new Result::Calibration(peaks));
         p.putResult(resultKey_, rh); 
-      } catch (...) {
-        // ...
+      } catch (const std::runtime_error& e) {
+        LOG_WARNING(e.what());
       }
     }
   private:

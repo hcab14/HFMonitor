@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman">
-  <Repack bufferLength_sec="1"
+  <Repack bufferLength_sec=".5"
 	  overlap_percent="-100">
   </Repack>
   <Data path="Data"></Data>
@@ -363,7 +363,7 @@
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
       <AverageDensity name="299500_DGPS_Skutskär"
-		      fRef_Hz="2989.5e3"
+		      fRef_Hz="299.5e3"
 		      bandwidth_Hz="100"
 		      plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
@@ -389,24 +389,6 @@
       <AverageDensity name="314500_DGPS_BadAbbach"
 		      fRef_Hz="314.5e3"
 		      bandwidth_Hz="100"
-		      plotSpectrum="0">
-	<Calibration key="L1.CAL"></Calibration>
-      </AverageDensity>
-      <AverageDensity name="283500_DGPS_Dziwnow"
-		      fRef_Hz="283.500e3"
-		      bandwidth_Hz="400"
-		      plotSpectrum="0">
-	<Calibration key="L1.CAL"></Calibration>
-      </AverageDensity>
-      <AverageDensity name="292000_DGPS_Holmsjo"
-		      fRef_Hz="292.000e3"
-		      bandwidth_Hz="400"
-		      plotSpectrum="0">
-	<Calibration key="L1.CAL"></Calibration>
-      </AverageDensity>
-      <AverageDensity name="308000_DGPS_GrossMohrdorf"
-		      fRef_Hz="308.000e3"
-		      bandwidth_Hz="400"
 		      plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>

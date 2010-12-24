@@ -8,6 +8,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/integer.hpp>
+
+#include "logging.hpp"
 #include "protocol.hpp"
 
 template<typename PROCESSOR>
@@ -36,18 +38,15 @@ public:
     const size_t size(std::distance(i0, i1));
     const double norm(1. / double(1<<23));
     std::vector<std::complex<double> > iqs;
-    if (size == 6 * header.numberOfSamples()) {
-      for (std::vector<char>::const_iterator i(i0); i!=i1;) {
-        IQSample s;
-        s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
-        s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;
-        const std::complex<double> cs(s.iq.q*norm,
-                                      s.iq.i*norm);
-        // std::cout << cs << std::endl;
-        iqs.push_back(cs);
-      }
-    } else {
-      throw std::runtime_error("Raw2IQAdapter::procRaw size != 6 * header.numberOfSamples())");
+    ASSERT_THROW(size == 6*header.numberOfSamples());
+    for (std::vector<char>::const_iterator i(i0); i!=i1;) {
+      IQSample s;
+      s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
+      s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;
+      const std::complex<double> cs(s.iq.q*norm,
+                                    s.iq.i*norm);
+      // std::cout << cs << std::endl;
+      iqs.push_back(cs);
     }
     p_.procIQ(header, iqs.begin(), iqs.end());
   }

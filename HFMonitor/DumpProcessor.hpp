@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include "logging.hpp"
 #include "protocol.hpp"
 
 class DumpProcessor {
@@ -25,7 +26,7 @@ public:
   void procRaw(const Header& header, 
                std::vector<char>::const_iterator i0,
                std::vector<char>::const_iterator i1) { 
-    std::cout << "procRaw " << header << std::endl;
+    LOG_INFO(str(boost::format("DumpProcessor::procRaw %s") % header));
     if (sampleCounter_ > samplesPerFile_) {
       sampleCounter_= 0;
       ++fileNumber_;

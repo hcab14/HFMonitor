@@ -12,6 +12,7 @@
 
 int main(int argc, char* argv[])
 {
+  LOGGER_INIT("./Log", argv[0]);
   try {
     if (argc < 2) {
       std::cerr << "### Usage: client <FileNamePattern> <config.xml>" << std::endl;
@@ -26,6 +27,7 @@ int main(int argc, char* argv[])
     while (c.process()) 
       ;
   } catch (const std::exception& e) {
+    LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
     return 1;
   }  
