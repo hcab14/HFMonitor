@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", argv[0]);
+  LOGGER_INIT("./Log", "hfmon_clientFileWAVE");
   try {
     if (argc < 2) {
       std::cerr << "### Usage: client <FileNamePattern> <config.xml>" << std::endl;
