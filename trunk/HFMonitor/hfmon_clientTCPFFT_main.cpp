@@ -17,7 +17,7 @@
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", argv[0]);
+  LOGGER_INIT("./Log", "hfmon_clientTCPFFT");
   using boost::asio::ip::tcp;
   try {
     if (argc < 3) {

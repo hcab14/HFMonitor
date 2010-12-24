@@ -399,7 +399,7 @@ private:
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", argv[0]);
+  LOGGER_INIT("./Log", "hfmon_server");
   try {
     std::string filename((argc > 1 ) ? argv[1] : "config.xml");
     boost::property_tree::ptree config;

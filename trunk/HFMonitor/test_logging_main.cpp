@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", argv[0]);
+  LOGGER_INIT("./Log", "test_logging");
 
   try {
     LOG_INFO("Info");
