@@ -94,7 +94,6 @@ namespace Result {
     void updateTimeTag(boost::filesystem::fstream& os,
                     std::ostream::streampos pos,
                     std::string timeTag) const {
-      std::cout << "pos= "<< pos << " timeTag= " << timeTag << std::endl;
       os.seekp(pos, std::ios::beg);
       os << timeTag;
       os.seekp(0,   std::ios::end);

@@ -176,7 +176,7 @@ public:
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
                   usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) 
-    , counter_(4) {
+    , counter_(1) {
     // control setup
     {
       acceptor_ctrl_.set_option(boost::asio::socket_base::reuse_address(true));
