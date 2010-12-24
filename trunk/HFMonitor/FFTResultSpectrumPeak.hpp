@@ -61,9 +61,10 @@ namespace Result {
 
       ratio_ = (background.first != 0.0) ? iMax->second / background.first : 1.0;
       if (ratio_ < minRatio)
-        std::cout << "ratio < minRatio : " << ratio_ << " " 
-                  << background.first << " " 
-                  << background.second << std::endl;
+        LOG_WARNING(str(boost::format("ratio < minRatio : %f %f %f") 
+                        % ratio_
+                        % background.first
+                        % background.second));
 
       // TODO: error propagation
       fMeasured_    = peakFrequency.first;
@@ -128,7 +129,7 @@ namespace Result {
 
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
-      os << "# fReference_Hz= " << boost::format("%12.3f") % fReference() << "\n";
+      os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n";
       Base::dumpHeader(os, t) 
         << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
       return os;

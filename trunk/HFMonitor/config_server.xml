@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <server>
-  <debug filename="debug.log" level="3"></debug>
   <data port="18000"
 	maxQueueDelay_Minutes="15"
 	maxQueueSize_MB="400"></data>
@@ -12,7 +11,8 @@
 	   enableDither="0"
 	   enablePreamp="0"
 	   enablePresel="1"
-	   USBBufferSize="16320">
+	   USBBufferSize="16320"
+	   debugLevel="3">
     <CascadedPTimeLowPass>
       <Tau_Sec>600.</Tau_Sec>
       <Tau_Sec>60.</Tau_Sec>

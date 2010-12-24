@@ -11,6 +11,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "protocol.hpp"
+#include "logging.hpp"
 
 template<typename PROCESSOR>
 class ClientTCP : private boost::noncopyable {
@@ -84,14 +85,12 @@ protected:
                                                      ReceivedHeader)));
   }
   void async_receive_data() {
-    if (header_.numberOfSamples()*6 < maxBufferSize)
-      boost::asio::async_read(socket_, boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
-                              strand_.wrap(boost::bind(&ClientTCP::onReceive,
-                                                       this,
-                                                       boost::asio::placeholders::error,
-                                                       ReceivedData)));
-    else
-      throw std::runtime_error("header.numberOfSamples()*6 >= maxBufferSize");
+    ASSERT_THROW(header_.numberOfSamples()*6 < maxBufferSize);
+    boost::asio::async_read(socket_, boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
+                            strand_.wrap(boost::bind(&ClientTCP::onReceive,
+                                                     this,
+                                                     boost::asio::placeholders::error,
+                                                     ReceivedData)));
   }
 
   void doClose() {

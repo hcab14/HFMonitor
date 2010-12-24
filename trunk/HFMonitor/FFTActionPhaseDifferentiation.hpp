@@ -68,9 +68,9 @@ namespace Action {
              filterDiffPhase_.rms(), 
              dt);
       } catch (const std::runtime_error& e) {
-        std::cout << "PhaseDifferentiation::perform " << e.what() << std::endl;
+        LOG_WARNING(e.what());
       } catch (...) {
-        std::cout << "PhaseDifferentiation::perform unknown error" << std::endl;
+        LOG_WARNING("PhaseDifferentiation::perform unknown error");
       }
     }
 
@@ -80,7 +80,6 @@ namespace Action {
                       const PhaseSpectrum& ps,
                       const PhaseSpectrum& psrms,
                       double dt) {
-      std::cout << "procproc " << std::endl;
       for (unsigned u=0; u<ps.size(); ++u)
         std::cout << "  --- " << dt << " " << ps[u].first << " " << ps[u].second << " " << psrms[u].second << std::endl;
     }

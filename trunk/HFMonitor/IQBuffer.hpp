@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <boost/bind.hpp>
 
+#include "logging.hpp"
+
 namespace Internal {
   // modulo counter without using the % operation
   template<typename T>
@@ -68,7 +70,7 @@ public:
     , counterModL_(ol2l(overlap))
     , isFull_(false)
     , isFirst_(true) {
-    std::cout << "XXX " << n_ << " " << m_ << " " << overlap << std::endl;
+    LOG_INFO(str(boost::format("IQBuffer n=%d m=%d overlap=%f") % n_ % m_ % overlap));
   }
   
 
@@ -145,11 +147,11 @@ private:
             : counterModN_+n_);
   }
   static double ol2ol(double overlap) {
-    if (std::abs(overlap) > 1.) throw std::runtime_error("IQBuffer: std::abs(overlap) > 1.0");
+    ASSERT_THROW(std::abs(overlap) <= 1.);
     return (overlap < 0.) ? 0.5*(1.+overlap) : overlap;
   }
   static size_t ol2l(double overlap) {
-    if (std::abs(overlap) > 1.) throw std::runtime_error("IQBuffer: std::abs(overlap) > 1.0");
+    ASSERT_THROW(std::abs(overlap) <= 1.);
     return (overlap < 0.) ? 2 : 1;
   }
 

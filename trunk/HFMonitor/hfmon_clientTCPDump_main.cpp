@@ -14,6 +14,7 @@
 
 int main(int argc, char* argv[])
 {
+  LOGGER_INIT("./Log", argv[0]);
   using boost::asio::ip::tcp;
   try {
     if (argc < 3) {
@@ -34,6 +35,7 @@ int main(int argc, char* argv[])
     run(io_service, c);
 
   } catch (const std::exception& e) {
+    LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
     return 1;
   }  

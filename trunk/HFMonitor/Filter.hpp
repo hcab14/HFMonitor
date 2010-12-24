@@ -151,9 +151,6 @@ namespace Filter {
     virtual void init(boost::posix_time::ptime pt, const vector_type& x) {
       filterX_->init(pt, x);
       const vector_type rms2(x.fmin(), x.fmax(), x.size(), initRMS_*initRMS_);
-      std::cout << "rms2= " << rms2.size() 
-                // << " " << rms2[0].first << " " << rms2[0].second 
-                << std::endl;
       filterRMS_->init(pt, rms2);
     }
     virtual vector_type update(boost::posix_time::ptime pt, const vector_type& x) {

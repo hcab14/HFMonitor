@@ -32,7 +32,7 @@ namespace Action {
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
                       const PowerSpectrum& ps) {
-      std::cout << "AverageDensity::perform " << std::endl;
+      LOG_INFO("AverageDensity::perform ");
       try {
         Result::SpectrumPowerInInterval::Handle 
           spp((useCalibration())
@@ -46,7 +46,7 @@ namespace Action {
           p.putResult(resultKey()+"_plot",
                       boost::make_shared<Result::PowerSpectrumLine>(p.getApproxPTime(), ps));
       } catch (const std::runtime_error& e) {
-        std::cout << e.what() << std::endl;
+        LOG_WARNING(e.what());
       }
     }
   private:

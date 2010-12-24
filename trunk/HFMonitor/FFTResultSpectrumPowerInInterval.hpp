@@ -47,13 +47,13 @@ namespace Result {
           sum += ps[u].second;
           sum2 += ps[u].second * ps[u].second;
         }
-        std::cout << "**** " << sum << " " << counter << " " << normWindow() << std::endl;
+        // std::cout << "**** " << sum << " " << counter << " " << normWindow() << std::endl;
         strength_        = sum / normWindow(); // here we do _not_ correct for window gain
         averageStrength_ = (counter != 0) ? sum/counter : 0.;
         strengthRMS_     = (counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.;
         return true;
       } catch (const std::runtime_error& e) {
-        std::cout << "SpectrumPowerInInterval::proc " << e.what() << std::endl;
+        LOG_WARNING(e.what());
         return false;
       }
     }
@@ -82,8 +82,8 @@ namespace Result {
 
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
-      os << "# fReference_Hz= " << boost::format("%12.3f") % fReference() << "\n"
-         << "# Bandwidth_Hz= "  << boost::format("%9.3f")  % bandwidth()  << "\n";
+      os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
+         << "# Bandwidth = " << boost::format("%9.3f") % bandwidth()   << " [Hz]\n";
       Base::dumpHeader(os, t) 
         << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
       return os;

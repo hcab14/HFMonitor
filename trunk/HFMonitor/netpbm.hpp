@@ -15,6 +15,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include "logging.hpp"
+
 namespace netpbm {
   class pgm_writer : private boost::noncopyable {
   public:
@@ -41,11 +43,9 @@ namespace netpbm {
     boost::filesystem::fstream& read_header() {
       os_.seekp(0, std::ios::beg);
       std::string pgm_magic; os_ >> pgm_magic;
-      if (pgm_magic != "P5") 
-        throw std::runtime_error("PGMWriter::PGMWriter tying to append to a non-PGM file :" + pgm_magic);
+      ASSERT_THROW(pgm_magic == "P5");
       size_t width; os_ >> width;
-      if (width != width_)
-        throw std::runtime_error("PGMWriter::PGMWriter width != width_");
+      ASSERT_THROW(width == width_);
       height_pos_= os_.tellg();
       os_ >> height_;
       os_.seekp(0, std::ios::end);
@@ -86,7 +86,7 @@ namespace netpbm {
 	if (throw_on_error) throw error; else return false;
       }
       if (throw_on_error && not success) 
-	throw std::runtime_error("write_str failed");
+	throw std::runtime_error(THROW_SITE_INFO("write_str failed"));
       return success;
     }
 

@@ -12,6 +12,7 @@
 
 #include "Spectrum.hpp"
 #include "FFTResult.hpp"
+#include "logging.hpp"
 #include "netpbm.hpp"
 
 namespace Result {
@@ -48,7 +49,7 @@ namespace Result {
 
     virtual std::string lineBreak() const { return ""; }
     virtual std::string fileExtension() const { return "pnm";  }
-    virtual FilePeriod filePeriod() const { return Base::Period5Minutes; }
+    virtual file_period filePeriod() const { return gen_filename::Period5Minutes; }
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {
       netpbm::pgm_writer pw(line_.size(), os);
@@ -59,8 +60,7 @@ namespace Result {
                                                  boost::posix_time::ptime t) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.read_header();
-      if (not pw.write_line(line_))
-        throw std::runtime_error("dumpData failed");
+      ASSERT_THROW(pw.write_line(line_) == true);
       return os;
     }
   protected:

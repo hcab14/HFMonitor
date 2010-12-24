@@ -11,6 +11,7 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include "FFTResultSpectrumPeak.hpp"
+#include "logging.hpp"
 #include "InvertMatrix.hpp"
 
 namespace Result {
@@ -38,10 +39,8 @@ namespace Result {
       }
       // least squares inversion
       Matrix ata(prod(trans(a),a));
-      if (ublas_util::InvertMatrix(ata, q_)) {
-        x_ = prod(q_, Vector(prod(trans(a),y)));
-      } else 
-        throw std::runtime_error("Calibration has failed");
+      ASSERT_THROW(ublas_util::InvertMatrix(ata, q_) == true);
+      x_ = prod(q_, Vector(prod(trans(a),y)));
     }
     virtual ~Calibration() {}
     virtual std::string toString() const {
@@ -76,7 +75,7 @@ namespace Result {
     
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {      
-      Base::dumpHeader(os, t) 
+      Base::dumpHeader(os, t)
         << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
       return os;
     }

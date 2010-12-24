@@ -16,6 +16,8 @@
 #include "FFTResult.hpp"
 #include "FFTProxy.hpp"
 
+#include "logging.hpp"
+
 namespace Action {
   class SpectrumInterval : public Base {
   public:
@@ -36,7 +38,8 @@ namespace Action {
           filter_.add(Filter::LowPass<PowerSpectrum>::make
                       (1.0, config.get<double>("Filter.<xmlattr>.timeConstant_sec")));
         } else {
-          throw std::runtime_error(config.get<std::string>("Filter.<xmlattr>.type") + ": unknown filter");
+          throw std::runtime_error
+            (THROW_SITE_INFO(config.get<std::string>("Filter.<xmlattr>.type") + ": unknown filter"));
         }
       }
     }
@@ -59,9 +62,9 @@ namespace Action {
         // call virtual method
         proc(p, s, filter_.x());
       } catch (const std::runtime_error& e) {
-        std::cout << "SpectrumInterval::perform " << e.what() << std::endl;
+        LOG_WARNING(e.what());
       } catch (...) {
-        std::cout << "SpectrumInterval::perform unknown error" << std::endl;
+        LOG_WARNING("SpectrumInterval::perform unknown error");
       }
     }
 
