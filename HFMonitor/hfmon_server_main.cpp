@@ -340,14 +340,16 @@ public:
                                    / double(time_duration::ticks_per_second())));
       const int dt0_usec(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
       const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
-      LOG_STATUS(str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%8d")
+      LOG_STATUS_T(ptimeOfCallback_,
+                   str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%8d")
                      % data_connections_.size()
                      % sampleNumber_
                      % rate));
       ptimeDataMeasure_ = ptimeOfCallback_;
       BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
         boost::system::error_code ecl, ecr;
-        LOG_STATUS(str(boost::format("   %s - %s : delay[ms] = %d")
+        LOG_STATUS_T(ptimeOfCallback_, 
+                     str(boost::format("   %s - %s : delay[ms] = %d")
                        % dc->local_endpoint(ecl) 
                        % dc->local_endpoint(ecr) 
                        % int(0.5+1000*dc->max_delay().ticks() 

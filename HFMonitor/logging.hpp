@@ -56,8 +56,12 @@ namespace logging {
     }
 
     logger& log(log_kind k, std::string message) {
-      log_kind_ = k;
       const ptime now(boost::posix_time::microsec_clock::universal_time());
+      return this->log(k, now, message);
+    }
+
+    logger& log(log_kind k, const ptime& now, std::string message) {
+      log_kind_ = k;
       std::string type;
       switch (k) {
       case INFO:
@@ -106,6 +110,11 @@ namespace logging {
 #define LOG_STATUS(_message_)  logging::logger::get()->log(logging::STATUS,  _message_)
 #define LOG_WARNING(_message_) logging::logger::get()->log(logging::WARNING, _message_)
 #define LOG_ERROR(_message_)   logging::logger::get()->log(logging::ERROR,   _message_)
+
+#define LOG_INFO_T(_time_, _message_)    logging::logger::get()->log(logging::INFO,    _time_, _message_)
+#define LOG_STATUS_T(_time_, _message_)  logging::logger::get()->log(logging::STATUS,  _time_, _message_)
+#define LOG_WARNING_T(_time_, _message_) logging::logger::get()->log(logging::WARNING, _time_, _message_)
+#define LOG_ERROR_T(_time_, _message_)   logging::logger::get()->log(logging::ERROR,   _time_, _message_)
 
 #define LOGGER_INFO    logging::logger::get()->set_kind(logging::INFO)
 #define LOGGER_STATUS  logging::logger::get()->set_kind(logging::STATUS)

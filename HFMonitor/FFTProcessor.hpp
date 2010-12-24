@@ -66,10 +66,10 @@ public:
       , resultMap_(resultMap) {}
 
     virtual void putResult(std::string resultKey, Result::Base::Handle result) {
-      LOG_INFO(str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
+      LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
-        LOG_WARNING(str(boost::format("overwriting key %s") % key));
+        LOG_WARNING_T(approxPTime_, str(boost::format("overwriting key %s") % key));
       resultMap_[key] = result;
     }
 
@@ -112,7 +112,7 @@ public:
               Samples::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
-    LOG_INFO(str(boost::format("FFTProcessor::procIQ %s") % header));
+    LOG_INFO_T(header.approxPTime(), str(boost::format("FFTProcessor::procIQ %s") % header));
     if (windowFcnName_ == "Rectangular")
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<Complex::value_type>());
     else if (windowFcnName_ == "Hanning")
@@ -142,7 +142,7 @@ public:
       try {
         result.second->dump(dataPath_, result.first, header.approxPTime());
       } catch (const std::exception& e) {
-        LOG_WARNING(e.what());
+        LOG_WARNING_T(header.approxPTime(), e.what());
       }
     }
   }
