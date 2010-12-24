@@ -136,8 +136,6 @@ public:
       }
     }
 
-    std::cout << "resultMap.size()= " << resultMap.size() << std::endl;
-
     // output of results
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
       LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
