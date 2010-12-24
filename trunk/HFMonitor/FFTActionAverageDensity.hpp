@@ -32,7 +32,6 @@ namespace Action {
     virtual void proc(Proxy::Base& p, 
                       const SpectrumBase& s,
                       const PowerSpectrum& ps) {
-      LOG_INFO("AverageDensity::perform ");
       try {
         Result::SpectrumPowerInInterval::Handle 
           spp((useCalibration())
