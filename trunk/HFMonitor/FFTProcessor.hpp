@@ -131,14 +131,14 @@ public:
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
         FFTProxy proxy(header.approxPTime(), level.first, resultMap);
-        LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
+        // LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
         action.second->perform(proxy, s);
       }
     }
 
     // output of results
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
-      LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
+      // LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
       try {
         result.second->dump(dataPath_, result.first, header.approxPTime());
       } catch (const std::exception& e) {
