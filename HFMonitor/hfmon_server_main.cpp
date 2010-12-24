@@ -297,20 +297,22 @@ public:
 #endif
     // keep only one copy of the data in memory even when there are several clients
     const Header header(sp->getHeader(nSamples, oldFilterTime));
-    // std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
-    // std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
-
+    data_connection::data_ptr dp(new data_connection::Data);      
+#if 1
+    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
+    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
+    sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
+#else
     std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(sp->data_));
     std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(sp->data_));
 
     sp->counter_++;
     if (sp->counter_ == 0 && not sp->data_.empty()) {
-      data_connection::data_ptr dp(new data_connection::Data);      
       std::copy(sp->data_.begin(), sp->data_.end(), std::back_inserter(*dp));
       sp->data_.clear();
       sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
     }
-
+#endif
     boost::system::error_code ec;
     const size_t max_poll_actions(100*1000);
     for (size_t u(0); sp->io_service_.poll(ec) > 0 && u < max_poll_actions; ++u)
