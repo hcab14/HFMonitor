@@ -66,7 +66,7 @@ public:
       , resultMap_(resultMap) {}
 
     virtual void putResult(std::string resultKey, Result::Base::Handle result) {
-      LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
+      // LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
         LOG_WARNING_T(approxPTime_, str(boost::format("overwriting key %s") % key));
