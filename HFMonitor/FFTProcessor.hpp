@@ -140,7 +140,7 @@ public:
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
       // LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
       try {
-        result.second->dump(dataPath_, result.first, header.approxPTime());
+        // result.second->dump(dataPath_, result.first, header.approxPTime());
       } catch (const std::exception& e) {
         LOG_WARNING_T(header.approxPTime(), e.what());
       }
