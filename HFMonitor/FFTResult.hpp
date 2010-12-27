@@ -81,14 +81,15 @@ namespace Result {
     void findPositionOfStartEndTime(const boost::filesystem::path& p) const {
       boost::filesystem::ifstream ifs(p);
       std::string line;
-      std::istream::streampos pos(0);
       while (std::getline(ifs, line)) {
         if (line[0] != '#') break;
-        if (std::string(line, 2, 9) == "StartTime")
+        if (std::string(line, 2, 9) == "StartTime") {
+          const std::istream::streampos pos(ifs.tellg());
           posStartTime_ = pos + std::streamoff(14);
+        }
         if (std::string(line, 2, 9) == "EndTime  ")
+          const std::istream::streampos pos(ifs.tellg());
           posEndTime_   = pos + std::streamoff(14);
-        pos = ifs.tellg();
       }
     }
     void updateTimeTag(boost::filesystem::fstream& os,
