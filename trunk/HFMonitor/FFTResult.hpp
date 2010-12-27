@@ -83,14 +83,10 @@ namespace Result {
       std::string line;
       while (std::getline(ifs, line)) {
         if (line[0] != '#') break;
-        if (std::string(line, 2, 9) == "StartTime") {
-          const std::istream::streampos pos(ifs.tellg());
-          posStartTime_ = pos + std::streamoff(14);
-        }
+        if (std::string(line, 2, 9) == "StartTime")
+          posStartTime_ = ifs.tellg() + std::streamoff(14);
         if (std::string(line, 2, 9) == "EndTime  ")
-          const std::istream::streampos pos(ifs.tellg());
-          posEndTime_   = pos + std::streamoff(14);
-      }
+          posEndTime_   = ifs.tellg() + std::streamoff(14);
     }
     void updateTimeTag(boost::filesystem::fstream& os,
                     std::ostream::streampos pos,
