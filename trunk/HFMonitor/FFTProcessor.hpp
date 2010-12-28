@@ -152,6 +152,7 @@ public:
     if (modCounter_ == 0) {
       BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_)
         result.second->dump(dataPath_, result.first);
+      resultBuffer_.clear();
     }
   }
 
