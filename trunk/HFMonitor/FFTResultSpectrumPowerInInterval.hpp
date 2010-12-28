@@ -21,10 +21,11 @@ namespace Result {
     typedef boost::shared_ptr<SpectrumPowerInInterval> Handle;
     typedef frequency_vector<double> PowerSpectrum;
 
-    SpectrumPowerInInterval(double fReference, 
+    SpectrumPowerInInterval(ptime time,
+                            double fReference, 
                             double bandwidth,
                             double normWindow)
-      : Base("SpectrumPowerInInterval")
+      : Base("SpectrumPowerInInterval", time)
       , fReference_(fReference) 
       , bandwidth_(bandwidth)
       , normWindow_(normWindow)
@@ -80,17 +81,15 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {      
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
          << "# Bandwidth = " << boost::format("%9.3f") % bandwidth()   << " [Hz]\n";
-      Base::dumpHeader(os, t) 
+      Base::dumpHeader(os) 
         << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
-      Base::dumpData(os, t)
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+      Base::dumpData(os)
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(averageStrength())) << " "
         << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " ";
@@ -109,11 +108,12 @@ namespace Result {
   class CalibratedSpectrumPowerInInterval : public SpectrumPowerInInterval {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
-    CalibratedSpectrumPowerInInterval(double fReference,
+    CalibratedSpectrumPowerInInterval(ptime time,
+                                      double fReference,
                                       double bandwidth,
                                       double normWindow,
                                       Calibration::Handle calibrationHandle)
-      : SpectrumPowerInInterval(fReference, bandwidth, normWindow)
+      : SpectrumPowerInInterval(time, fReference, bandwidth, normWindow)
       , calibrationHandle_(calibrationHandle) {
       name_= "CalibratedSpectrumPowerInInterval";
     }

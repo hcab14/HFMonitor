@@ -19,8 +19,8 @@ namespace Result {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
     typedef frequency_vector<double> PowerSpectrum;
-    SpectrumPeak(double fReference)
-      : Base("SpectrumPeak")
+    SpectrumPeak(ptime time, double fReference)
+      : Base("SpectrumPeak", time)
       , fReference_(fReference) 
       , fMeasured_(0.) 
       , fMeasuredRMS_(1.) 
@@ -127,16 +127,14 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {      
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n";
-      Base::dumpHeader(os, t) 
+      Base::dumpHeader(os) 
         << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
-      Base::dumpData(os, t)
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+      Base::dumpData(os)
         << boost::format("%12.3f") % fMeasured() << " "
         << boost::format("%6.3f")  % fMeasuredRMS() << " "
         << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "

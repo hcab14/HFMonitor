@@ -18,10 +18,11 @@ namespace Result {
   public:
     typedef boost::shared_ptr<FFTResultFSKStrength> Handle;
     typedef frequency_vector<double> PowerSpectrum;
-    FFTResultFSKStrength(Result::SpectrumPeak::Handle peakRef,
+    FFTResultFSKStrength(ptime time,
+                         Result::SpectrumPeak::Handle peakRef,
                          Result::SpectrumPeak::Handle peakShift,
                          Result::SpectrumPowerInInterval::Handle noise)
-      : Base("FFTResultFSKStrength")
+      : Base("FFTResultFSKStrength", time)
       , peakRef_(peakRef) 
       , peakShift_(peakShift) 
       , noise_(noise)
@@ -43,16 +44,14 @@ namespace Result {
          << " ratio="          << ratio_;
       return ss.str();
     }
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {      
-      Base::dumpHeader(os, t) 
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
+      Base::dumpHeader(os) 
         << "fReference_Hz fShift_Hz fMeasuredRef_Hz fMeasuredShift_Hz "
         << "strength_dBm strengthRef_dBm strengthShift_dBm S/N_dB ";
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
-      Base::dumpData(os, t)
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+      Base::dumpData(os)
         << boost::format("%12.3f") % peakRef_->fReference() << " "
         << boost::format("%12.3f") % peakShift_->fReference() << " "
         << boost::format("%12.3f") % peakRef_->fMeasured() << " "

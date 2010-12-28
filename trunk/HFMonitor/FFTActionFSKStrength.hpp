@@ -39,24 +39,25 @@ namespace Action {
                       const SpectrumBase& s,
                       const PowerSpectrum& ps) {
       try {
+        const Proxy::Base::ptime t(p.getApproxPTime());
         Result::SpectrumPeak::Handle
           sppRef((useCalibration())
                  ? boost::make_shared<Result::CalibratedSpectrumPeak>
-                   (fRef_-fShift_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                 : boost::make_shared<Result::SpectrumPeak>(fRef_-fShift_));
+                 (t, fRef_-fShift_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
+                 : boost::make_shared<Result::SpectrumPeak>(t, fRef_-fShift_));
 
         Result::SpectrumPeak::Handle
           sppShift((useCalibration())
                    ? boost::make_shared<Result::CalibratedSpectrumPeak>
-                     (fRef_+fShift_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                   : boost::make_shared<Result::SpectrumPeak>(fRef_+fShift_));
+                   (t, fRef_+fShift_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
+                   : boost::make_shared<Result::SpectrumPeak>(t, fRef_+fShift_));
 
         Result::SpectrumPowerInInterval::Handle
           spiRef((useCalibration())
                  ? boost::make_shared<Result::CalibratedSpectrumPowerInInterval>
-                   (fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow(),
+                 (t, fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow(),
                     boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-                 : boost::make_shared<Result::SpectrumPowerInInterval>(fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow()));
+                 : boost::make_shared<Result::SpectrumPowerInInterval>(t, fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow()));
         
         sppRef->findPeak  (s, ps, fRef_+0.5*fShift_, fRef_+1.5*fShift_, 1.0);
         sppShift->findPeak(s, ps, fRef_-1.5*fShift_, fRef_-0.5*fShift_, 1.0);
@@ -68,10 +69,10 @@ namespace Action {
         if (strengthFSK/strengthBackground > minRatio_)
           p.putResult(resultKey(),
                       Result::FFTResultFSKStrength::Handle
-                      (new Result::FFTResultFSKStrength(sppRef, sppShift, spiRef)));        
+                      (new Result::FFTResultFSKStrength(t, sppRef, sppShift, spiRef)));        
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",
-                      boost::make_shared<Result::PowerSpectrumLine>(p.getApproxPTime(), ps));
+                      boost::make_shared<Result::PowerSpectrumLine>(t, ps));
       } catch (const std::runtime_error& e) {
         LOG_WARNING(e.what());
       }

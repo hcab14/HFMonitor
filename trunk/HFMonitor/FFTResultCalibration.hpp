@@ -21,9 +21,10 @@ namespace Result {
     typedef boost::numeric::ublas::matrix<double> Matrix;
     typedef boost::numeric::ublas::vector<double> Vector;
 
-    Calibration(const std::vector<Result::SpectrumPeak::Handle>& peaks,
+    Calibration(ptime time, 
+                const std::vector<Result::SpectrumPeak::Handle>& peaks,
                 size_t n=2)
-      : Base("Calibration")
+      : Base("Calibration", time)
       , n_(n)
       , q_(n,n)
       , x_(n) {
@@ -73,15 +74,13 @@ namespace Result {
       return std::make_pair(fCal, std::sqrt(inner_prod(a, Vector(prod(q_, a)))));       
     }
     
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {      
-      Base::dumpHeader(os, t)
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
+      Base::dumpHeader(os)
         << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
-      Base::dumpData(os, t) 
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+      Base::dumpData(os) 
         << boost::format("%6.3f")  % x_(0) << " "
         << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
         << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "

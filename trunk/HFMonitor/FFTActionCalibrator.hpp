@@ -50,7 +50,7 @@ namespace Action {
         }
       }
       try {     
-        Result::Base::Handle rh(new Result::Calibration(peaks));
+        Result::Base::Handle rh(new Result::Calibration(p.getApproxPTime(), peaks));
         p.putResult(resultKey_, rh); 
       } catch (const std::runtime_error& e) {
         LOG_WARNING(e.what());
