@@ -90,9 +90,9 @@ public:
   
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
-    , modCounter_(10)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
-    , dataPath_(config.get<std::string>("Data.<xmlattr>.path")) {
+    , dataPath_(config.get<std::string>("Data.<xmlattr>.path"))
+    , modCounter_(std::min(1u, config.get<unsigned>("Data.<xmlattr>.numberOfCollectedEpochs"))) {
     using boost::property_tree::ptree;
     // Levels
     BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
@@ -158,9 +158,9 @@ public:
 protected:
 private:
   FFT::FFTWTransform<FFTFloat> fftw_;
-  Internal::ModuloCounter<size_t> modCounter_;
   std::string windowFcnName_;
   std::string dataPath_;
+  Internal::ModuloCounter<size_t> modCounter_;
   LevelMap actions_;
   ResultMap resultBuffer_;
 } ;
