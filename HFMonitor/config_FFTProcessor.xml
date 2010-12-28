@@ -4,7 +4,9 @@
   <Repack bufferLength_sec="1"
 	  overlap_percent="-100">
   </Repack>
-  <Data path="Data"></Data>
+  <Data path="Data"
+	numberOfCollectedEpochs="1">
+  </Data>
   <Actions>
     <L0>
       <FindPeak name="077500_TS_DCF"
