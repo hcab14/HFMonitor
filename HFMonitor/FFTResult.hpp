@@ -19,8 +19,6 @@ namespace Result {
 
     Base(std::string name) 
       : name_(name)
-      , firstEpoch_(true)
-      , posStartTime_(0)
       , posEndTime_(0) {}
     virtual ~Base() {}
     virtual std::string toString() const { return name(); }
@@ -38,10 +36,8 @@ namespace Result {
       if (not file_exists) {
         boost::filesystem::fstream ofs(p, std::ios::out);
         dumpHeader(ofs, t) << lineBreak();
-        firstEpoch_ = true;
       } else {
-        findPositionOfStartEndTime(p);
-        firstEpoch_ = false;
+        findPositionOfEndTime(p);
       }
       boost::filesystem::fstream ofs(p, std::ios::in | std::ios::out);
       ofs.seekp(0, std::ios::end);
@@ -51,15 +47,12 @@ namespace Result {
     virtual std::string lineBreak() const { return "\n"; }
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
                                                    boost::posix_time::ptime t) const {
-      os << "# StartTime = ";
-      posStartTime_ = os.tellp();
-      os << "YYYY-MM-DD HH:MM:SS.ssssss [UTC]\n";
-
-      os << "# EndTime   = ";
-      posEndTime_ = os.tellp();
-      os << "YYYY-MM-DD HH:MM:SS.ssssss [UTC]\n";
+      std::stringstream oss;
+      oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
+      oss << t;
+      os << "# StartTime = " << oss.str() << " [UTC]";
+      os << "# EndTime   = " << oss.str() << " [UTC]";
       os << "# Time_UTC ";
-
       return os;
     }
     virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
@@ -67,10 +60,7 @@ namespace Result {
       std::stringstream oss;
       oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
       oss << t;
-      if (firstEpoch_)
-        updateTimeTag(os, posStartTime_, oss.str()); 
       updateTimeTag(os, posEndTime_, oss.str());
-      firstEpoch_ = false;
       os << oss.str() << " ";
       return os;
     }
@@ -78,15 +68,15 @@ namespace Result {
     std::string name_;
 
   private:
-    void findPositionOfStartEndTime(const boost::filesystem::path& p) const {
+    void findPositionOfEndTime(const boost::filesystem::path& p) const {
       boost::filesystem::ifstream ifs(p);
       std::string line;
+      std::ostream::streampos pos(0);
       while (std::getline(ifs, line)) {
         if (line[0] != '#') break;
-        if (std::string(line, 2, 9) == "StartTime")
-          posStartTime_ = ifs.tellg() + std::streamoff(14);
+        pos += line.size();
         if (std::string(line, 2, 9) == "EndTime  ")
-          posEndTime_   = ifs.tellg() + std::streamoff(14);
+          posEndTime_   = pos + std::streamoff(14);
       }
     }
     void updateTimeTag(boost::filesystem::fstream& os,
@@ -97,8 +87,6 @@ namespace Result {
       os.seekp(0,   std::ios::end);
     }
 
-    mutable bool firstEpoch_;
-    mutable std::ostream::streampos posStartTime_;
     mutable std::ostream::streampos posEndTime_;
   } ;
 } // namespace Result
