@@ -7,6 +7,8 @@
 #include <string>
 #include <sstream>
 #include <deque>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
@@ -411,6 +413,8 @@ int main(int argc, char* argv[])
     const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
 
     perseus_set_debug(config_perseus.get<int>("<xmlattr>.debugLevel"));
+
+    setpriority(PRIO_PROCESS, 0, -20);
 
     Perseus p;
     const unsigned numPerseus(p.numPerseus());
