@@ -60,6 +60,11 @@ namespace Result {
       ASSERT_THROW(pw.write_line(line_) == true);
       return os;
     }
+    virtual updateTimeTag(boost::filesystem::fstream& os,
+                          std::ostream::streampos pos,
+                          std::string timeTag) const {
+      // NOP
+    }
   protected:
   private:
     std::string line_;
