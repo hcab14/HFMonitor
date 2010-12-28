@@ -50,8 +50,8 @@ namespace Result {
       std::stringstream oss;
       oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
       oss << t;
-      os << "# StartTime = " << oss.str() << " [UTC]";
-      os << "# EndTime   = " << oss.str() << " [UTC]";
+      os << "# StartTime = " << oss.str() << " [UTC]" << lineBreak();
+      os << "# EndTime   = " << oss.str() << " [UTC]" << lineBreak();
       os << "# Time_UTC ";
       return os;
     }
@@ -60,7 +60,7 @@ namespace Result {
       std::stringstream oss;
       oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
       oss << t;
-      updateTimeTag(os, posEndTime_, oss.str());
+      // updateTimeTag(os, posEndTime_, oss.str());
       os << oss.str() << " ";
       return os;
     }
