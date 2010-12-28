@@ -33,16 +33,17 @@ namespace Action {
                       const SpectrumBase& s,
                       const PowerSpectrum& ps) {
       try {
+        const Proxy::Base::ptime t(p.getApproxPTime());
         Result::SpectrumPeak::Handle 
           spp((useCalibration())
               ? boost::make_shared<Result::CalibratedSpectrumPeak>
-              (fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
-              : boost::make_shared<Result::SpectrumPeak>(fReference_));
+              (t, fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
+              : boost::make_shared<Result::SpectrumPeak>(t, fReference_));
         if (spp->findPeak(s, ps, minRatio_))
           p.putResult(resultKey(), spp);
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",
-                      boost::make_shared<Result::PowerSpectrumLine>(p.getApproxPTime(), ps));
+                      boost::make_shared<Result::PowerSpectrumLine>(t, ps));
       } catch (const std::runtime_error& e) {
         LOG_WARNING(e.what());
       }

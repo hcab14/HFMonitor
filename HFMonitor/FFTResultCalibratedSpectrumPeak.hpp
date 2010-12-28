@@ -18,9 +18,10 @@ namespace Result {
   class CalibratedSpectrumPeak : public SpectrumPeak {
   public:
     typedef boost::shared_ptr<SpectrumPeak> Handle;
-    CalibratedSpectrumPeak(double fReference,
+    CalibratedSpectrumPeak(ptime time,
+                           double fReference,
                            Calibration::Handle calibrationHandle)
-      : SpectrumPeak(fReference)
+      : SpectrumPeak(time, fReference)
       , calibrationHandle_(calibrationHandle) {
       name_= "CalibratedSpectrumPeak";
     }
@@ -37,15 +38,13 @@ namespace Result {
       return calibrationHandle_->uncal2cal(f);
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {      
-      SpectrumPeak::dumpHeader(os, t) 
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
+      SpectrumPeak::dumpHeader(os) 
         << "diff_Hz ";
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
-      SpectrumPeak::dumpData(os, t) 
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+      SpectrumPeak::dumpData(os) 
         << boost::format("%8.3f")  % (fMeasured()-fReference()) << " ";
       return os;
     }

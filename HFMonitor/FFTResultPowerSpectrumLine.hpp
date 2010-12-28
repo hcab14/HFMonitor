@@ -20,12 +20,11 @@ namespace Result {
   public:
     typedef boost::shared_ptr<PowerSpectrumLine> Handle;
     typedef frequency_vector<double> PowerSpectrum;
-    typedef boost::posix_time::ptime ptime;
 
-    PowerSpectrumLine(ptime t, const PowerSpectrum&ps)
-      : Base("PowerSpectrumLine") {
+    PowerSpectrumLine(ptime time, const PowerSpectrum&ps)
+      : Base("PowerSpectrumLine", time) {
       std::string line;
-      std::copy((char*)&t, (char*)&t+sizeof(t), std::back_inserter(line_));
+      std::copy((char*)&time, (char*)&time+sizeof(time), std::back_inserter(line_));
       if (ps.empty())
         line_.append(2*sizeof(float), char(0));
       else {
@@ -50,14 +49,12 @@ namespace Result {
     virtual std::string lineBreak() const { return ""; }
     virtual std::string fileExtension() const { return "pnm";  }
     virtual file_period filePeriod() const { return gen_filename::Period5Minutes; }
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os,
-                                                   boost::posix_time::ptime t) const {
+    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.write_header();
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os,
-                                                 boost::posix_time::ptime t) const {
+    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.read_header();
       ASSERT_THROW(pw.write_line(line_) == true);

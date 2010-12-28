@@ -25,7 +25,8 @@
 #include "Spectrum.hpp"
 #include "FFTProxy.hpp"
 #include "FFTResult.hpp"
-#include "FFTAction.hpp" 
+#include "FFTAction.hpp"
+#include "IQBuffer.hpp"
 
 template<typename FFTFloat>
 class FFTProcessor {
@@ -86,10 +87,10 @@ public:
     const std::string level_;
     ResultMap& resultMap_;
   } ;
-
+  
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
-    , counter_(0)
+    , modCounter_(10)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , dataPath_(config.get<std::string>("Data.<xmlattr>.path")) {
     using boost::property_tree::ptree;
@@ -136,23 +137,31 @@ public:
       }
     }
 
-    // output of results
+    ++modCounter_;
+
+    // collect results
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
-      // LOG_INFO(str(boost::format("result: %s %s") % result.first % result.second));
-      try {
-        result.second->dump(dataPath_, result.first, header.approxPTime());
-      } catch (const std::exception& e) {
-        LOG_WARNING_T(header.approxPTime(), e.what());
-      }
+      ResultMap::iterator i(resultBuffer_.find(result.first));
+      if (i != resultBuffer_.end())
+        i->second->push_back(result.second);
+      else
+        resultBuffer_[result.first] = result.second;
     }
+    
+    // output results
+    if (modCounter_ == 0) 
+      BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_)
+        result.second->dump(dataPath_, result.first);
   }
+
 protected:
 private:
   FFT::FFTWTransform<FFTFloat> fftw_;
-  unsigned counter_;
+  Internal::ModuloCounter<size_t> modCounter_;
   std::string windowFcnName_;
   std::string dataPath_;
   LevelMap actions_;
+  ResultMap resultBuffer_;
 } ;
 
 #endif // _FFT_PROCESSOR_HPP_cm100729_
