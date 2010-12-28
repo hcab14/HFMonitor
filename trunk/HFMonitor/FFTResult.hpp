@@ -86,9 +86,9 @@ namespace Result {
       os << makeTimeLabel() << " ";
       return os;
     }
-    virtual updateTimeTag(boost::filesystem::fstream& os,
-                          std::ostream::streampos pos,
-                          std::string timeTag) const {
+    virtual void updateTimeTag(boost::filesystem::fstream& os,
+                               std::ostream::streampos pos,
+                               std::string timeTag) const {
       os.seekp(pos, std::ios::beg);
       os << timeTag;
       os.seekp(0,   std::ios::end);
