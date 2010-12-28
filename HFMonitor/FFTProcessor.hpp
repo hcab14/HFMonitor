@@ -92,7 +92,7 @@ public:
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , dataPath_(config.get<std::string>("Data.<xmlattr>.path"))
-    , modCounter_(std::min(1u, config.get<unsigned>("Data.<xmlattr>.numberOfCollectedEpochs"))) {
+    , modCounter_(std::max(1u, config.get<unsigned>("Data.<xmlattr>.numberOfCollectedEpochs"))) {
     using boost::property_tree::ptree;
     // Levels
     BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
