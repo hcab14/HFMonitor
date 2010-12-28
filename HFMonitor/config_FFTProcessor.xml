@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman">
-  <Repack bufferLength_sec=".5"
+  <Repack bufferLength_sec="1"
 	  overlap_percent="-100">
   </Repack>
   <Data path="Data"></Data>
