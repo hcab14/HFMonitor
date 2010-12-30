@@ -41,7 +41,7 @@ namespace Action {
                (p.getResult(calibrationKey())))
               : boost::make_shared<Result::SpectrumPowerInInterval>
               (p.getApproxPTime(), fReference_, bandwidth_, s.normWindow()));
-        if (spp->proc(ps))
+        if (spp->proc(p, ps))
           p.putResult(resultKey(), spp);
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",

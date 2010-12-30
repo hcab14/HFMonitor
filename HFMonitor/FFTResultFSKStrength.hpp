@@ -26,8 +26,9 @@ namespace Result {
       , peakRef_(peakRef) 
       , peakShift_(peakShift) 
       , noise_(noise)
-      , strength_(peakRef_->strength()+peakShift_->strength())
-      , ratio_(strength_ / noise_->strength()) {}
+      , strength_dBm_(20.*std::log10(  std::pow(10., peakRef_->strength()  /20.)
+                                     + std::pow(10., peakShift_->strength()/20.)))
+      , ratio_dB_(strength_dBm_ - noise_->strength()) {}
 
     virtual ~FFTResultFSKStrength() {}
     virtual std::string toString() const { 
@@ -37,11 +38,11 @@ namespace Result {
          << " fShift="         << peakShift_->fReference()
          << " fMeasuredRef="   << peakRef_->fMeasured()
          << " fMeasuredShift=" << peakShift_->fMeasured()
-         << " strength="       << strength_
+         << " strength="       << strength_dBm_
          << " strengthRef="    << peakRef_->strength()
          << " strengthShift="  << peakShift_->strength()
          << " noise="          << noise_->strength()
-         << " ratio="          << ratio_;
+         << " ratio="          << ratio_dB_;
       return ss.str();
     }
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
@@ -56,10 +57,10 @@ namespace Result {
         << boost::format("%12.3f") % peakShift_->fReference() << " "
         << boost::format("%12.3f") % peakRef_->fMeasured() << " "
         << boost::format("%12.3f") % peakShift_->fMeasured() << " "
-        << boost::format("%7.2f")  % (20.*std::log10(strength_)) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(peakRef_->strength())) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(peakShift_->strength())) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(ratio_)) << " ";
+        << boost::format("%7.2f")  % strength_dBm_ << " "
+        << boost::format("%7.2f")  % peakRef_->strength() << " "
+        << boost::format("%7.2f")  % peakShift_->strength() << " "
+        << boost::format("%7.2f")  % ratio_dB_ << " ";
       return os;
     }
 
@@ -67,8 +68,8 @@ namespace Result {
     const Result::SpectrumPeak::Handle peakRef_;
     const Result::SpectrumPeak::Handle peakShift_;
     const Result::SpectrumPowerInInterval::Handle noise_;
-    const double strength_;
-    const double ratio_;
+    const double strength_dBm_;
+    const double ratio_dB_;
   } ;
 } // namespace Result
 

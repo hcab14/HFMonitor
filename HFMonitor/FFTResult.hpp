@@ -111,7 +111,7 @@ namespace Result {
         if (line[0] != '#') break;
         if (std::string(line, 2, 9) == "EndTime  ")
           posEndTime_   = pos + std::streamoff(14);
-        pos += line.size();
+        pos += line.size() + 1;
       }
     }
 

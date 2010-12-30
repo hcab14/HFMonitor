@@ -11,6 +11,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
+#include "FFTProxy.hpp"
 #include "FFTResultCalibration.hpp"
 #include "Spectrum.hpp"
 
@@ -28,17 +29,21 @@ namespace Result {
       , strengthRMS_(1.)
       , ratio_(1.) {}
 
-    bool findPeak(const SpectrumBase& s, const PowerSpectrum& ps, double minRatio) {
-      return ps.empty() ? false : findPeak(s, ps, ps.front().first, ps.back().first, minRatio);
+    bool findPeak(const Proxy::Base& p,
+                  const SpectrumBase& s,
+                  const PowerSpectrum& ps,
+                  double minRatio) {
+      return ps.empty() ? false : findPeak(p, s, ps, ps.front().first, ps.back().first, minRatio);
     }
     // find a peak in the range [fMin, fMax] (including fMax)
-    bool findPeak(const SpectrumBase& s, const PowerSpectrum& ps,
-                  double fMin, double fMax, double minRatio) {
+    bool findPeak(const Proxy::Base& p,
+                  const SpectrumBase& s,
+                  const PowerSpectrum& ps,
+                  double fMin, double fMax,
+                  double minRatio) {
       const size_t i0(ps.freq2index(fMin));
       const size_t i1(ps.freq2index(fMax));
-      // PowerSpectrum::const_iterator
-      //   iMin(std::min_element(ps.begin()+i0, ps.begin()+i1+1,
-      //                         PowerSpectrum::cmpSecond));
+
       PowerSpectrum::const_iterator
         iMax(std::max_element(ps.begin()+i0, ps.begin()+i1+1,
                               PowerSpectrum::cmpSecond));
@@ -53,12 +58,6 @@ namespace Result {
       const std::pair<double, double> 
         background(estimateBackground(ps, indexMax, i0, i1));
       
-      // for (int i=-2; i<=2; ++i) {
-      //   std::cout << "FP_ " << ps[indexMax+i].first << " " << ps[indexMax+i].second << " "
-      //             << std::arg(s[s.freq2index(ps[indexMax+i].first)])/(2*M_PI) 
-      //   	  << std::endl;
-      // }
-
       ratio_ = (background.first != 0.0) ? iMax->second / background.first : 1.0;
       if (ratio_ < minRatio)
         LOG_WARNING(str(boost::format("ratio < minRatio : %f %f %f") 
@@ -69,8 +68,8 @@ namespace Result {
       // TODO: error propagation
       fMeasured_    = peakFrequency.first;
       fMeasuredRMS_ = peakFrequency.second;
-      strength_     = (ratio_ > minRatio) ? iMax->second     : background.first;
-      strengthRMS_  = (ratio_ > minRatio) ? iMax->second/10. : background.second; // TODO
+      strength_     = p.volt2dbm((ratio_ > minRatio) ? iMax->second : background.first);
+      strengthRMS_  = p.rms_dbm();
       return (ratio_ > minRatio);
     }
 
@@ -137,19 +136,19 @@ namespace Result {
       Base::dumpData(os)
         << boost::format("%12.3f") % fMeasured() << " "
         << boost::format("%6.3f")  % fMeasuredRMS() << " "
-        << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " "
+        << boost::format("%7.2f")  % strength() << " "
+        << boost::format("%7.2f")  % strengthRMS() << " "
         << boost::format("%7.2f")  % (20.*std::log10(ratio())) << " ";
       return os;
     }
 
   private:
-    double fReference_;
-    double fMeasured_;
-    double fMeasuredRMS_;
-    double strength_;
-    double strengthRMS_;
-    double ratio_;
+    double fReference_;   // [Hz]
+    double fMeasured_;    // [Hz]
+    double fMeasuredRMS_; // [Hz]
+    double strength_;     // [dBm]
+    double strengthRMS_;  // [dBm]
+    double ratio_;        // [1]
   } ;
 } // namespace Result
 

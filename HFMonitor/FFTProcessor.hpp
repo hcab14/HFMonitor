@@ -61,8 +61,8 @@ public:
 
   class FFTProxy : public Proxy::Base {
   public:
-    FFTProxy(ptime approxPTime, std::string level, ResultMap& resultMap)
-      : approxPTime_(approxPTime)
+    FFTProxy(const Header& header, std::string level, ResultMap& resultMap)
+      : header_(header)
       , level_(level)
       , resultMap_(resultMap) {}
 
@@ -70,7 +70,7 @@ public:
       // LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
-        LOG_WARNING_T(approxPTime_, str(boost::format("overwriting key %s") % key));
+        LOG_WARNING_T(header_.approxPTime(), str(boost::format("overwriting key %s") % key));
       resultMap_[key] = result;
     }
 
@@ -79,11 +79,16 @@ public:
       ASSERT_THROW(i != resultMap_.end());
       return i->second;
     }
-    virtual ptime getApproxPTime() const { return approxPTime_; }
-
+    virtual ptime getApproxPTime() const { return header_.approxPTime(); }
+    virtual double volt2dbm(double v) const {
+      return 20.*std::log10(v) - 3. - 3.*header_.adcPreamp() + 10.*header_.attenId();
+    }
+    virtual double rms_dbm() const {
+      return 20.*std::log10(1.0/(1<<24)) - 3.*header_.adcPreamp() + 10.*header_.attenId();
+    }
   private:
     std::string level() const { return level_; }
-    const ptime approxPTime_;
+    const Header& header_;
     const std::string level_;
     ResultMap& resultMap_;
   } ;
@@ -131,7 +136,7 @@ public:
     ResultMap resultMap;
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
-        FFTProxy proxy(header.approxPTime(), level.first, resultMap);
+        FFTProxy proxy(header, level.first, resultMap);
         // LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
         action.second->perform(proxy, s);
       }
