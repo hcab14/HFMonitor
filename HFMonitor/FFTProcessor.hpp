@@ -81,10 +81,12 @@ public:
     }
     virtual ptime getApproxPTime() const { return header_.approxPTime(); }
     virtual double volt2dbm(double v) const {
-      return 20.*std::log10(v) - 3. - 3.*header_.adcPreamp() + 10.*header_.attenId();
+      // P = 0.5*U*U/R, R=50 Ohm, relative to 1mW
+      // offset +1: ADC=+-1 <-> +-1.122 V (50 Ohm)
+      return 10.*std::log10(0.5*v*v/50./0.001) + 1. - 3.*header_.adcPreamp() + 10.*header_.attenId();
     }
     virtual double rms_dbm() const {
-      return 20.*std::log10(1.0/(1<<24)) - 3.*header_.adcPreamp() + 10.*header_.attenId();
+      return volt2dbm(1.0/(1<<24));
     }
   private:
     std::string level() const { return level_; }
