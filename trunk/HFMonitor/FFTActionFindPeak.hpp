@@ -39,7 +39,7 @@ namespace Action {
               ? boost::make_shared<Result::CalibratedSpectrumPeak>
               (t, fReference_, boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
               : boost::make_shared<Result::SpectrumPeak>(t, fReference_));
-        if (spp->findPeak(s, ps, minRatio_))
+        if (spp->findPeak(p, s, ps, minRatio_))
           p.putResult(resultKey(), spp);
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",

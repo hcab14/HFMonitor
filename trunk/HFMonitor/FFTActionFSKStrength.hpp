@@ -30,7 +30,7 @@ namespace Action {
                                          config.get<double>("<xmlattr>.fShift_Hz")))
       , fRef_(config.get<double>("<xmlattr>.fRef_Hz"))
       , fShift_(config.get<double>("<xmlattr>.fShift_Hz"))
-      , minRatio_(config.get<double>("<xmlattr>.minRatio")) {
+      , minRatio_dB_(config.get<double>("<xmlattr>.minRatio_db")) {
       name_ = "FSKStrength";
     }
 
@@ -59,14 +59,14 @@ namespace Action {
                     boost::dynamic_pointer_cast<Result::Calibration>(p.getResult(calibrationKey())))
                  : boost::make_shared<Result::SpectrumPowerInInterval>(t, fRef_+1.5*fShift_, 0.25*fShift_, s.normWindow()));
         
-        sppRef->findPeak  (s, ps, fRef_+0.5*fShift_, fRef_+1.5*fShift_, 1.0);
-        sppShift->findPeak(s, ps, fRef_-1.5*fShift_, fRef_-0.5*fShift_, 1.0);
-        spiRef->proc(ps);
+        sppRef->findPeak  (p, s, ps, fRef_+0.5*fShift_, fRef_+1.5*fShift_, 1.0);
+        sppShift->findPeak(p, s, ps, fRef_-1.5*fShift_, fRef_-0.5*fShift_, 1.0);
+        spiRef->proc(p, ps);
 
         const double strengthFSK(sppRef->strength() + sppShift->strength());
         const double strengthBackground(spiRef->strength());
 
-        if (strengthFSK/strengthBackground > minRatio_)
+        if (strengthFSK - strengthBackground > minRatio_dB_)
           p.putResult(resultKey(),
                       Result::FFTResultFSKStrength::Handle
                       (new Result::FFTResultFSKStrength(t, sppRef, sppShift, spiRef)));        
@@ -89,7 +89,7 @@ namespace Action {
     }
     const double fRef_;            // nominal (mark) frequency / Hz
     const double fShift_;          // shift frequency / Hz
-    const double minRatio_;        // min. ratio peak/background
+    const double minRatio_dB_;        // min. ratio peak/background
   } ;
 } // namespace Action
 

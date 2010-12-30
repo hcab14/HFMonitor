@@ -22,6 +22,8 @@ namespace Proxy {
     }
     virtual Result::Base::Handle getResult(std::string keyString) const = 0;
     virtual ptime getApproxPTime() const = 0;
+    virtual double volt2dbm(double volt) const = 0;
+    virtual double rms_dbm() const = 0;
   } ;
   
   typedef boost::shared_ptr<Base> Handle;

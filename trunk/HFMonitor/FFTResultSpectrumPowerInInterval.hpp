@@ -11,6 +11,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
+#include "FFTProxy.hpp"
 #include "FFTResult.hpp"
 #include "FFTResultCalibration.hpp"
 #include "Spectrum.hpp"
@@ -35,7 +36,7 @@ namespace Result {
 
     virtual ~SpectrumPowerInInterval() {}
 
-    bool proc(const PowerSpectrum& ps) { 
+    bool proc(const Proxy::Base& p, const PowerSpectrum& ps) { 
       try {
         const std::pair<double, double> fMin(cal(fReference() - 0.75*bandwidth()));
         const std::pair<double, double> fMax(cal(fReference() + 0.75*bandwidth()));
@@ -48,10 +49,10 @@ namespace Result {
           sum += ps[u].second;
           sum2 += ps[u].second * ps[u].second;
         }
-        // std::cout << "**** " << sum << " " << counter << " " << normWindow() << std::endl;
-        strength_        = sum / normWindow(); // here we do _not_ correct for window gain
-        averageStrength_ = (counter != 0) ? sum/counter : 0.;
-        strengthRMS_     = (counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.;
+        strength_        = p.volt2dbm(sum / normWindow()); // here we do _not_ correct for window gain
+        averageStrength_ = p.volt2dbm((counter != 0) ? sum/counter : 1.);
+        strengthRMS_     = p.rms_dbm() - 20.*std::log10(std::sqrt((counter != 0) ? counter : 1));
+        // p.volt2dbm((counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.);
         return true;
       } catch (const std::runtime_error& e) {
         LOG_WARNING(e.what());
@@ -83,16 +84,16 @@ namespace Result {
 
     virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
-         << "# Bandwidth = " << boost::format("%9.3f") % bandwidth()   << " [Hz]\n";
+         << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n";
       Base::dumpHeader(os) 
         << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
       return os;
     }
     virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
       Base::dumpData(os)
-        << boost::format("%7.2f")  % (20.*std::log10(strength())) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(averageStrength())) << " "
-        << boost::format("%7.2f")  % (20.*std::log10(strengthRMS())) << " ";
+        << boost::format("%7.2f")  % strength()        << " "
+        << boost::format("%7.2f")  % averageStrength() << " "
+        << boost::format("%7.2f")  % strengthRMS()     << " ";
       return os;
     }
 
