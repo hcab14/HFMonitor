@@ -36,7 +36,7 @@ public:
                std::vector<char>::const_iterator i1) {
 //    std::cout << "Raw2IQAdapter::procRaw " << header << " data.size()= " << data.size() << std::endl;
     const size_t size(std::distance(i0, i1));
-    const double norm(1. / double(1<<23));
+    const double norm(1. / double(1<<24));
     std::vector<std::complex<double> > iqs;
     ASSERT_THROW(size == 6*header.numberOfSamples());
     for (std::vector<char>::const_iterator i(i0); i!=i1;) {

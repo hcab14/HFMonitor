@@ -83,7 +83,7 @@ public:
     virtual double volt2dbm(double v) const {
       // P = 0.5*U*U/R, R=50 Ohm, relative to 1mW, factor of 0.5: sin wave
       // offset +1: ADC=+-ADC_MAX <-> +-1.122 V (50 Ohm) TO BE FURTHER CHECKED
-      return 10.*std::log10(0.5*v*v/50./0.001) + 1. - 3.*header_.adcPreamp() + 10.*header_.attenId();
+      return 10.*std::log10(0.5*v*v/50./0.001) + 1. - 20.*log10(256.) - 3.*header_.adcPreamp() + 10.*header_.attenId();
     }
     virtual double rms_dbm() const {
       return volt2dbm(1.0/(1<<24));
