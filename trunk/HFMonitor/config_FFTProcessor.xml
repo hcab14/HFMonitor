@@ -220,7 +220,7 @@
 		fMax_Hz="130.100e3"
 		fRef_Hz="129.100e3"
 		minRatio="10"
-		plotSpectrum="1">
+		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <FindPeak name="135600_EFR_Lakihegy"
@@ -228,7 +228,7 @@
 		fMax_Hz="136.600e3"
 		fRef_Hz="135.600e3"
 		minRatio="10"
-		plotSpectrum="1">
+		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <FindPeak name="139000_EFR_Burg"
@@ -236,7 +236,7 @@
 		fMax_Hz="140.000e3"
 		fRef_Hz="139.000e3"
 		minRatio="10"
-		plotSpectrum="1">
+		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <AverageDensity name="147200_WX_DDH47"
