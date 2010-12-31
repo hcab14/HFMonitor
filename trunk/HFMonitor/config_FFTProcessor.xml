@@ -5,7 +5,7 @@
 	  overlap_percent="-100">
   </Repack>
   <Data path="Data"
-	numberOfCollectedEpochs="1">
+	numberOfCollectedEpochs="4">
   </Data>
   <Actions>
     <L0>
