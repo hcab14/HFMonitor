@@ -17,7 +17,7 @@ class ClientFile : private boost::noncopyable {
 public:
   ClientFile(const boost::property_tree::ptree& config)
     : p_(config)
-    , fileNamePattern_(config.get<std::string>("FileNamePattern"))
+    , fileNamePattern_(config.get<std::string>("Input.<xmlattr>.fileNamePattern"))
     , fileNumber_(0) {
   }
 
