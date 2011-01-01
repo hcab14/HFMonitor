@@ -191,9 +191,10 @@ namespace WAVE {
       for (size_t u(0); u<chunkFmt().bitsPerSample(); u+=8) 
         sum |= ((a=readT<boost::uint8_t>(is_)) << u);
       // 16-bit samples seem to be truncated 24-bit samples
-      const boost::int32_t iMax(1 << chunkFmt().bitsPerSample());
-      const double norm(double(1 << (24-chunkFmt().bitsPerSample())) / double(iMax));
-      return ((a&0x80) ? sum-iMax : sum) * norm;
+      const boost::int32_t iMax(1L << chunkFmt().bitsPerSample());
+      const double norm(  static_cast<double>(1L << (31-chunkFmt().bitsPerSample()))
+                        / static_cast<double>(1L << 31));
+      return ( ((a&0x80) == 0x80) ? sum-iMax : sum) * norm;
     }    
     template<typename T>
     static

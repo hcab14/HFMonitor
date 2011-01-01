@@ -34,18 +34,16 @@ public:
   void procRaw(const Header& header, 
                std::vector<char>::const_iterator i0,
                std::vector<char>::const_iterator i1) {
-//    std::cout << "Raw2IQAdapter::procRaw " << header << " data.size()= " << data.size() << std::endl;
+    const double norm(1. / static_cast<double>(1L << 31));
     const size_t size(std::distance(i0, i1));
-    const double norm(1. / double(1<<24));
-    std::vector<std::complex<double> > iqs;
     ASSERT_THROW(size == 6*header.numberOfSamples());
+    std::vector<std::complex<double> > iqs;
     for (std::vector<char>::const_iterator i(i0); i!=i1;) {
       IQSample s;
       s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
       s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;
       const std::complex<double> cs(s.iq.q*norm,
                                     s.iq.i*norm);
-      // std::cout << cs << std::endl;
       iqs.push_back(cs);
     }
     p_.procIQ(header, iqs.begin(), iqs.end());
