@@ -2,8 +2,8 @@
 <!-- $Id$ -->
 <server>
   <data port="18000"
-	maxQueueDelay_Minutes="15"
-	maxQueueSize_MB="400"></data>
+	maxQueueDelay_Minutes="2"
+	maxQueueSize_MB="100"></data>
   <ctrl port="18001"></ctrl>
   <perseus samplerate="500000"
 	   qrg_Hz    ="250000"

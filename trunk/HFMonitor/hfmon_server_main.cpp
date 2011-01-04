@@ -105,11 +105,11 @@ public:
 
   bool push_back(ptime t, const data_ptr& dp) {
     max_delay_ = std::max(max_delay_, delay(t));
-    // if the buffer is full forget all data
+    // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
     if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-      n_omit= size();
-      listOfPackets_.clear();
+      for (; size()>1; ++n_omit)      
+        listOfPackets_.pop_back();
     }
     if (n_omit != 0)
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
