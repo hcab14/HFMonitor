@@ -434,10 +434,10 @@
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
-      <FindPeak name="413000_NDB_DLS"
-		fMin_Hz="412.8e3"
-		fMax_Hz="413.2e3"
-		fRef_Hz="413e3"
+      <FindPeak name="413500_NDB_DLS"
+		fMin_Hz="413.3e3"
+		fMax_Hz="413.7e3"
+		fRef_Hz="413.5e3"
 		minRatio="10"
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
