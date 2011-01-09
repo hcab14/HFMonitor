@@ -302,7 +302,7 @@ public:
               <<  std::endl;
 #endif
     // keep only one copy of the data in memory even when there are several clients
-    const Header header(sp->getHeader(nSamples, oldFilterTime));
+    const Header header(sp->getHeader(nSamples, now)); //oldFilterTime));
     data_connection::data_ptr dp(new data_connection::Data);      
 #if 1
     std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
