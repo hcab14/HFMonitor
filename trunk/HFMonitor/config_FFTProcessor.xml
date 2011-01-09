@@ -160,6 +160,7 @@
 		fMax_Hz="60.200e3"
 		fRef_Hz="60.000e3"
 		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <AverageDensity name="061800_Navy_UK"
@@ -183,6 +184,7 @@
 		fRef_Hz="66.666666e3"
 		plotSpectrum="0"
 		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <FindPeak name="068500_TS_BPC"
@@ -190,8 +192,16 @@
 		fMax_Hz="68.700e3"
 		fRef_Hz="68.500e3"
 		minRatio="1">
-	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>	
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
 	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="075000_TS_HBG"
+		fMin_Hz="74.800e3"
+		fMax_Hz="75.200e3"
+		fRef_Hz="75.000e3"
+		minRatio="10">
+	<Calibration key="L1.CAL"></Calibration>
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
       </FindPeak>
       <FindPeak name="077500_TS_DCF77"
 		fMin_Hz="77.300e3"
@@ -199,6 +209,7 @@
 		fRef_Hz="77.500e3"
 		minRatio="10">
 	<Calibration key="L1.CAL"></Calibration>
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
       </FindPeak>
       <AverageDensity name="081000_Navy_UK"
 		      fRef_Hz="81e3"
@@ -286,10 +297,34 @@
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
+      <FindPeak name="189000_AM_XXX"
+		fMin_Hz="188.800e3"
+		fMax_Hz="189.200e3"
+		fRef_Hz="189.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="198000_AM_BBC"
+		fMin_Hz="197.800e3"
+		fMax_Hz="198.200e3"
+		fRef_Hz="198.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
       <FindPeak name="207000_AM_DLF"
 		fMin_Hz="206.800e3"
 		fMax_Hz="207.200e3"
 		fRef_Hz="207.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="216000_AM_XXX"
+		fMin_Hz="215.800e3"
+		fMax_Hz="216.200e3"
+		fRef_Hz="216.000e3"
 		minRatio="10"
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
@@ -302,10 +337,34 @@
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
+      <FindPeak name="234000_AM_XXX"
+		fMin_Hz="233.800e3"
+		fMax_Hz="234.200e3"
+		fRef_Hz="234.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="261000_AM_XXX"
+		fMin_Hz="260.800e3"
+		fMax_Hz="261.200e3"
+		fRef_Hz="261.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
       <FindPeak name="270000_AM_Topolna"
 		fMin_Hz="269.800e3"
 		fMax_Hz="270.200e3"
 		fRef_Hz="270.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <FindPeak name="279000_AM_XXX"
+		fMin_Hz="278.800e3"
+		fMax_Hz="279.200e3"
+		fRef_Hz="279.000e3"
 		minRatio="10"
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>
@@ -443,7 +502,7 @@
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
       <FindPeak name="421000_NDB_MF"
-		fMin_Hz="421.8e3"
+		fMin_Hz="420.8e3"
 		fMax_Hz="421.2e3"
 		fRef_Hz="421e3"
 		minRatio="10"
