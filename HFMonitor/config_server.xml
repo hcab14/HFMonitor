@@ -14,8 +14,8 @@
 	   USBBufferSize="16320"
 	   debugLevel="3">
     <CascadedPTimeLowPass>
-      <Tau_Sec>600.</Tau_Sec>
-      <Tau_Sec>60.</Tau_Sec>
+      <Tau_Sec>0.5</Tau_Sec>
+      <Tau_Sec>0.5</Tau_Sec>
     </CascadedPTimeLowPass>
   </perseus>
 </server>

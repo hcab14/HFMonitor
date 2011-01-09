@@ -280,7 +280,7 @@ public:
     const time_duration dt(now - sp->ptimeOfCallback_);
 
     const ptime oldFilterTime(sp->ptimeFilter_.x());
-    const bool doInterpolation(false); // std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtCallback_.ticks()/10); 
+    const bool doInterpolation(std::abs(dt.ticks() - sp->dtCallback_.ticks()) > 0.02*sp->dtCallback_.ticks()); 
 
     const ptime nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
     sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
@@ -302,7 +302,7 @@ public:
               <<  std::endl;
 #endif
     // keep only one copy of the data in memory even when there are several clients
-    const Header header(sp->getHeader(nSamples, now)); //oldFilterTime));
+    const Header header(sp->getHeader(nSamples, now, oldFilterTime));
     data_connection::data_ptr dp(new data_connection::Data);      
 #if 1
     std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
