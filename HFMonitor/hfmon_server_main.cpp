@@ -280,7 +280,8 @@ public:
     const time_duration dt(now - sp->ptimeOfCallback_);
 
     const ptime oldFilterTime(sp->ptimeFilter_.x());
-    const bool doInterpolation(std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtCallback_.ticks()/10); 
+    const bool doInterpolation(false); // std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtCallback_.ticks()/10); 
+
     const ptime nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
     sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
     sp->dtFilter_.update(nowInterpolated, (doInterpolation 
