@@ -12,7 +12,7 @@
 	   enablePreamp="0"
 	   enablePresel="1"
 	   USBBufferSize="16320"
-	   dtVariationThreshold_Percent="2"
+	   dtVariationThreshold_Percent="3.5"
 	   debugLevel="3">
     <CascadedPTimeLowPass>
       <Tau_Sec>1.0</Tau_Sec>
