@@ -6,8 +6,7 @@
 
 #include "Filter.hpp"
 
-int main()
-{
+void test1() {
   // make up time series
   using namespace boost::posix_time;
   using namespace boost::gregorian;
@@ -44,4 +43,37 @@ int main()
   }
 
   // std::cout << microsec_clock::universal_time() << std::endl;
+}
+
+int main()
+{
+  // make up time series
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+  
+  ptime t,t0;
+  std::cin >> t0;
+  Filter::Cascaded<ptime> ff;
+  const double dt(0.00544);
+  time_duration dttd(0,0,0, dt * time_duration::ticks_per_second());
+  ff.add(Filter::PTimeLowPass::make(dt, 1.0));
+  ff.add(Filter::PTimeLowPass::make(dt, 1.0));
+  ff.init(t0,t0);
+  
+  while (std::cin >> t) {
+    bool interp(false);
+    if (std::abs(double((t-t0).ticks())/double(time_duration::ticks_per_second())-dt) > 0.02*dt) {
+      ff.update(ff.x() + dttd,
+                ff.x() + dttd);
+      interp= true;
+    } else {
+      ff.update(t,t);
+    }
+    if (!interp && std::abs((t - ff.x()).ticks()) > 0.02*dttd.ticks())
+        ff.init(t,t);
+    std::cout << "#T " << t << " " << ff.x() << " " 
+              << t - ff.x() << " " << int(ff.isInEquilibrium()) 
+              << std::endl;
+    t0= t;
+  }
 }
