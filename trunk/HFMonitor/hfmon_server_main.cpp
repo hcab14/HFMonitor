@@ -178,6 +178,7 @@ public:
     , usbBufferSize_(config.get<unsigned>("perseus.<xmlattr>.USBBufferSize"))
     , max_queue_total_size_(1024*1024*config.get<size_t>("data.<xmlattr>.maxQueueSize_MB"))
     , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("data.<xmlattr>.maxQueueDelay_Minutes")))
+    , dtVarThreshold_(0.01*config.get<double>("perseus.<xmlattr>.dtVariationThreshold_Percent"))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
                   usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) 
@@ -229,8 +230,9 @@ public:
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code= %s") % ec));
-    LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
+    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code=%s ep=%s") 
+                 % ec
+                 % socket->remote_endpoint()));
     if (!ec) {
       ctrl_sockets_.insert(socket);
       LOG_INFO(str(boost::format("remote endpoint= %s %s")
@@ -279,14 +281,22 @@ public:
     const ptime now(boost::posix_time::microsec_clock::universal_time());
     const time_duration dt(now - sp->ptimeOfCallback_);
 
+    const bool doInterpolation
+      (std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtVarThreshold_ * sp->dtCallback_.ticks());
+
     const ptime oldFilterTime(sp->ptimeFilter_.x());
-    const bool doInterpolation(std::abs(dt.ticks() - sp->dtCallback_.ticks()) > 0.02*sp->dtCallback_.ticks()); 
 
     const ptime nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
     sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
-    sp->dtFilter_.update(nowInterpolated, (doInterpolation 
+    sp->dtFilter_.update(nowInterpolated, (doInterpolation
                                            ? double(sp->dtCallback_.ticks())
                                            : double(dt.ticks())) / time_duration::ticks_per_second());
+    if (not doInterpolation &&
+        std::abs((now-sp->ptimeFilter_.x()).ticks()) > sp->dtVarThreshold_*sp->dtCallback_.ticks()) {
+      LOG_WARNING_T(now, str(boost::format("time step: dt=%s") % (now - sp->ptimeFilter_.x())));
+      sp->ptimeFilter_.init(now, now);
+      sp->dtFilter_.init(now, double(sp->dtCallback_.ticks())/time_duration::ticks_per_second());
+    }
     sp->ptimeOfCallback_= now;
 #if 0
     std::cout << "receiverCallback "
@@ -389,6 +399,7 @@ private:
   unsigned                       usbBufferSize_;
   const size_t                   max_queue_total_size_;
   const time_duration            max_queue_delay_;
+  const double                   dtVarThreshold_;
   unsigned                       maxQueuSize_;
   boost::int64_t                 sampleNumber_;
   time_duration                  dtCallback_;
