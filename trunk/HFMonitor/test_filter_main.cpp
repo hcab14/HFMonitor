@@ -69,7 +69,7 @@ int main()
     } else {
       ff.update(t,t);
     }
-    if (!interp && std::abs((t - ff.x()).ticks()) > 0.02*dttd.ticks())
+    if (!interp && std::abs((t - ff.x()).ticks()) > 0.1*dttd.ticks())
         ff.init(t,t);
     std::cout << "#T " << t << " " << ff.x() << " " 
               << t - ff.x() << " " << int(ff.isInEquilibrium()) 

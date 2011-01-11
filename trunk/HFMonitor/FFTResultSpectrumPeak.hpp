@@ -60,7 +60,7 @@ namespace Result {
       
       ratio_ = (background.first != 0.0) ? iMax->second / background.first : 1.0;
       if (ratio_ < minRatio)
-        LOG_WARNING(str(boost::format("SpectrumPeak: ratio < minRatio, ratio=%f bkgd=(%f,%f) fRef=12.3%f") 
+        LOG_WARNING(str(boost::format("SpectrumPeak: ratio < minRatio, ratio=%f bkgd=(%f,%f) fRef=%12.3f") 
                         % ratio_
                         % background.first
                         % background.second
