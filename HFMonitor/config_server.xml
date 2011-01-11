@@ -15,8 +15,8 @@
 	   dtVariationThreshold_Percent="5.0"
 	   debugLevel="3">
     <CascadedPTimeLowPass>
-      <Tau_Sec>1.0</Tau_Sec>
-      <Tau_Sec>60.0</Tau_Sec>
+      <Tau_Sec>2.0</Tau_Sec>
+      <Tau_Sec>2.0</Tau_Sec>
     </CascadedPTimeLowPass>
   </perseus>
 </server>
