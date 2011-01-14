@@ -22,7 +22,9 @@ namespace Action {
   public:
     Calibrator(const boost::property_tree::ptree& config)
       : Base("Calibrator")
-      , resultKey_(config.get<std::string>("<xmlattr>.name")) {
+      , resultKey_(config.get<std::string>("<xmlattr>.name"))
+      , offsetMax_(config.get<double>("<xmlattr>.maxOffset_Hz")) 
+      , ppmMax_   (config.get<double>("<xmlattr>.maxCorrectionFactor_ppm")) {
       using boost::property_tree::ptree;
       BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
         if (input.first == "Input") {
@@ -42,15 +44,15 @@ namespace Action {
         try {
           Result::SpectrumPeak::Handle 
             sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(input)));
-          if (sp != 0) {
+          if (sp != 0)
             peaks.push_back(sp);
-          }
         } catch (const std::runtime_error& e) {
           LOG_WARNING(e.what());
         }
       }
       try {     
-        Result::Base::Handle rh(new Result::Calibration(p.getApproxPTime(), peaks));
+        Result::Base::Handle rh(new Result::Calibration(p.getApproxPTime(), peaks,
+                                                        offsetMax_, ppmMax_));
         p.putResult(resultKey_, rh); 
       } catch (const std::runtime_error& e) {
         LOG_WARNING(e.what());
@@ -58,6 +60,8 @@ namespace Action {
     }
   private:
     std::string resultKey_;           // result key name
+    double offsetMax_;                // max offset [Hz]
+    double ppmMax_;                   // max ppm
     std::vector<std::string> inputs_; // key names of inputs used for calibration
   } ;
 } // namespace Action

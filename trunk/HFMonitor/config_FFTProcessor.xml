@@ -7,7 +7,7 @@
   <Data path="Data"
 	numberOfCollectedEpochs="4">
   </Data>
-  <Actions>
+  <Actions calibrationKey="L1.CAL">
     <L0>
       <FindPeak name="077500_TS_DCF"
 		fMin_Hz="77.300e3"
@@ -53,7 +53,9 @@
       </FindPeak>
     </L0>
     <L1>
-      <Calibrator name="CAL">
+      <Calibrator name="CAL"
+		  maxOffset_Hz="10.0"
+		  maxCorrectionFactor_ppm="20.0">
 	<Inputs>
 	  <Input key="L0.060000_TS_MSF"></Input>
 	  <Input key="L0.066666_TS_RBU"></Input>

@@ -23,11 +23,15 @@ namespace Result {
 
     Calibration(ptime time, 
                 const std::vector<Result::SpectrumPeak::Handle>& peaks,
+                double offsetMax, 
+                double ppmMax,
                 size_t n=2)
       : Base("Calibration", time)
       , n_(n)
       , q_(n,n)
-      , x_(n) {
+      , x_(n)
+      , offsetMax_(offsetMax)
+      , ppmMax_(ppmMax) {
       using namespace boost::numeric::ublas;
       Matrix a(peaks.size(), n);
       Vector y(peaks.size());
@@ -42,7 +46,21 @@ namespace Result {
       Matrix ata(prod(trans(a),a));
       ASSERT_THROW(ublas_util::InvertMatrix(ata, q_) == true);
       x_ = prod(q_, Vector(prod(trans(a),y)));
+      ASSERT_THROW(std::abs(x_(0))   < offsetMax_);
+      ASSERT_THROW(std::abs(x_(1)-1) < 1e-6*ppmMax_);
     }
+    Calibration(ptime time,
+                const Matrix& q,
+                const Vector& x,
+                double offsetMax,
+                double ppmMax)
+      : Base("Calibration", time)
+      , n_(2)
+      , q_(q)
+      , x_(x)
+      , offsetMax_(offsetMax)
+      , ppmMax_(ppmMax) {}
+
     virtual ~Calibration() {}
     virtual std::string toString() const {
       std::stringstream ss;
@@ -53,7 +71,16 @@ namespace Result {
     }    
     const Vector& x() const { return x_; } // polynomial coefficients
     const Matrix& q() const { return q_; } // variance-covariance matrix for x
-    
+
+    // return a handle with a "worst-case" covariance matrix
+    Base::Handle withWorstCaseCov() const {
+      Matrix q(2,2);
+      q(1,0) = q(0,1) = 0.0;
+      q(0,0) = std::pow(  offsetMax_, 2);
+      q(1,1) = std::pow(1e-6*ppmMax_, 2);
+      return Base::Handle(new Calibration(time_, q, x_, offsetMax_, ppmMax_));
+    }
+
     // returns a value,RMS pair
     std::pair<double, double> cal2uncal(double fCal) const {
       using namespace boost::numeric::ublas;
@@ -91,6 +118,8 @@ namespace Result {
     size_t n_;
     Matrix q_;
     Vector x_;
+    double offsetMax_;
+    double ppmMax_;
   } ;
 } // namespace Result
 
