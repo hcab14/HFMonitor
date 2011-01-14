@@ -25,6 +25,7 @@
 #include "Spectrum.hpp"
 #include "FFTProxy.hpp"
 #include "FFTResult.hpp"
+#include "FFTResultCalibration.hpp"
 #include "FFTAction.hpp"
 #include "IQBuffer.hpp"
 
@@ -97,11 +98,13 @@ public:
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
+    , calibrationKey_(config.get<std::string>("Actions.<xmlattr>.calibrationKey"))
     , dataPath_(config.get<std::string>("Data.<xmlattr>.path"))
     , modCounter_(std::max(1u, config.get<unsigned>("Data.<xmlattr>.numberOfCollectedEpochs"))) {
     using boost::property_tree::ptree;
     // Levels
     BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
+      if (level.first.size() == 0 || level.first[0] == '<') continue;
       LOG_INFO(str(boost::format("Level: %s") % level.first));
       // Actions
       size_t counter(0);
@@ -135,6 +138,11 @@ public:
   
     // operate on Spectrum
     ResultMap resultMap;
+    // set default calibration from the last epoch
+    // it will be overwritten with the new calibration
+    if (calibrationHandle_ != 0)
+      resultMap[calibrationKey_] = calibrationHandle_;
+
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
         FFTProxy proxy(header, level.first, resultMap);
@@ -160,14 +168,30 @@ public:
         result.second->dump(dataPath_, result.first);
       resultBuffer_.clear();
     }
+
+    // check if calibration has succeded
+    // store (a copy of) the cal handle with "worst-case" covariance for use in the next epoch
+    const ResultMap::iterator i(resultMap.find(calibrationKey_));
+    if (i != resultMap.end()) {
+      Result::Calibration::Handle
+        ch(boost::dynamic_pointer_cast<Result::Calibration>(i->second));
+      if (ch != 0)
+        calibrationHandle_= ch->withWorstCaseCov();
+      else
+        LOG_WARNING_T(header.approxPTime(),
+                      str(boost::format("resultMap[%s] is not of type Result::Calibration::Handle")
+                          % calibrationKey_));
+    }
   }
 
 protected:
 private:
   FFT::FFTWTransform<FFTFloat> fftw_;
   std::string windowFcnName_;
+  std::string calibrationKey_;
   std::string dataPath_;
   Internal::ModuloCounter<size_t> modCounter_;
+  Result::Base::Handle calibrationHandle_;
   LevelMap actions_;
   ResultMap resultBuffer_;
 } ;
