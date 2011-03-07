@@ -16,7 +16,7 @@
     const PaError __pa_error_code__((_x));				\
     if (__pa_error_code__ < paNoError)	{				\
       throw std::runtime_error(THROW_SITE_INFO("assertion failed: "	\
-					       + std::string(#_x) + " '"	\
+					       + std::string(#_x) + " '" \
 					       + std::string(Pa_GetErrorText(__pa_error_code__))+"'")); \
     } else void(0); }
 
@@ -47,8 +47,18 @@ namespace portaudio {
       }
       return result;
     }
+    virtual bool is_format_supported(stream_parameters::sptr input_parameters,
+				     stream_parameters::sptr output_parameters,
+				     double sample_rate) const {
+      PaError err(paNoError);
+      ASSERT_THROW_PA(err=Pa_IsFormatSupported((input_parameters  == 0) ? 0 : input_parameters->get(),
+					       (output_parameters == 0) ? 0 : output_parameters->get(),
+					       sample_rate));
+      return (err == paNoError);
+    }
+    
   private:
-    bool& is_initialized() { static bool b(false); return b; }    
+    bool& is_initialized(bool ib=false) { static bool b(ib); return b; }    
   } ;
 
   init::sptr init::make() {
@@ -110,10 +120,6 @@ namespace portaudio {
     const PaStreamInfo* _pa_stream_info;
   } ;
   
-  // stream_info::sptr stream_info::make(const PaStreamInfo* pa_stream_info) {
-  //   return stream_info::sptr(new stream_info_impl(pa_stream_info));
-  // }
-
   class stream_parameters_impl : public stream_parameters {
   public:
     stream_parameters_impl(PaDeviceIndex device_index,
@@ -149,24 +155,29 @@ namespace portaudio {
 							 suggested_latency));
   }
 
-  class stream_impl : public stream {
+  class stream_callback_impl : public stream_callback {
   public:
-    stream_impl(stream_parameters::sptr input_parameters,
-		stream_parameters::sptr output_parameters,
-		double sample_rate,
-		unsigned long frames_per_buffer,
-		PaStreamFlags stream_flags) {
+    stream_callback_impl(stream_parameters::sptr input_parameters,
+			 stream_parameters::sptr output_parameters,
+			 double sample_rate,
+			 unsigned long frames_per_buffer,
+			 PaStreamFlags stream_flags) {
       ASSERT_THROW_PA(Pa_OpenStream(&_pa_stream,
-				    input_parameters->get(),
-				    output_parameters->get(),
+				    (input_parameters  == 0) ? 0 : input_parameters->get(),
+				    (output_parameters == 0) ? 0 : output_parameters->get(),
 				    sample_rate,
 				    frames_per_buffer, // paFramesPerBufferUnspecified
 				    stream_flags,
-				    stream_impl::callback,
+				    stream_callback_impl::callback,
 				    this));
     }
 
-    ~stream_impl() { ASSERT_THROW_PA(Pa_CloseStream(&_pa_stream)); }
+    ~stream_callback_impl() { ASSERT_THROW_PA(Pa_CloseStream(_pa_stream)); }
+
+    virtual PaStream* get() { return _pa_stream; }
+    virtual stream_info::sptr get_info() const {
+      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
+    }
 
     virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(&_pa_stream)); }
     virtual void start() { ASSERT_THROW_PA(Pa_StartStream(&_pa_stream)); }
@@ -196,33 +207,92 @@ namespace portaudio {
     virtual double get_cpu_load() const { 
       return Pa_GetStreamCpuLoad(_pa_stream); 
     }
-    virtual stream_info::sptr get_info() const {
-      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
+
+    virtual void read_data(void* buffer, unsigned long frames) {
+      ASSERT_THROW_PA(Pa_ReadStream(_pa_stream, buffer, frames));
     }
+    virtual void write_data(const void* buffer, unsigned long frames) {
+      ASSERT_THROW_PA(Pa_WriteStream(_pa_stream, buffer, frames));
+    }
+
   private:
     static int callback(const void *inputBuffer, void *outputBuffer,
 			unsigned long frames_per_buffer,
 			const PaStreamCallbackTimeInfo* time_info,
 			PaStreamCallbackFlags status_flags,
 			void *userData) {
-      stream_impl* sp(reinterpret_cast<stream_impl*>(userData));
+      stream_callback_impl* sp(reinterpret_cast<stream_callback_impl*>(userData));
       // sp-> ...
       return 0;
     }
-    
+
     PaStream* _pa_stream;
   } ;
 
-  stream::sptr stream::make(stream_parameters::sptr input_parameters,
-			    stream_parameters::sptr output_parameters,
-			    double sample_rate,
-			    unsigned long frames_per_buffer,
-			    PaStreamFlags stream_flags) {
-    return stream::sptr(new stream_impl(input_parameters,
-					output_parameters,
-					sample_rate,
-					frames_per_buffer,
-					stream_flags));
+  class stream_blocking_impl : public stream_blocking {
+  public:
+    stream_blocking_impl(stream_parameters::sptr input_parameters,
+			 stream_parameters::sptr output_parameters,
+			 double sample_rate,
+			 unsigned long frames_per_buffer,
+			 PaStreamFlags stream_flags) {
+      ASSERT_THROW_PA(Pa_OpenStream(&_pa_stream,
+				    (input_parameters  == 0) ? 0 : input_parameters->get(),
+				    (output_parameters == 0) ? 0 : output_parameters->get(),
+				    sample_rate,
+				    frames_per_buffer, // paFramesPerBufferUnspecified
+				    stream_flags, 
+				    0,0));
+    }
+
+    ~stream_blocking_impl() { ASSERT_THROW_PA(Pa_CloseStream(_pa_stream)); }
+
+    virtual PaStream* get() { return _pa_stream; }
+    virtual stream_info::sptr get_info() const {
+      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
+    }
+
+    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(&_pa_stream)); }
+    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(&_pa_stream)); }
+    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(&_pa_stream)); }
+
+    virtual void read_data(void* buffer, unsigned long frames) {
+      ASSERT_THROW_PA(Pa_ReadStream(_pa_stream, buffer, frames));
+    }
+    virtual void write_data(const void* buffer, unsigned long frames) {
+      ASSERT_THROW_PA(Pa_WriteStream(_pa_stream, buffer, frames));
+    }
+
+  private:
+    PaStream* _pa_stream;
+  } ;
+
+  stream_callback::sptr 
+  stream_callback::make(stream_parameters::sptr input_parameters,
+			stream_parameters::sptr output_parameters,
+			double sample_rate,
+			unsigned long frames_per_buffer,
+			PaStreamFlags stream_flags) {
+    return 
+      stream_callback::sptr(new stream_callback_impl(input_parameters,
+						     output_parameters,
+						     sample_rate,
+						     frames_per_buffer,
+						     stream_flags));
+  }
+
+  stream_blocking::sptr 
+  stream_blocking::make(stream_parameters::sptr input_parameters,
+			stream_parameters::sptr output_parameters,
+			double sample_rate,
+			unsigned long frames_per_buffer,
+			PaStreamFlags stream_flags) {
+    return 
+      stream_blocking::sptr(new stream_blocking_impl(input_parameters,
+						     output_parameters,
+						     sample_rate,
+						     frames_per_buffer,
+						     stream_flags));
   }
 
 } // namespace portaudio
