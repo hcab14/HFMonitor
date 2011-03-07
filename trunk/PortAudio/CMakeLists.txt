@@ -38,6 +38,9 @@ INCLUDE_DIRECTORIES(
   ${portaudio_LIBRARY_INCLUDE_DIR}
   )
 
+ADD_LIBRARY(portaudio_cpp portaudio.cpp)
+LIST(APPEND _libs portaudio_cpp)
+
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
 FOREACH(file ${files})
