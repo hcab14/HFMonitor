@@ -29,20 +29,6 @@ namespace portaudio {
     virtual PaDeviceIndex index() const = 0;
   } ;
 
-  class init : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<init> sptr;
-
-    typedef std::vector<device_info::sptr> device_list;
-
-    virtual ~init() {}
-    static sptr make();
-
-    virtual int version_number() const = 0;
-    virtual std::string version_text() const = 0; 
-    virtual device_list get_device_list(std::string name="") const = 0;
-  } ;
-
   class stream_info : public boost::noncopyable {
   public:
     typedef boost::shared_ptr<stream_info> sptr;
@@ -70,27 +56,71 @@ namespace portaudio {
     virtual const PaStreamParameters* get() const = 0;
   } ;
 
+  class init : public boost::noncopyable {
+  public:
+    typedef boost::shared_ptr<init> sptr;
+
+    typedef std::vector<device_info::sptr> device_list;
+
+    virtual ~init() {}
+    static sptr make();
+
+    virtual int version_number() const = 0;
+    virtual std::string version_text() const = 0; 
+    virtual device_list get_device_list(std::string name="") const = 0;
+    virtual bool is_format_supported(stream_parameters::sptr input_parameters,
+				     stream_parameters::sptr output_parameters,
+				     double sample_rate) const = 0;
+  } ;
 
   class stream : public boost::noncopyable {
   public:
-    typedef boost::shared_ptr<stream> sptr;
     virtual ~stream() {}
+
+    virtual PaStream* get() = 0;
+    virtual stream_info::sptr get_info() const = 0;
+
+    virtual void abort() = 0;
+    virtual void start() = 0;
+    virtual void stop() = 0;    
+  } ;
+
+
+  class stream_callback : public stream {
+  public:
+    typedef boost::shared_ptr<stream_callback> sptr;
+    virtual ~stream_callback() {}
+
     static sptr make(stream_parameters::sptr input_parameters,
 		     stream_parameters::sptr output_parameters,
 		     double sample_rate,
 		     unsigned long frames_per_buffer,
 		     PaStreamFlags stream_flags);
 
-    virtual void abort() = 0;
-    virtual void start() = 0;
-    virtual void stop() = 0;
+    virtual PaStream* get() = 0;
+    virtual stream_info::sptr get_info() const = 0;
+
     virtual signed long get_write_available() const = 0;
 
     virtual bool is_stopped() const = 0;
     virtual bool is_active() const = 0;
     virtual PaTime get_time() const = 0;
     virtual double get_cpu_load() const = 0;
-    virtual stream_info::sptr get_info() const = 0;
+  } ;
+
+  class stream_blocking : public stream {
+  public:
+    typedef boost::shared_ptr<stream_blocking> sptr;
+    virtual ~stream_blocking() {}
+
+    static sptr make(stream_parameters::sptr input_parameters,
+		     stream_parameters::sptr output_parameters,
+		     double sample_rate,
+		     unsigned long frames_per_buffer,
+		     PaStreamFlags stream_flags);
+
+    virtual void read_data(void* buffer, unsigned long frames) = 0;
+    virtual void write_data(const void* buffer, unsigned long frames) = 0;
   } ;
 
 } // namespace portaudio
