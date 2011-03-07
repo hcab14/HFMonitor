@@ -25,7 +25,7 @@ FIND_PACKAGE(Boost 1.40 REQUIRED COMPONENTS system thread filesystem date_time)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 # Setup portaudio
-FIND_PACKAGE(portaudio REQUIRED)
+FIND_PACKAGE(Portaudio REQUIRED)
 LIST(APPEND _libs ${portaudio_LIBRARY})
 
 IF (APPLE)
