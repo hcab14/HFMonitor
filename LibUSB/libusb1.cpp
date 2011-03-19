@@ -1,99 +1,10 @@
-#include <iostream>
-
-#include <libusb-1.0/libusb.h>
-#include <vector>
-#include <map>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/cstdint.hpp>
 
 #include "util.hpp"
-
-// Top level interface ---------------------------------------------------------
-class usb_device_handle : public boost::noncopyable {
-public:
-  typedef boost::shared_ptr<usb_device_handle> sptr;
-  virtual ~usb_device_handle() {}
-  
-  virtual std::string     get_serial()     const = 0;
-  virtual boost::uint16_t get_vendor_id()  const = 0;
-  virtual boost::uint16_t get_product_id() const = 0;
-  
-  static std::vector<usb_device_handle::sptr>  
-  get_device_list(boost::uint16_t vid, boost::uint16_t pid);
-} ;
+#include "libusb1.hpp"
 
 const int libusb_timeout = 0;
 
-class usb_control : public boost::noncopyable {
-public:
-  typedef boost::shared_ptr<usb_control> sptr;
-  virtual ~usb_control() {}
-
-  static sptr make(usb_device_handle::sptr);
-  virtual ssize_t submit(boost::uint8_t  request_type,
-			 boost::uint8_t  request,
-			 boost::uint16_t value,
-			 boost::uint16_t index, 
-			 unsigned char*  buff,
-			 boost::uint16_t length) = 0;
-} ;
-
 namespace libusb {
-  // Interface -----------------------------------------------------------------
-  class session : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<session> sptr;
-    virtual ~session() {}
-    static sptr get_global_session();
-    virtual libusb_context* get_context() const = 0;
-  private:
-    libusb_context* usb_context;
-  } ;
-
-  class device : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<device> sptr;
-    virtual ~device() {}
-    virtual libusb_device* get() const = 0;
-  } ;
-
-  class device_list : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<device_list> sptr;
-    virtual ~device_list() {}
-    static sptr make();
-    virtual size_t size() const = 0;
-    virtual device::sptr at(size_t index) const = 0;
-  } ;
-  
-  class device_handle : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<device_handle> sptr;
-    virtual ~device_handle() {}
-    static sptr get_cached_handle(device::sptr);
-    virtual libusb_device_handle* get() const = 0;
-    virtual void claim_interface(int) = 0;
-  } ;
-
-  class device_descriptor : public boost::noncopyable {
-  public:
-    typedef boost::shared_ptr<device_descriptor> sptr;
-    virtual ~device_descriptor() {}
-    static sptr make(device::sptr);
-
-    virtual const libusb_device_descriptor& get() const = 0;
-    virtual std::string get_ascii_serial() const = 0;
-  } ;
-
-  class special_handle : public usb_device_handle {
-  public:
-    typedef boost::shared_ptr<special_handle> sptr;
-    static sptr make(device::sptr);
-    virtual device::sptr get_device() const = 0;
-  } ;
-
   // Implementation ------------------------------------------------------------
   class session_impl: public session {
   public:
@@ -186,7 +97,7 @@ namespace libusb {
     }
 
     virtual libusb_device_handle *get() const { return _handle; }
-    virtual void claim_interface(int interface){
+    virtual void claim_interface(int interface) {
       ASSERT_THROW(libusb_claim_interface(this->get(), interface) == 0);
       _claimed.push_back(interface);
     }
@@ -196,7 +107,7 @@ namespace libusb {
     std::vector<int> _claimed;
   } ;
 
-  device_handle::sptr device_handle::get_cached_handle(device::sptr dev){
+  device_handle::sptr device_handle::get_cached_handle(device::sptr dev) {
     static std::map<libusb_device*, boost::weak_ptr<device_handle> > handles;
     if (handles.find(dev->get()) != handles.end() and not handles[dev->get()].expired())
         return handles[dev->get()].lock();
@@ -258,8 +169,8 @@ usb_device_handle::get_device_list(boost::uint16_t vid, boost::uint16_t pid) {
   const libusb::device_list::sptr dev_list(libusb::device_list::make());
   for (size_t i(0); i<dev_list->size(); ++i) {
     usb_device_handle::sptr handle(libusb::special_handle::make(dev_list->at(i)));
-    if (handle->get_vendor_id()  == vid &&
-	handle->get_product_id() == pid)
+    if ((vid == 0 || handle->get_vendor_id()  == vid) &&
+	(pid == 0 || handle->get_product_id() == pid))
       handles.push_back(handle);
   }    
   return handles;
@@ -285,24 +196,8 @@ private:
   const libusb::device_handle::sptr _handle;
 } ;
 
-usb_control::sptr usb_control::make(usb_device_handle::sptr handle){
+usb_control::sptr usb_control::make(usb_device_handle::sptr handle) {
   return sptr(new libusb_control_impl
 	      (libusb::device_handle::get_cached_handle
 	       (boost::static_pointer_cast<libusb::special_handle>(handle)->get_device())));
-}
-
-int main()
-{
-  try {
-    std::vector<usb_device_handle::sptr> dl(usb_device_handle::get_device_list(16710,47617));
-    std::cout << "dl.size() = " << dl.size() << std::endl;
-    for (size_t i=0; i<dl.size(); ++i) {
-      std::cout << i << " "
-		<< dl[i]->get_serial()<< " "
-		<< dl[i]->get_vendor_id()<< " "
-		<< dl[i]->get_product_id()<< " " << std::endl;
-    }
-  } catch (const std::runtime_error& e) {
-    std::cerr << e.what() << std::endl;
-  }
 }

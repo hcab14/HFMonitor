@@ -38,6 +38,9 @@ INCLUDE_DIRECTORIES(
   ${libusb-1.0_INCLUDE_DIR}
   )
 
+ADD_LIBRARY(libusb1 libusb1.cpp)
+LIST(APPEND _libs libusb1)
+
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
 FOREACH(file ${files})
