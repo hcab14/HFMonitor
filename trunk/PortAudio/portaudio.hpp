@@ -1,11 +1,17 @@
 #include <iostream>
 #include <vector>
+#include <stdexcept>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <portaudio.h>
 
 namespace portaudio {
+  class input_overflow : public std::runtime_error {
+  public:
+    input_overflow(std::string msg) 
+      : std::runtime_error(msg) {}
+  } ;
 
   class device_info : public boost::noncopyable {
   public:
@@ -71,6 +77,24 @@ namespace portaudio {
     virtual bool is_format_supported(stream_parameters::sptr input_parameters,
 				     stream_parameters::sptr output_parameters,
 				     double sample_rate) const = 0;
+    virtual void sleep(double seconds) const = 0;
+  } ;
+
+  class callback_info : public boost::noncopyable {
+  public:
+    typedef boost::shared_ptr<callback_info> sptr;
+    virtual ~callback_info() {}
+    
+    virtual PaTime input_buffer_adc_time() const = 0;
+    virtual PaTime current_time() const = 0;
+    virtual PaTime ouput_buffer_dac_time() const = 0;
+    virtual bool input_underflow() const = 0;
+    virtual bool input_overflow() const = 0;
+    virtual bool output_underflow() const = 0;
+    virtual bool output_overflow() const = 0;
+    virtual bool priming_output() const = 0;
+
+    virtual std::string to_string() const = 0;
   } ;
 
   class stream : public boost::noncopyable {
@@ -82,7 +106,10 @@ namespace portaudio {
 
     virtual void abort() = 0;
     virtual void start() = 0;
-    virtual void stop() = 0;    
+    virtual void stop() = 0;
+
+    virtual bool is_stopped() const = 0;
+    virtual bool is_active() const = 0;
   } ;
 
 
@@ -102,10 +129,13 @@ namespace portaudio {
 
     virtual signed long get_write_available() const = 0;
 
-    virtual bool is_stopped() const = 0;
-    virtual bool is_active() const = 0;
     virtual PaTime get_time() const = 0;
     virtual double get_cpu_load() const = 0;
+
+    virtual int process(const void *input_buffer, 
+			void *output_buffer,
+			unsigned long frames_per_buffer,
+			callback_info::sptr info) = 0;
   } ;
 
   class stream_blocking : public stream {

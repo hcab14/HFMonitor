@@ -56,7 +56,10 @@ namespace portaudio {
 					       sample_rate));
       return (err == paNoError);
     }
-    
+    virtual void sleep(double seconds) const {
+      Pa_Sleep(1000*seconds);
+    }
+
   private:
     bool& is_initialized(bool ib=false) { static bool b(ib); return b; }    
   } ;
@@ -155,6 +158,43 @@ namespace portaudio {
 							 suggested_latency));
   }
 
+  class callback_info_impl : public callback_info {
+  public:
+    callback_info_impl(const PaStreamCallbackTimeInfo* p,
+		       PaStreamCallbackFlags flags)
+      : _current_time(p->currentTime)
+      , _input_buffer_adc_time(p->inputBufferAdcTime)
+      , _ouput_buffer_dac_time(p->outputBufferDacTime)
+      , _flags(flags) {}
+    
+    virtual PaTime input_buffer_adc_time() const { return _input_buffer_adc_time; }
+    virtual PaTime current_time() const { return _current_time; }
+    virtual PaTime ouput_buffer_dac_time() const { return _ouput_buffer_dac_time; }
+    virtual bool input_underflow() const { return _flags & paInputUnderflow; }
+    virtual bool input_overflow() const { return _flags & paInputOverflow; }
+    virtual bool output_underflow() const { return _flags & paOutputUnderflow; }
+    virtual bool output_overflow() const { return _flags & paOutputOverflow; }
+    virtual bool priming_output() const { return _flags & paPrimingOutput; }
+
+    virtual std::string to_string() const {
+      std::ostringstream oss;
+      oss << current_time() << " " 
+	  << input_buffer_adc_time() << " "
+	  << ouput_buffer_dac_time() << " "
+	  << (input_underflow() ? " input_underflow " : "")
+	  << (input_overflow() ? " input_overflow " : "")
+	  << (output_underflow() ? " output_underflow " : "")
+	  << (output_overflow() ? " output_overflow " : "")
+	  << (priming_output() ? " priming_output " : "");	  
+      return oss.str();
+    }
+  private:
+    const PaTime _current_time;
+    const PaTime _input_buffer_adc_time;
+    const PaTime _ouput_buffer_dac_time;
+    const PaStreamCallbackFlags _flags;
+  } ;
+
   class stream_callback_impl : public stream_callback {
   public:
     stream_callback_impl(stream_parameters::sptr input_parameters,
@@ -179,9 +219,9 @@ namespace portaudio {
       return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
     }
 
-    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(&_pa_stream)); }
-    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(&_pa_stream)); }
-    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(&_pa_stream)); }
+    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(_pa_stream)); }
+    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(_pa_stream)); }
+    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(_pa_stream)); }
 
     signed long get_write_available() const {
       signed long n(0);
@@ -200,30 +240,30 @@ namespace portaudio {
     }
     virtual PaTime get_time() const {
       const PaTime t(Pa_GetStreamTime(_pa_stream));
-      if (t == 0)
-	throw std::runtime_error(THROW_SITE_INFO("Pa_GetStreamTime returned zero"));
+      if (t == 0) throw std::runtime_error(THROW_SITE_INFO("Pa_GetStreamTime returned zero"));
       return t;
     }
     virtual double get_cpu_load() const { 
       return Pa_GetStreamCpuLoad(_pa_stream); 
     }
 
-    virtual void read_data(void* buffer, unsigned long frames) {
-      ASSERT_THROW_PA(Pa_ReadStream(_pa_stream, buffer, frames));
-    }
-    virtual void write_data(const void* buffer, unsigned long frames) {
-      ASSERT_THROW_PA(Pa_WriteStream(_pa_stream, buffer, frames));
+    virtual int process(const void *input_buffer, 
+			void *output_buffer,
+			unsigned long frames_per_buffer,
+			callback_info::sptr info) {
+      std::cout << "callback called " << frames_per_buffer << " " << info->to_string() << std::endl;
+      return paContinue;
     }
 
   private:
-    static int callback(const void *inputBuffer, void *outputBuffer,
+    static int callback(const void *input_buffer, void *output_buffer,
 			unsigned long frames_per_buffer,
 			const PaStreamCallbackTimeInfo* time_info,
 			PaStreamCallbackFlags status_flags,
 			void *userData) {
       stream_callback_impl* sp(reinterpret_cast<stream_callback_impl*>(userData));
-      // sp-> ...
-      return 0;
+      callback_info::sptr callback_info(new callback_info_impl(time_info, status_flags));
+      return sp->process(input_buffer, output_buffer, frames_per_buffer, callback_info);
     }
 
     PaStream* _pa_stream;
@@ -252,12 +292,23 @@ namespace portaudio {
       return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
     }
 
-    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(&_pa_stream)); }
-    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(&_pa_stream)); }
-    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(&_pa_stream)); }
+    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(_pa_stream)); }
+    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(_pa_stream)); }
+    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(_pa_stream)); }
 
+    virtual bool is_stopped() const {
+      PaError err;
+      ASSERT_THROW_PA(err=Pa_IsStreamStopped(_pa_stream));
+      return (err == 1) ? true : false;
+    }
+    virtual bool is_active() const {
+      PaError err;
+      ASSERT_THROW_PA(err=Pa_IsStreamActive(_pa_stream));
+      return (err == 1) ? true : false;
+    }
     virtual void read_data(void* buffer, unsigned long frames) {
-      ASSERT_THROW_PA(Pa_ReadStream(_pa_stream, buffer, frames));
+      if (Pa_ReadStream(_pa_stream, buffer, frames) == paInputOverflowed) 
+	throw input_overflow(THROW_SITE_INFO("input overflow in Pa_ReadStream"));
     }
     virtual void write_data(const void* buffer, unsigned long frames) {
       ASSERT_THROW_PA(Pa_WriteStream(_pa_stream, buffer, frames));
