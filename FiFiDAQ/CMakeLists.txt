@@ -28,6 +28,10 @@ LIST(APPEND _libs ${Boost_LIBRARIES})
 FIND_PACKAGE(libusb-1.0 REQUIRED)
 LIST(APPEND _libs ${libusb-1.0_LIBRARY})
 
+# Setup portaudio
+FIND_PACKAGE(Portaudio REQUIRED)
+LIST(APPEND _libs ${portaudio_LIBRARY})
+
 IF (APPLE)
    FIND_LIBRARY(COREAUDIO_LIBRARY CoreAudio)
    FIND_LIBRARY(COREFOUNDATION_LIBRARY CoreFoundation )
@@ -36,10 +40,14 @@ ENDIF (APPLE)
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${libusb-1.0_INCLUDE_DIR}
+  ${portaudio_LIBRARY_INCLUDE_DIR}
   )
 
 ADD_LIBRARY(libusb1 libusb1.cpp)
 LIST(APPEND _libs libusb1)
+
+ADD_LIBRARY(portaudio_cpp portaudio.cpp)
+LIST(APPEND _libs portaudio_cpp)
 
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
