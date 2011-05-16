@@ -1,3 +1,5 @@
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id$
 
 #include "util.hpp"
 #include "libusb1.hpp"
@@ -43,9 +45,9 @@ namespace libusb {
       libusb_device** dev_list;
       const ssize_t ret(libusb_get_device_list(s->get_context(), &dev_list));
       if (ret < 0) 
-	throw std::runtime_error("cannot enumerate usb devices");      
+        throw std::runtime_error("cannot enumerate usb devices");      
       for (size_t i(0); i<size_t(ret); ++i) 
-	_devs.push_back(device::sptr(new device_impl(dev_list[i])));      
+        _devs.push_back(device::sptr(new device_impl(dev_list[i])));      
       libusb_free_device_list(dev_list, false/*dont unref*/);
     }
     virtual size_t size() const { return _devs.size(); }
@@ -70,9 +72,9 @@ namespace libusb {
       const device_handle::sptr handle(device_handle::get_cached_handle(_dev));      
       unsigned char buff[512];
       const ssize_t ret(libusb_get_string_descriptor_ascii(handle->get(), 
-							   this->get().iSerialNumber, 
-							   buff, 
-							   sizeof(buff)));
+                                                           this->get().iSerialNumber, 
+                                                           buff, 
+                                                           sizeof(buff)));
       return (ret < 0) ? "" : std::string((char *)buff, ret);
     }
   private:
@@ -92,7 +94,7 @@ namespace libusb {
     }
     ~device_handle_impl() {
       for (size_t i(0); i<_claimed.size(); ++i)
-	libusb_release_interface(this->get(), _claimed[i]);
+        libusb_release_interface(this->get(), _claimed[i]);
       libusb_close(_handle);
     }
 
@@ -170,7 +172,7 @@ usb_device_handle::get_device_list(boost::uint16_t vid, boost::uint16_t pid) {
   for (size_t i(0); i<dev_list->size(); ++i) {
     usb_device_handle::sptr handle(libusb::special_handle::make(dev_list->at(i)));
     if ((vid == 0 || handle->get_vendor_id()  == vid) &&
-	(pid == 0 || handle->get_product_id() == pid))
+        (pid == 0 || handle->get_product_id() == pid))
       handles.push_back(handle);
   }    
   return handles;
@@ -183,14 +185,14 @@ public:
     _handle->claim_interface(0 /* control interface */);
   }  
   virtual ssize_t submit(boost::uint8_t  request_type,
-			 boost::uint8_t  request,
-			 boost::uint16_t value,
-			 boost::uint16_t index,
-			 unsigned char*  buff,
-			 boost::uint16_t length) {
+                         boost::uint8_t  request,
+                         boost::uint16_t value,
+                         boost::uint16_t index,
+                         unsigned char*  buff,
+                         boost::uint16_t length) {
     return libusb_control_transfer(_handle->get(),
-				   request_type, request, value, index, buff, length, 
-				   libusb_timeout);
+                                   request_type, request, value, index, buff, length, 
+                                   libusb_timeout);
   }
 private:
   const libusb::device_handle::sptr _handle;
@@ -198,6 +200,6 @@ private:
 
 usb_control::sptr usb_control::make(usb_device_handle::sptr handle) {
   return sptr(new libusb_control_impl
-	      (libusb::device_handle::get_cached_handle
-	       (boost::static_pointer_cast<libusb::special_handle>(handle)->get_device())));
+              (libusb::device_handle::get_cached_handle
+               (boost::static_pointer_cast<libusb::special_handle>(handle)->get_device())));
 }

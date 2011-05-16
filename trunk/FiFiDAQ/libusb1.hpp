@@ -1,3 +1,7 @@
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id$
+#ifndef _libusb1_hpp_cm_110307_
+#define _libusb1_hpp_cm_110307_
 #include <iostream>
 
 #include <libusb-1.0/libusb.h>
@@ -31,11 +35,11 @@ public:
 
   static sptr make(usb_device_handle::sptr);
   virtual ssize_t submit(boost::uint8_t  request_type,
-			 boost::uint8_t  request,
-			 boost::uint16_t value,
-			 boost::uint16_t index, 
-			 unsigned char*  buff,
-			 boost::uint16_t length) = 0;
+                         boost::uint8_t  request,
+                         boost::uint16_t value,
+                         boost::uint16_t index, 
+                         unsigned char*  buff,
+                         boost::uint16_t length) = 0;
 } ;
 
 namespace libusb {
@@ -91,3 +95,4 @@ namespace libusb {
     virtual device::sptr get_device() const = 0;
   } ;
 }
+#endif // _libusb1_hpp_cm_110307_

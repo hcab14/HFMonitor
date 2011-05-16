@@ -1,3 +1,7 @@
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id$
+#ifndef _portaudio_hpp_cm110307_
+#define _portaudio_hpp_cm110307_
 #include <iostream>
 #include <vector>
 #include <stdexcept>
@@ -51,9 +55,9 @@ namespace portaudio {
     virtual ~stream_parameters() {}
 
     static sptr make(PaDeviceIndex device_index= 0,
-		     int channel_count = 0,
-		     PaSampleFormat sample_format = 0,
-		     PaTime suggested_latency = 0);
+                     int channel_count = 0,
+                     PaSampleFormat sample_format = 0,
+                     PaTime suggested_latency = 0);
 
     virtual PaDeviceIndex device_index() const = 0;
     virtual int channel_count() const = 0;
@@ -75,8 +79,8 @@ namespace portaudio {
     virtual std::string version_text() const = 0; 
     virtual device_list get_device_list(std::string name="") const = 0;
     virtual bool is_format_supported(stream_parameters::sptr input_parameters,
-				     stream_parameters::sptr output_parameters,
-				     double sample_rate) const = 0;
+                                     stream_parameters::sptr output_parameters,
+                                     double sample_rate) const = 0;
     virtual void sleep(double seconds) const = 0;
   } ;
 
@@ -119,10 +123,10 @@ namespace portaudio {
     virtual ~stream_callback() {}
 
     static sptr make(stream_parameters::sptr input_parameters,
-		     stream_parameters::sptr output_parameters,
-		     double sample_rate,
-		     unsigned long frames_per_buffer,
-		     PaStreamFlags stream_flags);
+                     stream_parameters::sptr output_parameters,
+                     double sample_rate,
+                     unsigned long frames_per_buffer,
+                     PaStreamFlags stream_flags);
 
     virtual PaStream* get() = 0;
     virtual stream_info::sptr get_info() const = 0;
@@ -133,9 +137,9 @@ namespace portaudio {
     virtual double get_cpu_load() const = 0;
 
     virtual int process(const void *input_buffer, 
-			void *output_buffer,
-			unsigned long frames_per_buffer,
-			callback_info::sptr info) = 0;
+                        void *output_buffer,
+                        unsigned long frames_per_buffer,
+                        callback_info::sptr info) = 0;
   } ;
 
   class stream_blocking : public stream {
@@ -144,13 +148,14 @@ namespace portaudio {
     virtual ~stream_blocking() {}
 
     static sptr make(stream_parameters::sptr input_parameters,
-		     stream_parameters::sptr output_parameters,
-		     double sample_rate,
-		     unsigned long frames_per_buffer,
-		     PaStreamFlags stream_flags);
+                     stream_parameters::sptr output_parameters,
+                     double sample_rate,
+                     unsigned long frames_per_buffer,
+                     PaStreamFlags stream_flags);
 
     virtual void read_data(void* buffer, unsigned long frames) = 0;
     virtual void write_data(const void* buffer, unsigned long frames) = 0;
   } ;
 
 } // namespace portaudio
+#endif // _portaudio_hpp_cm110307_

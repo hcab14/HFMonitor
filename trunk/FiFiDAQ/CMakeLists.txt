@@ -43,11 +43,14 @@ INCLUDE_DIRECTORIES(
   ${portaudio_LIBRARY_INCLUDE_DIR}
   )
 
-ADD_LIBRARY(libusb1 libusb1.cpp)
-LIST(APPEND _libs libusb1)
 
 ADD_LIBRARY(portaudio_cpp portaudio.cpp)
 LIST(APPEND _libs portaudio_cpp)
+
+#ADD_LIBRARY(libusb1 libusb1.cpp)
+#LIST(APPEND _libs libusb1)
+ADD_LIBRARY(fifi_control_cpp libusb1.cpp fifi_control.cpp)
+LIST(APPEND _libs fifi_control_cpp)
 
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
