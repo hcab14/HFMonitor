@@ -1,4 +1,4 @@
-# -*- mode: cmake -*-
+# -*- mode: cmake; indent-tabs-mode: nil -*-
 # $Id$
 #
 # portaudio_INCLUDE_DIR
@@ -11,12 +11,7 @@ FIND_PATH(portaudio_INCLUDE_DIR portaudio.h
   /opt/local/include
   )
 
-SET(_libusb libportaudio)
-IF (APPLE)
-  SET(_libusb libportaudio.dylib)
-ENDIF (APPLE)
-
-FIND_LIBRARY(portaudio_LIBRARY NAMES ${_libusb} PATH 
+FIND_LIBRARY(portaudio_LIBRARY NAMES portaudio PATHS
   /usr/lib
   /usr/local/lib
   /opt/local/lib

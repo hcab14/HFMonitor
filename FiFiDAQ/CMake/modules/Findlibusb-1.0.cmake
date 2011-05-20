@@ -1,4 +1,4 @@
-# -*- mode: cmake -*-
+# -*- mode: cmake; indent-tabs-mode: nil -*-
 # $Id$
 #
 # libusb-1.0_INCLUDE_DIR
@@ -11,12 +11,7 @@ FIND_PATH(libusb-1.0_INCLUDE_DIR libusb-1.0/libusb.h
   /opt/local/include
   )
 
-SET(_libusb libusb-1.0)
-IF (APPLE)
-  SET(_libusb libusb-1.0.dylib)
-ENDIF (APPLE)
-
-FIND_LIBRARY(libusb-1.0_LIBRARY NAMES ${_libusb} PATH 
+FIND_LIBRARY(libusb-1.0_LIBRARY NAMES usb-1.0 PATHS
   /usr/lib
   /usr/local/lib
   /opt/local/lib

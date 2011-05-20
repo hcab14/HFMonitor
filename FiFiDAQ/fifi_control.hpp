@@ -13,8 +13,8 @@ namespace FiFiSDR {
     public:
       presel_entry() : freq1_(0), freq2_(0), pattern_(0) {}
       presel_entry(double freq1, double freq2, boost::uint8_t pattern);
-      double freq1() const;
-      double freq2() const;
+      double freq1() const; // in MHz
+      double freq2() const; // in MHz
       double pattern() const { return pattern_; }
     private:
       boost::uint32_t freq1_; // counter
@@ -52,8 +52,8 @@ namespace FiFiSDR {
     virtual boost::uint32_t get_presel_mode() const   = 0;
     virtual void set_presel_mode(boost::uint32_t mode) = 0;
 
-    virtual presel_entry get_presel_entry(size_t index) const       = 0;
-    virtual void set_presel_mode(size_t index, const presel_entry&) = 0;
+    virtual presel_entry get_presel_entry(size_t index) const        = 0;
+    virtual void set_presel_entry(size_t index, const presel_entry&) = 0;
 
     virtual boost::uint8_t get_i2c_addr() const = 0;
     // virtual void set_i2c_addr(boost::uint8_t)   = 0;
