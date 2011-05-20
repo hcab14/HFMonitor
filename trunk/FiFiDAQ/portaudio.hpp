@@ -122,11 +122,26 @@ namespace portaudio {
     typedef boost::shared_ptr<stream_callback> sptr;
     virtual ~stream_callback() {}
 
+    class process_base {
+    public:
+      typedef boost::shared_ptr<process_base> sptr;
+      virtual ~process_base() {}
+      virtual bool is_running() const { return true; }
+      virtual int process(const void *input_buffer, 
+                          void *output_buffer,
+                          unsigned long frames_per_buffer,
+                          callback_info::sptr info) {
+        std::cout << "process_base callback called " << frames_per_buffer << " " << info->to_string() << std::endl;
+        return paContinue;
+      }
+    } ;
+
     static sptr make(stream_parameters::sptr input_parameters,
                      stream_parameters::sptr output_parameters,
                      double sample_rate,
                      unsigned long frames_per_buffer,
-                     PaStreamFlags stream_flags);
+                     PaStreamFlags stream_flags,
+                     process_base::sptr p);
 
     virtual PaStream* get() = 0;
     virtual stream_info::sptr get_info() const = 0;
@@ -136,10 +151,7 @@ namespace portaudio {
     virtual PaTime get_time() const = 0;
     virtual double get_cpu_load() const = 0;
 
-    virtual int process(const void *input_buffer, 
-                        void *output_buffer,
-                        unsigned long frames_per_buffer,
-                        callback_info::sptr info) = 0;
+    virtual process_base::sptr get_processor() = 0;
   } ;
 
   class stream_blocking : public stream {

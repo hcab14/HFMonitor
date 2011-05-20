@@ -1,9 +1,9 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
+#include <vector>
 #include "fifi_control.hpp"
 
-namespace FiFiSDR {
-  
+namespace FiFiSDR {  
   class receiver_control_impl : public receiver_control {
   public:
     receiver_control_impl(usb_device_handle::sptr usb_device)
@@ -69,7 +69,7 @@ namespace FiFiSDR {
       ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, index, 7, (unsigned char *)&pe, 9) == 9);
       return pe;
     }
-    virtual void set_presel_mode(size_t index, const presel_entry& pe) {
+    virtual void set_presel_entry(size_t index, const presel_entry& pe) {
       ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAB, index, 7, (unsigned char *)&pe, 9) == 9);
     }
 
