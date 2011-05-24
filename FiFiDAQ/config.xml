@@ -1,0 +1,21 @@
+<FiFiDAQ>
+  <FiFi-SDR vendorID="5824"
+	    productID="1500"
+	    audioDeviceName="UDA1361 Eingang"
+	    sampleRate_Hz="96000">
+  </FiFi-SDR>
+  <Actions>
+    <FFTPowerSpectrum label="_49m_A_"
+	centerFrequency_Hz="6000e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <!--
+    <FFTPowerSpectrum label="_49m_B_"
+		      centerFrequency_Hz="6100e3"
+		      frequencyResolution_Hz="10"
+		      numAverage="10">      
+    </FFTPowerSpectrum>
+-->
+  </Actions>
+</FiFiDAQ>
