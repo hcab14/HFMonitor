@@ -2,6 +2,7 @@
 // $Id$
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <octave/oct.h>
 #include <octave/Matrix.h>
 #include <octave/ov.h>
@@ -9,7 +10,9 @@
 #include <octave/ls-mat5.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -57,88 +60,110 @@ portaudio::device_info::sptr find_portaudio_device(const boost::property_tree::p
 
 class mat_spectrum_saver {
 public:
+  typedef boost::property_tree::ptree ptree;
   typedef boost::posix_time::ptime ptime;
-  mat_spectrum_saver(std::string name)
-    : name_(name)
+
+  mat_spectrum_saver(const ptree& config_proc, 
+                     const ptree& config_saver)
+    : name_(config_proc.get<std::string>("<xmlattr>.label"))
+    , byte_limit_(1024*get_opt_def<size_t>(config_proc, config_saver, "<xmlattr>.maxBufferSize_kB", 500))
+    , base_path_(get_opt_def<std::string>(config_proc, config_saver, "<xmlattr>.dataPath", "Data/"))
+    , minutes_(std::min(size_t(60), 
+                        get_opt_def<size_t>(config_proc, config_saver, "<xmlattr>.minutesPerFile", 10)))
     , compress_(false)
     , save_as_floats_(false)
+    , mat7_format_(true)
     , global_(false)
     , pos_(0)
-    , counter_(0) {}
-
+    , counter_(0)
+    , current_data_size_(0) {}
+  
   template<typename fft_type>
   void save_spectrum(const frequency_vector<fft_type>& spec, ptime t) {
-    const std::string filename(gen_filename(t));
-    Matrix old_spec;
-    Matrix old_time;
-    if (not boost::filesystem::exists(filename)) {
-      std::ofstream ofs(filename.c_str(), std::ios::binary);
+    const boost::filesystem::path filepath(gen_filepath(t));
+    if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
+      std::cerr << "file '" << filepath << "' exists and will be overwritten" << std::endl;
+      boost::filesystem::remove(filepath);        
+    }
+    if (not boost::filesystem::exists(filepath)) {
+      boost::filesystem::ofstream ofs(filepath, std::ios::binary);
       write_header(ofs, load_save_format(LS_MAT5_BINARY));
-      freq_.resize(1, spec.size());
-      spec_.resize(0, spec.size());
-      time_.resize(0, 1);
+      freq_ = Matrix(1, spec.size());
+      spec_ = int16NDArray(dim_vector(0, spec.size()));
+      time_ = Matrix(0, 1);
       for (size_t i=0; i<spec.size(); ++i)
         freq_.elem(0, i) = spec[i].first;
-      counter_ = 0;
-      save_mat5_binary_element(ofs, freq_, "freq_Hz",               global_, false, save_as_floats_, compress_);
+      counter_ = current_data_size_ = 0 ;
+      save_mat_var(ofs, freq_, "freq_Hz");
       pos_ = ofs.tellp(); 
-      save_mat5_binary_element(ofs, spec_, "spec"+varname_suffix(), global_, false, save_as_floats_, compress_);
-      save_mat5_binary_element(ofs, time_, "time"+varname_suffix(), global_, false, save_as_floats_, compress_);
-    } else {
-      // std::ofstream ifs(filename.c_str());
-      // bool swap(true);
-      // read_mat5_binary_file_header(ifs, swap, true, filename);      
+      save_mat_var(ofs, spec_, "spec"+varname_suffix());
+      save_mat_var(ofs, time_, "time"+varname_suffix());
     }
-    
-    std::fstream ifs(filename.c_str(), std::ios::binary | std::ios::in | std::ios::out);
-    ifs.seekg(pos_);
+#if 0    
     std::string name("");
     std::string vs(varname_suffix());
     bool swap(false);
     octave_value ov;
     // while ((name=read_mat5_binary_element(ifs, "", swap, global_, ov)) !="")  {
-    name=read_mat5_binary_element(ifs, "", swap, global_, ov);
-    if (name == "spec"+varname_suffix()) {
-      old_spec = ov.matrix_value(); std::cout << "--- found spec ---" <<std::endl; }
-    name=read_mat5_binary_element(ifs, "", swap, global_, ov);
-    if (name == "time"+varname_suffix()) {
+    name= read_mat5_binary_element(ifs, "", swap, global_, ov);
+    if (name == "spec_"+varname_suffix()) {
+      old_spec = ov.int16_array_value(); std::cout << "--- found spec ---" <<std::endl; }
+    name= read_mat5_binary_element(ifs, "", swap, global_, ov);
+    if (name == "time_"+varname_suffix()) {
       old_time = ov.matrix_value(); std::cout << "--- found time ---" <<std::endl; }
   // }
+#endif
+    int16NDArray old_spec(spec_);
+    Matrix       old_time(time_);
+    size_t n(old_spec.rows()); 
 
-    size_t n = old_spec.rows(); 
-
-    if (n > 2) {
-      n    = 0;
+    std::cout<< "--- current_data_size_ = " 
+             << current_data_size_ << " " 
+             << old_spec.byte_size() + old_time.byte_size() << std::endl;
+    if (current_data_size_ > byte_limit_) {
+      n = 0;
+      current_data_size_ = 0;
       counter_++;
+      boost::filesystem::ifstream ifs(filepath, std::ios::binary);
       ifs.seekg(0, std::ios::end);
-      pos_ = ifs.tellg(); std::cout << "--- new pos "  << pos_ << " ---" << std::endl;
-      pos_ = ifs.tellp(); std::cout << "--- new pos "  << pos_ << " ---" << std::endl;
-      old_spec = Matrix(0, spec.size());
-      old_time = Matrix(0, 1);
+      pos_ = ifs.tellg();
+      old_spec.resize(dim_vector(0, spec.size()));
+      old_time.resize(0, 1);
     }
-    Matrix ospec(n+1, spec.size());
-    Matrix otime(n+1, 1);
+    spec_.resize(dim_vector(n+1, spec.size()));
+    time_.resize(n+1, 1);
 
-    ospec.insert(old_spec, 0,0);
-    otime.insert(old_time, 0,0);
+    spec_.insert(old_spec, 0, 0);
+    time_.insert(old_time, 0, 0);
     for (size_t i=0; i<spec.size(); ++i)
-      ospec.elem(n, i) = 20.*std::log10(spec[i].second);
-    otime(n, 0) = ptime_to_datenum(t);
-
-    std::cout << "--- spec n,m = " << ospec.rows() << "," << ospec.cols() << " ---" << std::endl;
-    std::cout << "--- time n,m = " << otime.rows() << "," << otime.cols() << " ---" << std::endl;
+      spec_.elem(n, i) = boost::int16_t(100 * 20.*std::log10(spec[i].second) + 0.5);
+    time_.elem(n, 0) = ptime_to_datenum(t);
 
     // overwrite old variables with new ones
-    std::fstream ofs(filename.c_str(), std::ios::binary | std::ios::in | std::ios::out);
+    boost::filesystem::fstream ofs(filepath, std::ios::binary | std::ios::in | std::ios::out);
     ofs.seekp(pos_);
-    save_mat5_binary_element(ofs, ospec, "spec"+varname_suffix(), global_, false, save_as_floats_, compress_);
-    save_mat5_binary_element(ofs, otime, "time"+varname_suffix(), global_, false, save_as_floats_, compress_);        
-    // save_mat5_binary_element(fs, ospec, "spec"+varname_suffix(), global_, false, save_as_floats_, compress_);
-    // save_mat5_binary_element(fs, otime, "time"+varname_suffix(), global_, false, save_as_floats_, compress_);        
+    save_mat_var(ofs, spec_, "spec_"+varname_suffix());
+    save_mat_var(ofs, time_, "time_"+varname_suffix());
+    current_data_size_ = ofs.tellp() - pos_;
   }
 protected:
-  std::string gen_filename(ptime t) const {
-    return name_+".mat";
+  bool save_mat_var(std::ostream& os,
+                    const octave_value& ov,
+                    std::string varname) const {
+    return save_mat5_binary_element(os, ov, varname, global_, mat7_format_, save_as_floats_, compress_);
+  }
+  boost::filesystem::path gen_filepath(ptime t) const {
+    boost::filesystem::path p(base_path_+"/"+name_);
+    boost::filesystem::create_directories(p);
+
+    std::stringstream oss;
+    oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("y%Y-m%m-d%d_H%HM%M")));
+    const boost::posix_time::time_duration td(t.time_of_day());         
+    t= boost::posix_time::ptime(t.date(), 
+                                boost::posix_time::time_duration(td.hours(), 
+                                                                 minutes_*(td.minutes()/minutes_), 0));
+    oss << t << ".mat";
+    return p/=(oss.str());
   }
   std::string varname_suffix() const {
     return str(boost::format("%04X") % counter_);
@@ -149,15 +174,25 @@ protected:
     const time_duration dt(p - ptime(date(1970, Jan, 1)));
     return 719529.+double(dt.ticks())/(60.*60.*24.*time_duration::ticks_per_second());
   }
+  template<typename T>
+  static
+  T get_opt_def(const ptree& p1, const ptree& p2, std::string name, T def) {
+    return p1.get<T>(name, p2.get<T>(name, def));
+  }
 private:
   const std::string name_;
+  const size_t      byte_limit_;
+  const std::string base_path_;
+  const size_t      minutes_;
   const bool        compress_;
   const bool        save_as_floats_;
+  const bool        mat7_format_;
   bool              global_;
   std::streampos    pos_;
   size_t            counter_;
+  size_t            current_data_size_;
   Matrix            freq_;
-  Matrix            spec_;
+  int16NDArray      spec_;
   Matrix            time_;  
 } ;
 
@@ -171,16 +206,20 @@ public:
   typedef boost::posix_time::ptime ptime;
   typedef boost::posix_time::time_duration time_duration;
 
-  pa_fft(const ptree& config, double sample_rate)
+  pa_fft(const ptree& config, 
+         const ptree& config_saver, 
+         double sample_rate)
     : center_frequency_(config.get<double>("<xmlattr>.centerFrequency_Hz"))
     , sample_rate_(sample_rate)
     , frames_(sample_rate_/config.get<double>("<xmlattr>.frequencyResolution_Hz"))
-    , numAverage_(config.get<size_t>("<xmlattr>.numAverage"))
+    , num_average_(config.get<size_t>("<xmlattr>.numAverage"))
     , fft_(frames_, FFTW_FORWARD, FFTW_ESTIMATE)
-    , ps_(center_frequency_-47e3, center_frequency_+47e3, sample_rate_, 0)
+    , ps_(config.get<double>("<xmlattr>.frequencyMin_Hz", center_frequency_-0.5*47/48*sample_rate_),
+          config.get<double>("<xmlattr>.frequencyMax_Hz", center_frequency_+0.5*47/48*sample_rate_), 
+          sample_rate_, 0)
     , ps_sum_(ps_)
     , counter_(0)
-    , saver_(config.get<std::string>("<xmlattr>.label")) {}
+    , saver_(config, config_saver) {}
 
   virtual ~pa_fft() {}
 
@@ -194,8 +233,8 @@ public:
     Matrix time;
   } ;
 
-  static sptr make(const ptree& config, double sample_rate) {
-    return sptr(new pa_fft(config, sample_rate));
+  static sptr make(const ptree& config, const ptree& config_saver, double sample_rate) {
+    return sptr(new pa_fft(config, config_saver, sample_rate));
   }
 
   double center_frequency() const { return center_frequency_; }
@@ -209,31 +248,32 @@ public:
                       void *output_buffer,
                       unsigned long frames_per_buffer,
                       portaudio::callback_info::sptr info) {
-    std::cout << "pa_fft callback called " << frames_per_buffer << " " << info->to_string() 
-              << " " << info->input_buffer_adc_time() - info->current_time() << std::endl;
+    // std::cout << "pa_fft callback called " << frames_per_buffer << " " << info->to_string() 
+    //           << " " << info->input_buffer_adc_time() - info->current_time() << std::endl;
     fft_vector::const_iterator begin(static_cast<const fft_vector::value_type*>(input_buffer));
     fft_vector::const_iterator end(begin+frames_per_buffer);
     fft_.transformRange(begin, end, FFT::WindowFunction::Blackman<FFTType>());
     FFTWSpectrum<FFTType> fs(fft_, sample_rate_, center_frequency_);
     ps_.fill(fs, std::abs<double>);
-    if (counter_++==0) 
+    if (counter_++ == 0) 
       ps_sum_ = ps_;
     else 
       ps_sum_ += ps_;
-    if (counter_ == numAverage_) {
-      ps_sum_ /= numAverage_;
+    if (counter_ == num_average_) {
+      ps_sum_ /= num_average_;
       const ptime now(boost::posix_time::microsec_clock::universal_time());
-      saver_.save_spectrum(ps_sum_, now);
+      const time_duration dt(0, 0, 0,
+                             num_average_/2 * frames_per_buffer/sample_rate_*time_duration::ticks_per_second());
+      saver_.save_spectrum(ps_sum_, now-dt);
     }
-    std::cout << "#c = " << counter_ << std::endl;
-    return (counter_ == numAverage_) ? paAbort : paContinue;
+    return (counter_ == num_average_) ? paAbort : paContinue;
   }
 protected:
 private:
   const double center_frequency_;
   const double sample_rate_;
   const size_t frames_;
-  const size_t numAverage_;
+  const size_t num_average_;
   FFT::FFTWTransform<FFTType> fft_;
   frequency_vector<FFTType> ps_;
   frequency_vector<FFTType> ps_sum_;
@@ -248,6 +288,7 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(filename, config, boost::property_tree::xml_parser::no_comments);
     const boost::property_tree::ptree& config_fifi_daq(config.get_child("FiFiDAQ.FiFi-SDR"));
+    const boost::property_tree::ptree& config_saver(config.get_child("FiFiDAQ.MatSaver"));
     const boost::property_tree::ptree& config_actions(config.get_child("FiFiDAQ.Actions"));
 
     portaudio::init::sptr pa(portaudio::init::make());
@@ -275,7 +316,7 @@ int main(int argc, char* argv[])
         std::cout << "action: " << action.first << " name= "<< action_name << std::endl;
         if (action.first == "FFTPowerSpectrum") {
           if (procs.find(action_name) == procs.end())
-            procs.insert(std::make_pair(action_name, pa_fft::make(action.second, sample_rate)));
+            procs.insert(std::make_pair(action_name, pa_fft::make(action.second, config_saver, sample_rate)));
           
           portaudio::stream_callback::sptr
             sb(portaudio::stream_callback::make(input_parameters,
