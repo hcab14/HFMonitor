@@ -6,13 +6,15 @@
   </FiFi-SDR>
   <MatSaver dataPath="Data"
 	    maxBufferSize_kB="100"
-	    minutesPerFile="1">
+	    minutesPerFile="60">
   </MatSaver>
   <Actions>
     <FFTPowerSpectrum label="_49m_A_"
 		      centerFrequency_Hz="6005e3"
-		      frequencyResolution_Hz="10"
-		      numAverage="1">
+		      frequencyMin_Hz="5985e3"
+		      frequencyMax_Hz="6040e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
     </FFTPowerSpectrum>
 <!-- 
    <FFTPowerSpectrum label="_49m_B_"

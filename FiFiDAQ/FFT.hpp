@@ -4,6 +4,7 @@
 #define _FFT_HPP_cm100823_
 
 #include <complex>
+#include <stdexcept>
 #include <fftw3.h>
 
 namespace FFT {  
@@ -90,16 +91,26 @@ namespace FFT {
       FFTWArray(size_t n)
         : n_(n)
         , a_(Traits::malloc(n))
-        , norm_(n_) {}
+        , norm_(n_)
+        , destroy_(true) {}
+
+      // shared data with 'in' array
+      // !! the user is responsible for keeping 'in' alive while this array is used !!
+      FFTWArray(FFTWArray& in)
+        : n_(in.size())
+        , a_(in.begin())
+        , norm_(n_)
+        , destroy_(false) {}
       
       template<typename WINDOW_FCN>
       FFTWArray(const std::vector<std::complex<double> >& v,
                 const WINDOW_FCN& window_fcn)
         : n_(v.size())
         , a_(Traits::malloc(n_))
-        , norm_(fill(v, window_fcn)) {}
+        , norm_(fill(v, window_fcn))
+        , destroy_(true) {}
       
-      ~FFTWArray() { Traits::free(a_); }
+      ~FFTWArray() { if (destroy_) Traits::free(a_); }
       
       size_t size() const { return n_; }
       T norm() const { return norm_; }
@@ -133,6 +144,7 @@ namespace FFT {
       }
       
       void resize(size_t n) {
+        if (not destroy_) throw std::runtime_error("you are trying to resize a copy of a FFTWArray!!");
         if (n != n_) {
           Traits::free(a_); 
           n_= n;
@@ -143,6 +155,7 @@ namespace FFT {
       size_t n_;
       Complex *a_;
       T norm_;
+      const bool destroy_;
     } ;
   } // namespace Internal
 
@@ -163,6 +176,14 @@ namespace FFT {
       , sign_(sign)
       , flags_(flags)
       , plan_(plan_dft_1d(n, in_.begin(), out_.begin(), sign, flags))
+      , normalizationFactor_(1.0/in_.norm()) {}    
+
+    FFTWTransform(Internal::FFTWArray<T>& in, int sign, unsigned flags)
+      : in_(in)
+      , out_(in.size())
+      , sign_(sign)
+      , flags_(flags)
+      , plan_(plan_dft_1d(in.size(), in_.begin(), out_.begin(), sign, flags))
       , normalizationFactor_(1.0/in_.norm()) {}    
     
     template<typename WINDOW_FCN>
@@ -214,6 +235,11 @@ namespace FFT {
       execute(plan_);
     }
 
+    void transform() {
+      normalizationFactor_= 1;
+      execute(plan_);
+    }
+
     size_t size() const { return in_.size(); }
 
     // corrected for spread due to window function
@@ -227,9 +253,13 @@ namespace FFT {
       return v;
     }
 
-    std::complex<T> getInBin(size_t u) const { 
-      return std::complex<T>(in_[u][0], in_[u][1]);
-    }
+    Internal::FFTWArray<T>& in()  { return in_; }
+    std::complex<T>& in(size_t index) { return reinterpret_cast<std::complex<T>&>(in_[index]); }
+    const std::complex<T>& in(size_t index) const { return reinterpret_cast<const std::complex<T>&>(in_[index]); }
+
+    Internal::FFTWArray<T>& out() { return out_; }
+    std::complex<T>& out(size_t index) { return reinterpret_cast<std::complex<T>&>(out_[index]); }
+    const std::complex<T>& out(size_t index) const { return reinterpret_cast<const std::complex<T>&>(out_[index]); }
 
   protected:
   private:
