@@ -22,6 +22,23 @@ public:
     , ifft_(fft_.out(), -1, FFTW_ESTIMATE)
     , h_(l+m-1,0) {}
 
+  static size_t design_optimal(size_t m) {
+    size_t n(1);
+    while (n < m+1) 
+      n *= 2;
+    double x     = complexity(n, m);
+    double x_old = 2.*x+1.;
+    while (x < x_old) {
+      x_old = x;
+      n    *= 2;
+      x     = complexity(n, m);
+    }
+    return n/2;
+  }
+  static double complexity(size_t n, size_t m) {
+    return (n+2.*n*std::log(n)/std::log(2))/(double(n)-double(m)+1.);
+  }
+
   template<typename U>
   void update_filter_coeff(const typename std::vector<U>& b) {
     if (b.size() != m_)

@@ -32,4 +32,13 @@ int main()
   }
   std::cout << "];\n";
 #endif
+  typedef overlap_save<float_type> ols;
+  std::cerr << "do " << 100 << " " << ols::design_optimal(100) << std::endl;
+  std::cerr << "do " << 200 << " " << ols::design_optimal(200) << std::endl;
+  std::cerr << "do " << 500 << " " << ols::design_optimal(500) << std::endl;
+  std::cerr << "do " << 1000 << " " << ols::design_optimal(1000) << std::endl;
+  std::cerr << "do " << 2000 << " " << ols::design_optimal(2000) << std::endl;
+  std::cerr << "do " << 5000 << " " << ols::design_optimal(5000) << std::endl;
+  std::cerr << "do " << 10000 << " " << ols::design_optimal(10000) << std::endl;
+  std::cerr << "do " << 50000 << " " << ols::design_optimal(50000) << std::endl;
 }
