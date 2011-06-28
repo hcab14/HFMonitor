@@ -49,7 +49,7 @@ namespace FIR {
       const size_t n(b_.size());
       float_t sum(0);
       for (size_t i=0; i<n; ++i) {
-        b_[i] = ifft.getBin((m+ i - n/2) % m).real() * win_function(i, n);
+        b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i, n);
         sum += b_[i];
       }
 
