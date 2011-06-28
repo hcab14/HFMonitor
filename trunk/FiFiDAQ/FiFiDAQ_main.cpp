@@ -72,7 +72,7 @@ public:
                         get_opt_def<size_t>(config_proc, config_saver, "<xmlattr>.minutesPerFile", 10)))
     , compress_(false)
     , save_as_floats_(false)
-    , mat7_format_(true)
+    , mat7_format_(false)
     , global_(false)
     , pos_(0)
     , counter_(0)
@@ -99,20 +99,6 @@ public:
       save_mat_var(ofs, spec_, "spec"+varname_suffix());
       save_mat_var(ofs, time_, "time"+varname_suffix());
     }
-#if 0    
-    std::string name("");
-    std::string vs(varname_suffix());
-    bool swap(false);
-    octave_value ov;
-    // while ((name=read_mat5_binary_element(ifs, "", swap, global_, ov)) !="")  {
-    name= read_mat5_binary_element(ifs, "", swap, global_, ov);
-    if (name == "spec_"+varname_suffix()) {
-      old_spec = ov.int16_array_value(); std::cout << "--- found spec ---" <<std::endl; }
-    name= read_mat5_binary_element(ifs, "", swap, global_, ov);
-    if (name == "time_"+varname_suffix()) {
-      old_time = ov.matrix_value(); std::cout << "--- found time ---" <<std::endl; }
-  // }
-#endif
     int16NDArray old_spec(spec_);
     Matrix       old_time(time_);
     size_t n(old_spec.rows()); 
@@ -335,18 +321,6 @@ int main(int argc, char* argv[])
           throw std::runtime_error("unknown action " + action.first);
       }
     }
-    
-    std::cout << "frequency = " << rec->get_frequency() << std::endl;
-    rec->set_frequency(10.0);
-    std::cout << "frequency = " << rec->get_frequency() << std::endl;
-
-    std::cout << "xtal frequency = " << rec->get_xtal_frequency() << std::endl;
-    rec->set_xtal_frequency(rec->get_xtal_frequency());
-    std::cout << "xtal frequency = " << rec->get_xtal_frequency() << std::endl;
-
-    FiFiSDR::receiver_control::presel_entry pe = rec->get_presel_entry(0);
-    std::cout << "f1,f2,num_abpf= " << pe.freq1() << " "<< pe.freq2() << " " << rec->num_abpf() << std::endl;
-
   } catch (const std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
   }
