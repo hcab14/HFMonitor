@@ -229,7 +229,7 @@ namespace filter {
       s_ = modulo(s_+s);
       return s_;
     }
-    void reset(STATE s=0) { s_=s; }
+    void reset(STATE s=0) { s_=modulo(s); }
   protected:
   private:
     STATE modulo(STATE s) const {
