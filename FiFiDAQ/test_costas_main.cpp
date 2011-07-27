@@ -4,11 +4,11 @@
 
 int main()
 {
-  const double fs(1000.);
-  const double tc(   0.1);
-  const double fc( 100.);
+  const double fs(500.);
+  const double tc(  0.02);
+  const double fc( 10.);
   
-  const double alpha(0.1);
+  const double alpha(0.5);
   const double beta(alpha*alpha/4.);
 
   typedef filter::costas<double, 
@@ -25,19 +25,17 @@ int main()
 		integ_freq,
 		integ_phase);
   // generate input and invoke pll
-  const size_t n(10*1000);
+  const size_t n(5*1000);
 
   std::cout << "out=[\n";
   for (size_t i=0; i<n; ++i) {
-    const double t(double(i)*2*M_PI*fc/fs);
-    const complex_type s(  std::exp(complex_type(0., t)) 
-			 + std::cos(double(i)*2*M_PI*5./fs)
-			 + 0.1*complex_type(drand48()-0.5, drand48()-0.5));
+    const double t(0.5+double(i)*2*M_PI*(fc+1)/fs);
+    const complex_type s(  std::exp(complex_type(0., t)) * std::cos(double(i)*2*M_PI*1./fs)
+			 + 0.5*complex_type(drand48()-0.5, drand48()-0.5));
 
     p.process(s);
     std::cout << s.real()  << " " << s.imag() << " "
-	      << p.theta() << " " << p.f1() << " "
-	      << p.err() << " " << p.signal() << std::endl;
+	      << p.theta() << " " << p.f1() << std::endl;
   }
   std::cout << "];\n";
 }
