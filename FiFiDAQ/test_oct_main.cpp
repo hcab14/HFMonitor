@@ -1,3 +1,5 @@
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id: test_wav_main.cpp 128 2011-07-20 17:57:47Z cmayer $
 #include <iostream>
 #include <fstream>
 #include <complex>
@@ -62,13 +64,13 @@ int main()
     std::cout << "aaa " << mm.rows() << "," << mm.cols() << std::endl;
     while ((name=read_mat5_binary_element(ifs, "", swap, global, ov)) !="")  {
       if (name == "matrix_a") {
-	Matrix m(ov.matrix_value());	
-	mm.insert(m, 0,0);
-	for (int i=0; i<3; ++i) {
-	  for (int j=0; j<10; ++j) {
-	    std::cout << i << " "<< j << " "<< mm.elem(i,j) << std::endl;
-	  }
-	}
+        Matrix m(ov.matrix_value());    
+        mm.insert(m, 0,0);
+        for (int i=0; i<3; ++i) {
+          for (int j=0; j<10; ++j) {
+            std::cout << i << " "<< j << " "<< mm.elem(i,j) << std::endl;
+          }
+        }
       }
       std::cout << " |" << name << "|: "; ov.dump(std::cout); std::cout << std::endl;
     }

@@ -1,3 +1,5 @@
+// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
+// $Id$
 #include <iostream>
 #include <iterator>
 #include <vector>

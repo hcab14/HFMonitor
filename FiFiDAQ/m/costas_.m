@@ -5,22 +5,42 @@ function [in,in0,theta,f,e]=costas_()
   fs=500;
   fc=10;
   phase0 = 0.5;
-  psig = (rand(1,N*fc/fs)>0.5)*pi;
+  n=4;
+  psig = floor(rand(1,round(N*fc/fs))*n);
+  s = exp(i*2*pi/n*psig(1+floor([0:N-1]*fc/fs)));
+
   in0 = exp(i*2*pi*[0:N-1]*(fc+2)/fs + i*phase0);
-#  in = in0.*exp( i*pi*psig(1+floor([0:N-1]*fc/fs)));
+#  in = in0.*s;
   in = in0 .* cos(2*pi*[0:N-1]*1/fs) + ...
-      0.3* in0 .* cos(2*pi*[0:N-1]*1.5/fs);
+      0.7* in0 .* cos(2*pi*[0:N-1]*1.2/fs);
   # add noise
   in = awgn(in, 20);
   
+  in *= .01;
+  in = agc(in, fs, 1, 2);
+
   alpha=.6;
   beta=alpha**2/4
 #  beta=0.01;
-  [theta,f,e]=costas_1(in,fc,fs,alpha,beta);
+  [theta,f,e]=costas_1(2, in,fc,fs,alpha,beta);
   
 endfunction
 
-function [theta,f,e]=costas_1(in,fc,fs,alpha,beta)  
+function z=agc(z, fs, tfall, trise) 
+  f = 1;
+  alpha = 1/(fs*tfall);
+  beta = 1/(fs*trise);
+  for n=1:length(z)
+    if abs(z(n)) < f
+      f = (1-alpha)* f + alpha*abs(z(n));
+    else
+      f = (1-beta)* f + beta*abs(z(n));
+    endif
+    z(n) *= .5/f;
+  endfor
+endfunction
+
+function [theta,f,e]=costas_1(n, in,fc,fs,alpha,beta)  
   ##Initialization 
   f(1) = fc;
   theta(1)=0;
@@ -30,8 +50,16 @@ function [theta,f,e]=costas_1(in,fc,fs,alpha,beta)
   for I=2:length(in)    
     xerr=in(I-1)*exp(-1i*theta(I-1));
     x=(1-mu)*x+ mu*xerr;
+    ## error estimate:
+    if (n==2)
+      err = real(x) * imag(x);
+    elseif (n==4)
+      err = sign(real(x))*imag(x) - sign(imag(x))*real(x);
+    else
+      error("n!=2 and n!=4")
+    endif
     ## phase detector
-    e(I) = (1-mup)*e(I-1) + mup * real(x) * imag(x);
+    e(I) = (1-mup)*e(I-1) + mup * err;
     ## frequency update     
     f(I)     = f(I-1) + beta*e(I);
     ## phase update
