@@ -215,6 +215,30 @@ namespace filter {
   private:
     STATE s_;
   } ;
+
+  template<typename STATE>
+  class integrator_constraint {
+  public:
+    typedef STATE state_type;
+    
+    integrator_constraint(state_type min,
+                          state_type max) 
+      : s_((min+max)/2)
+      , min_(min)
+      , max_(max) {}
+    
+    STATE get() const { return s_; }
+    STATE process(STATE s) { 
+      const state_type snew=s_+s;
+      return (snew < min_) ? min_ : (snew > max_ ? max_ : snew);
+    }
+    void reset(STATE s=0) { s_=(s==0) ? (min_+max_)/2 : s; }
+  protected:
+  private:
+    STATE s_;
+    const STATE min_;
+    const STATE max_;
+  } ;
   
   template<typename STATE>
   class integrator_modulo {

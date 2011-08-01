@@ -6,9 +6,13 @@
 #include <vector>
 #include <complex>
 
+#include <boost/type_traits/integral_constant.hpp>
+
 namespace filter {
+
   // costas phase-locked loop
-  template <typename T,
+  template <unsigned N, // 2 -> (AM+PSK), 4->QPSK
+            typename T,            
             class LOOP_FILTER,
             class INTEGRATOR_FREQ,
             class INTEGRATOR_PHASE>
@@ -42,12 +46,22 @@ namespace filter {
     }
     
     double process(complex_type s) {
-      const complex_type c(s * std::exp(-complex_type(0, theta())));
-      const float_type err(loop_filter_.process(c.real() * c.imag()));
+      const float_type err(loop_filter_.process
+                           (phase_detector
+                            (s * std::exp(-complex_type(0, theta())), 
+                             boost::integral_constant<unsigned, N>())));
       std::cerr << "err= " << err << std::endl;
       return integrator_phase_.process(alpha_*err + integrator_freq_.process(beta_*err)/fs_*2*M_PI);
     }
-    
+
+    static double phase_detector(complex_type c, boost::integral_constant<unsigned, 2> dummy) {
+      return c.real() * c.imag();
+    }
+    static double phase_detector(complex_type c, boost::integral_constant<unsigned, 4> dummy) {
+      return ((c.real() > 0. ? 1. : -1.) * c.imag() - 
+              (c.imag() > 0. ? 1. : -1.) * c.real());
+    }
+
     float_type theta() const { return integrator_phase_.get(); }
     float_type f1() const { return integrator_freq_.get(); }
 
