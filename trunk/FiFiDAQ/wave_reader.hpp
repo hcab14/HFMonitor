@@ -41,7 +41,7 @@ namespace wave {
       for (size_t u(0); u<bits_per_sample; u+=8) 
         sum |= ((a=readT<boost::uint8_t>(is)) << u);
       const boost::int32_t i_max(1L << bits_per_sample);
-      const double norm(1. / static_cast<double>(i_max));
+      const double norm(2. / static_cast<double>(i_max));
       return ( ((a&0x80) == 0x80) ? sum-i_max : sum) * norm;
     }    
   } // namespace anonymous
@@ -71,6 +71,10 @@ namespace wave {
       std::ifstream ifs(filename.c_str());
       start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
       return read_chunks(ifs);
+    }
+    void finish() {
+      // insert one last dummy sample to trigger processing of left over data
+      iq_buffer_.insert(this, complex_type(0, 0));
     }
 
     complex_vector_type samples() const { return iq_buffer_.samples(); }
@@ -188,8 +192,8 @@ namespace wave {
     
     virtual processor::service_base::sptr get_service(size_t ) const {
       return processor::service_generic_iq::sptr
-        (new processor::service_generic_iq(format().sampleRate(),
-                                           center_freq_hz_,
+        (new processor::service_generic_iq(center_freq_hz_,
+                                           format().sampleRate(),
                                            start_time()));
     }
 

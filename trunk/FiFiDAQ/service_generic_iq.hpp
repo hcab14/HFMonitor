@@ -16,7 +16,10 @@ namespace processor {
       : service_base("generic I/Q")
       , center_freq_hz_(center_freq_hz)
       , sample_rate_hz_(sample_rate_hz)
-      , approx_ptime_(approx_ptime) {}
+      , approx_ptime_(approx_ptime) {
+      std::cerr << "s_g_iq " << center_freq_hz_ << " "
+                << sample_rate_hz_ << " " << approx_ptime_ << std::endl;
+    }
 
     virtual ~service_generic_iq() {}
 

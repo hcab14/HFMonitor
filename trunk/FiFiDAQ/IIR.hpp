@@ -229,11 +229,14 @@ namespace filter {
     
     STATE get() const { return s_; }
     STATE process(STATE s) { 
-      const state_type snew=s_+s;
-      return (snew < min_) ? min_ : (snew > max_ ? max_ : snew);
+      s_ = bound(s_+s);
+      return s_;
     }
-    void reset(STATE s=0) { s_=(s==0) ? (min_+max_)/2 : s; }
+    void reset(STATE s=0) { s_=(s==0) ? (min_+max_)/2 : bound(s); }
   protected:
+    STATE bound(STATE s) const {
+      return (s < min_) ? min_ : (s > max_ ? max_ : s);
+    }
   private:
     STATE s_;
     const STATE min_;
