@@ -31,8 +31,10 @@ namespace wave {
         : size_(size) {
         std::copy(id.begin(), id.begin()+std::min(size_t(4), id.size()), &id_[0]);
       }      
-      std::string     id() const   { return std::string(id_, id_+4); }
-      boost::uint32_t size() const { return size_; }
+      std::string      id() const   { return std::string(id_, id_+4); }
+      boost::uint32_t  size() const { return size_; }
+      boost::uint32_t& size()       { return size_; }
+
       friend std::ostream& operator<<(std::ostream& os, const header& h) {
         return os << "id=" << h.id() << " size=" << h.size();
       }
@@ -66,7 +68,7 @@ namespace wave {
       format(boost::uint32_t sampleRate=1,
              boost::uint16_t bitsPerSample=16,
              boost::uint16_t numChannels=2)
-        : header("fmt ", sizeof(format))
+        : header("fmt ", sizeof(format)-8)
         , audioFormat_(1)      // PCM format
         , numChannels_(numChannels)
         , sampleRate_(sampleRate)
@@ -81,7 +83,13 @@ namespace wave {
       boost::uint16_t bytesPerSample() const { return bytesPerSample_; }
       boost::uint16_t bitsPerSample() const { return bitsPerSample_; }
       bool ok() const { return id() == "fmt "; }
-      
+
+      void changeSampleRate(boost::uint32_t newSampleRate) {
+        sampleRate_    =  newSampleRate;
+        // only bytesPerSecond needs to be updated
+        bytesPerSecond_ = numChannels()*sampleRate()*bitsPerSample()/8;
+      }
+
       friend std::ostream& operator<<(std::ostream& os, const format& f) {
         return os << header(f)
                   << " audioFormat=" << f.audioFormat()
@@ -111,7 +119,7 @@ namespace wave {
            boost::uint8_t  bAdcPresel=0,
            boost::uint8_t  bAdcPreamp=0,
            boost::uint8_t  bAdcDither=0) 
-        : header("rcvr", sizeof(rcvr))
+        : header("rcvr", sizeof(rcvr)-8)
         , nCenterFrequencyHz_(nCenterFrequencyHz)
         , nSamplingRateIdx_(nSamplingRateIdx)
         , timeStart_(timeStart)

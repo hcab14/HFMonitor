@@ -40,13 +40,16 @@ function z=agc(z, fs, tfall, trise)
   endfor
 endfunction
 
-function [theta,f,e]=costas_1(n, in,fc,fs,alpha,beta)  
+function [theta,f,e]=costas_1(n, in,fc,fs,alpha,beta,nd)  
   ##Initialization 
   f(1) = fc;
   theta(1)=0;
   x=0;
-  mu=1;
+  mu=.1;
   mup=.05;
+
+#  nd=4;
+  dl=zeros(1,nd);
   for I=2:length(in)    
     xerr=in(I-1)*exp(-1i*theta(I-1));
     x=(1-mu)*x+ mu*xerr;
@@ -54,7 +57,11 @@ function [theta,f,e]=costas_1(n, in,fc,fs,alpha,beta)
     if (n==2)
       err = real(x) * imag(x);
     elseif (n==4)
-      err = sign(real(x))*imag(x) - sign(imag(x))*real(x);
+#      err = sign(real(x))*imag(x) - sign(imag(x))*real(x);
+#      dl(1) = sign(real(x))*imag(x);
+      dl(1) = sign(imag(x))*real(x);
+      err = sign(real(x))*imag(x)- dl(end);
+      dl(2:end) = dl(1:end-1);
     else
       error("n!=2 and n!=4")
     endif

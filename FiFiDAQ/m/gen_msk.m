@@ -1,6 +1,6 @@
 # -*- octave -*-
 
-function [xt,yt,ipBit,bHat,baud,fsHz]=gen_msk(Eb_N0_dB,fc)
+function [xt,yt,ipBit,bHat,baud,fsHz,cc]=gen_msk(Eb_N0_dB,fc)
   N = 5*10^3; % number of bits or symbols
   
   fsHz = 1; % sampling period
@@ -10,6 +10,8 @@ function [xt,yt,ipBit,bHat,baud,fsHz]=gen_msk(Eb_N0_dB,fc)
 
   ct = cos(pi*[-T:N*T-1]/(2*T));
   st = sin(pi*[-T:N*T-1]/(2*T));
+
+  cc=ct+1i*st;
 
   %% MSK Transmitter
   ipBit = rand(1,N)>0.5; % generating 0,1 with equal probability
@@ -22,12 +24,12 @@ function [xt,yt,ipBit,bHat,baud,fsHz]=gen_msk(Eb_N0_dB,fc)
   aq = [zeros(1,T) aq ];  % adding delay of T for Q-arm
   
   %% MSK transmit waveform
-  xt = 1/sqrt(T)*[ai.*ct + j*aq.*st];
+  xt = 1/sqrt(T)*[ai.*ct + 1i*aq.*st];
 
-  xt .*= exp(2*pi*i*fc*[-T:N*T-1]);
+  xt .*= exp(2*pi*1i*fc*[-T:N*T-1]);
 
   %% Additive White Gaussian Noise
-  nt = 1/sqrt(2)*[randn(1,N*T+T) + j*randn(1,N*T+T)]; % white gaussian noise, 0dB variance 
+  nt = 1/sqrt(2)*[randn(1,N*T+T) + 1i*randn(1,N*T+T)]; % white gaussian noise, 0dB variance 
   
   %% Noise addition
   yt = xt + 10^(-Eb_N0_dB/20)*nt; % additive white gaussian noise
