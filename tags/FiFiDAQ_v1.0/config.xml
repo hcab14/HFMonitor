@@ -1,0 +1,44 @@
+<FiFiDAQ>
+  <FiFi-SDR vendorID="5824"
+	    productID="1500"
+	    audioDeviceName="UDA1361 Eingang"
+	    sampleRate_Hz="96000">
+  </FiFi-SDR>
+  <MatSaver dataPath="Data"
+	    maxBufferSize_kB="100"
+	    minutesPerFile="60">
+  </MatSaver>
+  <Actions>
+    <FFTPowerSpectrum label="_49m_A_"
+		      centerFrequency_Hz="6005e3"
+		      frequencyMin_Hz="5985e3"
+		      frequencyMax_Hz="6040e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+<!-- 
+   <FFTPowerSpectrum label="_49m_B_"
+		      centerFrequency_Hz="6010e3"
+		      frequencyMin_Hz="5985e3"
+		      frequencyMax_Hz="6040e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS5_B_"
+		      centerFrequency_Hz="5e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS10_B_"
+		      centerFrequency_Hz="10e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS15_B_"
+		      centerFrequency_Hz="15e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+-->
+  </Actions>
+</FiFiDAQ>
