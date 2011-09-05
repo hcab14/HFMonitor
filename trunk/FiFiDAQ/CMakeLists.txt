@@ -1,6 +1,21 @@
 # -*- mode: cmake; indent-tabs-mode: nil -*-
 # $Id$
-
+#
+# Copyright 2010-2011 Christoph Mayer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 
@@ -24,8 +39,6 @@ SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.40 REQUIRED COMPONENTS system thread filesystem date_time)
 LIST(APPEND _libs ${Boost_LIBRARIES})
-
-MESSAGE(STATUS "bbb ${Boost_LIBRARIES}")
 
 # Setup libusb-1.0
 FIND_PACKAGE(libusb-1.0 REQUIRED)
