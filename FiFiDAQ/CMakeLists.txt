@@ -28,7 +28,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG   "-g -Wall")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # where to look first for cmake modules
-SET(CMAKE_MODULE_PATH "./CMake/modules")
+SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/modules)
 
 # List of libraries
 SET(_libs)
