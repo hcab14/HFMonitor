@@ -1,11 +1,28 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
+//
+// Copyright 2010-2011 Christoph Mayer
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include <iostream>
 
 #include <stdexcept>
 #include <sstream>
 #include <boost/format.hpp>
 #include <boost/current_function.hpp>
+#include <boost/weak_ptr.hpp>
 
 #include "portaudio.hpp"
 
@@ -24,20 +41,11 @@
     } else void(0); }
 
 namespace portaudio {
-  class init_impl : public init {
+  class session_impl : public session {
   public:
-   init_impl() { 
-      if (not is_initialized()) {
-        ASSERT_THROW_PA(Pa_Initialize());
-        is_initialized() = true;
-      }
-    }
-    ~init_impl() { 
-      if (is_initialized()) {
-        ASSERT_THROW_PA(Pa_Terminate());
-        is_initialized() = false;
-      }
-    }
+    session_impl() { ASSERT_THROW_PA(Pa_Initialize()); }
+    ~session_impl() { ASSERT_THROW_PA(Pa_Terminate()); }
+
     virtual int version_number() const { return Pa_GetVersion(); }
     virtual std::string version_text() const { return Pa_GetVersionText(); }
     virtual device_list get_device_list(std::string name) const {
@@ -62,13 +70,18 @@ namespace portaudio {
     virtual void sleep(double seconds) const {
       Pa_Sleep(1000*seconds);
     }
-
-  private:
-    bool& is_initialized(bool ib=false) { static bool b(ib); return b; }    
   } ;
 
-  init::sptr init::make() {
-    return init::sptr(new init_impl());
+  session::sptr session::make() {
+    return session::sptr(new session_impl());
+  }
+
+  session::sptr session::get_global_session() {
+    static boost::weak_ptr<session> global_session;
+    if (not global_session.expired()) return global_session.lock();
+    const sptr new_global_session(new session_impl());
+    global_session = new_global_session;
+    return new_global_session;
   }
 
   class device_info_impl : public device_info {
@@ -206,8 +219,9 @@ namespace portaudio {
                          unsigned long frames_per_buffer,
                          PaStreamFlags stream_flags,
                          process_base::sptr p) 
-      : processor_(p) {
-      ASSERT_THROW_PA(Pa_OpenStream(&pa_stream_,
+      : _session(session::get_global_session()),
+        _processor(p) {
+      ASSERT_THROW_PA(Pa_OpenStream(&_pa_stream,
                                     (input_parameters  == 0) ? 0 : input_parameters->get(),
                                     (output_parameters == 0) ? 0 : output_parameters->get(),
                                     sample_rate,
@@ -217,42 +231,42 @@ namespace portaudio {
                                     this));
     }
 
-    ~stream_callback_impl() { ASSERT_THROW_PA(Pa_CloseStream(pa_stream_)); }
+    ~stream_callback_impl() { ASSERT_THROW_PA(Pa_CloseStream(_pa_stream)); }
 
-    virtual PaStream* get() { return pa_stream_; }
+    virtual PaStream* get() { return _pa_stream; }
     virtual stream_info::sptr get_info() const {
-      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(pa_stream_)));
+      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
     }
 
-    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(pa_stream_)); }
-    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(pa_stream_)); }
-    virtual void stop()  { ASSERT_THROW_PA(Pa_StopStream(pa_stream_)); }
+    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(_pa_stream)); }
+    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(_pa_stream)); }
+    virtual void stop()  { ASSERT_THROW_PA(Pa_StopStream(_pa_stream)); }
 
     signed long get_write_available() const {
       signed long n(0);
-      ASSERT_THROW_PA(n=Pa_GetStreamWriteAvailable(pa_stream_));
+      ASSERT_THROW_PA(n=Pa_GetStreamWriteAvailable(_pa_stream));
       return n;
     }
     virtual bool is_stopped() const {
       PaError err;
-      ASSERT_THROW_PA(err=Pa_IsStreamStopped(pa_stream_));
+      ASSERT_THROW_PA(err=Pa_IsStreamStopped(_pa_stream));
       return (err == 1) ? true : false;
     }
     virtual bool is_active() const {
       PaError err;
-      ASSERT_THROW_PA(err=Pa_IsStreamActive(pa_stream_));
+      ASSERT_THROW_PA(err=Pa_IsStreamActive(_pa_stream));
       return (err == 1) ? true : false;
     }
     virtual PaTime get_time() const {
-      const PaTime t(Pa_GetStreamTime(pa_stream_));
+      const PaTime t(Pa_GetStreamTime(_pa_stream));
       if (t == 0) throw std::runtime_error(THROW_SITE_INFO("Pa_GetStreamTime returned zero"));
       return t;
     }
     virtual double get_cpu_load() const { 
-      return Pa_GetStreamCpuLoad(pa_stream_); 
+      return Pa_GetStreamCpuLoad(_pa_stream); 
     }
     virtual process_base::sptr get_processor() {
-      return processor_;
+      return _processor;
     }
   private:
     static int callback(const void *input_buffer, void *output_buffer,
@@ -265,8 +279,9 @@ namespace portaudio {
       return sp->get_processor()->process(input_buffer, output_buffer, frames_per_buffer, callback_info);
     }
 
-    PaStream* pa_stream_;
-    process_base::sptr processor_;
+    PaStream*          _pa_stream;
+    session::sptr      _session;
+    process_base::sptr _processor;
   } ;
 
   class stream_blocking_impl : public stream_blocking {
@@ -275,8 +290,9 @@ namespace portaudio {
                          stream_parameters::sptr output_parameters,
                          double sample_rate,
                          unsigned long frames_per_buffer,
-                         PaStreamFlags stream_flags) {
-      ASSERT_THROW_PA(Pa_OpenStream(&pa_stream_,
+                         PaStreamFlags stream_flags) 
+      : _session(session::get_global_session()) {
+      ASSERT_THROW_PA(Pa_OpenStream(&_pa_stream,
                                     (input_parameters  == 0) ? 0 : input_parameters->get(),
                                     (output_parameters == 0) ? 0 : output_parameters->get(),
                                     sample_rate,
@@ -285,37 +301,38 @@ namespace portaudio {
                                     0,0));
     }
 
-    ~stream_blocking_impl() { ASSERT_THROW_PA(Pa_CloseStream(pa_stream_)); }
+    ~stream_blocking_impl() { ASSERT_THROW_PA(Pa_CloseStream(_pa_stream)); }
 
-    virtual PaStream* get() { return pa_stream_; }
+    virtual PaStream* get() { return _pa_stream; }
     virtual stream_info::sptr get_info() const {
-      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(pa_stream_)));
+      return stream_info::sptr(new stream_info_impl(Pa_GetStreamInfo(_pa_stream)));
     }
 
-    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(pa_stream_)); }
-    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(pa_stream_)); }
-    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(pa_stream_)); }
+    virtual void abort() { ASSERT_THROW_PA(Pa_AbortStream(_pa_stream)); }
+    virtual void start() { ASSERT_THROW_PA(Pa_StartStream(_pa_stream)); }
+    virtual void stop() { ASSERT_THROW_PA(Pa_StopStream(_pa_stream)); }
 
     virtual bool is_stopped() const {
       PaError err;
-      ASSERT_THROW_PA(err=Pa_IsStreamStopped(pa_stream_));
+      ASSERT_THROW_PA(err=Pa_IsStreamStopped(_pa_stream));
       return (err == 1) ? true : false;
     }
     virtual bool is_active() const {
       PaError err;
-      ASSERT_THROW_PA(err=Pa_IsStreamActive(pa_stream_));
+      ASSERT_THROW_PA(err=Pa_IsStreamActive(_pa_stream));
       return (err == 1) ? true : false;
     }
     virtual void read_data(void* buffer, unsigned long frames) {
-      if (Pa_ReadStream(pa_stream_, buffer, frames) == paInputOverflowed) 
+      if (Pa_ReadStream(_pa_stream, buffer, frames) == paInputOverflowed) 
         throw input_overflow(THROW_SITE_INFO("input overflow in Pa_ReadStream"));
     }
     virtual void write_data(const void* buffer, unsigned long frames) {
-      ASSERT_THROW_PA(Pa_WriteStream(pa_stream_, buffer, frames));
+      ASSERT_THROW_PA(Pa_WriteStream(_pa_stream, buffer, frames));
     }
 
   private:
-    PaStream* pa_stream_;
+    PaStream*     _pa_stream;
+    session::sptr _session;
   } ;
 
   stream_callback::sptr 
