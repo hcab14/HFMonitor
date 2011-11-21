@@ -188,7 +188,6 @@ public:
       acceptor_ctrl_.set_option(boost::asio::socket_base::reuse_address(true));
       acceptor_ctrl_.listen();
       tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_ctrl_.get_io_service()));
-      new_socket->set_option(boost::asio::socket_base::linger(true, 5));
       acceptor_ctrl_.async_accept(*new_socket,
                                   strand_.wrap(boost::bind(&server::handle_accept_ctrl, this,
                                                            boost::asio::placeholders::error, new_socket)));
@@ -198,7 +197,6 @@ public:
       acceptor_data_.set_option(boost::asio::socket_base::reuse_address(true));
       acceptor_data_.listen();
       tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_data_.get_io_service()));
-      new_socket->set_option(boost::asio::socket_base::linger(true, 5));
       acceptor_data_.async_accept(*new_socket,
                                   strand_.wrap(boost::bind(&server::handle_accept_data, this,
                                                            boost::asio::placeholders::error, new_socket)));
@@ -249,6 +247,7 @@ public:
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
     LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
     if (!ec) {
+      socket->set_option(boost::asio::socket_base::linger(true, 2));
       LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
       data_connections_.insert
         (data_connection_ptr(new data_connection(io_service_, strand_, socket,
