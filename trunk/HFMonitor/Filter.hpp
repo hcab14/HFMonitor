@@ -42,7 +42,7 @@ namespace Filter {
 
     virtual bool isInEquilibrium() const { 
       using namespace boost::posix_time;
-      return (t_ - t0_) > time_duration(0,0,0, 2*lambda_*time_duration::ticks_per_second());
+      return (t_ - t0_) > time_duration(0,0,0, boost::int64_t(2*lambda_*time_duration::ticks_per_second()));
     }
   protected:
     double dt_;
@@ -97,7 +97,7 @@ namespace Filter {
                       const boost::posix_time::ptime& t) {
       using namespace boost::posix_time;
       // compensation for the filter delay
-      const ptime tCorr(t - time_duration(0,0,0, (lambda_-dt_)*time_duration::ticks_per_second()));
+      const ptime tCorr(t - time_duration(0,0,0, boost::int64_t((lambda_-dt_)*time_duration::ticks_per_second())));
       LowPassBase<ptime>::init(t0,tCorr);
       secondsInDay_ = 1e-6*tCorr.time_of_day().total_microseconds();
     }        
@@ -116,7 +116,7 @@ namespace Filter {
       // update filter state
       // 1. compute the filter time corrected for day rollover _relative to ptime_
       const double tt(xp - rollOverOffset(xp-secondsInDay_));
-      x_ = ptime(x_.date()) + time_duration(0,0,0, tt*time_duration::ticks_per_second());
+      x_ = ptime(x_.date()) + time_duration(0,0,0, boost::int64_t(tt*time_duration::ticks_per_second()));
       // 2. update seconds in day
       secondsInDay_ = xp;
       return this->x();
@@ -124,7 +124,7 @@ namespace Filter {
     virtual boost::posix_time::ptime x() const { 
       using namespace boost::posix_time;
       // compensate for filter delay
-      return x_ + time_duration(0,0,0, (lambda_-dt_)*time_duration::ticks_per_second()); 
+      return x_ + time_duration(0,0,0, boost::int64_t((lambda_-dt_)*time_duration::ticks_per_second()));
     }
   private:  
     static double rollOverOffset(double dt) {

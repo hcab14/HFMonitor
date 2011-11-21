@@ -2,8 +2,8 @@
 # $Id$
 #
 # PerseusSDR_INCLUDE_DIR = perseus-sdr.h
-# PerseusSDR_LIBRARIES = libperseus-sdr.a
-# PerseusSDR_FOUND = true if PerseusSDR is found
+# PerseusSDR_LIBRARY     = libperseus-sdr.a
+# PerseusSDR_FOUND       = true if PerseusSDR is found
 
 FIND_PATH(PerseusSDR_INCLUDE_DIR perseus-sdr.h 
   /usr/include
@@ -11,7 +11,7 @@ FIND_PATH(PerseusSDR_INCLUDE_DIR perseus-sdr.h
   /opt/local/include
   )
 
-FIND_LIBRARY(PerseusSDR_LIBRARY NAMES perseus-sdr PATH 
+FIND_LIBRARY(PerseusSDR_LIBRARY NAMES perseus-sdr PATHS
   /usr/lib
   /usr/local/lib
   /opt/local/lib
