@@ -70,7 +70,13 @@ public:
     close();
   }
 
-  void close() {  tcp_socket_ptr_->close(); isOpen_= false; }
+  void close() {
+    LOG_INFO("close and shutdown socket");
+    tcp_socket_ptr_->close();
+    boost::system::error_code ec;
+    tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+    if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+    isOpen_= false; }
   bool is_open() const { return isOpen_; }
 
   void pop_front() { listOfPackets_.pop_front(); }
