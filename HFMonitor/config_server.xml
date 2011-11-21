@@ -3,16 +3,16 @@
 <server>
   <data port="18000"
 	maxQueueDelay_Minutes="2"
-	maxQueueSize_MB="100"></data>
+	maxQueueSize_MB="500"></data>
   <ctrl port="18001"></ctrl>
-  <perseus samplerate="500000"
-	   qrg_Hz    ="250000"
-	   attenuator="1"
+  <perseus samplerate="1000000"
+	   qrg_Hz    ="40000"
+	   attenuator="0"
 	   enableDither="0"
 	   enablePreamp="0"
 	   enablePresel="1"
 	   USBBufferSize="16320"
-	   dtVariationThreshold_Percent="5.0"
+	   dtVariationThreshold_Percent="20.0"
 	   debugLevel="3">
     <CascadedPTimeLowPass>
       <Tau_Sec>2.0</Tau_Sec>

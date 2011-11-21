@@ -12,14 +12,14 @@ void test1() {
   using namespace boost::gregorian;
   std::vector<ptime> t;
   const double dt(2720./500e3); // sec  
-  const unsigned N(24*3600/dt); // 24 h
+  const unsigned N = unsigned(24*3600/dt); // 24 h
   const double lambda(60.); // filter time constant / sec
   const double noise(dt*.2);
   const double offset_ppm(4);
   for (unsigned u(0); u<N; ++u) {
     const double x(std::max(0., (1+u)*dt*(1-1e-6*offset_ppm) + 2*noise*(drand48()-1)));
     const ptime pt(date(2005,Jan,1), 
-                   time_duration(0,0,0,x*time_duration::ticks_per_second()));
+                   time_duration(0,0,0,boost::int64_t(x*time_duration::ticks_per_second())));
     t.push_back(pt);
   }
 
@@ -55,7 +55,7 @@ int main()
   std::cin >> t0;
   Filter::Cascaded<ptime> ff;
   const double dt(0.00544);
-  time_duration dttd(0,0,0, dt * time_duration::ticks_per_second());
+  time_duration dttd(0,0,0,boost::int64_t(dt * time_duration::ticks_per_second()));
   ff.add(Filter::PTimeLowPass::make(dt, 1.0));
   ff.add(Filter::PTimeLowPass::make(dt, 1.0));
   ff.init(t0,t0);

@@ -181,7 +181,7 @@ public:
     , dtVarThreshold_(0.01*config.get<double>("perseus.<xmlattr>.dtVariationThreshold_Percent"))
     , sampleNumber_(0)
     , dtCallback_(0,0,0,
-                  usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate()) 
+                  boost::int64_t(usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate())) 
     , counter_(1) {
     // control setup
     {
@@ -247,7 +247,7 @@ public:
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
     LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
     if (!ec) {
-      socket->set_option(boost::asio::socket_base::linger(true, 2));
+      socket->set_option(boost::asio::socket_base::linger(true, 0));
       LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
       data_connections_.insert
         (data_connection_ptr(new data_connection(io_service_, strand_, socket,
@@ -264,8 +264,8 @@ public:
 
   Header getHeader(const unsigned nSamples, ptime approxPTime) {
     return Header((sampleNumber_+=nSamples) - nSamples,
-                  recPtr_->sampleRate(),
-                  recPtr_->ddcCenterFrequency(),
+                  boost::uint32_t(recPtr_->sampleRate()),
+                  boost::uint32_t(recPtr_->ddcCenterFrequency()),
                   nSamples,
                   0, // TODO
                   recPtr_->attenId(),
@@ -348,14 +348,14 @@ public:
   }
 
   void bc_status() {
-    const unsigned buffers_per_second(0.5 + double(recPtr_->sampleRate()) / double(usbBufferSize_));
-    const unsigned moduloSize(0.5 + buffers_per_second * usbBufferSize_);
+    const unsigned buffers_per_second = unsigned(0.5 + double(recPtr_->sampleRate()) / double(usbBufferSize_));
+    const unsigned moduloSize = unsigned(0.5 + buffers_per_second * usbBufferSize_);
     // every 1 second status -> log
     if (sampleNumber_ % moduloSize == 0) {
       // round dt modulo [time of 850 samples]
-      const int dt_usec (0.5 + 1e6*(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
-                                   / double(time_duration::ticks_per_second())));
-      const int dt0_usec(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
+      const int dt_usec  = int(0.5 + 1e6*(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
+                                          / double(time_duration::ticks_per_second())));
+      const int dt0_usec = int(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
       const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
       LOG_STATUS_T(ptimeOfCallback_,
                    str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%8d")
