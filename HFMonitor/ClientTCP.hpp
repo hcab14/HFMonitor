@@ -77,12 +77,9 @@ protected:
     timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
   }
   void handle_write_tick(const boost::system::error_code& ec, std::size_t bytes_transferred) {
-    if (ec) {
-      LOG_INFO(str(boost::format("ec=%s") % ec));
-      // TODO: shutdown
-    } else if (bytes_transferred == 0) {
-      LOG_WARNING("bytes_transferred==0");
-      // TODO: shutdown
+    if (ec || bytes_transferred == 0) {
+      LOG_INFO(str(boost::format("ec=%s bytes_transferred=%d") % ec % bytes_transferred));
+      doClose();
     } else {
       LOG_INFO("tick");
     }
