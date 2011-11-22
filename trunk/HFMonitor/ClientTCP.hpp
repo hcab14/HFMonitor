@@ -33,7 +33,7 @@ public:
     , strand_(io_service)
     , socket_(io_service)
     , header_()
-    , tickBuffer_(0)
+    , tickBuffer_('a')
     , timer_(service_, boost::posix_time::seconds(1)) {
     boost::asio::ip::tcp::endpoint endPoint(*endpoint_iterator); 
     socket_.async_connect(endPoint, 
@@ -66,24 +66,26 @@ protected:
 
   void onTick() {
     // send tick to server
-    tickBuffer_ = '.';
     boost::asio::async_write(socket_,
                              boost::asio::buffer(&tickBuffer_, sizeof(tickBuffer_)),
                              strand_.wrap(boost::bind(&ClientTCP::handle_write_tick,
                                                       this,
                                                       boost::asio::placeholders::error,
-                                                      boost::asio::placeholders::bytes_transferred)));
+                                                      boost::asio::placeholders::bytes_transferred,
+                                                      tickBuffer_)));
     timer_.expires_at(timer_.expires_at() + boost::posix_time::seconds(1));
     timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
+    tickBuffer_ = (tickBuffer_ != 'z') ? tickBuffer_+1 : 'a';
   }
-  void handle_write_tick(const boost::system::error_code& ec, std::size_t bytes_transferred) {
+  void handle_write_tick(const boost::system::error_code& ec, std::size_t bytes_transferred, char tickValue) {
     if (ec || bytes_transferred == 0) {
-      LOG_WARNING(str(boost::format("handle_write_tick aborting... ec=%s bytes_transferred=%d") % ec % bytes_transferred));
+      LOG_WARNING(str(boost::format("handle_write_tick aborting: error '%s' bytes_transferred=%d")
+                      % ec.message()
+                      % bytes_transferred));
       doClose();
       service_.stop();
-    } else {
-      LOG_INFO("tick");
-    }
+    } else
+      LOG_INFO(str(boost::format("tick '%c' sent") % tickValue));
   }
 
   void onReceive(const boost::system::error_code& errorCode, ReceivedDataType rdt) { 

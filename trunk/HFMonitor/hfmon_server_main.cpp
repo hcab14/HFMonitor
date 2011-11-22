@@ -78,11 +78,13 @@ public:
     if (is_open()) {
       boost::system::error_code ec;      
       LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
-      LOG_INFO("close and shutdown socket");
+      LOG_INFO("shutdown and close socket");
       if (tcp_socket_ptr_->is_open()) {
+        using namespace boost::asio::error;
         tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-        if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
-        tcp_socket_ptr_->close();
+        if (ec) LOG_WARNING((str(boost::format("shutdown error '%s'") % ec.message())));
+        tcp_socket_ptr_->close(ec);
+        if (ec) LOG_WARNING((str(boost::format("close error '%s'") % ec.message())));
       }
       is_open_= false; 
     }
@@ -117,11 +119,18 @@ public:
   }
 
   time_duration max_delay() const { return max_delay_; }
-  void reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
+  double        max_delay_sec() const { return max_delay_.ticks()/double(time_duration::ticks_per_second()); }
+  void          reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
 
-  const ptime& last_tick_time() const { return last_tick_time_; }
+  const ptime&  last_tick_time() const { return last_tick_time_; }
+  time_duration last_tick(ptime t) const { return t-last_tick_time(); }
+  double        last_tick_sec(ptime t) const { return last_tick(t).ticks()/double(time_duration::ticks_per_second()); }
 
-  bool push_back(ptime t, const data_ptr& dp) {
+  bool push_back(ptime t, data_ptr dp) {
+    if (last_tick(t) > boost::posix_time::seconds(10)) {
+      LOG_ERROR(str(boost::format("no tick received in the past %.1f seconds: close client") % last_tick_sec(t)));
+      return false;
+    }
     max_delay_ = std::max(max_delay_, delay(t));
     // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
@@ -155,7 +164,16 @@ public:
 
   void handle_write(const boost::system::error_code& ec, std::size_t bytes_transferred) {
     if (ec) {
-      close();
+      using namespace boost::asio::error;
+      if (ec == make_error_code(connection_aborted) ||
+          ec == make_error_code(operation_aborted)) {
+        ; // no action
+      } else if (ec == make_error_code(eof)) {
+        close(); 
+      } else {
+        LOG_INFO(str(boost::format("unexpected error '%s'") % ec.message()));
+        close();
+      }
     } else if (is_open()) {
       pop_front();
       async_write();
@@ -173,8 +191,10 @@ public:
   }
   void handle_receive(const boost::system::error_code& ec, std::size_t bytes_transferred) {
     if (ec) {
-      LOG_INFO(str(boost::format("handle_receive ec=%s") % ec));
-      close();
+      LOG_INFO(str(boost::format("handle_receive error '%s'") % ec.message()));
+      using namespace boost::asio::error;
+      if (ec != make_error_code(operation_aborted))
+        close();
     } else {
       last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
       LOG_INFO(str(boost::format("tick %d '%c'") % bytes_transferred % dummy_data_));
@@ -271,8 +291,8 @@ public:
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
     boost::system::error_code ec2;
-    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code=%s ep=%s") 
-                 % ec
+    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error '%s' ep=%s") 
+                 % ec.message()
                  % socket->remote_endpoint(ec2)));
     if (!ec) {
       ctrl_sockets_.insert(socket);
@@ -286,7 +306,7 @@ public:
     }
   }
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
+    LOG_INFO(str(boost::format("servce::handle_accept_data error ' %s") % ec.message()));
     if (!ec) {
       boost::system::error_code ec2;
       // socket->set_option(boost::asio::socket_base::linger(true, 0));
@@ -300,7 +320,7 @@ public:
         (*new_socket, strand_.wrap(boost::bind(&server::handle_accept_data, this,
                                                boost::asio::placeholders::error, new_socket)));
     } else {
-      LOG_ERROR(str(boost::format("handle_accept_data ec=%s") % ec));
+      LOG_ERROR(str(boost::format("handle_accept_data error '%s'") % ec.message()));
     }
   }
 
@@ -379,12 +399,12 @@ public:
     return 0;
   }
 
-  void sendDataToClients(const ptime& t, const data_connection::data_ptr& dp) {
+  void sendDataToClients(const ptime& t, data_connection::data_ptr dp) {
     bc_status();
     for (data_connections::iterator i(data_connections_.begin()); i!=data_connections_.end();) {
       if ((*i)->push_back(t, dp))
         ++i;
-      else 
+      else
         data_connections_.erase(i++);
     }
   }
@@ -407,12 +427,12 @@ public:
       ptimeDataMeasure_ = ptimeOfCallback_;
       BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
         boost::system::error_code ecl, ecr;
-        LOG_STATUS_T(ptimeOfCallback_, 
-                     str(boost::format("   %s - %s : delay[ms] = %d")
-                       % dc->local_endpoint(ecl) 
-                       % dc->local_endpoint(ecr) 
-                       % int(0.5+1000*dc->max_delay().ticks() 
-                             / time_duration::ticks_per_second())));
+        LOG_STATUS_T(ptimeOfCallback_,
+                     str(boost::format("   %s - %s : delay[ms] = %d, time_since_last_tick[s] = %.1f")
+                         % dc->local_endpoint(ecl)
+                         % dc->local_endpoint(ecr)
+                         % int(0.5+1000*dc->max_delay_sec())
+                         % dc->last_tick_sec(ptimeOfCallback_)));
         dc->reset_max_delay();
       }
     }
@@ -493,7 +513,7 @@ int main(int argc, char* argv[])
     boost::asio::io_service io_service;
     server::sptr serverPtr;
     {
-      wait_for_signal w;
+      wait_for_signal w(io_service);
       w.add_signal(SIGINT)
        .add_signal(SIGQUIT)
        .add_signal(SIGTERM);
