@@ -32,7 +32,9 @@ public:
     , service_(io_service)
     , strand_(io_service)
     , socket_(io_service)
-    , header_() {
+    , header_()
+    , tickBuffer_(0)
+    , timer_(service_, boost::posix_time::seconds(1)) {
     boost::asio::ip::tcp::endpoint endPoint(*endpoint_iterator); 
     socket_.async_connect(endPoint, 
                           strand_.wrap(boost::bind(&ClientTCP::onConnect, 
@@ -50,6 +52,7 @@ protected:
                  boost::asio::ip::tcp::resolver::iterator endpoint_iterator) { 
     if (errorCode == 0) { 
       async_receive_header();
+      timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
     } else if (endpoint_iterator != boost::asio::ip::tcp::resolver::iterator()) { 
       socket_.close();
       boost::asio::ip::tcp::endpoint endPoint = *endpoint_iterator;
@@ -58,6 +61,30 @@ protected:
                                                      this,
                                                      boost::asio::placeholders::error,
                                                      ++endpoint_iterator)));
+    }
+  }
+
+  void onTick() {
+    // send tick to server
+    tickBuffer_ = '.';
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(&tickBuffer_, sizeof(tickBuffer_)),
+                             strand_.wrap(boost::bind(&ClientTCP::handle_write_tick,
+                                                      this,
+                                                      boost::asio::placeholders::error,
+                                                      boost::asio::placeholders::bytes_transferred)));
+    timer_.expires_at(timer_.expires_at() + boost::posix_time::seconds(1));
+    timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
+  }
+  void handle_write_tick(const boost::system::error_code& ec, std::size_t bytes_transferred) {
+    if (ec) {
+      LOG_INFO(str(boost::format("ec=%s") % ec));
+      // TODO: shutdown
+    } else if (bytes_transferred == 0) {
+      LOG_WARNING("bytes_transferred==0");
+      // TODO: shutdown
+    } else {
+      LOG_INFO("tick");
     }
   }
 
@@ -104,6 +131,8 @@ private:
   boost::asio::ip::tcp::socket      socket_;
   Header                            header_;
   boost::array<char, maxBufferSize> dataBuffer_;
+  char                              tickBuffer_;
+  boost::asio::deadline_timer       timer_;
 } ;
 
 #endif // _CLIENT_TCP_HPP_cm100729_

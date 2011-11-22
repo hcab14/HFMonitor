@@ -53,6 +53,7 @@ public:
   typedef std::pair<ptime, data_ptr> ptime_data_pair;
   typedef std::deque<ptime_data_pair> ListOfPackets;
 
+public:
   data_connection(boost::asio::io_service& io_service,
                   boost::asio::strand& strand,
                   tcp_socket_ptr p,
@@ -61,23 +62,29 @@ public:
     : io_service_(io_service)
     , strand_(strand)
     , tcp_socket_ptr_(p)
-    , isOpen_(true)
+    , is_open_(true)
     , max_total_size_(max_total_size)
     , max_queue_delay_(max_queue_delay)
-    , max_delay_(boost::posix_time::seconds(0)) {}
+    , max_delay_(boost::posix_time::seconds(0))
+    , last_tick_time_(boost::posix_time::microsec_clock::universal_time()) {
+    async_receive();
+  }
 
   ~data_connection() {
     close();
   }
 
   void close() {
-    LOG_INFO("close and shutdown socket");
-    tcp_socket_ptr_->close();
-    boost::system::error_code ec;
-    tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-    if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
-    isOpen_= false; }
-  bool is_open() const { return isOpen_; }
+    if (is_open()) {
+      LOG_INFO("close and shutdown socket");
+      tcp_socket_ptr_->close();
+      boost::system::error_code ec;
+      tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+      if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+      is_open_= false; 
+    }
+  }
+  bool is_open() const { return is_open_; }
 
   void pop_front() { listOfPackets_.pop_front(); }
   void pop_back()  { listOfPackets_.pop_back(); }
@@ -109,6 +116,8 @@ public:
   time_duration max_delay() const { return max_delay_; }
   void reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
 
+  const ptime& last_tick_time() const { return last_tick_time_; }
+
   bool push_back(ptime t, const data_ptr& dp) {
     max_delay_ = std::max(max_delay_, delay(t));
     // if the buffer is full forget all data except first packets which may be being sent
@@ -130,7 +139,7 @@ public:
   }
 
   void async_write() {
-    if (!empty()) {
+    if (!empty() && is_open()) {
       data_ptr dataPtr(front().second);
       boost::asio::async_write(*tcp_socket_ptr_,
                                boost::asio::buffer(&dataPtr->front(), dataPtr->size()),
@@ -144,9 +153,27 @@ public:
   void handle_write(const boost::system::error_code& ec, std::size_t bytes_transferred) {
     if (ec) {
       close();
-    } else {
+    } else if (is_open()) {
       pop_front();
       async_write();
+    }
+  }
+
+  void async_receive() {
+    boost::asio::async_read(*tcp_socket_ptr_,
+                            boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
+                            strand_.wrap(boost::bind(&data_connection::handle_receive,
+                                                     this,
+                                                     boost::asio::placeholders::error,
+                                                     boost::asio::placeholders::bytes_transferred)));
+  }
+  void handle_receive(const boost::system::error_code& ec, std::size_t bytes_transferred) {
+    if (ec) {
+      close();
+    } else {
+      last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
+      LOG_INFO(str(boost::format("tick %d '%c'") % bytes_transferred % dummy_data_));
+      async_receive();
     }
   }
 protected:
@@ -154,11 +181,13 @@ private:
   boost::asio::io_service& io_service_;
   boost::asio::strand&     strand_;
   tcp_socket_ptr           tcp_socket_ptr_;
-  bool                     isOpen_;
+  bool                     is_open_;
   const size_t             max_total_size_;
   const time_duration      max_queue_delay_;
   time_duration            max_delay_;
   ListOfPackets            listOfPackets_;
+  char                     dummy_data_;
+  ptime                    last_tick_time_;
 } ;
 
 class server : private boost::noncopyable {
@@ -253,7 +282,7 @@ public:
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
     LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
     if (!ec) {
-      socket->set_option(boost::asio::socket_base::linger(true, 0));
+      // socket->set_option(boost::asio::socket_base::linger(true, 0));
       LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
       data_connections_.insert
         (data_connection_ptr(new data_connection(io_service_, strand_, socket,
@@ -264,7 +293,7 @@ public:
         (*new_socket, strand_.wrap(boost::bind(&server::handle_accept_data, this,
                                                boost::asio::placeholders::error, new_socket)));
     } else {
-      // error 
+      LOG_ERROR(str(boost::format("handle_accept_data ec=%s") % ec));
     }
   }
 
