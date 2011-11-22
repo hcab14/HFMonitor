@@ -80,6 +80,7 @@ protected:
     if (ec || bytes_transferred == 0) {
       LOG_INFO(str(boost::format("ec=%s bytes_transferred=%d") % ec % bytes_transferred));
       doClose();
+      service_.stop();
     } else {
       LOG_INFO("tick");
     }
