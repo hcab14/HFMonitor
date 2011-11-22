@@ -78,7 +78,7 @@ protected:
   }
   void handle_write_tick(const boost::system::error_code& ec, std::size_t bytes_transferred) {
     if (ec || bytes_transferred == 0) {
-      LOG_INFO(str(boost::format("ec=%s bytes_transferred=%d") % ec % bytes_transferred));
+      LOG_WARNING(str(boost::format("handle_write_tick aborting... ec=%s bytes_transferred=%d") % ec % bytes_transferred));
       doClose();
       service_.stop();
     } else {

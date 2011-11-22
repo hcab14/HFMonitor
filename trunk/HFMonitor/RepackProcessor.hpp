@@ -62,7 +62,7 @@ public:
 protected:
   void update(const Header& h) {
     ASSERT_THROW(h.sampleRate() != 0);
-    iqBuffer_.update(h.sampleRate()*bufferLengthSec_, overlap_);
+    iqBuffer_.update(size_t(h.sampleRate()*bufferLengthSec_), overlap_);
     currentHeader_ = h;
     currentHeader_.sampleNumber() -= iqBuffer_.n();
     currentHeader_.setNumberOfSamples(iqBuffer_.n());

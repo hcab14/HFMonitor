@@ -76,15 +76,18 @@ public:
 
   void close() {
     if (is_open()) {
+      boost::system::error_code ec;      
+      LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
       LOG_INFO("close and shutdown socket");
-      tcp_socket_ptr_->close();
-      boost::system::error_code ec;
-      tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-      if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+      if (tcp_socket_ptr_->is_open()) {
+        tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+        if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+        tcp_socket_ptr_->close();
+      }
       is_open_= false; 
     }
   }
-  bool is_open() const { return is_open_; }
+  bool is_open() const { return tcp_socket_ptr_->is_open(); }
 
   void pop_front() { listOfPackets_.pop_front(); }
   void pop_back()  { listOfPackets_.pop_back(); }
@@ -160,15 +163,17 @@ public:
   }
 
   void async_receive() {
-    boost::asio::async_read(*tcp_socket_ptr_,
-                            boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
-                            strand_.wrap(boost::bind(&data_connection::handle_receive,
-                                                     this,
-                                                     boost::asio::placeholders::error,
-                                                     boost::asio::placeholders::bytes_transferred)));
+    if (is_open())
+      boost::asio::async_read(*tcp_socket_ptr_,
+                              boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
+                              strand_.wrap(boost::bind(&data_connection::handle_receive,
+                                                       this,
+                                                       boost::asio::placeholders::error,
+                                                       boost::asio::placeholders::bytes_transferred)));
   }
   void handle_receive(const boost::system::error_code& ec, std::size_t bytes_transferred) {
     if (ec) {
+      LOG_INFO(str(boost::format("handle_receive ec=%s") % ec));
       close();
     } else {
       last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
@@ -265,13 +270,14 @@ public:
   }
   
   void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
+    boost::system::error_code ec2;
     LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code=%s ep=%s") 
                  % ec
-                 % socket->remote_endpoint()));
+                 % socket->remote_endpoint(ec2)));
     if (!ec) {
       ctrl_sockets_.insert(socket);
       LOG_INFO(str(boost::format("remote endpoint= %s %s")
-                   % socket->remote_endpoint()
+                   % socket->remote_endpoint(ec2)
                    % (socket->is_open() ? "open" : "closed")));
       tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_ctrl_.get_io_service()));      
       acceptor_ctrl_.async_accept(*new_socket,
@@ -282,8 +288,9 @@ public:
   void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
     LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
     if (!ec) {
+      boost::system::error_code ec2;
       // socket->set_option(boost::asio::socket_base::linger(true, 0));
-      LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint()));
+      LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint(ec2)));
       data_connections_.insert
         (data_connection_ptr(new data_connection(io_service_, strand_, socket,
                                                  max_queue_total_size_, max_queue_delay_)));
@@ -393,7 +400,7 @@ public:
       const int dt0_usec = int(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
       const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
       LOG_STATUS_T(ptimeOfCallback_,
-                   str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%8d")
+                   str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%10.2f")
                      % data_connections_.size()
                      % sampleNumber_
                      % rate));
