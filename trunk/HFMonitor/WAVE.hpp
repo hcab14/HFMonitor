@@ -133,7 +133,7 @@ namespace WAVE {
       , chunkFmt_ (readT<Chunk::Format>(is_))
       , chunkRcvr_(readT<Chunk::Rcvr>  (is_))
       , chunkData_(readT<Chunk::Data>  (is_))
-      , iqBuffer_(bufferLengthSec*chunkFmt_.sampleRate(), overlap) {
+      , iqBuffer_(size_t(bufferLengthSec*chunkFmt_.sampleRate()), overlap) {
       iqBuffer_.insert(this, samples.begin(), samples.end());
     }
     ~ProcessFile() {}
