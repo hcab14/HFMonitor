@@ -62,9 +62,85 @@ portaudio::device_info::sptr find_portaudio_device(const boost::property_tree::p
     const portaudio::session::device_list dl(pa->get_device_list());
     for (size_t i(0); i<dl.size(); ++i)
       std::cerr << (boost::format("(%2d) '%s'") % i % dl[i]->name()) << std::endl;
-    throw std::runtime_error(str(boost::format("Audio Device %s not found.") % device_name));
+    throw std::runtime_error(str(boost::format("Audio Device '%s' not found.") % device_name));
   } else
     return dl[0];
+}
+
+// init fifi-sdr
+void init(FiFiSDR::receiver_control::sptr rec,
+          const boost::property_tree::ptree& config) {
+  using namespace FiFiSDR;
+
+  LOG_INFO(str(boost::format("firmware svn version_num=%d version_str='%s'")
+               % rec->get_version_number() 
+               % rec->get_version_string()));
+
+  const double harmonic3rd_MHz(config.get<double>("<xmlattr>.harmonic3rd_MHz", 35.));
+  const double freq_3rd(rec->get_nth_frequency(3));
+  if (freq_3rd != harmonic3rd_MHz) {
+    rec->set_nth_frequency(3, harmonic3rd_MHz);
+    LOG_INFO(str(boost::format("3rd harmonic frequency old=%fMHz changed to %fMHz") 
+                 % freq_3rd % harmonic3rd_MHz));
+  } else {
+    LOG_INFO(str(boost::format("3rd harmonic frequency old=%fMHz not changed") 
+                 % freq_3rd));    
+  }
+
+  const double harmonic5th_MHz(config.get<double>("<xmlattr>.harmonic5th_MHz", 85.));
+  const double freq_5th(rec->get_nth_frequency(5));
+  if (freq_5th != harmonic5th_MHz) {
+    rec->set_nth_frequency(5, harmonic5th_MHz);
+    LOG_INFO(str(boost::format("5th harmonic frequency old=%fMHz changed to %fMHz)") 
+                 % freq_5th % harmonic5th_MHz));
+  } else {
+    LOG_INFO(str(boost::format("5th harmonic frequency old=%fMHz not changed") 
+                 % freq_5th));    
+  }
+  
+  const boost::property_tree::ptree& config_presel(config.get_child("Preselector"));
+  const boost::uint32_t presel_mode(config_presel.get<boost::uint32_t>("<xmlattr>.mode", 1));
+  const boost::uint32_t pmode(rec->get_presel_mode());
+  if (pmode != presel_mode) {
+    rec->set_presel_mode(presel_mode);
+    LOG_INFO(str(boost::format("preselector mode old=%d changed to %d") 
+                 % pmode % presel_mode));
+  } else {
+    LOG_INFO(str(boost::format("preselector mode old=%d not changed") 
+                 % pmode));
+  }
+  
+  int counter(-1);
+  BOOST_FOREACH(const boost::property_tree::ptree::value_type& entry, config_presel) {
+    if (entry.first != "Entry") {
+      if (entry.first != "<xmlattr>")
+        LOG_WARNING(str(boost::format("tag '%s' not supported: expect 'Entry'") % entry.first));
+      continue;
+    }
+    const size_t
+      index(entry.second.get<size_t>("<xmlattr>.index",         counter++));
+    const receiver_control::presel_entry pe(rec->get_presel_entry(index));
+    const receiver_control::presel_entry
+      pentry(entry.second.get<double>("<xmlattr>.freqFrom_MHz", 0.),
+             entry.second.get<double>("<xmlattr>.freqTo_MHz",   0.),
+             entry.second.get<size_t>("<xmlattr>.pattern",      0.));           
+    if (pentry == pe) {
+      LOG_INFO(str(boost::format("preselector entry(%02d) old=%s not changed")
+                   % index % pe));
+    } else {
+      rec->set_presel_entry(index, pentry);
+      LOG_INFO(str(boost::format("preselector entry(%02d) old=%s changed to %s") 
+                   % index % pe % pentry));
+      counter = index;
+    }
+  }
+  // set default entry
+  if (counter >= 0 && counter != 15) {
+    const receiver_control::presel_entry pentry(0.0, 500.0, 0);
+    rec->set_presel_entry(15, pentry);
+    LOG_INFO(str(boost::format("preselector entry(%02d) changed to %s") 
+                 % index % pentry));
+  }
 }
 
 // keeps a global state variable which determines if the program should run or not 
@@ -99,6 +175,8 @@ int main(int argc, char* argv[]) {
 
     FiFiSDR::receiver_control::sptr
       rec(FiFiSDR::receiver_control::make(ud));
+    
+    init(rec, config_fifi_daq);
 
     portaudio::stream_parameters::sptr 
       input_parameters(portaudio::stream_parameters::make(ad->index(),
