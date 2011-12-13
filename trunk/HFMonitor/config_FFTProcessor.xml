@@ -84,6 +84,11 @@
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
+      <AverageDensity name="0192002_Navy_VTX4"
+		      fRef_Hz="19.2e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <AverageDensity name="019600_Navy_CQD"
 		      fRef_Hz="19.6e3"
 		      bandwidth_Hz="200">
@@ -99,8 +104,18 @@
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
+      <AverageDensity name="020500_Navy_RJHxx"
+		      fRef_Hz="20.5e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <AverageDensity name="020900_Navy_HWU"
 		      fRef_Hz="20.9e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="021400_Navy_NPM"
+		      fRef_Hz="21.4e3"
 		      bandwidth_Hz="100">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
@@ -111,6 +126,11 @@
       </AverageDensity>
       <AverageDensity name="022100_Navy_Skelton"
 		      fRef_Hz="22.1e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="022200_Navy_JJI"
+		      fRef_Hz="22.2e3"
 		      bandwidth_Hz="100">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
