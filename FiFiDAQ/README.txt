@@ -22,6 +22,8 @@ cd ..
 ################################################################################
 ./objdir/FiFiDAQ ../config.xml
 
+ps.m demonstrates how to merge the data in the .mat files
+
 
 
 

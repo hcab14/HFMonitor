@@ -32,6 +32,13 @@ namespace FiFiSDR {
       double freq1() const; // in MHz
       double freq2() const; // in MHz
       double pattern() const { return pattern_; }
+
+      friend bool operator==(const presel_entry& pe1, const presel_entry& pe2) {
+        return (pe1.freq1()   == pe2.freq1() &&
+                pe1.freq2()   == pe2.freq2() &&
+                pe1.pattern() == pe2.pattern());
+      }          
+      friend std::ostream& operator<<(std::ostream& os, const presel_entry& pent);
     private:
       boost::uint32_t freq1_; // counter
       boost::uint32_t freq2_; // counter
@@ -53,6 +60,9 @@ namespace FiFiSDR {
 
     static sptr make(usb_device_handle::sptr device);
 
+    virtual boost::uint32_t get_version_number() const = 0;
+    virtual std::string get_version_string() const = 0;
+
     virtual double get_frequency() const    = 0;
     virtual void set_frequency(double freq) = 0;
 
@@ -62,6 +72,7 @@ namespace FiFiSDR {
     virtual double get_xtal_frequency() const    = 0;
     virtual void set_xtal_frequency(double freq) = 0;
 
+    // n == 3 || n == 5
     virtual double get_nth_frequency(unsigned n) const      = 0;
     virtual void set_nth_frequency(unsigned n, double freq)  = 0;
 

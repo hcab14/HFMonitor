@@ -17,9 +17,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <vector>
+#include <boost/format.hpp>
 #include "fifi_control.hpp"
 
 namespace FiFiSDR {  
+  std::ostream& operator<<(std::ostream& os, const receiver_control::presel_entry& pent) {
+    return os << str(boost::format("[ %7.3f - %7.3f: %2d ]")
+                     % pent.freq1()
+                     % pent.freq2()
+                     % pent.pattern());
+  }
+  
   class receiver_control_impl : public receiver_control {
   public:
     receiver_control_impl(usb_device_handle::sptr usb_device)
@@ -29,7 +37,21 @@ namespace FiFiSDR {
       get_abpf();
     }
     virtual ~receiver_control_impl() {}
-       
+
+    virtual boost::uint32_t get_version_number() const {
+      boost::uint32_t version_num(0);
+      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, 0, (unsigned char *)&version_num, 4) == 4);
+      return version_num;
+    }
+    virtual std::string get_version_string() const {
+      const size_t len(256);
+      char version[len+1];
+      memset(version, 0, sizeof(version));
+      const ssize_t n(usb_control_->submit(request_type_in(), 0xAB, 0, 1, (unsigned char *)&version, len));
+      ASSERT_THROW(n >= 0);
+      ASSERT_THROW(size_t(n) <= len);
+      return std::string(version);
+    }    
     virtual double get_frequency() const { 
       boost::uint32_t freq21(0);
       ASSERT_THROW(usb_control_->submit(request_type_in(), 0x3A, 0, 0, (unsigned char *)&freq21, 4) == 4);
@@ -86,7 +108,7 @@ namespace FiFiSDR {
       return pe;
     }
     virtual void set_presel_entry(size_t index, const presel_entry& pe) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAB, index, 7, (unsigned char *)&pe, 9) == 9);
+      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAC, index, 7, (unsigned char *)&pe, 9) == 9);
     }
 
     virtual boost::uint8_t get_i2c_addr() const {
