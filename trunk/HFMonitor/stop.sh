@@ -2,7 +2,8 @@
 # $Id$
 
 function check_run {
-    ps -p $1 -opid --no-heading
+    local pid=`ps -p $1 -opid --no-heading`
+    echo $(( $pid ))
 }
 
 what=$1
