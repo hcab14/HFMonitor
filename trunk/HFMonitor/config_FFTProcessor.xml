@@ -16,13 +16,6 @@
 		minRatio="10">
 	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
       </FindPeak>
-      <FindPeak name="075000_TS_HBG"
-		fMin_Hz="74.800e3"
-		fMax_Hz="75.200e3"
-		fRef_Hz="75.000e3"
-		minRatio="10">
-	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
-      </FindPeak>
       <FindPeak name="077500_TS_DCF"
 		fMin_Hz="77.300e3"
 		fMax_Hz="77.700e3"
@@ -52,7 +45,6 @@
 	<Inputs>
 	  <Input key="L0.060000_TS_MSF"></Input>
 	  <Input key="L0.077500_TS_DCF"></Input>
-	  <Input key="L0.075000_TS_HBG"></Input>
 	  <Input key="L0.162000_AM_TDF"></Input>
 	  <Input key="L0.198000_AM_BBC"></Input>
 	</Inputs>
@@ -146,6 +138,11 @@
       </AverageDensity>
       <AverageDensity name="025200_Navy_NML"
 		      fRef_Hz="25.200e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="026000_Navy_Unid"
+		      fRef_Hz="26.000e3"
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
@@ -259,14 +256,6 @@
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
-      <FindPeak name="075000_TS_HBG"
-		fMin_Hz="74.800e3"
-		fMax_Hz="75.200e3"
-		fRef_Hz="75.000e3"
-		minRatio="10">
-	<Calibration key="L1.CAL"></Calibration>
-	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
-      </FindPeak>
       <FindPeak name="077500_TS_DCF77"
 		fMin_Hz="77.300e3"
 		fMax_Hz="77.700e3"
