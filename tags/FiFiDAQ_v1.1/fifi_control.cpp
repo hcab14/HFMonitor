@@ -18,6 +18,7 @@
 //
 #include <vector>
 #include <boost/format.hpp>
+#include <string.h> // memset
 #include "fifi_control.hpp"
 
 namespace FiFiSDR {  
@@ -47,7 +48,7 @@ namespace FiFiSDR {
       const size_t len(256);
       char version[len+1];
       memset(version, 0, sizeof(version));
-      const ssize_t n(usb_control_->submit(request_type_in(), 0xAB, 0, 1, (unsigned char *)&version, len));
+      const ssize_t n(usb_control_->submit(request_type_in(), 0xAB, 0, 1, (unsigned char *)version, len));
       ASSERT_THROW(n >= 0);
       ASSERT_THROW(size_t(n) <= len);
       return std::string(version);
@@ -126,7 +127,7 @@ namespace FiFiSDR {
       return factor;
     }
     virtual void set_virtual_vco_factor(boost::uint32_t factor) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAB, 0, 11, (unsigned char *)&factor, 4) == 4);   
+      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAC, 0, 11, (unsigned char *)&factor, 4) == 4);   
     }
 
     virtual si570_registers get_si570_registers() const {
