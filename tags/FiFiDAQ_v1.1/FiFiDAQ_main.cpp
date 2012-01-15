@@ -139,7 +139,7 @@ void init(FiFiSDR::receiver_control::sptr rec,
     const receiver_control::presel_entry pentry(0.0, 500.0, 0);
     rec->set_presel_entry(15, pentry);
     LOG_INFO(str(boost::format("preselector entry(%02d) changed to %s") 
-                 % index % pentry));
+                 % 15 % pentry));
   }
 }
 
