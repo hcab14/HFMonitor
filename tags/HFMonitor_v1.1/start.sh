@@ -26,6 +26,7 @@ fi
 
 case $what in
     server|client)
+	[[ ! -d Log ]] && ( sudo rm -fr Log && mkdir Log )
 	start_$what > .start_$what.sh
 	chmod u+x .start_$what.sh
 	at now <<EOF
