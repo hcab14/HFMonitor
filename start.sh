@@ -1,6 +1,5 @@
 #!/bin/bash
 # $Id$
-cd /home/chm/C++/HFMonitor
 
 function start_server {
 cat <<EOF
