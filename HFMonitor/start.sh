@@ -1,6 +1,5 @@
 #!/bin/bash
 # $Id$
-cd /home/chm/C++/HFMonitor
 
 function start_server {
 cat <<EOF
@@ -18,22 +17,35 @@ echo \$! > .pid_client
 EOF
 }
 
-what=$1
-
-if [ `./status.sh $what` == RUN ]; then
-    echo "$what is already running"
-    exit 1
-fi
-
-case $what in
-    server|client)
-	start_$what > .start_$what.sh
-	chmod u+x .start_$what.sh
-	at now <<EOF
+echo -n > .lock_start_$$
+if [ $# == 0 ]; then
+    status_client=`./status.sh client` 
+    status_server=`./status.sh server`
+    if [ ${status_client} == RUN ] && [ ${status_server} == RUN ]; then 
+	echo OK: client and server are running
+    else
+	[ ${status_server} != RUN ] && ( $0 server; sleep 30s )
+	[ ${status_client} != RUN ] && ( $0 client )
+    fi
+else
+    what=$1
+    
+    if [ `./status.sh $what` == RUN ]; then
+	echo "$what is already running"
+	exit 1
+    fi
+    
+    case $what in
+	server|client)
+	    start_$what > .start_$what.sh
+	    chmod u+x .start_$what.sh
+	    at now <<EOF
 ./.start_$what.sh
 EOF
-	;;
-    *)
-	echo "unrecognized \"$what\". Allowed services: {server,client}"
-	;;
-esac
+	    ;;
+	*)
+	    echo "unrecognized \"$what\". Allowed services: {server,client}"
+	    ;;
+    esac
+fi
+rm -f .lock_start_$$
