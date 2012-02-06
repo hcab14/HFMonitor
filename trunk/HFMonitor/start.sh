@@ -17,7 +17,9 @@ echo \$! > .pid_client
 EOF
 }
 
-echo -n > .lock_start_$$
+lock_file=.lock_start_$$
+touch ${lock_file} && trap "rm -f ${lock_file}" EXIT || ( echo LOCK_FAILED > /dev/stderr; exit 1 )
+
 if [ $# == 0 ]; then
     status_client=`./status.sh client` 
     status_server=`./status.sh server`
@@ -48,4 +50,3 @@ EOF
 	    ;;
     esac
 fi
-rm -f .lock_start_$$

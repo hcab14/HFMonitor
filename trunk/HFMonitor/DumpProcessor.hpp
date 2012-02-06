@@ -26,7 +26,7 @@ public:
   void procRaw(const Header& header, 
                std::vector<char>::const_iterator i0,
                std::vector<char>::const_iterator i1) { 
-    LOG_INFO(str(boost::format("DumpProcessor::procRaw %s") % header));
+//     LOG_INFO(str(boost::format("DumpProcessor::procRaw %s") % header));
     if (sampleCounter_ > samplesPerFile_) {
       sampleCounter_= 0;
       ++fileNumber_;

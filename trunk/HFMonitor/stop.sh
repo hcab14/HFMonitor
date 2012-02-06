@@ -6,7 +6,9 @@ function check_run {
     echo $(( $pid ))
 }
 
-echo -n > .lock_stop_$$
+lock_file=.lock_stop_$$
+touch ${lock_file} && trap "rm -f ${lock_file}" EXIT || ( echo LOCK_FAILED > /dev/stderr; exit 1 )
+
 if [ $# == 0 ]; then
     $0 client
     $0 server
@@ -35,4 +37,3 @@ else
 	echo "$pid_file does not exist"
     fi    
 fi
-rm -f .lock_stop_$$
