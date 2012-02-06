@@ -5,8 +5,8 @@
 	maxQueueDelay_Minutes="2"
 	maxQueueSize_MB="500"></data>
   <ctrl port="18001"></ctrl>
-  <perseus samplerate="1000000"
-	   qrg_Hz    ="40000"
+  <perseus samplerate="500000"
+	   qrg_Hz    ="200000"
 	   attenuator="0"
 	   enableDither="0"
 	   enablePreamp="0"
