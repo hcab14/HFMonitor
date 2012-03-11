@@ -12,10 +12,10 @@
 #include <boost/make_shared.hpp>
 
 #include "Spectrum.hpp"
-#include "FFTResultSpectrumPowerInInterval.hpp"
-#include "FFTResultCalibration.hpp"
-#include "FFTProxy.hpp"
-#include "FFTActionSpectrumInterval.hpp"
+#include "FFTProcessor/Result/SpectrumPowerInInterval.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
+#include "FFTProcessor/Proxy.hpp"
+#include "FFTProcessor/Action/SpectrumInterval.hpp"
 
 namespace Action {
   class AverageDensity : public SpectrumInterval {

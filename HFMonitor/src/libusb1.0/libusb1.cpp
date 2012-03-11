@@ -18,7 +18,7 @@
 //
 
 #include "logging.hpp"
-#include "libusb1.hpp"
+#include "libusb1.0/libusb1.hpp"
 
 const int libusb_timeout = 0;
 

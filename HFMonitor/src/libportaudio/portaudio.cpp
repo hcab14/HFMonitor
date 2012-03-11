@@ -24,7 +24,7 @@
 #include <boost/current_function.hpp>
 #include <boost/weak_ptr.hpp>
 
-#include "portaudio.hpp"
+#include "libportaudio/portaudio.hpp"
 
 #define THROW_SITE_INFO(what)                                           \
   std::string(std::string(what) + "\n" +                                \

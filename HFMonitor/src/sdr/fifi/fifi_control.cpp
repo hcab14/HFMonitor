@@ -20,7 +20,7 @@
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include "fifi_control.hpp"
+#include "sdr/fifi/fifi_control.hpp"
 
 namespace FiFiSDR {  
   class receiver_control_impl : public receiver_control {
