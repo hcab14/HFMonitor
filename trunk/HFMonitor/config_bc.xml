@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<Data port="18000"
+      maxQueueDelay_Minutes="2"
+      maxQueueSize_MB="500"></Data>
+<Ctrl port="18001"></Ctrl>

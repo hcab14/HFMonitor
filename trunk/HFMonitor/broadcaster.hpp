@@ -1,34 +1,23 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
+#ifndef _BROADCASTER_HPP_cm111219_
+#define _BROADCASTER_HPP_cm111219_
+
 #include <iostream>
-#include <iterator>
-#include <vector>
 #include <set>
 #include <string>
-#include <sstream>
-#include <deque>
-#include <sys/time.h>
-#include <sys/resource.h>
 
-#include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
+
 #include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/foreach.hpp>
 
-#include "perseus++.h"
-#include "Filter.hpp"
 #include "logging.hpp"
-#include "protocol.hpp"
-#include "IQBuffer.hpp"
-#include "run.hpp"
-
+#include "broadcaster_directory.hpp"
+#include "data_connection.hpp"
 
 // -----------------------------------------------------------------------------
 // broadcaster
@@ -37,527 +26,182 @@
 //  * the callback is assumed to be called regularly
 //  * the data is sent to all connected clients
 //  * being-alive-ticks are exchanged between server and client
+//  * config: 
+//   <Data port="xxxx"
+//         maxQueueSize_MB="xxxx"
+//         maxQueueDelay_Minutes="xxxx"></Data>
+//   <Ctrl port="xxxx"></Ctrl>
 
 class broadcaster : private boost::noncopyable {
 public:
-  typedef boost::shared_ptr<broadcaster> sptr;
-  typedef boost::posix_time::ptime ptime;
-  typedef std::string data_type;
+  broadcaster(boost::asio::io_service& io_service,
+              const boost::property_tree::ptree& config)
+    : strand_(io_service)
+    , max_queue_total_size_(1024*1024*config.get<size_t>("Data.<xmlattr>.maxQueueSize_MB"))
+    , max_queue_delay_(boost::posix_time::minutes(config.get<size_t>("Data.<xmlattr>.maxQueueDelay_Minutes")))
+    , last_log_status_time_(boost::posix_time::microsec_clock::universal_time())
+  {
+    using namespace boost::asio::ip;
+    acceptor_map_["Data"] = acceptor_ptr
+      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
+    acceptor_map_["Ctrl"] = acceptor_ptr
+      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
+  }
+
+  virtual ~broadcaster() {}
 
   // start broadcaster
-  void start();
+  void start() {
+    // start data taking (pure virtual method overwritten in a derived class)
+    start_data_source();
+    LOG_INFO("started data source");
 
-  // start the associated data source -- to be implemented in derived class
-  virtual void start_data_source() = 0;
-
+    // start listening on data/ctrl sockets
+    start_listen();
+    LOG_INFO("started listening");
+  }
+  
   // stop broadcaster
-  void stop();
+  void stop() {
+    // stop data taking (pure virtual method implemented in a derived class)
+    stop_data_source();
+
+    // announce stop of io_service
+    get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
+
+    // process all remaining io actions
+    get_io_service().run();
+  }
+
+protected:
+  typedef data_connection::ptime ptime;
+  typedef std::string data_type;
+
+  // start the associated data source -- to be implemented in a derived class
+  virtual void start_data_source() = 0;
 
   // stop the associated data source -- to be implemented in derived class
   virtual void stop_data_source() = 0;
 
-  // adds data to queue
-  void bc_data(ptime t, data_type d);
+  // broadcast data
+  void bc_data(ptime t,
+               std::string path,
+               data_type d) {
+    // insert path into the directory
+    directory_.insert(path);
 
-  // triggers pending io actions: to be called from the callback
-  void do_pending_io_actions();
+    // status of broadcaster -> log file
+    log_status(t);
 
-protected:
-private:
-} ;
-
-class perseus_broadcaster : public broadcaster {
-public:
-  typedef boost::shared_ptr<perseus_broadcaster> sptr;
-  static sptr make() { return sptr(new perseus_broadcaster_impl); }
-
-protected:
-private:
-};
-
-class perseus_broadcaster_impl : public perseus_broadcaster {
-public:
-protected:
-  // start the associated data source -- to be implemented in derived class
-  virtual void start_data_source() {}
-
-  // stop the associated data source -- to be implemented in derived class
-  virtual void stop_data_source() {}
-
-private:
-  static int callback(void *buf, int buf_size, void *extra);
-}
-
-class data_connection : private boost::noncopyable {
-public:
-  typedef boost::posix_time::ptime ptime;
-  typedef boost::posix_time::time_duration time_duration;
-
-  typedef boost::shared_ptr<data_connection> sptr;
-  typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
-  typedef std::vector<char> Data;
-  typedef boost::shared_ptr<Data> data_ptr;
-  typedef std::pair<ptime, data_ptr> ptime_data_pair;
-  typedef std::deque<ptime_data_pair> ListOfPackets;
-
-public:
-  data_connection(boost::asio::io_service& io_service,
-                  boost::asio::strand& strand,
-                  tcp_socket_ptr p,
-                  size_t max_total_size=40*1024*1024,
-                  time_duration max_queue_delay=boost::posix_time::minutes(5))
-    : io_service_(io_service)
-    , strand_(strand)
-    , tcp_socket_ptr_(p)
-    , is_open_(true)
-    , max_total_size_(max_total_size)
-    , max_queue_delay_(max_queue_delay)
-    , max_delay_(boost::posix_time::seconds(0))
-    , last_tick_time_(boost::posix_time::microsec_clock::universal_time()) {
-    async_receive();
-  }
-
-  ~data_connection() {
-    close();
-  }
-
-  void close() {
-    if (is_open()) {
-      boost::system::error_code ec;      
-      LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
-      LOG_INFO("close and shutdown socket");
-      if (tcp_socket_ptr_->is_open()) {
-        tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-        if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
-        tcp_socket_ptr_->close();
-      }
-      is_open_= false; 
-    }
-  }
-  bool is_open() const { return tcp_socket_ptr_->is_open(); }
-
-  void pop_front() { listOfPackets_.pop_front(); }
-  void pop_back()  { listOfPackets_.pop_back(); }
-
-  ListOfPackets::const_reference front() const { return listOfPackets_.front(); }
-  ListOfPackets::const_reference back() const  { return listOfPackets_.back(); }
-
-  bool   empty() const { return listOfPackets_.empty(); }
-  size_t size()  const { return listOfPackets_.size(); }
-
-  size_t total_size() const {
-    size_t sum(0);
-    BOOST_FOREACH(const ListOfPackets::value_type& lp, listOfPackets_)
-      sum += lp.second->size();
-    return sum;
-  }
-
-  boost::asio::ip::tcp::endpoint local_endpoint(boost::system::error_code& ec) const {
-    return tcp_socket_ptr_->local_endpoint(ec);
-  }
-  boost::asio::ip::tcp::endpoint remote_endpoint(boost::system::error_code& ec) const {
-    return tcp_socket_ptr_->remote_endpoint(ec);
-  }
-
-  time_duration delay(ptime t) const {
-    return (empty()) ? boost::posix_time::seconds(0) : t - front().first;
-  }
-
-  time_duration max_delay() const { return max_delay_; }
-  void reset_max_delay() { max_delay_ = boost::posix_time::seconds(0); }
-
-  const ptime& last_tick_time() const { return last_tick_time_; }
-
-  bool push_back(ptime t, const data_ptr& dp) {
-    max_delay_ = std::max(max_delay_, delay(t));
-    // if the buffer is full forget all data except first packets which may be being sent
-    size_t n_omit(0);
-    if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-      for (; size()>1; ++n_omit)      
-        listOfPackets_.pop_back();
-    }
-    if (n_omit != 0)
-      LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
-    if (is_open()) {
-      const bool listOfPacketsWasEmpty(empty());
-      listOfPackets_.push_back(std::make_pair(t, dp));
-      if (listOfPacketsWasEmpty)
-        async_write();
-      return true;
-    }
-    return false;
-  }
-
-  void async_write() {
-    if (!empty() && is_open()) {
-      data_ptr dataPtr(front().second);
-      boost::asio::async_write(*tcp_socket_ptr_,
-                               boost::asio::buffer(&dataPtr->front(), dataPtr->size()),
-                               strand_.wrap(boost::bind(&data_connection::handle_write,
-                                                        this,
-                                                        boost::asio::placeholders::error,
-                                                        boost::asio::placeholders::bytes_transferred)));
+    // create a shared pointer of the to-be-broadcasted data
+    boost::shared_ptr<data_type> dp(new data_type(d));
+    
+    // insert to all data connections, checking if they are still alive
+    for (std::set<data_connection::sptr>::iterator k(data_connections_.begin()); k!=data_connections_.end();) {
+      if ((*k)->push_back(t, path, dp))
+        ++k;
+      else
+        data_connections_.erase(k++);
     }
   }
 
-  void handle_write(const boost::system::error_code& ec, std::size_t bytes_transferred) {
-    if (ec) {
-      close();
-    } else if (is_open()) {
-      pop_front();
-      async_write();
-    }
-  }
-
-  void async_receive() {
-    if (is_open())
-      boost::asio::async_read(*tcp_socket_ptr_,
-                              boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
-                              strand_.wrap(boost::bind(&data_connection::handle_receive,
-                                                       this,
-                                                       boost::asio::placeholders::error,
-                                                       boost::asio::placeholders::bytes_transferred)));
-  }
-  void handle_receive(const boost::system::error_code& ec, std::size_t bytes_transferred) {
-    if (ec) {
-      LOG_INFO(str(boost::format("handle_receive ec=%s") % ec));
-      close();
-    } else {
-      last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
-      LOG_INFO(str(boost::format("tick %d '%c'") % bytes_transferred % dummy_data_));
-      async_receive();
-    }
-  }
-protected:
-private:
-  boost::asio::io_service& io_service_;
-  boost::asio::strand&     strand_;
-  tcp_socket_ptr           tcp_socket_ptr_;
-  bool                     is_open_;
-  const size_t             max_total_size_;
-  const time_duration      max_queue_delay_;
-  time_duration            max_delay_;
-  ListOfPackets            listOfPackets_;
-  char                     dummy_data_;
-  ptime                    last_tick_time_;
-} ;
-
-class server : private boost::noncopyable {
-public:
-  typedef boost::shared_ptr<server> sptr;
-  typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
-  typedef std::set<tcp_socket_ptr> Sockets;
-  typedef boost::shared_ptr<data_connection> data_connection_ptr;
-  typedef std::set<data_connection_ptr> data_connections;
-  typedef boost::posix_time::ptime ptime;
-  typedef boost::posix_time::time_duration time_duration;
-
-  server(boost::asio::io_service& io_service,
-         const boost::asio::ip::tcp::endpoint& endpoint_ctrl,
-         const boost::asio::ip::tcp::endpoint& endpoint_data,
-         Perseus::ReceiverPtr recPtr,
-         const boost::property_tree::ptree& config)
-    : io_service_(io_service)
-    , strand_(io_service)
-    , acceptor_ctrl_(io_service, endpoint_ctrl)
-    , acceptor_data_(io_service, endpoint_data)
-    , recPtr_(recPtr)
-    , usbBufferSize_(config.get<unsigned>("perseus.<xmlattr>.USBBufferSize"))
-    , max_queue_total_size_(1024*1024*config.get<size_t>("data.<xmlattr>.maxQueueSize_MB"))
-    , max_queue_delay_(boost::posix_time::minutes(config.get<unsigned>("data.<xmlattr>.maxQueueDelay_Minutes")))
-    , dtVarThreshold_(0.01*config.get<double>("perseus.<xmlattr>.dtVariationThreshold_Percent"))
-    , sampleNumber_(0)
-    , dtCallback_(0,0,0,
-                  boost::int64_t(usbBufferSize_/6*time_duration::ticks_per_second()/recPtr_->sampleRate())) 
-    , counter_(1) {
-    // control setup
-    {
-      acceptor_ctrl_.set_option(boost::asio::socket_base::reuse_address(true));
-      acceptor_ctrl_.listen();
-      tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_ctrl_.get_io_service()));
-      acceptor_ctrl_.async_accept(*new_socket,
-                                  strand_.wrap(boost::bind(&server::handle_accept_ctrl, this,
-                                                           boost::asio::placeholders::error, new_socket)));
-    }
-    // data setup
-    {
-      acceptor_data_.set_option(boost::asio::socket_base::reuse_address(true));
-      acceptor_data_.listen();
-      tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_data_.get_io_service()));
-      acceptor_data_.async_accept(*new_socket,
-                                  strand_.wrap(boost::bind(&server::handle_accept_data, this,
-                                                           boost::asio::placeholders::error, new_socket)));
-    }
-    // PTimeLowpassFilters:
-    {
-      using boost::property_tree::ptree;
-      LOG_INFO("Cascaded Lowpass Filters: ");
-      const double dtCallbackSec(double(dtCallback_.ticks())/time_duration::ticks_per_second());
-      BOOST_FOREACH(const ptree::value_type& filter, config.get_child("perseus.CascadedPTimeLowPass")) {
-        if (filter.first != "Tau_Sec") {
-          LOG_WARNING(str(boost::format("  + unknown key: [%s]") % filter.first));
-          continue;
-        }
-        const double filterTimeconstant(boost::lexical_cast<double>(filter.second.data()));
-        LOG_INFO(str(boost::format("  + Lowpass Filter %s = %f")  
-                     % filter.first 
-                     % filterTimeconstant));
-        ptimeFilter_.add(Filter::PTimeLowPass::make(dtCallbackSec, filterTimeconstant));
-        dtFilter_.add(Filter::LowPass<double>::make(dtCallbackSec, filterTimeconstant));        
-      }
-      const ptime now(boost::posix_time::microsec_clock::universal_time());
-      ptimeFilter_.init(now, now);
-      dtFilter_.init(now, dtCallbackSec);
-      ptimeOfCallback_ = ptimeDataMeasure_ = now;
-    }
-    recPtr_->startAsyncInput(usbBufferSize_, server::receiverCallback, this);
-    LOG_INFO(str(boost::format("ptime_ = %s dt = %d ms") 
-                 % ptimeOfCallback_
-                 % int(0.5+1e-6*dtCallback_.total_microseconds())));
-  }
-  
-  void handle_accept_ctrl(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    boost::system::error_code ec2;
-    LOG_INFO(str(boost::format("servce::handle_accept_ctrl error_code=%s ep=%s") 
-                 % ec
-                 % socket->remote_endpoint(ec2)));
-    if (!ec) {
-      ctrl_sockets_.insert(socket);
-      LOG_INFO(str(boost::format("remote endpoint= %s %s")
-                   % socket->remote_endpoint(ec2)
-                   % (socket->is_open() ? "open" : "closed")));
-      tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(acceptor_ctrl_.get_io_service()));      
-      acceptor_ctrl_.async_accept(*new_socket,
-                                  strand_.wrap(boost::bind(&server::handle_accept_ctrl, this,
-                                                           boost::asio::placeholders::error, new_socket)));
-    }
-  }
-  void handle_accept_data(const boost::system::error_code& ec, tcp_socket_ptr socket) {
-    LOG_INFO(str(boost::format("servce::handle_accept_data error_code= %s") % ec));
-    if (!ec) {
-      boost::system::error_code ec2;
-      // socket->set_option(boost::asio::socket_base::linger(true, 0));
-      LOG_INFO(str(boost::format("remote endpoint= %s") % socket->remote_endpoint(ec2)));
-      data_connections_.insert
-        (data_connection_ptr(new data_connection(io_service_, strand_, socket,
-                                                 max_queue_total_size_, max_queue_delay_)));
-      tcp_socket_ptr new_socket
-        (new boost::asio::ip::tcp::socket(acceptor_data_.get_io_service()));
-      acceptor_data_.async_accept
-        (*new_socket, strand_.wrap(boost::bind(&server::handle_accept_data, this,
-                                               boost::asio::placeholders::error, new_socket)));
-    } else {
-      LOG_ERROR(str(boost::format("handle_accept_data ec=%s") % ec));
-    }
-  }
-
-  Header getHeader(const unsigned nSamples, ptime approxPTime) {
-    return Header((sampleNumber_+=nSamples) - nSamples,
-                  boost::uint32_t(recPtr_->sampleRate()),
-                  boost::uint32_t(recPtr_->ddcCenterFrequency()),
-                  nSamples,
-                  0, // TODO
-                  recPtr_->attenId(),
-                  recPtr_->enablePresel(),
-                  recPtr_->enablePreamp(),
-                  recPtr_->enableDither(),
-                  approxPTime);
-  }
-
-  static int receiverCallback(void *buf, int buf_size, void *extra) {
-    server* sp= (server* )extra;
-    const unsigned nSamples = buf_size/6;
-
-    const ptime now(boost::posix_time::microsec_clock::universal_time());
-    const time_duration dt(now - sp->ptimeOfCallback_);
-
-    const bool doInterpolation
-      (std::abs(dt.ticks() - sp->dtCallback_.ticks()) > sp->dtVarThreshold_ * sp->dtCallback_.ticks());
-
-    const ptime oldFilterTime(sp->ptimeFilter_.x());
-
-    const ptime nowInterpolated(doInterpolation ? oldFilterTime + sp->dtCallback_ : now);
-    sp->ptimeFilter_.update(nowInterpolated, nowInterpolated);
-    sp->dtFilter_.update(nowInterpolated, (doInterpolation
-                                           ? double(sp->dtCallback_.ticks())
-                                           : double(dt.ticks())) / time_duration::ticks_per_second());
-    if (not doInterpolation &&
-        std::abs((now-sp->ptimeFilter_.x()).ticks()) > sp->dtVarThreshold_*sp->dtCallback_.ticks()) {
-      LOG_WARNING_T(now, str(boost::format("time step: dt=%s") % (now - sp->ptimeFilter_.x())));
-      sp->ptimeFilter_.init(now, now);
-      sp->dtFilter_.init(now, double(sp->dtCallback_.ticks())/time_duration::ticks_per_second());
-    }
-    sp->ptimeOfCallback_= now;
-#if 0
-    std::cout << "receiverCallback "
-              << sp->ptimeOfCallback_ << " "
-              << sp->ptimeFilter_.x() << " "
-              << dt << " "
-              << sp->dtCallback_ << " "
-              << (sp->ptimeFilter_.x()-oldFilterTime).ticks() << " " << sp->dtCallback_.ticks() << " "
-              << sp->dtFilter_.x() << " " 
-              << sp->dtFilter_.x() / double(sp->dtCallback_.ticks())*time_duration::ticks_per_second()-1. << " "
-              << sp->ptimeOfCallback_ - sp->ptimeFilter_.x() << " "
-              << ((std::abs(dt.ticks() - sp->dtCallback_.ticks()) < sp->dtCallback_.ticks()/10) ? "OK" : "IP") 
-              <<  std::endl;
-#endif
-    // keep only one copy of the data in memory even when there are several clients
-    const Header header(sp->getHeader(nSamples, oldFilterTime));
-    data_connection::data_ptr dp(new data_connection::Data);      
-#if 1
-    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(*dp));
-    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(*dp));
-    sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
-#else
-    std::copy((char*)&header, (char*)&header+sizeof(Header), std::back_inserter(sp->data_));
-    std::copy((char*)buf,     (char*)buf+buf_size,           std::back_inserter(sp->data_));
-
-    sp->counter_++;
-    if (sp->counter_ == 0 && not sp->data_.empty()) {
-      std::copy(sp->data_.begin(), sp->data_.end(), std::back_inserter(*dp));
-      sp->data_.clear();
-      sp->io_service_.dispatch(boost::bind(&server::sendDataToClients, sp, sp->ptimeFilter_.x(), dp));
-    }
-#endif
+  // triggers pending io actions: this is always to be called from the callback
+  void do_pending_io_actions() {
     boost::system::error_code ec;
     const size_t max_poll_actions(100*1000);
-    for (size_t u(0); sp->io_service_.poll(ec) > 0 && u < max_poll_actions; ++u)
+    for (size_t u(0); get_io_service().poll(ec) > 0 && u < max_poll_actions; ++u)
       if (ec) break;
-    return 0;
   }
 
-  void sendDataToClients(const ptime& t, const data_connection::data_ptr& dp) {
-    bc_status();
-    for (data_connections::iterator i(data_connections_.begin()); i!=data_connections_.end();) {
-      if ((*i)->push_back(t, dp))
-        ++i;
-      else 
-        data_connections_.erase(i++);
+  // returns a reference to the io service object
+  boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
+
+  // returns a reference to the strand object
+  boost::asio::strand& get_strand() { return strand_; }
+
+private:
+  typedef data_connection::time_duration time_duration;
+  typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
+  typedef std::set<data_connection::sptr> data_connections;
+  typedef boost::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor_ptr;
+  typedef std::map<std::string, acceptor_ptr> acceptor_map;
+
+  void start_listen() {
+    BOOST_FOREACH(const acceptor_map::value_type& a, acceptor_map_) {
+      // setup acceptor
+      a.second->set_option(boost::asio::socket_base::reuse_address(true));
+
+      // start listening
+      a.second->listen();      
+
+      // asynchronously accept data connections
+      async_accept(a);
     }
   }
 
-  void bc_status() {
-    const unsigned buffers_per_second = unsigned(0.5 + double(recPtr_->sampleRate()) / double(usbBufferSize_));
-    const unsigned moduloSize = unsigned(0.5 + buffers_per_second * usbBufferSize_);
-    // every 1 second status -> log
-    if (sampleNumber_ % moduloSize == 0) {
-      // round dt modulo [time of 850 samples]
-      const int dt_usec  = int(0.5 + 1e6*(  double((ptimeOfCallback_ - ptimeDataMeasure_).ticks())
-                                          / double(time_duration::ticks_per_second())));
-      const int dt0_usec = int(0.5 + 1e6* usbBufferSize_/6. / recPtr_->sampleRate());
-      const double rate(1e6* double(moduloSize) / double(dt0_usec * int(0.5+double(dt_usec)/double(dt0_usec))));
-      LOG_STATUS_T(ptimeOfCallback_,
-                   str(boost::format("#connections=%3d sampleNumber=%15d dataRate=%10.2f")
-                     % data_connections_.size()
-                     % sampleNumber_
-                     % rate));
-      ptimeDataMeasure_ = ptimeOfCallback_;
+  void async_accept(const acceptor_map::value_type& a) {
+    tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(a.second->get_io_service()));
+    a.second->async_accept(*new_socket,
+                           strand_.wrap(boost::bind(&broadcaster::handle_accept, this,
+                                                    boost::asio::placeholders::error,
+                                                    new_socket, a)));
+  }
+
+  void handle_accept(const boost::system::error_code& ec,
+                     tcp_socket_ptr socket,
+                     const acceptor_map::value_type& a) {
+    LOG_INFO(str(boost::format("servce::handle_accept type='%s' error_code='%s'") % a.first % ec));
+    if (!ec) {
+      if (a.first == "Data") {
+        boost::system::error_code ec_ignore;
+        LOG_INFO(str(boost::format("remote endpoint='%s'") % socket->remote_endpoint(ec_ignore)));
+
+        // make new data connection and insert into the set of open connections
+        data_connections_.insert(data_connection::make(get_io_service(), strand_, socket,
+                                                       directory_, max_queue_total_size_, max_queue_delay_));
+        
+        // asynchronously accept next data connection
+        async_accept(a);
+
+      } else if (a.first == "Ctrl") {
+        // do nothing for now
+      } else {
+        LOG_ERROR(str(boost::format("unknown type='%s'") % a.first));
+      }
+    } else {
+      LOG_ERROR(str(boost::format("handle_accept type='%s' ec='%s'") % a.first % ec));
+    }
+  }
+
+  void log_status(ptime t) const {
+    if (t-last_log_status_time_ > boost::posix_time::seconds(1)) {
+      LOG_STATUS_T(t, str(boost::format("#connections=%3d") % data_connections_.size()));
       BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
-        boost::system::error_code ecl, ecr;
-        LOG_STATUS_T(ptimeOfCallback_, 
-                     str(boost::format("   %s - %s : delay[ms] = %d")
-                       % dc->local_endpoint(ecl) 
-                       % dc->local_endpoint(ecr) 
-                       % int(0.5+1000*dc->max_delay().ticks() 
-                             / time_duration::ticks_per_second())));
+        boost::system::error_code ecl_ignore, ecr_ignore;
+        LOG_STATUS_T(t, str(boost::format("  %s - %s : delay[ms] = %.2f (%s)")
+                            % dc->local_endpoint(ecl_ignore) 
+                            % dc->local_endpoint(ecr_ignore) 
+                            % dc->max_delay_msec()
+                            % dc->stream_name()));
         dc->reset_max_delay();
       }
+      last_log_status_time_= t;
     }
-  }
-
-  void stop() {
-    recPtr_->stopAsyncInput();
-    io_service_.post(boost::bind(&server::do_stop, this));
-    // process the remaining actions
-    io_service_.run();
   }
 
   void do_stop() {
-    ctrl_sockets_.clear();
     data_connections_.clear();
-    io_service_.stop();
+    get_io_service().stop();
   }
 
-protected:
-private:
-  boost::asio::io_service&       io_service_;
-  boost::asio::strand            strand_;
-  boost::asio::ip::tcp::acceptor acceptor_ctrl_;
-  boost::asio::ip::tcp::acceptor acceptor_data_;
-  Sockets                        ctrl_sockets_;
-  Perseus::ReceiverPtr           recPtr_;
-  unsigned                       usbBufferSize_;
-  const size_t                   max_queue_total_size_;
-  const time_duration            max_queue_delay_;
-  const double                   dtVarThreshold_;
-  unsigned                       maxQueuSize_;
-  boost::int64_t                 sampleNumber_;
-  time_duration                  dtCallback_;
-  ptime                          ptimeOfCallback_;
-  ptime                          ptimeDataMeasure_;
-  Filter::Cascaded<ptime>        ptimeFilter_;
-  Filter::Cascaded<double>       dtFilter_;
-  data_connections               data_connections_;
-  std::vector<char>              data_;
-  Internal::ModuloCounter<size_t> counter_;
-
-  boost::asio::streambuf request_;
-  boost::asio::streambuf response_;
+  boost::asio::strand   strand_;               // asio strand, keeps io service
+  acceptor_map          acceptor_map_;         // map of acceptors
+  const size_t          max_queue_total_size_; // queue total size of data connections
+  const time_duration   max_queue_delay_;      // queue maximum delay of data connections
+  broadcaster_directory directory_;            // directory of available data streams
+  data_connections      data_connections_;     // set of data connections
+  mutable ptime         last_log_status_time_; // 
 } ;
 
+#endif // _BROADCASTER_HPP_cm111219_
 
-int main(int argc, char* argv[])
-{
-  LOGGER_INIT("./Log", "hfmon_server");
-  try {
-    std::string filename((argc > 1 ) ? argv[1] : "config.xml");
-    boost::property_tree::ptree config;
-    read_xml(filename, config);
-
-    const boost::property_tree::ptree& config_server(config.get_child("server"));
-    const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
-
-    perseus_set_debug(config_perseus.get<int>("<xmlattr>.debugLevel"));
-
-    setpriority(PRIO_PROCESS, 0, -20);
-
-    Perseus p;
-    const unsigned numPerseus(p.numPerseus());
-    ASSERT_THROW(numPerseus != 0);
-    Perseus::ReceiverPtr recPtr(p.getReceiverPtr(0));
-
-    recPtr->downloadFirmware();
-    recPtr->fpgaConfig(config_perseus.get<int>("<xmlattr>.samplerate"));                
-
-    recPtr->setAttenuator(config_perseus.get<unsigned>("<xmlattr>.attenuator"));
-
-    recPtr->setADC(config_perseus.get<bool>("<xmlattr>.enableDither"), 
-                   config_perseus.get<bool>("<xmlattr>.enablePreamp"));
-
-    recPtr->setDdcCenterFreq(config_perseus.get<double>("<xmlattr>.qrg_Hz"), 
-                             config_perseus.get<bool>  ("<xmlattr>.enablePresel"));
-
-    boost::asio::io_service io_service;
-    server::sptr serverPtr;
-    {
-      wait_for_signal w;
-      w.add_signal(SIGINT)
-       .add_signal(SIGQUIT)
-       .add_signal(SIGTERM);
-      serverPtr = server::sptr
-        (new server
-         (io_service,
-          boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                         config_server.get<unsigned>("ctrl.<xmlattr>.port")),
-          boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 
-                                         config_server.get<unsigned>("data.<xmlattr>.port")),
-          recPtr, config_server));
-    }
-    serverPtr->stop();
-  } catch (const std::exception &e) {
-    LOG_ERROR(e.what()); 
-    std::cerr << e.what() << std::endl;
-    return 1;
-  }
-  return 0;
-}
