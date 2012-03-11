@@ -297,5 +297,5 @@ private:
   status_type              status_;
 } ;
 
-#endif // _CLIENT_FILE_HPP_cm111219_
+#endif //  _DATA_CONNECTION_HPP_cm111219_
 
