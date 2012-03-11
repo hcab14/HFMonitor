@@ -12,9 +12,9 @@
 #include <boost/make_shared.hpp>
 
 #include "Spectrum.hpp"
-#include "Filter.hpp"
-#include "FFTResult.hpp"
-#include "FFTProxy.hpp"
+#include "FFTProcessor/Filter.hpp"
+#include "FFTProcessor/Result.hpp"
+#include "FFTProcessor/Proxy.hpp"
 
 #include "logging.hpp"
 

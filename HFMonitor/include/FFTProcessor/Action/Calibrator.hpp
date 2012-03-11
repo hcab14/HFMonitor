@@ -13,9 +13,9 @@
 #include <boost/foreach.hpp>
 
 #include "Spectrum.hpp"
-#include "FFTResultCalibration.hpp"
-#include "FFTProxy.hpp"
-#include "FFTAction.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
+#include "FFTProcessor/Proxy.hpp"
+#include "FFTProcessor/Action.hpp"
 
 namespace Action {
   class Calibrator : public Base {

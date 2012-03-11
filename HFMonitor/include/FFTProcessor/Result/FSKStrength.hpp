@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 
 #include "Spectrum.hpp"
+#include "FFTProcessor/Result.hpp"
 
 namespace Result {
   class FFTResultFSKStrength : public Base {

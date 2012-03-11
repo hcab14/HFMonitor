@@ -11,8 +11,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
-#include "FFTResultSpectrumPeak.hpp"
-#include "FFTResultCalibration.hpp"
+#include "FFTProcessor/Result/SpectrumPeak.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
 
 namespace Result {
   class CalibratedSpectrumPeak : public SpectrumPeak {

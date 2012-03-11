@@ -10,7 +10,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "FFTResult.hpp"
+#include "FFTProcessor/Result.hpp"
 
 namespace Proxy {
   class Base : public boost::noncopyable {

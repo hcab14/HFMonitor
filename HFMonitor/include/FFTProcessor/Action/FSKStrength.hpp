@@ -12,14 +12,14 @@
 #include <boost/make_shared.hpp>
 
 #include "Spectrum.hpp"
-#include "FFTResultSpectrumPeak.hpp"
-#include "FFTResultCalibration.hpp"
-#include "FFTResultCalibratedSpectrumPeak.hpp"
-#include "FFTResultSpectrumPowerInInterval.hpp"
-#include "FFTResultFSKStrength.hpp"
-#include "FFTResultPowerSpectrumLine.hpp"
-#include "FFTProxy.hpp"
-#include "FFTActionSpectrumInterval.hpp"
+#include "FFTProcessor/Result/SpectrumPeak.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
+#include "FFTProcessor/Result/CalibratedSpectrumPeak.hpp"
+#include "FFTProcessor/Result/SpectrumPowerInInterval.hpp"
+#include "FFTProcessor/Result/FSKStrength.hpp"
+#include "FFTProcessor/Result/PowerSpectrumLine.hpp"
+#include "FFTProcessor/Proxy.hpp"
+#include "FFTProcessor/Action/SpectrumInterval.hpp"
 
 namespace Action {
   class FSKStrength : public SpectrumInterval {
