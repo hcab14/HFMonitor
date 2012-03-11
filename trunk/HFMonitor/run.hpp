@@ -30,7 +30,7 @@ public:
     // Wait for signal indicating time to shut down.
     pthread_sigmask(SIG_BLOCK, &_wait_mask, 0);
     sleep(2);
-#if 1
+#ifdef APPLE
     int sig(0);
     sigwait(&_wait_mask, &sig);
 #else
