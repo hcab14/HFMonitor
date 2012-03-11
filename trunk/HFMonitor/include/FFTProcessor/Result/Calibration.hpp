@@ -10,9 +10,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include "FFTResultSpectrumPeak.hpp"
 #include "logging.hpp"
 #include "InvertMatrix.hpp"
+#include "FFTProcessor/Result/SpectrumPeak.hpp"
 
 namespace Result {
   class Calibration : public Base {

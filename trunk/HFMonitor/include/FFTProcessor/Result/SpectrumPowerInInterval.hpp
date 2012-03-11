@@ -11,10 +11,10 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
-#include "FFTProxy.hpp"
-#include "FFTResult.hpp"
-#include "FFTResultCalibration.hpp"
 #include "Spectrum.hpp"
+#include "FFTProcessor/Proxy.hpp"
+#include "FFTProcessor/Result.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
 
 namespace Result {
   class SpectrumPowerInInterval : public Base {

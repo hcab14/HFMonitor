@@ -13,9 +13,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "Spectrum.hpp"
-#include "Filter.hpp"
-#include "FFTResult.hpp"
-#include "FFTProxy.hpp"
+#include "FFTProcessor/Filter.hpp"
+#include "FFTProcessor/Result.hpp"
+#include "FFTProcessor/Proxy.hpp"
 
 namespace Action {
   class PhaseDifferentiation : public Base {

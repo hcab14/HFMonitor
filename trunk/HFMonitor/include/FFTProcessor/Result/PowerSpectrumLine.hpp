@@ -11,7 +11,7 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include "Spectrum.hpp"
-#include "FFTResult.hpp"
+#include "FFTProcessor/Result.hpp"
 #include "logging.hpp"
 #include "netpbm.hpp"
 
