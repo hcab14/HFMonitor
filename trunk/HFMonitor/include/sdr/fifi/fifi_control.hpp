@@ -21,7 +21,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "libusb1.hpp"
+#include "libusb1.0/libusb1.hpp"
 #include "logging.hpp"
 
 namespace FiFiSDR {

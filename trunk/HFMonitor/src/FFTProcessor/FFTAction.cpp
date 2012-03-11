@@ -1,12 +1,12 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 
-#include "FFTAction.hpp"
-#include "FFTActionCalibrator.hpp"
-#include "FFTActionFindPeak.hpp"
-#include "FFTActionAverageDensity.hpp"
-#include "FFTActionPhaseDifferentiation.hpp"
-#include "FFTActionFSKStrength.hpp"
+#include "FFTProcessor/Action.hpp"
+#include "FFTProcessor/Action/Calibrator.hpp"
+#include "FFTProcessor/Action/FindPeak.hpp"
+#include "FFTProcessor/Action/AverageDensity.hpp"
+#include "FFTProcessor/Action/PhaseDifferentiation.hpp"
+#include "FFTProcessor/Action/FSKStrength.hpp"
 
 #include "logging.hpp"
 

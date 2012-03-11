@@ -3,8 +3,6 @@
 #ifndef _FFT_ACTION_HPP_cm101026_
 #define _FFT_ACTION_HPP_cm101026_
 
-// ___ Implemented in FFTAction
-
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -14,8 +12,8 @@
 #include <boost/make_shared.hpp>
 
 #include "Spectrum.hpp"
-#include "FFTResult.hpp"
-#include "FFTProxy.hpp"
+#include "FFTProcessor/Result.hpp"
+#include "FFTProcessor/Proxy.hpp"
 
 namespace Action {
   class Base : private boost::noncopyable {

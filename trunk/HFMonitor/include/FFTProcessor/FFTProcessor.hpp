@@ -23,10 +23,10 @@
 #include "protocol.hpp"
 #include "FFT.hpp"
 #include "Spectrum.hpp"
-#include "FFTProxy.hpp"
-#include "FFTResult.hpp"
-#include "FFTResultCalibration.hpp"
-#include "FFTAction.hpp"
+#include "FFTProcessor/Proxy.hpp"
+#include "FFTProcessor/Result.hpp"
+#include "FFTProcessor/Result/Calibration.hpp"
+#include "FFTProcessor/Action.hpp"
 #include "IQBuffer.hpp"
 
 template<typename FFTFloat>

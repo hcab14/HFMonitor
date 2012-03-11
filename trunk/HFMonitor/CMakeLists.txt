@@ -45,23 +45,11 @@ INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${PerseusSDR_INCLUDE_DIR}
   ${FFTW3_INCLUDE_DIR}
+  "./include"
   )
 
-# add FFTAction factory library
-ADD_LIBRARY(FFTAction FFTAction.cpp)
-LIST(APPEND _libs FFTAction)
+## add FFTAction factory library
+#ADD_LIBRARY(FFTAction FFTAction.cpp)
+#LIST(APPEND _libs FFTAction)
 
-ADD_LIBRARY(portaudio_cpp portaudio.cpp)
-LIST(APPEND _libs portaudio_cpp)
-
-ADD_LIBRARY(fifi_control_cpp libusb1.cpp fifi_control.cpp)
-LIST(APPEND _libs fifi_control_cpp)
-
-# add targets
-FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
-FOREACH(file ${files})
-  STRING(REGEX REPLACE "_main.cpp$" "" target ${file})
-  MESSAGE(STATUS "adding target: " ${target})
-  ADD_EXECUTABLE(${target} ${file})
-  TARGET_LINK_LIBRARIES(${target} ${_libs})
-ENDFOREACH(file ${files})
+ADD_SUBDIRECTORY(src)
