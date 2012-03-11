@@ -33,6 +33,14 @@ LIST(APPEND _libs ${Boost_LIBRARIES})
 FIND_PACKAGE(PerseusSDR REQUIRED)
 LIST(APPEND _libs ${PerseusSDR_LIBRARY})
 
+# Setup libusb-1.0
+FIND_PACKAGE(libusb-1.0 REQUIRED)
+LIST(APPEND _libs ${libusb-1.0_LIBRARY})
+
+# Setup portaudio
+FIND_PACKAGE(Portaudio REQUIRED)
+LIST(APPEND _libs ${portaudio_LIBRARY})
+
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${PerseusSDR_INCLUDE_DIR}
@@ -42,6 +50,12 @@ INCLUDE_DIRECTORIES(
 # add FFTAction factory library
 ADD_LIBRARY(FFTAction FFTAction.cpp)
 LIST(APPEND _libs FFTAction)
+
+ADD_LIBRARY(portaudio_cpp portaudio.cpp)
+LIST(APPEND _libs portaudio_cpp)
+
+ADD_LIBRARY(fifi_control_cpp libusb1.cpp fifi_control.cpp)
+LIST(APPEND _libs fifi_control_cpp)
 
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")

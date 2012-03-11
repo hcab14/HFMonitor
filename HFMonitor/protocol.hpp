@@ -4,7 +4,92 @@
 #define _PROTOCOL_HPP_cm100625_
 
 #include <boost/cstdint.hpp>
+#include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#include "logging.hpp"
+
+// -----------------------------------------------------------------------------
+// generic header for any data type
+//  * type, e.g. of form "IQNx", with  N=number of bytes, x=f/i (float/signed integer) 
+//  * approx_ptime: approximate time stamp
+//  * length: size of the following data packet in bytes
+//
+class header : private boost::noncopyable {
+public:
+  typedef boost::posix_time::ptime ptime;
+  typedef boost::array<char, 4> id_type;
+
+  header(std::string id="XX0x",
+         ptime       approx_ptime=boost::posix_time::not_a_date_time,
+         size_t      length=0)
+    : approx_ptime_(approx_ptime)
+    , length_(length) {
+    ASSERT_THROW(id.size() == 4);
+    std::copy(id.begin(), id.end(), id_);
+  }
+
+  std::string id()           const { return std::string(id_, id_+4); }
+  ptime       approx_ptime() const { return approx_ptime_; }
+  size_t      length()       const { return length_; }
+
+  friend std::ostream& operator<<(std::ostream& os, const header& h) {
+    return os << "'" << h.id() << "' "<< h.approx_ptime() << " len=" << h.length();
+  }
+protected:
+private:
+  char   id_[4];        // 4-byte identifier
+  ptime  approx_ptime_; // approximate time tag
+  size_t length_;       // length of following data
+} ;
+
+// -----------------------------------------------------------------------------
+// information for sampled data
+//  * num_channel
+//  * bytes_per_channnel
+//  * data_type
+//  * length
+//  * sample_rate_Hz
+//  * ddc_center_frequecy_Hz
+
+class sample_info : private boost::noncopyable {
+public:
+  sample_info(boost::uint32_t sample_rate_Hz=1,
+              boost::uint32_t ddc_center_frequecy_Hz=0)
+    : sample_rate_Hz_(sample_rate_Hz)
+    , ddc_center_frequecy_Hz_(ddc_center_frequecy_Hz) {
+  }
+  virtual ~sample_info() {}
+  
+  double sample_rate_Hz()         const { return sample_rate_Hz_; }
+  double ddc_center_frequecy_Hz() const { return ddc_center_frequecy_Hz_; }
+protected:
+private:
+  boost::uint32_t sample_rate_Hz_;         // sample rate [Hz]
+  boost::uint32_t ddc_center_frequecy_Hz_; // ddc center frequency [Hz]
+} ;
+
+class iq_info : public sample_info {
+public:
+  iq_info(boost::uint32_t sample_rate_Hz=1,
+          boost::uint32_t ddc_center_frequecy_Hz=0,
+          char sample_type,
+          boost::uint8_t bytes_per_sample)
+    : sample_info(sample_rate_Hz, ddc_center_frequecy_Hz)
+    , sample_type_(sample_type)
+    , bytes_per_sample_(bytes_per_sample_)
+    , dummy_(0) {}
+  virtual ~iq_info() {}
+
+  char           sample_type()      const { return sample_type_; }
+  boost::uint8_t bytes_per_sample() const { return bytes_per_sample_; }
+protected:
+private:
+  char            sample_type_;
+  boost::uint8_t  bytes_per_sample_;
+  boost::uint16_t dummy_;
+} ;
+
 
 class Header {
 public:

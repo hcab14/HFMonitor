@@ -1,0 +1,68 @@
+<FiFiDAQ>
+  <Data port="18000"
+	maxQueueDelay_Minutes="2"
+	maxQueueSize_MB="500"></Data>
+  <Ctrl port="18001"></Ctrl>
+  <FiFi-SDR vendorID="5824"
+	    productID="1500"
+	    audioDeviceName="UDA1361 Eingang"
+	    sampleRate_Hz="96000"
+	    harmonic3rd_MHz="36"
+	    harmonic5th_MHz="85">
+    <Preselector mode="1">
+      <Entry index=" 0" freqFrom_MHz=" 0.000" freqTo_MHz="  0.123" pattern=" 1"></Entry>
+      <Entry index=" 1" freqFrom_MHz=" 0.123" freqTo_MHz="  0.307" pattern=" 7"></Entry>
+      <Entry index=" 2" freqFrom_MHz=" 0.307" freqTo_MHz="  0.768" pattern=" 0"></Entry>
+      <Entry index=" 3" freqFrom_MHz=" 0.768" freqTo_MHz="  1.920" pattern=" 2"></Entry>
+      <Entry index=" 4" freqFrom_MHz=" 1.920" freqTo_MHz="  4.800" pattern=" 6"></Entry>
+      <Entry index=" 5" freqFrom_MHz=" 4.800" freqTo_MHz=" 12.000" pattern=" 5"></Entry>
+      <Entry index=" 6" freqFrom_MHz="12.000" freqTo_MHz=" 30.000" pattern=" 3"></Entry>
+      <Entry index=" 7" freqFrom_MHz="30.000" freqTo_MHz=" 75.000" pattern=" 4"></Entry>
+      <Entry index=" 8" freqFrom_MHz="75.000" freqTo_MHz="150.000" pattern="12"></Entry>
+      <Entry index=" 9" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="10" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="11" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="12" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="13" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="14" freqFrom_MHz=" 0.000" freqTo_MHz="  0.000" pattern=" 0"></Entry>
+      <Entry index="15" freqFrom_MHz=" 0.000" freqTo_MHz="500.000" pattern=" 0"></Entry>
+    </Preselector>
+  </FiFi-SDR>
+  <MatSaver dataPath="Data"
+	    maxBufferSize_kB="100"
+	    minutesPerFile="60">
+  </MatSaver>
+  <Actions>
+    <FFTPowerSpectrum label="_49m_A_"
+		      centerFrequency_Hz="6005e3"
+		      frequencyMin_Hz="5985e3"
+		      frequencyMax_Hz="6040e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+<!-- 
+   <FFTPowerSpectrum label="_49m_B_"
+		      centerFrequency_Hz="6010e3"
+		      frequencyMin_Hz="5985e3"
+		      frequencyMax_Hz="6040e3"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS5_B_"
+		      centerFrequency_Hz="5e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS10_B_"
+		      centerFrequency_Hz="10e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+    <FFTPowerSpectrum label="_TS15_B_"
+		      centerFrequency_Hz="15e6"
+		      frequencyResolution_Hz="100"
+		      numAverage="100">
+    </FFTPowerSpectrum>
+-->
+  </Actions>
+</FiFiDAQ>
