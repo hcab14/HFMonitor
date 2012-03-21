@@ -17,18 +17,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <boost/foreach.hpp>
 #include "logging.hpp"
 #include "libusb1.0/libusb1.hpp"
-
-const int libusb_timeout = 0;
 
 namespace libusb {
   // Implementation ------------------------------------------------------------
   class session_impl: public session {
   public:
-    session_impl() { ASSERT_THROW(libusb_init(&_context) == 0); }
-    ~session_impl() { libusb_exit(_context); }
+    session_impl() { std::cout << "session_impl\n";ASSERT_THROW(libusb_init(&_context) == 0); }
+    ~session_impl() { std::cout << "~session_impl\n";libusb_exit(_context); }
     virtual libusb_context* get_context() const { return _context; }
+    virtual void set_debug(int level) { libusb_set_debug(_context, level); }
   private:
     libusb_context* _context;
   } ;
@@ -62,7 +62,7 @@ namespace libusb {
       const ssize_t ret(libusb_get_device_list(s->get_context(), &dev_list));
       if (ret < 0) 
         throw std::runtime_error("cannot enumerate usb devices");      
-      for (size_t i(0); i<size_t(ret); ++i) 
+      for (ssize_t i(0); i<ret; ++i) 
         _devs.push_back(device::sptr(new device_impl(dev_list[i])));      
       libusb_free_device_list(dev_list, false/*dont unref*/);
     }
@@ -83,23 +83,62 @@ namespace libusb {
       ASSERT_THROW(libusb_get_device_descriptor(_dev->get(), &_desc) == 0);
     }
     virtual const libusb_device_descriptor& get() const { return _desc; }
+    virtual std::string get_ascii_manufacturer() const {
+      return get_ascii_descriptor(this->get().iManufacturer);
+    }
+    virtual std::string get_ascii_product() const {
+      return get_ascii_descriptor(this->get().iProduct);
+    }
     virtual std::string get_ascii_serial() const {
-      if (this->get().iSerialNumber == 0) return "";
-      const device_handle::sptr handle(device_handle::get_cached_handle(_dev));      
-      unsigned char buff[512];
-      const ssize_t ret(libusb_get_string_descriptor_ascii(handle->get(), 
-                                                           this->get().iSerialNumber, 
-                                                           buff, 
-                                                           sizeof(buff)));
-      return (ret < 0) ? "" : std::string((char *)buff, ret);
+      return get_ascii_descriptor(this->get().iSerialNumber, true);
+    }
+    virtual boost::uint8_t get_num_configurations() const {
+      return this->get().bNumConfigurations;
     }
   private:
+    std::string get_ascii_descriptor(boost::uint8_t desc_index, bool check_nonzero=false) const  {
+      if (check_nonzero && desc_index == 0) return "";
+      const device_handle::sptr handle(device_handle::get_cached_handle(_dev));
+      unsigned char buffer[512];
+      const ssize_t ret(libusb_get_string_descriptor_ascii(handle->get(),
+                                                           desc_index,
+                                                           buffer,
+                                                           sizeof(buffer)));
+      return (ret < 0) ? "" : std::string((const char *)buffer, ret);
+    }
     const device::sptr _dev;
     libusb_device_descriptor _desc;
   } ;
 
   device_descriptor::sptr device_descriptor::make(device::sptr dev) {
     return sptr(new device_descriptor_impl(dev));
+  }
+
+  class config_descriptor_impl : public config_descriptor {
+  public:
+    config_descriptor_impl(device::sptr dev, boost::uint8_t configuration)
+      : _config(0) {
+      ASSERT_THROW(configuration < device_descriptor::make(dev)->get_num_configurations());
+      ASSERT_THROW(libusb_get_config_descriptor(dev->get(), configuration, &_config) == 0);
+    }    
+    virtual ~config_descriptor_impl() {
+      libusb_free_config_descriptor(_config);
+    }
+
+    virtual const libusb_config_descriptor* get() const { return _config; }
+    virtual boost::uint8_t get_num_interfaces() const { return this->get()->bNumInterfaces; }
+    virtual boost::uint8_t get_max_power() const { return this->get()->MaxPower;  }
+    virtual const libusb_interface& get_interface(boost::uint8_t index) const {
+      ASSERT_THROW(index < this->get_num_interfaces());
+      return this->get()->interface[index];
+      ;
+    }
+  private:
+    libusb_config_descriptor* _config;
+  } ;
+
+  config_descriptor::sptr config_descriptor::make(device::sptr dev, boost::uint8_t configuration) {
+    return config_descriptor::sptr(new config_descriptor_impl(dev, configuration));
   }
 
   class device_handle_impl : public device_handle {
@@ -109,16 +148,41 @@ namespace libusb {
       ASSERT_THROW(libusb_open(_dev->get(), &_handle) == 0);
     }
     ~device_handle_impl() {
-      for (size_t i(0); i<_claimed.size(); ++i)
-        libusb_release_interface(this->get(), _claimed[i]);
+      BOOST_FOREACH(int claimed_interface, _claimed)
+        libusb_release_interface(this->get(), claimed_interface);
       libusb_close(_handle);
     }
 
     virtual libusb_device_handle *get() const { return _handle; }
+
+    virtual void detach_all_kernel_drivers() {
+      for (int interface(0); interface < 4; ++interface)
+        if (kernel_driver_active(interface))
+          detach_kernel_driver(interface);
+    }
+    virtual bool kernel_driver_active(int interface) {
+      int result(0);
+      ASSERT_THROW((result=libusb_kernel_driver_active(this->get(), interface) >= 0));
+      return result==1;
+    }
+    virtual void detach_kernel_driver(int interface) {
+      ASSERT_THROW(libusb_detach_kernel_driver(this->get(), interface) == 0);
+    }
+    virtual void set_configuration(int configuration) {
+      ASSERT_THROW(libusb_set_configuration(this->get(), configuration) == 0);
+    }
     virtual void claim_interface(int interface) {
       ASSERT_THROW(libusb_claim_interface(this->get(), interface) == 0);
       _claimed.push_back(interface);
     }
+    virtual void set_interface_alt_setting(int interface, int alternate_setting) {
+      ASSERT_THROW(libusb_set_interface_alt_setting(this->get(), interface, alternate_setting) == 0);
+    }
+    virtual void clear_halt(unsigned char endpoint) {
+      const int rc(libusb_clear_halt(this->get(), endpoint));
+      ASSERT_THROW(rc == 0 || rc == LIBUSB_ERROR_NOT_FOUND);
+    }
+
   private:
     const device::sptr _dev;
     libusb_device_handle* _handle;
@@ -145,6 +209,13 @@ namespace libusb {
       : _dev(dev) {}
     
     virtual device::sptr get_device() const { return _dev; }
+
+    std::string get_manufacturer() const {
+      return device_descriptor::make(this->get_device())->get_ascii_manufacturer();
+    }
+    std::string get_product() const {
+      return device_descriptor::make(this->get_device())->get_ascii_product();
+    }
     std::string get_serial() const {
       return device_descriptor::make(this->get_device())->get_ascii_serial();
     }
@@ -154,6 +225,26 @@ namespace libusb {
     boost::uint16_t get_product_id() const {
       return device_descriptor::make(this->get_device())->get().idProduct;
     }
+    boost::uint8_t get_num_configurations() const {
+      return device_descriptor::make(this->get_device())->get_num_configurations();
+    }
+    boost::uint8_t get_bus_number() const {
+      return libusb_get_bus_number(this->get_device()->get());
+    }
+    boost::uint8_t get_device_address() const {
+      return libusb_get_device_address(this->get_device()->get());
+    }
+    boost::uint8_t get_num_interfaces(boost::uint8_t configuration_index) const {
+      return config_descriptor::make(this->get_device(), configuration_index)->get_num_interfaces();
+    }
+    boost::uint8_t get_max_power(boost::uint8_t configuration_index) const {
+      return config_descriptor::make(this->get_device(), configuration_index)->get_max_power();
+    }
+    const libusb_interface& get_interface(boost::uint8_t configuration_index,
+                                          boost::uint8_t interface_index) const {
+      return config_descriptor::make(this->get_device(), configuration_index)->get_interface(interface_index);
+    }
+
   private:
     const device::sptr _dev;
   } ;
@@ -163,32 +254,14 @@ namespace libusb {
   }
 } // namespace libusb
 
-class libusb_special_handle_impl : public libusb::special_handle {
-public:
-  libusb_special_handle_impl(libusb::device::sptr dev)
-    : _dev(dev) {}
-  virtual libusb::device::sptr get_device() const { return _dev; }
-  virtual std::string get_serial() const { 
-    return libusb::device_descriptor::make(this->get_device())->get_ascii_serial();
-  }
-  virtual boost::uint16_t get_vendor_id() const { 
-    return libusb::device_descriptor::make(this->get_device())->get().idVendor;
-  }
-  virtual boost::uint16_t get_product_id() const { 
-    return libusb::device_descriptor::make(this->get_device())->get().idProduct;
-  }  
-private:
-  const libusb::device::sptr _dev; 
-} ;
-
 std::vector<usb_device_handle::sptr> 
 usb_device_handle::get_device_list(boost::uint16_t vid, boost::uint16_t pid) {
   std::vector<usb_device_handle::sptr> handles;
   const libusb::device_list::sptr dev_list(libusb::device_list::make());
   for (size_t i(0); i<dev_list->size(); ++i) {
     usb_device_handle::sptr handle(libusb::special_handle::make(dev_list->at(i)));
-    if ((vid == 0 || handle->get_vendor_id()  == vid) &&
-        (pid == 0 || handle->get_product_id() == pid))
+    if ((vid  == 0 || handle->get_vendor_id()  == vid) &&
+        (pid  == 0 || handle->get_product_id() == pid))
       handles.push_back(handle);
   }    
   return handles;
@@ -196,26 +269,43 @@ usb_device_handle::get_device_list(boost::uint16_t vid, boost::uint16_t pid) {
 
 class libusb_control_impl : public usb_control {
 public:
-  libusb_control_impl(libusb::device_handle::sptr handle)
+  libusb_control_impl(libusb::device_handle::sptr handle, int configuration)
     : _handle(handle) {
-    _handle->claim_interface(0 /* control interface */);
-  }  
-  virtual ssize_t submit(boost::uint8_t  request_type,
-                         boost::uint8_t  request,
-                         boost::uint16_t value,
-                         boost::uint16_t index,
-                         unsigned char*  buff,
-                         boost::uint16_t length) {
+    _handle->set_configuration(configuration);
+    // _handle->detach_all_kernel_drivers();
+    const int control_interface_number(0);
+    _handle->claim_interface(control_interface_number);
+    _handle->set_interface_alt_setting(control_interface_number, 0);
+  }
+  virtual void clear_halt(unsigned char endpoint) {
+    _handle->clear_halt(endpoint);
+  }
+  virtual ssize_t submit_control(boost::uint8_t  request_type,
+                                 boost::uint8_t  request,
+                                 boost::uint16_t value,
+                                 boost::uint16_t index,
+                                 unsigned char*  buff,
+                                 boost::uint16_t length,
+                                 unsigned int    timeout) {
     return libusb_control_transfer(_handle->get(),
                                    request_type, request, value, index, buff, length, 
-                                   libusb_timeout);
+                                   timeout);
+  }
+  virtual ssize_t submit_bulk(boost::uint8_t  endpoint,
+                              boost::uint8_t* data,
+                              int             length,
+                              int*            transferred,
+                              unsigned int    timeout) {
+    return libusb_bulk_transfer(_handle->get(),
+                                endpoint, data, length, transferred,
+                                timeout);
   }
 private:
   const libusb::device_handle::sptr _handle;
 } ;
 
-usb_control::sptr usb_control::make(usb_device_handle::sptr handle) {
+usb_control::sptr usb_control::make(usb_device_handle::sptr handle, int configuration) {
   return sptr(new libusb_control_impl
               (libusb::device_handle::get_cached_handle
-               (boost::static_pointer_cast<libusb::special_handle>(handle)->get_device())));
+               (boost::static_pointer_cast<libusb::special_handle>(handle)->get_device()), configuration));
 }

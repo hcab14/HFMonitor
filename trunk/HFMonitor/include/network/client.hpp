@@ -11,7 +11,7 @@
 #include "logging.hpp"
 #include "broadcaster_directory.hpp"
 
-#include "protocol.hpp"
+#include "network/protocol.hpp"
 
 // generic base class for connecting to a broadcaster
 class client : private boost::noncopyable {
