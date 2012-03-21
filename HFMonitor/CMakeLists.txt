@@ -49,3 +49,6 @@ INCLUDE_DIRECTORIES(
   )
 
 ADD_SUBDIRECTORY(src)
+
+ADD_EXECUTABLE(test_perseus test_perseus_main.cpp)
+TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp)

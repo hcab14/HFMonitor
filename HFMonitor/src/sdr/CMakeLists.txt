@@ -2,4 +2,4 @@
 # $Id$
 
 ADD_SUBDIRECTORY(fifi)
-#ADD_SUBDIRECTORY(perseus)
+ADD_SUBDIRECTORY(perseus)

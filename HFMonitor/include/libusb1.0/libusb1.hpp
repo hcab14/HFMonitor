@@ -37,10 +37,18 @@ public:
   typedef boost::shared_ptr<usb_device_handle> sptr;
   virtual ~usb_device_handle() {}
   
+  virtual std::string get_manufacturer() const = 0;
+  virtual std::string get_product() const = 0;
   virtual std::string get_serial() const = 0;
   virtual boost::uint16_t get_vendor_id() const = 0;
   virtual boost::uint16_t get_product_id() const = 0;
-  
+  virtual boost::uint8_t get_num_configurations() const = 0;
+  virtual boost::uint8_t get_bus_number() const = 0;
+  virtual boost::uint8_t get_device_address() const = 0;
+  virtual boost::uint8_t get_num_interfaces(boost::uint8_t) const = 0;
+  virtual boost::uint8_t get_max_power(boost::uint8_t) const = 0;
+  virtual const libusb_interface& get_interface(boost::uint8_t, boost::uint8_t) const = 0;
+
   static std::vector<usb_device_handle::sptr>  
   get_device_list(boost::uint16_t vid, boost::uint16_t pid);
 } ;
@@ -50,14 +58,23 @@ public:
   typedef boost::shared_ptr<usb_control> sptr;
   virtual ~usb_control() {}
 
-  static sptr make(usb_device_handle::sptr);
-  virtual ssize_t submit(boost::uint8_t  request_type,
-                         boost::uint8_t  request,
-                         boost::uint16_t value,
-                         boost::uint16_t index, 
-                         unsigned char*  buff,
-                         boost::uint16_t length) = 0;
+  static sptr make(usb_device_handle::sptr, int configuration=0);
+
+  virtual void clear_halt(unsigned char) = 0;
+  virtual ssize_t submit_control(boost::uint8_t  request_type,
+                                 boost::uint8_t  request,
+                                 boost::uint16_t value,
+                                 boost::uint16_t index, 
+                                 unsigned char*  buff,
+                                 boost::uint16_t length,
+                                 unsigned int timeout=0) = 0;
+  virtual ssize_t submit_bulk(boost::uint8_t  endpoint,
+                              boost::uint8_t* data,
+                              int             length,
+                              int*            transferred,
+                              unsigned inttimeout=0) = 0;
 } ;
+
 
 namespace libusb {
   class session : public boost::noncopyable {
@@ -66,8 +83,7 @@ namespace libusb {
     virtual ~session() {}
     static sptr get_global_session();
     virtual libusb_context* get_context() const = 0;
-  private:
-    libusb_context* usb_context;
+    virtual void set_debug(int level) = 0;
   } ;
 
   class device : public boost::noncopyable {
@@ -92,7 +108,14 @@ namespace libusb {
     virtual ~device_handle() {}
     static sptr get_cached_handle(device::sptr);
     virtual libusb_device_handle* get() const = 0;
+
+    virtual void detach_all_kernel_drivers() = 0;
+    virtual bool kernel_driver_active(int) = 0;
+    virtual void detach_kernel_driver(int) = 0;
+    virtual void set_configuration(int) = 0;
     virtual void claim_interface(int) = 0;
+    virtual void set_interface_alt_setting(int, int) = 0;
+    virtual void clear_halt(unsigned char) = 0;
   } ;
 
   class device_descriptor : public boost::noncopyable {
@@ -102,7 +125,22 @@ namespace libusb {
     static sptr make(device::sptr);
 
     virtual const libusb_device_descriptor& get() const = 0;
-    virtual std::string get_ascii_serial() const = 0;
+    virtual std::string    get_ascii_manufacturer() const = 0;
+    virtual std::string    get_ascii_product() const = 0;
+    virtual std::string    get_ascii_serial() const = 0;
+    virtual boost::uint8_t get_num_configurations() const = 0;
+  } ;
+
+  class config_descriptor : public boost::noncopyable {
+  public:
+    typedef boost::shared_ptr<config_descriptor> sptr;
+    virtual ~config_descriptor() {}
+    static sptr make(device::sptr, boost::uint8_t);
+
+    virtual const libusb_config_descriptor* get() const = 0;
+    virtual boost::uint8_t get_num_interfaces() const = 0;        
+    virtual boost::uint8_t get_max_power() const = 0;
+    virtual const libusb_interface& get_interface(boost::uint8_t) const = 0;
   } ;
 
   class special_handle : public usb_device_handle {

@@ -107,111 +107,111 @@ namespace FiFiSDR {
     
     virtual boost::uint32_t get_version_number() const {
       boost::uint32_t version_num(0);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, 0, (unsigned char *)&version_num, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, 0, 0, (unsigned char *)&version_num, 4) == 4);
       return version_num;
     }
     virtual std::string get_version_string() const {
       const size_t len(256);
       char version[len+1];
       memset(version, 0, sizeof(version));
-      const ssize_t n(usb_control_->submit(request_type_in(), 0xAB, 0, 1, (unsigned char *)&version, len));
+      const ssize_t n(usb_control_->submit_control(request_type_in(), 0xAB, 0, 1, (unsigned char *)&version, len));
       ASSERT_THROW(n >= 0);
       ASSERT_THROW(size_t(n) <= len);
       return std::string(version);
     }    
     virtual double get_frequency() const { 
       boost::uint32_t freq21(0);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0x3A, 0, 0, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0x3A, 0, 0, (unsigned char *)&freq21, 4) == 4);
       return c2d<21>(freq21)/4.;
     }
     virtual void set_frequency(double freq) {
       const boost::uint32_t freq21(d2c<21>(4.*freq));
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0x32, 0, 0, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0x32, 0, 0, (unsigned char *)&freq21, 4) == 4);
     }
     virtual double get_startup_frequency() const { 
       boost::uint32_t freq21(0);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0x3C, 0, 0, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0x3C, 0, 0, (unsigned char *)&freq21, 4) == 4);
       return c2d<21>(freq21)/4.;
     }
     virtual void set_startup_frequency(double freq) {
       const boost::uint32_t freq21(d2c<21>(4.*freq));
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0x34, 0, 0, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0x34, 0, 0, (unsigned char *)&freq21, 4) == 4);
     }
 
     virtual double get_xtal_frequency() const {
       boost::uint32_t freq24(0);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0x3D, 0, 0, (unsigned char *)&freq24, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0x3D, 0, 0, (unsigned char *)&freq24, 4) == 4);
       return c2d<24>(freq24);
     }
     virtual void set_xtal_frequency(double freq) {
       boost::uint32_t freq24(d2c<24>(freq));
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0x33, 0, 0, (unsigned char *)&freq24, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0x33, 0, 0, (unsigned char *)&freq24, 4) == 4);
     }
 
     virtual double get_nth_frequency(unsigned n) const {
       boost::uint32_t freq21(0);
       ASSERT_THROW(n == 3 || n==5);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, n, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, 0, n, (unsigned char *)&freq21, 4) == 4);
       return c2d<21>(freq21)/4.;      
     }
     virtual void set_nth_frequency(unsigned n, double freq) {
       const boost::uint32_t freq21(d2c<21>(4.*freq));
       ASSERT_THROW(n == 3 || n==5);
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAC, 0, n, (unsigned char *)&freq21, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0xAC, 0, n, (unsigned char *)&freq21, 4) == 4);
     }
 
     virtual boost::uint32_t get_presel_mode() const {
       boost::uint32_t mode(0);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, 6, (unsigned char *)&mode, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, 0, 6, (unsigned char *)&mode, 4) == 4);
       return mode;
     }
     virtual void set_presel_mode(boost::uint32_t mode) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAC, 0, 6, (unsigned char *)&mode, 4) == 4);      
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0xAC, 0, 6, (unsigned char *)&mode, 4) == 4);      
     }
     virtual presel_entry get_presel_entry(size_t index) const {
       presel_entry pe;
       ASSERT_THROW(sizeof(presel_entry)==9);
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, index, 7, (unsigned char *)&pe, 9) == 9);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, index, 7, (unsigned char *)&pe, 9) == 9);
       return pe;
     }
     virtual void set_presel_entry(size_t index, const presel_entry& pe) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAC, index, 7, (unsigned char *)&pe, 9) == 9);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0xAC, index, 7, (unsigned char *)&pe, 9) == 9);
     }
 
     virtual boost::uint8_t get_i2c_addr() const {
       boost::uint8_t addr;
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0x41, 0, 0, (unsigned char *)&addr, 1) == 1);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0x41, 0, 0, (unsigned char *)&addr, 1) == 1);
       return addr;
     }
     virtual void set_i2c_addr(boost::uint8_t addr) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0x41, 0, 0, (unsigned char *)&addr, 1) == 1);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0x41, 0, 0, (unsigned char *)&addr, 1) == 1);
     }
 
     virtual boost::uint32_t get_virtual_vco_factor() const {
       boost::uint32_t factor;
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, 11, (unsigned char *)&factor, 4) == 4);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, 0, 11, (unsigned char *)&factor, 4) == 4);
       return factor;
     }
     virtual void set_virtual_vco_factor(boost::uint32_t factor) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0xAB, 0, 11, (unsigned char *)&factor, 4) == 4);   
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0xAB, 0, 11, (unsigned char *)&factor, 4) == 4);   
     }
 
     virtual si570_registers get_si570_registers() const {
       si570_registers regs;
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0xAB, 0, 10, (unsigned char *)&regs, 6) == 6);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0xAB, 0, 10, (unsigned char *)&regs, 6) == 6);
       return regs;      
     }
     virtual si570_virtual_registers get_si570_virtual_registers() const {
       si570_virtual_registers regs;
-      ASSERT_THROW(usb_control_->submit(request_type_in(), 0x3F, 0, 0, (unsigned char *)&regs, 6) == 6);
+      ASSERT_THROW(usb_control_->submit_control(request_type_in(), 0x3F, 0, 0, (unsigned char *)&regs, 6) == 6);
       return regs;      
     }
     virtual void set_si570_virtual_registers(const si570_virtual_registers& regs) {
-      ASSERT_THROW(usb_control_->submit(request_type_out(), 0x30, 0, 0, (unsigned char *)&regs, 6) == 6);
+      ASSERT_THROW(usb_control_->submit_control(request_type_out(), 0x30, 0, 0, (unsigned char *)&regs, 6) == 6);
     }
 
     virtual void set_abpf(boost::uint32_t index, boost::uint32_t value) {
-      const size_t n(usb_control_->submit(request_type_in(), 0x17, value, index, (unsigned char *)&abpf_[0], 512));
+      const ssize_t n(usb_control_->submit_control(request_type_in(), 0x17, value, index, (unsigned char *)&abpf_[0], 512));
       ASSERT_THROW(n>0 && (n%2) == 0);
       have_abpf_   = true;
       num_abpf_    = n/2 - 1;

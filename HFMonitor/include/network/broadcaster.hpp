@@ -16,8 +16,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "logging.hpp"
-#include "broadcaster_directory.hpp"
-#include "data_connection.hpp"
+#include "network/broadcaster/directory.hpp"
+#include "network/broadcaster/data_connection.hpp"
 
 // -----------------------------------------------------------------------------
 // broadcaster

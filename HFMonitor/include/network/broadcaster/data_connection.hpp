@@ -17,7 +17,7 @@
 #include <boost/foreach.hpp>
 
 #include "logging.hpp"
-#include "broadcaster_directory.hpp"
+#include "network/broadcaster/directory.hpp"
 
 // -----------------------------------------------------------------------------
 // data_connection
