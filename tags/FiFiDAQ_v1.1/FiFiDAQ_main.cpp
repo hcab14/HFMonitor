@@ -214,6 +214,7 @@ int main(int argc, char* argv[]) {
                                                 procs[action_name]->frames(),
                                                 paNoFlag, 
                                                 procs[action_name]));
+          rec->set_frequency(1e-6*procs[action_name]->center_frequency()+0.001);
           rec->set_frequency(1e-6*procs[action_name]->center_frequency());
           procs[action_name]->init();
           sb->start();

@@ -1,7 +1,7 @@
-<FiFiDAQ>
+﻿<FiFiDAQ>
   <FiFi-SDR vendorID="5824"
 	    productID="1500"
-	    audioDeviceName="UDA1361 Eingang"
+	    audioDeviceName="FiFi-SDR: USB Audio (hw:1,0)"
 	    sampleRate_Hz="96000"
 	    harmonic3rd_MHz="36"
 	    harmonic5th_MHz="85">
@@ -29,11 +29,11 @@
 	    minutesPerFile="60">
   </MatSaver>
   <Actions>
-    <FFTPowerSpectrum label="_49m_A_"
-		      centerFrequency_Hz="6005e3"
-		      frequencyMin_Hz="5985e3"
-		      frequencyMax_Hz="6040e3"
-		      frequencyResolution_Hz="100"
+    <FFTPowerSpectrum label="_VLF2_"
+		      centerFrequency_Hz="60e3"
+		      frequencyMin_Hz="15e3"
+		      frequencyMax_Hz="30e3"
+		      frequencyResolution_Hz="10"
 		      numAverage="100">
     </FFTPowerSpectrum>
 <!-- 

@@ -5,7 +5,7 @@
 % filenames: cell array of input file names
 %            e.g. d=ps({'Data/_49m_A_/y2011-m05-d25_H13M00.mat'});
 %
-function d=ps(filenames)
+function [d,time,spec]=ps(filenames)
   time={};
   spec={};
   for j=1:length(filenames)
