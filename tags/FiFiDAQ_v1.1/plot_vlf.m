@@ -28,4 +28,6 @@ function plot_vlf(filenames)
     plot(d.time,mean(d.spec(:,idx)'), labels{i});
   endfor
   datetick('x', 'HH:MM');
+  xlabel("time");
+  ylabel("relative signal strength (dB)");
 endfunction
