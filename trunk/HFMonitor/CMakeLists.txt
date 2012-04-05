@@ -8,8 +8,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 PROJECT(HFMonitor)
 
 SET(CMAKE_BUILD_TYPE Release)
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
-SET(CMAKE_CXX_FLAGS_DEBUG   "-g -Wall")
+SET(CMAKE_CXX_FLAGS         "-Wall -strict -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
+SET(CMAKE_CXX_FLAGS_DEBUG   "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # where to look first for cmake modules
@@ -51,4 +52,4 @@ INCLUDE_DIRECTORIES(
 ADD_SUBDIRECTORY(src)
 
 ADD_EXECUTABLE(test_perseus test_perseus_main.cpp)
-TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp)
+TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp fx2_control_cpp)

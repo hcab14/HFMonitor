@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <Test>
-  <Perseus vendorID              = "0x04B4"
-	   productID             = "0x325C"
-	   productID_BlankEEPROM = "0x8613">
-    <EndPoints cmd    = "0x01"
-	       status = "0x81"
-	       dataIn = "0x82">
-    </EndPoints>
+  <Perseus sn="241">
   </Perseus>
 </Test>

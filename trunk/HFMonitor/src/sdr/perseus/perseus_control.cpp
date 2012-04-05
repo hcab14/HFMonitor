@@ -22,275 +22,155 @@
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include "sdr/perseus/perseus_control.hpp"
+#include "sdr/perseus/fx2_control.hpp"
+#include "sdr/perseus/input_queue.hpp"
 
 namespace Perseus {
-  class I8HEXEntry {
-  public:
-    typedef enum Type {
-      DataRecord=0,
-      EndOfFileRecord=1
-    } Type;
-    typedef std::vector<boost::uint8_t> code_vector;
-
-    I8HEXEntry(std::string line) {
-      ASSERT_THROW(line[0] == ':');
-      ASSERT_THROW(line.size() > 9);
-      _addr = hex2int(std::string(line,3,4));
-      const boost::uint8_t type(hex2int(std::string(line,7,2)));
-      ASSERT_THROW(type == DataRecord || type == EndOfFileRecord);
-      if (type == DataRecord)      _type = DataRecord;
-      if (type == EndOfFileRecord) _type = EndOfFileRecord;
-      const size_t length(hex2int(std::string(line,1,2)));
-      for (size_t i=0; i<length; ++i)
-        _code.push_back(hex2int(std::string(line,9+2*i,2)));
-      ASSERT_THROW(hex2int(std::string(line,9+2*length,2)) == checksum());
-    }
-    std::string to_str() const {
-      std::string line(str(boost::format(":%02X%04X%02X") 
-                           % _code.size()
-                           % int(_addr)
-                           % _type));
-      BOOST_FOREACH(boost::uint8_t c, _code)
-        line += str(boost::format("%02X") % int(c));
-      return line + str(boost::format("%02X") % int(checksum()));
-    }
-
-    Type get_type() const { return _type; }
-    boost::uint16_t get_addr() const { return _addr; }
-    const code_vector& get_code() const { return _code; }
-  protected:
-  private:
-    boost::uint8_t checksum() const { // = 2-compement of sum of all bytes
-      return 1 + (0xFF ^ (_code.size()
-                          + _type
-                          + (_addr&0xFF)
-                          + (_addr>>8)
-                          + std::accumulate(_code.begin(), _code.end(), 0)));
-    }
-    static unsigned int hex2int(const std::string s) {
-      unsigned result(0);
-      std::stringstream iss; iss << std::hex << s; iss >> result;
-      return result;
-    }
-    boost::uint16_t _addr;
-    Type            _type;
-    code_vector     _code;
-  } ;
-
-  namespace EEPROM {
-    struct __attribute__((__packed__)) cmd {
-      boost::int8_t   op;
-      boost::uint16_t addr;
-      boost::uint8_t  count;
-    } ;
-    
-    struct __attribute__((__packed__)) reply_header {
-      boost::uint8_t op;
-      boost::int8_t  op_retcode;
-    } ;
-    
-    template<typename T>
-    struct __attribute__((__packed__)) reply {
-      reply_header   header;
-      T              data;
-    } ;
-  } //  namespace EEPROM
-
-  class fx2_control : private boost::noncopyable {
-  public:
-    fx2_control(boost::uint16_t vendor_id,
-                boost::uint16_t product_id,
-                size_t index)
-      : _vendor_id(vendor_id)
-      , _product_id(product_id)
-      , _index(index)
-      , _ep_cmd    (0x01)
-      , _ep_status (0x81)
-      , _ep_data_in(0x82)
-      , _is_configured(false) {
-      try {
-        const std::vector<usb_device_handle::sptr>
-          v(usb_device_handle::get_device_list(_vendor_id, _product_id));
-        ASSERT_THROW(_index < v.size());
-        _usb_control = usb_control::make(v[index]);
-        
-        const Perseus::product_id prodid(read_eeprom<Perseus::product_id>(8));
-        _usb_control->clear_halt(_ep_cmd);
-        _usb_control->clear_halt(_ep_status);
-        _usb_control->clear_halt(_ep_data_in);
-        _is_configured = true;
-        std::cout << "device is already configured " << prodid.to_str() << std::endl;
-      } catch (...) {
-        // no action
-      }
-    }
-    virtual ~fx2_control() {
-      if (this->is_configured()) {
-        try {
-          this->shutdown();
-        } catch (...) {
-          std::cerr << "ERR ~fx2_control" << std::endl;
-        }
-      }
-    }
-        
-    usb_control::sptr get_usb_control() { return _usb_control; }
-
-    bool is_configured() const { return _is_configured; }
-    
-    void load_firmware(std::string hex_filename) {
-      this->reset(true);
-      std::ifstream ifs(hex_filename.c_str());
-      std::string line("");
-      while (ifs>>line) {
-        const I8HEXEntry hex(line);
-        if (hex.get_type() == I8HEXEntry::EndOfFileRecord) break;
-        ASSERT_THROW(_usb_control->submit_control(0x40, 0xA0, hex.get_addr(), 0,
-                                                  (unsigned char*)(&hex.get_code().front()),
-                                                  hex.get_code().size(), 1000)
-                     == ssize_t(hex.get_code().size()));
-      }
-      this->reset(false);
-      _is_configured = true;
-
-      _usb_control.reset();
-      sleep(4);
-
-      const std::vector<usb_device_handle::sptr>
-        v(usb_device_handle::get_device_list(_vendor_id, _product_id));
-      ASSERT_THROW(_index < v.size());
-      _usb_control = usb_control::make(v.at(_index));
-    }
-
-    template<typename T>
-    T read_eeprom(boost::uint16_t addr) {
-      int transferred(0);
-      const EEPROM::cmd cmd = {0x06, addr, sizeof(T)};
-      ASSERT_THROW(_usb_control->submit_bulk(_ep_cmd,
-                                             (unsigned char *)&cmd, sizeof(cmd),
-                                             &transferred, 1000) == 0);
-      typename EEPROM::reply<T> reply;
-      ASSERT_THROW(_usb_control->submit_bulk(_ep_status,
-                                             (unsigned char *)&reply, 
-                                             sizeof(reply),
-                                             &transferred, 1000) == 0);
-      ASSERT_THROW(reply.header.op_retcode == true);
-      return reply.data;
-    }
-
-  private:
-    void reset(boost::uint8_t reset) {
-      ASSERT_THROW(_usb_control->submit_control(0x40, 0xA0, 0xE600, 0, &reset, 1, 1000) == 1);
-    }
-    void shutdown() {
-      int transferred(0);
-      const boost::uint8_t cmd_shutdown(0x08);
-      ASSERT_THROW(_usb_control->submit_bulk(_ep_cmd, (unsigned char *)&cmd_shutdown, 1,
-                                             &transferred, 1000) == 0);
-      ASSERT_THROW(transferred == sizeof(cmd_shutdown));
-    }
-
-    usb_control::sptr  _usb_control;
-    boost::uint16_t   _vendor_id;
-    boost::uint16_t   _product_id;
-    size_t            _index;
-    boost::uint8_t    _ep_cmd;
-    boost::uint8_t    _ep_status;
-    boost::uint8_t    _ep_data_in;
-    bool              _is_configured;
-  } ;
-
   class receiver_control_impl : public receiver_control {
   public:
     enum {
       _vendor_id  = 0x04B4,
       _product_id = 0x325C
-    };
-
+    } ;
+    
     receiver_control_impl(size_t index)
-      : _fx2_control(_vendor_id, _product_id, index) {}
-    virtual ~receiver_control_impl() {}
-
-    virtual void init(const boost::property_tree::ptree& config) {
-#if 0
-      {
-        const std::vector<usb_device_handle::sptr> v(usb_device_handle::get_device_list(_vendor_id, _product_id));
-        BOOST_FOREACH(const usb_device_handle::sptr& device, v) {
-          std::cerr << (boost::format("vendor_id=0x%04X product_id=0x%04X manufacturer='%s' product='%s' serial='%s' [%d] %02X:%02X") 
-                        % device->get_vendor_id() 
-                        % device->get_product_id()
-                        % device->get_manufacturer()
-                        % device->get_product()
-                        % device->get_serial()
-                        % int(device->get_num_configurations())
-                        % int(device->get_bus_number())
-                        % int(device->get_device_address())
-                        ) << std::endl;
-        }
-        _usb_control = usb_control::make(v[0], 1);
-        
-        // libusb::session::get_global_session()->set_debug(3);
-        _usb_control->clear_halt(_ep_cmd);
-        _usb_control->clear_halt(_ep_status);
-        _usb_control->clear_halt(_ep_data_in);
-        
-        // download firmware
-        fx2_load_firmware("perseus.hex");
-        // fx2_shutdown();
-        // renumerate
-        _usb_control.reset();
-        sleep(4);
+    : _fx2_control(fx2_control::make(_vendor_id, _product_id, index))
+    , _frontend_ctl(0xFF)
+    , _use_preselector(false)
+    , _filter_cutoffs(make_filter_cutoffs()) {
+      if (_poll_libusb_thread == 0) {
+        _poll_libusb_refcount = 1;
+        ASSERT_THROW(pthread_create(&_poll_libusb_thread, NULL, 
+                                    poll_libusb_thread_fn, NULL) == 0);
+      } else {
+        ++_poll_libusb_refcount;
       }
-      {
-        const std::vector<usb_device_handle::sptr> v(usb_device_handle::get_device_list(_vendor_id, _product_id));
-        BOOST_FOREACH(const usb_device_handle::sptr& device, v) {
-          std::cerr << (boost::format("vendor_id=0x%04X product_id=0x%04X manufacturer='%s' product='%s' serial='%s' [%d] %02X:%02X") 
-                        % device->get_vendor_id() 
-                        % device->get_product_id()
-                        % device->get_manufacturer()
-                        % device->get_product()
-                        % device->get_serial()
-                        % int(device->get_num_configurations())
-                        % int(device->get_bus_number())
-                        % int(device->get_device_address())
-                        ) << std::endl;
-        }
-        ASSERT_THROW(v.size() != 0);
-        _usb_control = usb_control::make(v[0], 1);
-        std::cout << "AA" << std::endl;
-        product_id prodid = fx2_read_eeprom<product_id>(8);
-        std::cout << "prodid: "
-                  << int(prodid.sn()) << " "
-                  << int(prodid.prodcode()) << " "
-                  << int(prodid.hwrel()) << " "
-                  << int(prodid.hwver()) << " " 
-                  << prodid.signature() << std::endl;
-        
-        // BOOST_FOREACH(usb_device_handle::sptr d, v) {
-        //   if (d->get_bus_number() ==  &&
-        //       d->get_device_address() == ) {
-        //   }
-      // }
+    }
+    virtual ~receiver_control_impl() {
+      std::cerr << "~receiver_control_impl" << std::endl;
+      _input_queue.reset();
+      if (--_poll_libusb_refcount == 0) {
+        std::cerr << "receiver_control_impl join ..." << std::endl;
+        pthread_join(_poll_libusb_thread, NULL);
+        std::cerr << "receiver_control_impl joined" << std::endl;
+        _poll_libusb_thread = 0;
       }
-#endif
     }
 
-    // usb_device_handle::sptr find_perseus() const {
-    //   const std::vector<usb_device_handle::sptr> 
-    //     v(usb_device_handle::get_device_list(_vendor_id, _product_id));
-    // }
+    virtual void init(const boost::property_tree::ptree& config) {
+      std::cout << "init:" << std::endl;        
+      
+      // set_attenuator(0); sleep(1);
+      // set_attenuator(1); sleep(1);
+      // set_attenuator(2); sleep(1);
+      // set_attenuator(3); sleep(1);
+      // set_attenuator(2); sleep(1);
+      // set_attenuator(1); sleep(1);
+      // set_attenuator(0); sleep(1);
 
-    // virtual boost::uint32_t get_version_number() const {
-    // }
-    // virtual std::string get_version_string() const {
-    // }    
-    // virtual double get_frequency() const { 
-    // }
-    // virtual void set_frequency(double freq) {
-    // }
+      _fx2_control->load_fpga("perseus125k.rbs");
+      const double f = 5.123e6;
+      set_center_freq_hz(f);
+      use_preselector(false);
+      std::cout << "center freq= " << get_center_frequency_hz() << " df="
+                << get_center_frequency_hz()-f << std::endl;
+    }
+
+    virtual void enable_dither(bool b) {
+      set_sio(b, FPGA::sioctl::CMD::dither);
+    }
+    virtual void enable_preamp(bool b) {
+      set_sio(b, FPGA::sioctl::CMD::gain_high);
+    }
+    virtual void start_async_input(callback::sptr callback) {
+      _input_queue = input_queue::make(callback, 510 /*16230*/, 8,
+                                       libusb::device_handle::get_cached_handle
+                                       (boost::static_pointer_cast<libusb::special_handle>
+                                        (_fx2_control->get_usb_device_handle())->get_device()), 
+                                       fx2_control::EndPoint::data_in);
+      set_sio(true, FPGA::sioctl::CMD::fifo_enable);
+    }
+    virtual void stop_async_input() {
+      _input_queue.reset();
+      set_sio(false, FPGA::sioctl::CMD::fifo_enable);
+    }
+    virtual void use_preselector(bool b) {
+      if (_use_preselector == b) return;
+      set_presel_id(b ? get_preselector_id(get_center_frequency_hz()) : 10);
+      _use_preselector = b;
+    }
+    virtual double get_center_frequency_hz() const { 
+      return counts2hz(_sio_ctl.freg);
+    }
+    virtual double set_center_freq_hz(double center_freq_hz) {
+      ASSERT_THROW(center_freq_hz >= 0.0  && center_freq_hz < 40e6);
+      set_presel_id(_use_preselector ? get_preselector_id(center_freq_hz) : 10);
+      _fx2_control->fpga_sio(_sio_ctl.set_freg(hz2counts(center_freq_hz)));
+      return get_center_frequency_hz();
+    }
+    virtual void set_attenuator(boost::uint8_t atten_id) {
+      ASSERT_THROW(atten_id<4);
+      if (atten_id == (_frontend_ctl >> 4)) return;
+      _frontend_ctl = _fx2_control->set_port((atten_id << 4) | (_frontend_ctl & 0x0F));
+    }
+
   private:
-    fx2_control _fx2_control;
+    typedef std::vector<double> filter_cutoffs;
+    static double counts2hz(boost::uint32_t counts) {
+      return counts/double(1ULL<<32)*80e6;
+    }
+    static boost::uint32_t hz2counts(double freq_hz) {
+      return boost::uint32_t(freq_hz/80e6*(1ULL<<32));
+    }
+    static filter_cutoffs make_filter_cutoffs() {
+      const double flt[] = {1.7e6, 2.1e6, 3.0e6, 4.2e6, 6.0e6, 8.4e6, 12e6, 17e6, 24e6, 32e6};
+      return filter_cutoffs(flt, flt+sizeof(flt)/sizeof(double));
+    }
+    void set_presel_id(boost::uint8_t presel_id) {
+      if (presel_id == (_frontend_ctl & 0x0F)) return;
+      _frontend_ctl = _fx2_control->set_port((_frontend_ctl & 0xF0) | (presel_id & 0x0F));
+    }
+    boost::uint8_t get_preselector_id(double freq_hz) const {
+      std::vector<double>::const_iterator
+        i(std::find_if(_filter_cutoffs.begin(),
+                       _filter_cutoffs.end(),
+                       std::bind1st(std::less<double>(), freq_hz)));
+      return std::distance(_filter_cutoffs.begin(), i); 
+    }
+    void set_sio(bool b, boost::uint8_t c) {
+      _fx2_control->fpga_sio(_sio_ctl.set_ctl(b ? (_sio_ctl.ctl | c) : (_sio_ctl.ctl & (~c))));
+    }
+
+    static void* poll_libusb_thread_fn(void*) {
+      int maxpri(0);
+      if ((maxpri = sched_get_priority_max(SCHED_FIFO))>=0) {
+        struct sched_param sparam;
+        sparam.sched_priority = maxpri;
+        std::cerr << "setting thread priority to " << maxpri << std::endl;
+        if (pthread_setschedparam(_poll_libusb_thread, SCHED_FIFO, &sparam) < 0)
+          std::cerr << "pthread_setschedparam" << std::endl;
+      }
+      // handle libusb events until perseus_exit is called
+      while (_poll_libusb_refcount > 0) {
+        static struct timeval tv = {1,0};
+        libusb_handle_events_timeout(NULL, &tv);
+      }
+      std::cerr << "poll_libusb_thread_fn: exit" << std::endl;
+      return 0;
+    }
+
+    fx2_control::sptr    _fx2_control;
+    FPGA::sioctl         _sio_ctl;
+    boost::uint8_t       _frontend_ctl;
+    bool                 _use_preselector;
+    const filter_cutoffs _filter_cutoffs;
+    input_queue::sptr    _input_queue;
+    static pthread_t     _poll_libusb_thread;
+    static int           _poll_libusb_refcount;
   } ;
+
+  pthread_t receiver_control_impl::_poll_libusb_thread   = 0;
+  int       receiver_control_impl::_poll_libusb_refcount = 0;
 
   size_t receiver_control::get_num_perseus() {
     return usb_device_handle::get_device_list(receiver_control_impl::_vendor_id,
@@ -298,11 +178,10 @@ namespace Perseus {
   }
 
   product_id receiver_control::get_product_id_at(size_t index) {
-    fx2_control fxc(receiver_control_impl::_vendor_id,
-                    receiver_control_impl::_product_id,
-                    index);
-    fxc.load_firmware("perseus.hex");
-    return fxc.read_eeprom<product_id>(8);
+    fx2_control::sptr fxc(fx2_control::make(receiver_control_impl::_vendor_id,
+                                            receiver_control_impl::_product_id,
+                                            index));
+    return fxc->get_eeprom_pid();
   }
 
   receiver_control::sptr receiver_control::make(size_t index) {

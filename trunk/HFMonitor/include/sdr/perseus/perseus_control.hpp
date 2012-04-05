@@ -61,6 +61,14 @@ namespace Perseus {
   } __attribute__((__packed__));
     
 
+  class callback : private boost::noncopyable {
+  public:
+    typedef boost::shared_ptr<callback> sptr;
+    virtual ~callback() {}
+    
+    virtual void operator()(unsigned char* data, size_t length) {}
+  } ;
+
   class receiver_control : private boost::noncopyable {
   public:
     typedef boost::shared_ptr<receiver_control> sptr;
@@ -76,16 +84,18 @@ namespace Perseus {
     static sptr make(size_t);
 
     virtual void init(const boost::property_tree::ptree& config) = 0;
+    
+    virtual void   enable_dither(bool) = 0;
+    virtual void   enable_preamp(bool) = 0;
+    virtual void   start_async_input(callback::sptr) = 0;
+    virtual void   stop_async_input() = 0;
+    virtual void   use_preselector(bool) = 0;
+    virtual double get_center_frequency_hz() const = 0;
+    virtual double set_center_freq_hz(double) = 0;
+    virtual void   set_attenuator(boost::uint8_t) = 0;
 
-    // virtual boost::uint32_t get_version_number() const = 0;
-    // virtual std::string get_version_string() const = 0;
-
-    // virtual double get_frequency() const    = 0;
-    // virtual void set_frequency(double freq) = 0;
-
-    // virtual boost::uint32_t get_presel_mode() const   = 0;
-    // virtual void set_presel_mode(boost::uint32_t mode) = 0;
-
+    // user callback
+    virtual void callback(unsigned char*, boost::uint16_t) {}
   protected:
   private:
   } ;
