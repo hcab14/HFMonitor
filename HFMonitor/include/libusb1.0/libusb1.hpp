@@ -53,6 +53,31 @@ public:
   get_device_list(boost::uint16_t vid, boost::uint16_t pid);
 } ;
 
+class usb_bulk_transfer;
+
+class usb_transfer_callback : public boost::noncopyable {
+public:
+  typedef boost::shared_ptr<usb_transfer_callback> sptr;
+  virtual ~usb_transfer_callback() {}
+
+  virtual void callback(libusb_transfer_status status,
+                        int                    length,
+                        int                    actual_length,
+                        unsigned char*         buffer,
+                        usb_bulk_transfer*     transfer) = 0;
+} ;
+
+class usb_bulk_transfer : public boost::noncopyable {
+public:
+  typedef boost::shared_ptr<usb_bulk_transfer> sptr;
+  virtual ~usb_bulk_transfer() {}
+
+  virtual libusb_transfer* get() = 0;
+  virtual int submit() = 0;
+  virtual int cancel() = 0;
+} ;
+
+
 class usb_control : public boost::noncopyable {
 public:
   typedef boost::shared_ptr<usb_control> sptr;
@@ -67,14 +92,14 @@ public:
                                  boost::uint16_t index, 
                                  unsigned char*  buff,
                                  boost::uint16_t length,
-                                 unsigned int timeout=0) = 0;
+                                 unsigned int  timeout=0) = 0;
+
   virtual ssize_t submit_bulk(boost::uint8_t  endpoint,
                               boost::uint8_t* data,
                               int             length,
                               int*            transferred,
-                              unsigned inttimeout=0) = 0;
+                              unsigned int    timeout=0) = 0;
 } ;
-
 
 namespace libusb {
   class session : public boost::noncopyable {

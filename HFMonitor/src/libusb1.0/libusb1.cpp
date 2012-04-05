@@ -17,6 +17,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <map>
 #include <boost/foreach.hpp>
 #include "logging.hpp"
 #include "libusb1.0/libusb1.hpp"
@@ -25,8 +26,8 @@ namespace libusb {
   // Implementation ------------------------------------------------------------
   class session_impl: public session {
   public:
-    session_impl() { std::cout << "session_impl\n";ASSERT_THROW(libusb_init(&_context) == 0); }
-    ~session_impl() { std::cout << "~session_impl\n";libusb_exit(_context); }
+    session_impl() { std::cerr << "session_impl" << std::endl; ASSERT_THROW(libusb_init(&_context) == 0); }
+    ~session_impl() { std::cerr << "~session_impl" << std::endl; libusb_exit(_context); }
     virtual libusb_context* get_context() const { return _context; }
     virtual void set_debug(int level) { libusb_set_debug(_context, level); }
   private:
@@ -267,6 +268,55 @@ usb_device_handle::get_device_list(boost::uint16_t vid, boost::uint16_t pid) {
   return handles;
 }
 
+class usb_bulk_transfer_impl : public usb_bulk_transfer {
+public:
+  usb_bulk_transfer_impl(libusb::device_handle::sptr handle,
+                         boost::uint8_t              endpoint,
+                         boost::uint16_t             length,
+                         usb_transfer_callback::sptr callback,
+                         unsigned int                timeout)
+    : _transfer(libusb_alloc_transfer(0))
+    , _buffer(0)
+    , _callback(callback) { 
+    ASSERT_THROW(_transfer == 0);
+    _buffer.resize(length);
+    libusb_fill_bulk_transfer(_transfer,
+                              handle->get(),
+                              endpoint,
+                              &_buffer.front(),
+                              _buffer.size(),
+                              libusb_transfer_cb_fn(&transfer_callback),
+                              this,
+                              timeout);
+  }
+
+  virtual ~usb_bulk_transfer_impl() {
+    libusb_free_transfer(_transfer);
+  }
+  virtual boost::uint8_t endpoint() const { return _transfer->endpoint; }
+
+  virtual libusb_transfer* get() { return _transfer; }
+  virtual int submit() {
+    return libusb_submit_transfer(_transfer);
+  }
+  virtual int cancel() {
+    return libusb_cancel_transfer(_transfer);
+  }
+private:
+  static void transfer_callback(libusb_transfer* t) {
+    usb_bulk_transfer_impl* ubti(reinterpret_cast<usb_bulk_transfer_impl*>(t->user_data));
+    ubti->_callback->callback(t->status,
+                              t->length,
+                              t->actual_length,
+                              t->buffer,
+                              ubti);
+  }
+
+  libusb_transfer*            _transfer;
+  std::vector<unsigned char>  _buffer;
+  usb_transfer_callback::sptr _callback;
+} ;
+
 class libusb_control_impl : public usb_control {
 public:
   libusb_control_impl(libusb::device_handle::sptr handle, int configuration)
@@ -300,9 +350,11 @@ public:
                                 endpoint, data, length, transferred,
                                 timeout);
   }
+
 private:
   const libusb::device_handle::sptr _handle;
 } ;
+
 
 usb_control::sptr usb_control::make(usb_device_handle::sptr handle, int configuration) {
   return sptr(new libusb_control_impl
