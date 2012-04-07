@@ -57,9 +57,8 @@ int main(int argc, char* argv[])
       Perseus::callback::sptr cb(new test_cb);
       Perseus::receiver_control::sptr rec(Perseus::receiver_control::make(index));
       rec->init(config_perseus);
-      usleep(500*1000);
       rec->start_async_input(cb);
-      sleep(1);
+      sleep(10);
       rec->stop_async_input();
     }
     

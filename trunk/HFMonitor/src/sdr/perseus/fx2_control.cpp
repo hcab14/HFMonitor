@@ -98,7 +98,7 @@ namespace Perseus {
 
         _perseus_eeprom_pid = read_eeprom<Perseus::product_id>(EEPROM::ADDR::product_id);
         std::cout << "device is already configured " << _perseus_eeprom_pid.to_str() << std::endl;
-        // _is_configured = true;
+        _is_configured = true;
       } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         // no action

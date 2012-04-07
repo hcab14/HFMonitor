@@ -83,7 +83,7 @@ namespace Perseus {
       set_sio(b, FPGA::sioctl::CMD::gain_high);
     }
     virtual void start_async_input(callback::sptr callback) {
-      _input_queue = input_queue::make(callback, 510 /*16230*/, 8,
+      _input_queue = input_queue::make(callback, 510 /*16230*/, 128,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
                                         (_fx2_control->get_usb_device_handle())->get_device()), 
