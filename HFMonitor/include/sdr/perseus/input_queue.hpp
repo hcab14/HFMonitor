@@ -95,8 +95,6 @@ namespace Perseus {
                                   libusb_transfer_cb_fn(transfer_callback),
                                   td.get(),
                                   80*length);
-        std::cerr << "  idx= " << _queue.back()->idx << " " << idx_expected() << " " 
-                  << int(_queue.back()->t) << " " << int(&_queue.back()) << std::endl;
       }
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
         libusb_submit_transfer(td->t);
@@ -114,14 +112,14 @@ namespace Perseus {
     bool is_completed() const { return _completed; }
 
     virtual ~input_queue() {
-      std::cerr << "~input_queue" << std::endl;
       _cancelling= true;
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
         libusb_cancel_transfer(td->t);
       // wait up to 5 seconds until everything is cancelled
       std::cerr << "wait_cancel: ";
-      for (size_t i=0; i <80 && not is_completed(); ++i) {
+      for (size_t i=0; i<50 && not is_completed(); ++i) {
         std::cerr << ".";
+        usleep(100*1000);
       }
       std::cerr << std::endl;
       while (not is_completed()) ;
@@ -163,8 +161,8 @@ namespace Perseus {
       } break;
       case LIBUSB_TRANSFER_TIMED_OUT:
         break; // ->resubmit
-      // case LIBUSB_TRANSFER_NO_DEVICE:
-      //   td->iq->_cancelling= true;
+      case LIBUSB_TRANSFER_NO_DEVICE:
+        td->iq->_cancelling= true;
       default:
         td->cancelled = true;
         td->iq->check_completed();
@@ -179,7 +177,7 @@ namespace Perseus {
       _idx_expected = ((1+_idx_expected) % _buf.length());
       return _idx_expected;
     }
-    
+
   protected:
   private:
     callback::sptr _cb;
