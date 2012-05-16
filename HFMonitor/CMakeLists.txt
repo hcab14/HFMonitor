@@ -42,6 +42,11 @@ LIST(APPEND _libs ${libusb-1.0_LIBRARY})
 FIND_PACKAGE(Portaudio REQUIRED)
 LIST(APPEND _libs ${portaudio_LIBRARY})
 
+# Setup portaudio
+FIND_PACKAGE(FLTK REQUIRED)
+LIST(APPEND CMAKE_CXXFLAGS ${FLTK_CXXFLAGS})
+LIST(APPEND CMAKE_EXE_LINKER_FLAGS ${FLTK_LDFLAGS})
+
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${PerseusSDR_INCLUDE_DIR}
@@ -53,3 +58,6 @@ ADD_SUBDIRECTORY(src)
 
 ADD_EXECUTABLE(test_perseus test_perseus_main.cpp)
 TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp fx2_control_cpp)
+
+ADD_EXECUTABLE(test_fltk_main test_fltk_main.cpp)
+TARGET_LINK_LIBRARIES(test_fltk_main ${_libs})
