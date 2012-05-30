@@ -80,13 +80,11 @@ public:
   void insert_spec(const std::vector<double>& spec) {
     specIndex_--;
     if (specIndex_ <0) specIndex_ = specM()-1;
-    const int N(specN());
-    const int M(specM());
     for (size_t i=0; i<spec.size(); ++i) {
-      spec_[specIndex_*N+i] = spec[i];
+      spec_[specIndex_*specN()+i] = spec[i];
       double x = (spec[i]-sMin_.value())/(sMax_.value()-sMin_.value());
       x= (x<0) ? 0 : (x>1) ? 1 : x;
-      specImg_[specIndex_*N+i] = specImg_[(M+specIndex_)*N+i] = 255*x;
+      specImg_[specIndex_*specN()+i] = specImg_[(specM()+specIndex_)*specN()+i] = 255*x;
     }
     this->damage(FL_DAMAGE_ALL);
   }
@@ -114,9 +112,8 @@ public:
   void draw_spec() const {
     fl_color(FL_GREEN);
     fl_begin_line();
-    const int N(specN());
-    for (int i=0; i<N; ++i)
-      fl_vertex(i, ySpecFromInput(spec_[specIndex_*N + i]));
+    for (int i=0; i<specN(); ++i)
+      fl_vertex(i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     fl_end_line();
   }
 
