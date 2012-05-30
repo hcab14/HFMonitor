@@ -32,8 +32,8 @@
 #include "IQBuffer.hpp"
 #include "protocol.hpp"
 
-#include "service_generic_iq.hpp"
-#include "service_perseus.hpp"
+#include "service/generic_iq.hpp"
+#include "service/perseus.hpp"
 
 namespace wave {
   namespace { // anonymous 
