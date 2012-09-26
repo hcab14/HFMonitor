@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
-<Test>
-  <Perseus sn="241">
-  </Perseus>
-</Test>
+<Perseus sn="241">
+  <rbs fs="125000">/Users/chm/PerseusUSB/perseus125k.rbs</rbs>
+  <rbs fs="250000">/Users/chm/PerseusUSB/perseus250k.rbs</rbs>
+  <rbs fs="500000">/Users/chm/PerseusUSB/perseus500k.rbs</rbs>
+  <rbs fs="1000000">/Users/chm/PerseusUSB/perseus1000k.rbs</rbs>
+  <rbs fs="2000000">/Users/chm/PerseusUSB/perseus2000k.rbs</rbs>
+</Perseus>

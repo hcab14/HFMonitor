@@ -1,7 +1,7 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2011 Christoph Mayer
+// Copyright 2010-2012 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "sdr/perseus/perseus_control.hpp"
 #include "sdr/perseus/fx2_control.hpp"
 #include "sdr/perseus/input_queue.hpp"
@@ -32,12 +33,16 @@ namespace Perseus {
       _vendor_id  = 0x04B4,
       _product_id = 0x325C
     } ;
-    
+
+    // map: sample rate -> filename
+    typedef std::map<int, std::string> rbs_map;
+
     receiver_control_impl(size_t index)
     : _fx2_control(fx2_control::make(_vendor_id, _product_id, index))
     , _frontend_ctl(0xFF)
     , _use_preselector(false)
-    , _filter_cutoffs(make_filter_cutoffs()) {
+    , _filter_cutoffs(make_filter_cutoffs())
+    , _sample_rate(-1) {
       if (_poll_libusb_thread == 0) {
         _poll_libusb_refcount = 1;
         ASSERT_THROW(pthread_create(&_poll_libusb_thread, NULL, 
@@ -59,7 +64,14 @@ namespace Perseus {
 
     virtual void init(const boost::property_tree::ptree& config) {
       std::cout << "init:" << std::endl;        
-      
+      _rbs_map.clear();
+      BOOST_FOREACH(const boost::property_tree::ptree::value_type& v, config) {
+        if (v.first == "rbs") {
+          ASSERT_THROW(boost::filesystem::exists(v.second.data()));
+          _rbs_map[v.second.get<int>("<xmlattr>.fs")] = v.second.data();
+        }
+      }
+
       // set_attenuator(0); sleep(1);
       // set_attenuator(1); sleep(1);
       // set_attenuator(2); sleep(1);
@@ -67,14 +79,21 @@ namespace Perseus {
       // set_attenuator(2); sleep(1);
       // set_attenuator(1); sleep(1);
       // set_attenuator(0); sleep(1);
+      
+      set_sample_rate(125000);
 
-      _fx2_control->load_fpga("perseus125k.rbs");
-      const double f = 5.123e6;
-      set_center_freq_hz(f);
+      const double f     = 5.123e6;
+      const double f_set = set_center_freq_hz(f);
       use_preselector(false);
-      std::cout << "center freq= " << get_center_frequency_hz() << " df="
-                << get_center_frequency_hz()-f << std::endl;
+      std::cout << "center freq= " << f_set << " df=" << f-f_set << std::endl;
     }
+
+    virtual void set_sample_rate(int sample_rate) {
+      ASSERT_THROW(_rbs_map.find(sample_rate) != _rbs_map.end());
+      _sample_rate= sample_rate;
+      _fx2_control->load_fpga(_rbs_map[sample_rate]);
+    }
+    virtual int get_sample_rate() const { return _sample_rate; }
 
     virtual void enable_dither(bool b) {
       set_sio(b, FPGA::sioctl::CMD::dither);
@@ -83,7 +102,7 @@ namespace Perseus {
       set_sio(b, FPGA::sioctl::CMD::gain_high);
     }
     virtual void start_async_input(callback::sptr callback) {
-      _input_queue = input_queue::make(callback, 510 /*16230*/, 128,
+      _input_queue = input_queue::make(callback, 510 /*16230*/, 8,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
                                         (_fx2_control->get_usb_device_handle())->get_device()), 
@@ -167,6 +186,8 @@ namespace Perseus {
     input_queue::sptr    _input_queue;
     static pthread_t     _poll_libusb_thread;
     static int           _poll_libusb_refcount;
+    rbs_map              _rbs_map;
+    int                  _sample_rate;
   } ;
 
   pthread_t receiver_control_impl::_poll_libusb_thread   = 0;
