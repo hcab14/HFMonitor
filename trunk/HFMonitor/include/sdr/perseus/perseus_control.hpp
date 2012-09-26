@@ -1,7 +1,7 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2011 Christoph Mayer
+// Copyright 2010-2012 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,7 +84,10 @@ namespace Perseus {
     static sptr make(size_t);
 
     virtual void init(const boost::property_tree::ptree& config) = 0;
-    
+
+    virtual void   set_sample_rate(int sample_rate) = 0;
+    virtual int    get_sample_rate() const = 0;
+
     virtual void   enable_dither(bool) = 0;
     virtual void   enable_preamp(bool) = 0;
     virtual void   start_async_input(callback::sptr) = 0;
@@ -94,8 +97,6 @@ namespace Perseus {
     virtual double set_center_freq_hz(double) = 0;
     virtual void   set_attenuator(boost::uint8_t) = 0;
 
-    // user callback
-    virtual void callback(unsigned char*, boost::uint16_t) {}
   protected:
   private:
   } ;

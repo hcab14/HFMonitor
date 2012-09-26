@@ -29,8 +29,8 @@
 #include <boost/filesystem/operations.hpp>
 
 #include "wave/definitions.hpp"
-#include "IQBuffer.hpp"
-#include "protocol.hpp"
+#include "service/IQBuffer.hpp"
+#include "service/protocol.hpp"
 
 #include "service/generic_iq.hpp"
 #include "service/perseus.hpp"
