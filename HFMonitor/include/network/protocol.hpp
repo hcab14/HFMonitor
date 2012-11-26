@@ -33,6 +33,9 @@ public:
   ptime       approx_ptime() const { return approx_ptime_; }
   size_t      length()       const { return length_; }
 
+  const char* begin() const { return reinterpret_cast<const char*>(this); }
+  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(header); }
+
   friend std::ostream& operator<<(std::ostream& os, const header& h) {
     return os << "'" << h.id() << "' "<< h.approx_ptime() << " len=" << h.length();
   }
@@ -63,6 +66,10 @@ public:
   
   double sample_rate_Hz()         const { return sample_rate_Hz_; }
   double ddc_center_frequecy_Hz() const { return ddc_center_frequecy_Hz_; }
+
+  const char* begin() const { return reinterpret_cast<const char*>(this); }
+  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(sample_info); }
+
 protected:
 private:
   boost::uint32_t sample_rate_Hz_;         // sample rate [Hz]
@@ -83,6 +90,10 @@ public:
 
   char           sample_type()      const { return sample_type_; }
   boost::uint8_t bytes_per_sample() const { return bytes_per_sample_; }
+
+  const char* begin() const { return reinterpret_cast<const char*>(this); }
+  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(iq_info); }
+
 protected:
 private:
   char            sample_type_;

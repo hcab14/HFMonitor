@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 
 #include "logging.hpp"
-#include "broadcaster_directory.hpp"
+#include "network/broadcaster/directory.hpp"
 
 #include "network/protocol.hpp"
 
@@ -38,7 +38,10 @@ public:
       throw std::runtime_error("connect failed");
   }
 
-  virtual ~client() { socket_.close(); }
+  virtual ~client() {
+    std::cout << "~client: close"<< std::endl;
+    socket_.close();
+  }
 
   // access methods
   boost::asio::io_service& get_io_service()   { return io_service_; }
@@ -55,6 +58,7 @@ public:
       if (f != "")
         result->insert(f);
     }
+    sleep(2);
     return result;
   }
 
@@ -63,12 +67,15 @@ public:
     std::istringstream iss(send_request(str(boost::format("GET %s") % name)));
     std::string f;
     if (iss >> f) {
+      std::cout << "f='" << f << "'" << std::endl;
       if (f == "OK") {
         async_receive_header();
         timer_.async_wait(get_strand().wrap(boost::bind(&client::on_tick, this)));
         return true;
-      } else 
+      } else {
+        std::cerr << "response= " << f << " " << name << std::endl;
         return false;
+      }
     } else {
       return false;
     }
@@ -81,14 +88,15 @@ public:
   // get_header() provides the header
   virtual void process(data_buffer_type::const_iterator begin,
                        data_buffer_type::const_iterator end) {
-    LOG_INFO(str(boost::format("process: h='%s', length=%d")
-                 % get_header()
-                 % std::distance(begin,end)));
+    // LOG_INFO(str(boost::format("process: h='%s', length=%d")
+    //              % get_header()
+    //              % std::distance(begin,end)));
   }
 
 protected:
 private:
   void do_close() {
+    std::cout << "do_close" << std::endl;
     socket_.close();
   }
 
@@ -145,10 +153,12 @@ private:
   void on_receive(received_data_type rdt,
                   boost::system::error_code ec,
                   std::size_t bytes_transferred) {
+    // std::cout << "on_receive: " << " ec=" << ec << " " << bytes_transferred << std::endl;
     if (ec)
       ; // complain, possibly abort, TBD
     switch (rdt) {
     case received_header:
+      // std::cout << "header= " << header_ << std::endl;
       async_receive_data();
       break;
     case received_data:
@@ -166,6 +176,7 @@ private:
 
   // blocking send request, returns the response
   std::string send_request(std::string request) {
+    std::cout << "send_request: " << request << std::endl;
     request += "\r\n";
     boost::asio::streambuf request_streambuf;
     std::ostream request_stream(&request_streambuf);
@@ -173,10 +184,14 @@ private:
     boost::asio::write(socket_, request_streambuf);
     boost::asio::streambuf response_streambuf;
     boost::asio::read_until(socket_, response_streambuf, "\r\n");
-    std::istream buffer(&response_streambuf);
-    std::stringstream string_buffer;    
-    buffer >> string_buffer.rdbuf();
-    return string_buffer.str();
+    std::istream is(&response_streambuf);
+    std::string line;
+    std::getline(is, line);
+    // std::istream buffer(&response_streambuf);
+    // std::stringstream string_buffer;    
+    // buffer >> string_buffer.rdbuf();
+    // std::cout << "response: " << string_buffer.str() << std::endl;
+    return line;//string_buffer.str();
   }
 
   // blocking connect
@@ -184,14 +199,14 @@ private:
                       std::string server_port) {
     using boost::asio::ip::tcp;
     tcp::resolver resolver(get_io_service());
-    tcp::resolver::query query(server_name, server_port);
+    tcp::resolver::query    query(server_name, server_port);
     tcp::resolver::iterator endpoint_iterator(resolver.resolve(query));
     tcp::resolver::iterator end;
     boost::system::error_code error = boost::asio::error::host_not_found;
     while (error && endpoint_iterator != end) {
       socket_.close();
       socket_.connect(*endpoint_iterator++, error);
-      std::cout << "error= " << error << std::endl;
+      std::cout << "error(connect)= " << error << std::endl;
     }
     return (!error) || (endpoint_iterator != end);
   }
@@ -205,127 +220,4 @@ private:
   boost::asio::deadline_timer       timer_;
 } ;
 
-#if 0
-template<typename PROCESSOR>
-class ClientTCP : private boost::noncopyable {
-private:
-  enum {
-    maxBufferSize = 1024*1024
-  } ;
-  typedef enum {
-    ReceivedHeader,
-    ReceivedData
-  } ReceivedDataType;
-
-public:
-  ClientTCP(boost::asio::io_service& io_service,
-            boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
-            const boost::property_tree::ptree& config)
-    : p_(config)
-    , service_(io_service)
-    , strand_(io_service)
-    , socket_(io_service)
-    , header_()
-    , tickBuffer_('a')
-    , timer_(service_, boost::posix_time::seconds(1)) {
-    boost::asio::ip::tcp::endpoint endPoint(*endpoint_iterator); 
-    socket_.async_connect(endPoint, 
-                          strand_.wrap(boost::bind(&ClientTCP::onConnect, 
-                                                   this, 
-                                                   boost::asio::placeholders::error, 
-                                                   ++endpoint_iterator)));
-  }
-  
-  void stop() { 
-    service_.post(boost::bind(&ClientTCP::doClose, this)); 
-  }
-
-protected:
-  void onConnect(const boost::system::error_code& errorCode, 
-                 boost::asio::ip::tcp::resolver::iterator endpoint_iterator) { 
-    if (errorCode == 0) { 
-      async_receive_header();
-      timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
-    } else if (endpoint_iterator != boost::asio::ip::tcp::resolver::iterator()) { 
-      socket_.close();
-      boost::asio::ip::tcp::endpoint endPoint = *endpoint_iterator;
-      socket_.async_connect(endPoint,
-                            strand_.wrap(boost::bind(&ClientTCP::onConnect,
-                                                     this,
-                                                     boost::asio::placeholders::error,
-                                                     ++endpoint_iterator)));
-    }
-  }
-
-  void onTick() {
-    // send tick to server
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(&tickBuffer_, sizeof(tickBuffer_)),
-                             strand_.wrap(boost::bind(&ClientTCP::handle_write_tick,
-                                                      this,
-                                                      boost::asio::placeholders::error,
-                                                      boost::asio::placeholders::bytes_transferred,
-                                                      tickBuffer_)));
-    timer_.expires_at(timer_.expires_at() + boost::posix_time::seconds(1));
-    timer_.async_wait(strand_.wrap(boost::bind(&ClientTCP::onTick, this)));
-    tickBuffer_ = (tickBuffer_ != 'z') ? tickBuffer_+1 : 'a';
-  }
-  void handle_write_tick(boost::system::error_code ec, std::size_t bytes_transferred, char tickValue) {
-    if (ec || bytes_transferred == 0) {
-      LOG_WARNING(str(boost::format("handle_write_tick aborting: error '%s' bytes_transferred=%d")
-                      % ec.message()
-                      % bytes_transferred));
-      doClose();
-      service_.stop();
-    } else
-      LOG_INFO(str(boost::format("tick '%c' sent") % tickValue));
-  }
-
-  void onReceive(const boost::system::error_code& errorCode, ReceivedDataType rdt) { 
-    if (errorCode == 0) {
-      switch (rdt) {
-      case ReceivedHeader:
-        async_receive_data();   break;
-      case ReceivedData:
-        p_.procRaw(header_,
-                   std::vector<char>::const_iterator(dataBuffer_.begin()),
-                   std::vector<char>::const_iterator(dataBuffer_.begin()+header_.numberOfSamples()*6));
-        async_receive_header(); break;
-      default:
-        ; // do nothing 
-      }
-    } else doClose(); 
-  }
-
-  void async_receive_header() {
-    boost::asio::async_read(socket_, boost::asio::buffer(&header_, sizeof(Header)),
-                            strand_.wrap(boost::bind(&ClientTCP::onReceive,
-                                                     this,
-                                                     boost::asio::placeholders::error,
-                                                     ReceivedHeader)));
-  }
-  void async_receive_data() {
-    ASSERT_THROW(header_.numberOfSamples()*6 < maxBufferSize);
-    boost::asio::async_read(socket_, boost::asio::buffer(&dataBuffer_, header_.numberOfSamples()*6),
-                            strand_.wrap(boost::bind(&ClientTCP::onReceive,
-                                                     this,
-                                                     boost::asio::placeholders::error,
-                                                     ReceivedData)));
-  }
-
-  void doClose() {
-    socket_.close();
-  }
-  
-private:
-  PROCESSOR                         p_;
-  boost::asio::io_service&          service_;
-  boost::asio::strand               strand_;
-  boost::asio::ip::tcp::socket      socket_;
-  Header                            header_;
-  boost::array<char, maxBufferSize> dataBuffer_;
-  char                              tickBuffer_;
-  boost::asio::deadline_timer       timer_;
-} ;
-#endif
 #endif // _CLIENT_HPP_cm111229_
