@@ -163,11 +163,13 @@ namespace Perseus {
     static void* poll_libusb_thread_fn(void*) {
       int maxpri(0);
       if ((maxpri = sched_get_priority_max(SCHED_FIFO))>=0) {
+#if 1
         struct sched_param sparam;
         sparam.sched_priority = maxpri;
         std::cerr << "setting thread priority to " << maxpri << std::endl;
         if (pthread_setschedparam(_poll_libusb_thread, SCHED_FIFO, &sparam) < 0)
           std::cerr << "pthread_setschedparam" << std::endl;
+#endif
       }
       // handle libusb events until perseus_exit is called
       while (_poll_libusb_refcount > 0) {

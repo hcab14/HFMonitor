@@ -61,3 +61,9 @@ TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp fx2_con
 
 ADD_EXECUTABLE(test_fltk_main test_fltk_main.cpp)
 TARGET_LINK_LIBRARIES(test_fltk_main ${_libs})
+
+ADD_EXECUTABLE(test_goertzel_main test_goertzel_main.cpp)
+TARGET_LINK_LIBRARIES(test_goertzel_main ${_libs})
+
+ADD_EXECUTABLE(test_client_main test_client_main.cpp)
+TARGET_LINK_LIBRARIES(test_client_main ${_libs})

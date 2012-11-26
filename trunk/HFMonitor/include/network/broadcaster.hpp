@@ -9,11 +9,11 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
-
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "logging.hpp"
 #include "network/broadcaster/directory.hpp"
@@ -22,8 +22,6 @@
 // -----------------------------------------------------------------------------
 // broadcaster
 //  * uses boost::asio
-//  * all io actions are triggered from a callback
-//  * the callback is assumed to be called regularly
 //  * the data is sent to all connected clients
 //  * being-alive-ticks are exchanged between server and client
 //  * config: 
@@ -34,59 +32,39 @@
 
 class broadcaster : private boost::noncopyable {
 public:
-  broadcaster(boost::asio::io_service& io_service,
-              const boost::property_tree::ptree& config)
-    : strand_(io_service)
-    , max_queue_total_size_(1024*1024*config.get<size_t>("Data.<xmlattr>.maxQueueSize_MB"))
-    , max_queue_delay_(boost::posix_time::minutes(config.get<size_t>("Data.<xmlattr>.maxQueueDelay_Minutes")))
-    , last_log_status_time_(boost::posix_time::microsec_clock::universal_time())
-  {
-    using namespace boost::asio::ip;
-    acceptor_map_["Data"] = acceptor_ptr
-      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
-    acceptor_map_["Ctrl"] = acceptor_ptr
-      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
-  }
+  typedef boost::shared_ptr<broadcaster> sptr;
 
+  static sptr make_broadcaster(boost::asio::io_service& io_service,
+                               const boost::property_tree::ptree& config) {
+    return sptr(new broadcaster(io_service, config));
+  }
   virtual ~broadcaster() {}
 
   // start broadcaster
   void start() {
-    // start data taking (pure virtual method overwritten in a derived class)
-    start_data_source();
-    LOG_INFO("started data source");
-
     // start listening on data/ctrl sockets
+    LOG_INFO("broadcaster start");
     start_listen();
-    LOG_INFO("started listening");
   }
   
   // stop broadcaster
   void stop() {
-    // stop data taking (pure virtual method implemented in a derived class)
-    stop_data_source();
-
     // announce stop of io_service
+    LOG_INFO("broadcaster stop");
     get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
-
-    // process all remaining io actions
-    get_io_service().run();
   }
 
-protected:
+  // returns a reference to the io service object
+  boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
+
   typedef data_connection::ptime ptime;
   typedef std::string data_type;
-
-  // start the associated data source -- to be implemented in a derived class
-  virtual void start_data_source() = 0;
-
-  // stop the associated data source -- to be implemented in derived class
-  virtual void stop_data_source() = 0;
 
   // broadcast data
   void bc_data(ptime t,
                std::string path,
                data_type d) {
+    // std::cout << "bc_data path,t= " << path << " "<< t << std::endl;
     // insert path into the directory
     directory_.insert(path);
 
@@ -105,21 +83,25 @@ protected:
     }
   }
 
-  // triggers pending io actions: this is always to be called from the callback
-  void do_pending_io_actions() {
-    boost::system::error_code ec;
-    const size_t max_poll_actions(100*1000);
-    for (size_t u(0); get_io_service().poll(ec) > 0 && u < max_poll_actions; ++u)
-      if (ec) break;
-  }
-
-  // returns a reference to the io service object
-  boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
-
+protected:
   // returns a reference to the strand object
   boost::asio::strand& get_strand() { return strand_; }
 
 private:
+  broadcaster(boost::asio::io_service& io_service,
+              const boost::property_tree::ptree& config)
+    : strand_(io_service)
+    , max_queue_total_size_(1024*1024*config.get<size_t>("Data.<xmlattr>.maxQueueSize_MB"))
+    , max_queue_delay_(boost::posix_time::minutes(config.get<size_t>("Data.<xmlattr>.maxQueueDelay_Minutes")))
+    , last_log_status_time_(boost::posix_time::microsec_clock::universal_time())
+  {
+    using namespace boost::asio::ip;
+    acceptor_map_["Data"] = acceptor_ptr
+      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
+    acceptor_map_["Ctrl"] = acceptor_ptr
+      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
+  }
+
   typedef data_connection::time_duration time_duration;
   typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
   typedef std::set<data_connection::sptr> data_connections;
@@ -191,7 +173,6 @@ private:
 
   void do_stop() {
     data_connections_.clear();
-    get_io_service().stop();
   }
 
   boost::asio::strand   strand_;               // asio strand, keeps io service

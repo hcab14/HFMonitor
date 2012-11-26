@@ -7,3 +7,9 @@
   <rbs fs="1000000">/Users/chm/PerseusUSB/perseus1000k.rbs</rbs>
   <rbs fs="2000000">/Users/chm/PerseusUSB/perseus2000k.rbs</rbs>
 </Perseus>
+<Broadcaster>
+  <Data maxQueueSize_MB="1"
+	maxQueueDelay_Minutes="1"
+	port="18001"></Data>
+  <Ctrl port="18002"></Ctrl>
+</Broadcaster>

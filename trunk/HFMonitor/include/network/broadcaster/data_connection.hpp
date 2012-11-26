@@ -174,6 +174,7 @@ public:
   void handle_write_data(const boost::system::error_code& ec,
                          std::size_t bytes_transferred) {
     if (ec) {
+      LOG_WARNING(str(boost::format("handle_write_data ec=%s %d") % ec.message() % bytes_transferred));
       close();
     } else if (is_open()) {
       pop_front();
@@ -254,7 +255,9 @@ public:
       async_receive_command();
     } else {
       status_= new_status;
-      if (status_ != status_configured)
+      if (status_ == status_configured)
+        async_receive_tick();
+      else
         async_receive_command();
     }
   }
