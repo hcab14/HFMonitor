@@ -188,14 +188,15 @@ namespace Perseus {
       return cmd_response.data;
     }
 
-  protected:
-    virtual const Perseus::product_id& get_eeprom_pid() {
+    virtual const Perseus::product_id& get_eeprom_pid(std::string firmware_filename="perseus.hex") {
       if (not is_configured()) {
-        load_firmware("perseus.hex");
+        load_firmware(firmware_filename);
         _perseus_eeprom_pid = this->read_eeprom<product_id>(EEPROM::ADDR::product_id);
       }
       return _perseus_eeprom_pid;
     }
+
+  protected:
     virtual eeprom_data read_eeprom_lowlevel(boost::uint16_t addr, size_t length) {
       int transferred(0);
       const EEPROM::cmd cmd = {CMD::eeprom_read, addr, length};

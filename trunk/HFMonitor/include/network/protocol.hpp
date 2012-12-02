@@ -10,98 +10,96 @@
 #include "logging.hpp"
 
 // -----------------------------------------------------------------------------
-// generic header for any data type
-//  * type, e.g. of form "IQNx", with  N=number of bytes, x=f/i (float/signed integer) 
-//  * approx_ptime: approximate time stamp
-//  * length: size of the following data packet in bytes
+// generic header for any type of data
 //
-class header : private boost::noncopyable {
+class header {
+  __attribute__((__packed__));
 public:
   typedef boost::posix_time::ptime ptime;
-  typedef boost::array<char, 4> id_type;
+  typedef boost::posix_time::time_duration time_duration;
 
-  header(std::string id="XX0x",
-         ptime       approx_ptime=boost::posix_time::not_a_date_time,
-         size_t      length=0)
+  header(std::string     id="01234567",
+         ptime           approx_ptime=boost::posix_time::not_a_date_time,
+         boost::uint32_t stream_number=0,
+         boost::uint32_t length=0)
     : approx_ptime_(approx_ptime)
+    , stream_number_(stream_number)
     , length_(length) {
-    ASSERT_THROW(id.size() == 4);
+    ASSERT_THROW(id.size() == 8);
     std::copy(id.begin(), id.end(), id_);
   }
 
-  std::string id()           const { return std::string(id_, id_+4); }
-  ptime       approx_ptime() const { return approx_ptime_; }
-  size_t      length()       const { return length_; }
+  std::string     id()            const { return std::string(id_, id_+8); }
+  ptime           approx_ptime()  const { return approx_ptime_; }
+  boost::uint32_t stream_number() const { return stream_number_; }
+  boost::uint32_t length()        const { return length_; }
+
+  ptime update_ptime(time_duration dt) { return (approx_ptime_ += dt); }
 
   const char* begin() const { return reinterpret_cast<const char*>(this); }
-  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(header); }
+  const char* end() const { return reinterpret_cast<const char*>(this) + sizeof(header); }
 
   friend std::ostream& operator<<(std::ostream& os, const header& h) {
-    return os << "'" << h.id() << "' "<< h.approx_ptime() << " len=" << h.length();
+    return os << "id='" << h.id()
+              << "' "<< h.approx_ptime()
+              << " stream_number=" << h.stream_number()
+              << " len=" << h.length();
   }
 protected:
 private:
-  char   id_[4];        // 4-byte identifier
-  ptime  approx_ptime_; // approximate time tag
-  size_t length_;       // length of following data
+  char            id_[8];         // 8-byte identifier         | 8b
+  ptime           approx_ptime_;  // approximate time tag      | 8b
+  boost::uint32_t stream_number_; // stream number             | 4b
+  boost::uint32_t length_;        // length of following data  | 4b
+  //                                                     total: 24b
 } ;
 
 // -----------------------------------------------------------------------------
-// information for sampled data
-//  * num_channel
-//  * bytes_per_channnel
-//  * data_type
-//  * length
-//  * sample_rate_Hz
-//  * ddc_center_frequecy_Hz
-
-class sample_info : private boost::noncopyable {
-public:
-  sample_info(boost::uint32_t sample_rate_Hz=1,
-              boost::uint32_t ddc_center_frequecy_Hz=0)
-    : sample_rate_Hz_(sample_rate_Hz)
-    , ddc_center_frequecy_Hz_(ddc_center_frequecy_Hz) {
-  }
-  virtual ~sample_info() {}
-  
-  double sample_rate_Hz()         const { return sample_rate_Hz_; }
-  double ddc_center_frequecy_Hz() const { return ddc_center_frequecy_Hz_; }
-
-  const char* begin() const { return reinterpret_cast<const char*>(this); }
-  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(sample_info); }
-
-protected:
-private:
-  boost::uint32_t sample_rate_Hz_;         // sample rate [Hz]
-  boost::uint32_t ddc_center_frequecy_Hz_; // ddc center frequency [Hz]
-} ;
-
-class iq_info : public sample_info {
+// header for sampled I/Q data
+//
+class iq_info {
+  __attribute__((__packed__));
 public:
   iq_info(boost::uint32_t sample_rate_Hz=1,
-          boost::uint32_t ddc_center_frequecy_Hz=0,
-          char sample_type,
-          boost::uint8_t bytes_per_sample)
-    : sample_info(sample_rate_Hz, ddc_center_frequecy_Hz)
+          double          center_frequecy_Hz=0.,
+          char            sample_type='I',
+          boost::uint8_t  bytes_per_sample=3,
+          float           offset_ppb=0.)
+    : sample_rate_Hz_(sample_rate_Hz)
+    , center_frequecy_Hz_(center_frequecy_Hz)
     , sample_type_(sample_type)
-    , bytes_per_sample_(bytes_per_sample_)
-    , dummy_(0) {}
-  virtual ~iq_info() {}
+    , bytes_per_sample_(bytes_per_sample)
+    , offset_ppb_(offset_ppb) {}
 
-  char           sample_type()      const { return sample_type_; }
-  boost::uint8_t bytes_per_sample() const { return bytes_per_sample_; }
+  boost::uint32_t sample_rate_Hz()     const { return sample_rate_Hz_; }
+  double          center_frequecy_Hz() const { return center_frequecy_Hz_; }
+  char            sample_type()        const { return sample_type_; }
+  boost::uint8_t  bytes_per_sample()   const { return bytes_per_sample_; }
+  float           offset_ppb()         const { return offset_ppb_; }
 
   const char* begin() const { return reinterpret_cast<const char*>(this); }
-  const char* end() const   { return reinterpret_cast<const char*>(this) + sizeof(iq_info); }
+  const char* end()   const { return begin() + sizeof(iq_info); }
 
+  friend std::ostream& operator<<(std::ostream& os, const iq_info& h) {
+    return os << "sample_rate_Hz="      << h.sample_rate_Hz()
+              << " center_frequecy_Hz=" << h.center_frequecy_Hz()
+              << " sample_type='"       << h.sample_type() << "'"
+              << " bytes_per_sample="   << int(h.bytes_per_sample())
+              << " offset_ppb="         << h.offset_ppb();
+  }
 protected:
 private:
-  char            sample_type_;
-  boost::uint8_t  bytes_per_sample_;
-  boost::uint16_t dummy_;
+  boost::uint32_t sample_rate_Hz_;      //  sample rate [Hz]        |  4b
+  double          center_frequecy_Hz_;  //  center frequency [Hz]   |  8b
+  char            sample_type_;         //                          |  1b
+  boost::uint8_t  bytes_per_sample_;    //                          |  1b
+  float           offset_ppb_;          //  deviation from nominal  |  2b
+  char            dummy_[8];            //  for future use          |  4b
+  //                                                           total: 24b
 } ;
 
-
+// -----------------------------------------------------------------------------
+#if 0
 class Header {
 public:
   Header(boost::int64_t  sampleNumber=0,
@@ -177,5 +175,5 @@ private:
   boost::uint16_t          dummy_;              // 2
   boost::posix_time::ptime approxPTime_;        // 8
 } ;
-
+#endif
 #endif // _PROTOCOL_HPP_cm100625_

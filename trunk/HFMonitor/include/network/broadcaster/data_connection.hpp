@@ -29,24 +29,25 @@
 //  * when (binary) data is being sent, a "tick" protocol ensures that the
 //    connection is still there
 
+
 class data_connection : private boost::noncopyable {
 public:
   typedef boost::posix_time::ptime ptime;
   typedef boost::posix_time::time_duration time_duration;
-
+  
   typedef boost::shared_ptr<data_connection> sptr;
   typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
   typedef std::string data_type;
   typedef boost::shared_ptr<data_type> data_ptr;
   typedef std::pair<ptime, data_ptr> ptime_data_pair;
   typedef std::deque<ptime_data_pair> list_of_packets;
-
+  
   enum status_type {
     status_error      = -1, //
     status_init       = 0,  // negotiation phase: client asks for a certain stream
     status_configured = 1   // after a certain stream has been selected, data is sent to the client
   } status;
-
+  
 public:
   data_connection(boost::asio::io_service& io_service,
                   boost::asio::strand& strand,
@@ -62,22 +63,28 @@ public:
     , max_queue_delay_(max_queue_delay)
     , max_delay_(boost::posix_time::seconds(0))
     , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
-    , stream_name_("")
     , status_(status_init) {
     for (broadcaster_directory::const_iterator i(directory_.begin());
          i != directory_.end(); ++i)
       std::cout << "dir: '" << *i << "'" << std::endl;
     async_receive_command();
   }
-
+  
   ~data_connection() {
     close();
   }
-
+  
   broadcaster_directory::index_type stream_name() const {
-    return (status_ == status_configured ? stream_name_ : "[INIT]");
+    if (status_ == status_configured) {
+      broadcaster_directory::index_type s;
+      for (std::set<broadcaster_directory::index_type>::const_iterator i(stream_names_.begin());
+           i!=stream_names_.end(); ++i)
+        s += *i + " ";
+      return s;      
+    }
+    return "[INIT]";
   }
-
+  
   static sptr make(boost::asio::io_service& io_service,
                    boost::asio::strand& strand,
                    tcp_socket_ptr p,
@@ -86,7 +93,7 @@ public:
                    time_duration max_queue_delay=boost::posix_time::minutes(5)) {
     return sptr(new data_connection(io_service, strand, p, directory, max_total_size, max_queue_delay));
   }
-
+  
   void close() {
     if (is_open()) {
       boost::system::error_code ec;      
@@ -133,19 +140,21 @@ public:
   double max_delay_msec() const {
     return 1e3*max_delay().ticks() / time_duration::ticks_per_second();
   }
-
+  
   ptime last_tick_time() const { return last_tick_time_; }
-
+  
   bool push_back(ptime t, std::string path, const data_ptr& dp) {
-    if (status_ != status_configured || stream_name_ != path)
+    if (status_ != status_configured)
       return true;
-
+    if (stream_names_.find(path) == stream_names_.end())
+      return true;
+    
     max_delay_ = std::max(max_delay_, delay(t));
     // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
     if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-      for (; size()>1; ++n_omit)      
-        list_of_packets_.pop_back();
+    for (; size()>1; ++n_omit)      
+      list_of_packets_.pop_back();
     }
     if (n_omit != 0)
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
@@ -158,7 +167,7 @@ public:
     }
     return false;
   }
-
+  
   void async_write_data() {
     if (!empty() && is_open()) {
       data_ptr dataPtr(front().second);
@@ -170,7 +179,7 @@ public:
                                                         boost::asio::placeholders::bytes_transferred)));
     }
   }
-
+  
   void handle_write_data(const boost::system::error_code& ec,
                          std::size_t bytes_transferred) {
     if (ec) {
@@ -209,21 +218,24 @@ public:
         send_reply(directory_.ls(), status_);
       } else if (action == "GET") {
         std::string stream_name;
-        if (response_stream >> stream_name) {
+        while (response_stream >> stream_name) {          
           LOG_INFO(str(boost::format("handle_receive_command requested stream name='%s'") % stream_name));
           if (directory_.contains(stream_name)) {
-            stream_name_ = stream_name;
+            stream_names_.insert(stream_name);
             LOG_INFO(str(boost::format("handle_receive_command successfully requested stream name='%s'")
                          % stream_name));
-            send_reply("OK", status_configured);
           } else { // stream not available
             LOG_ERROR(str(boost::format("handle_receive_command: stream '%s' is not available") % stream_name));
-            send_reply(str(boost::format("ERROR stream '%s' is not available") % stream_name), status_);                                                              
+            send_reply(str(boost::format("ERROR stream '%s' is not available aborting") % stream_name), status_);
+            break;
           }
-        } else { // no stream name
+        }
+        if (stream_names_.empty()) {
           LOG_ERROR("handle_receive_command: no stream name given");
           send_reply("ERROR: no stream name given", status_);
+          return;
         }
+        send_reply("OK", status_configured);
       } else { // action != {LIST,GET}
         LOG_ERROR("handle_receive_command: action != {LIST,GET}");
         send_reply("ERROR: action != {LIST,GET}", status_);
@@ -296,7 +308,7 @@ private:
   list_of_packets          list_of_packets_;
   char                     dummy_data_;
   ptime                    last_tick_time_;
-  broadcaster_directory::index_type stream_name_;
+  std::set<broadcaster_directory::index_type> stream_names_;
   status_type              status_;
 } ;
 

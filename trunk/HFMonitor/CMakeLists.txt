@@ -67,3 +67,6 @@ TARGET_LINK_LIBRARIES(test_goertzel_main ${_libs})
 
 ADD_EXECUTABLE(test_client_main test_client_main.cpp)
 TARGET_LINK_LIBRARIES(test_client_main ${_libs})
+
+ADD_EXECUTABLE(test_repack_main test_repack_main.cpp)
+TARGET_LINK_LIBRARIES(test_repack_main ${_libs})
