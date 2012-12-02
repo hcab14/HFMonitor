@@ -78,7 +78,7 @@ namespace Perseus {
     static size_t get_num_perseus();
 
     // get product id for perseus
-    static product_id get_product_id_at(size_t);
+    static product_id get_product_id_at(size_t, std::string firmware="perseus.hex");
 
     // get perseus at a certain index
     static sptr make(size_t);

@@ -26,20 +26,20 @@ public:
     received_data
   } ;
 
-  client(boost::asio::io_service& io_service, // asio io_service object
-         std::string server_name,             // name of server
-         std::string server_port)             // port the server is listening on
+  client(boost::asio::io_service&           io_service,
+         const boost::property_tree::ptree& config)
     : io_service_(io_service)
     , strand_(io_service)
     , socket_(io_service)
     , tick_buffer_('a')
     , timer_(io_service, boost::posix_time::seconds(1)) {
-    if (!connect_socket(server_name, server_port))
+    if (!connect_socket(config.get<std::string>("<xmlattr>.host"),
+                        config.get<std::string>("data.<xmlattr>.port")))
       throw std::runtime_error("connect failed");
   }
 
   virtual ~client() {
-    std::cout << "~client: close"<< std::endl;
+    LOG_INFO("~client: close");
     socket_.close();
   }
 
@@ -58,7 +58,6 @@ public:
       if (f != "")
         result->insert(f);
     }
-    sleep(2);
     return result;
   }
 
@@ -85,18 +84,18 @@ public:
   void stop() { get_io_service().post(get_strand().wrap(boost::bind(&client::do_close, this))); }
 
   // this method is to be overwitten in a derived class
-  // get_header() provides the header
+  //  * get_header() provides the header
   virtual void process(data_buffer_type::const_iterator begin,
                        data_buffer_type::const_iterator end) {
-    // LOG_INFO(str(boost::format("process: h='%s', length=%d")
-    //              % get_header()
-    //              % std::distance(begin,end)));
+    LOG_INFO(str(boost::format("process: h='%s', length=%d")
+                 % get_header()
+                 % std::distance(begin,end)));
   }
 
 protected:
 private:
   void do_close() {
-    std::cout << "do_close" << std::endl;
+    LOG_INFO("do_close");
     socket_.close();
   }
 
@@ -120,8 +119,8 @@ private:
       LOG_WARNING(str(boost::format("handle_write_tick aborting: error '%s' bytes_transferred=%d")
                       % ec.message()
                       % bytes_transferred));
-      do_close();
       get_io_service().stop();
+      do_close();
     } else
       LOG_INFO(str(boost::format("tick '%c' sent") % tick_value));
   }
@@ -153,9 +152,10 @@ private:
   void on_receive(received_data_type rdt,
                   boost::system::error_code ec,
                   std::size_t bytes_transferred) {
-    // std::cout << "on_receive: " << " ec=" << ec << " " << bytes_transferred << std::endl;
-    if (ec)
-      ; // complain, possibly abort, TBD
+    if (ec) {
+      LOG_INFO(str(boost::format("receive error: %s. Aborting") % ec.message()));
+      stop();
+    }
     switch (rdt) {
     case received_header:
       // std::cout << "header= " << header_ << std::endl;

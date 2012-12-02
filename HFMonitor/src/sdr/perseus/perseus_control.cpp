@@ -72,20 +72,12 @@ namespace Perseus {
         }
       }
 
-      // set_attenuator(0); sleep(1);
-      // set_attenuator(1); sleep(1);
-      // set_attenuator(2); sleep(1);
-      // set_attenuator(3); sleep(1);
-      // set_attenuator(2); sleep(1);
-      // set_attenuator(1); sleep(1);
-      // set_attenuator(0); sleep(1);
-      
-      set_sample_rate(125000);
-
-      const double f     = 5.123e6;
-      const double f_set = set_center_freq_hz(f);
-      use_preselector(false);
-      std::cout << "center freq= " << f_set << " df=" << f-f_set << std::endl;
+      set_sample_rate(config.get<int>("<xmlattr>.fs"));
+      set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
+      const bool b=config.get<bool>("<xmlattr>.use_preselector");
+      std::cout << "----- use_preselector" << (b ? "true" : "false") << " -------" << std::endl;
+      use_preselector(config.get<bool>("<xmlattr>.use_preselector"));
+      set_attenuator(config.get<int>("<xmlattr>.attenuator"));
     }
 
     virtual void set_sample_rate(int sample_rate) {
@@ -200,11 +192,11 @@ namespace Perseus {
                                               receiver_control_impl::_product_id).size();
   }
 
-  product_id receiver_control::get_product_id_at(size_t index) {
+  product_id receiver_control::get_product_id_at(size_t index, std::string firmware) {
     fx2_control::sptr fxc(fx2_control::make(receiver_control_impl::_vendor_id,
                                             receiver_control_impl::_product_id,
                                             index));
-    return fxc->get_eeprom_pid();
+    return fxc->get_eeprom_pid(firmware);
   }
 
   receiver_control::sptr receiver_control::make(size_t index) {

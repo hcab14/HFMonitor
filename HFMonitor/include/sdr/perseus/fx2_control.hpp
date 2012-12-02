@@ -78,7 +78,6 @@ namespace Perseus {
     virtual void load_fpga(std::string) = 0;
     virtual boost::uint8_t set_port(boost::uint8_t) = 0;
     virtual FPGA::sioctl fpga_sio(const FPGA::sioctl&) = 0;
-    virtual const Perseus::product_id& get_eeprom_pid() = 0;
 
     template<typename T> 
     T read_eeprom(boost::uint16_t addr) {
@@ -87,6 +86,7 @@ namespace Perseus {
       std::copy(data.begin(), data.end(), (boost::uint8_t*)&result);
       return result;
     }
+    virtual const Perseus::product_id& get_eeprom_pid(std::string ) = 0;
   protected:
     typedef std::vector<boost::uint8_t> eeprom_data;
     virtual eeprom_data read_eeprom_lowlevel(boost::uint16_t, size_t) = 0;
