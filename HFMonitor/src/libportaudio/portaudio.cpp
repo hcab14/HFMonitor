@@ -68,7 +68,7 @@ namespace portaudio {
       return (err == paNoError);
     }
     virtual void sleep(double seconds) const {
-      Pa_Sleep(1000*seconds);
+      Pa_Sleep((long int)(0.5+1000*seconds));
     }
   } ;
 

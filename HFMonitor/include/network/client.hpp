@@ -59,7 +59,6 @@ public:
     while (ok) {
       if (iss >> stream_name) {
         if (iss >> stream_number) {
-          std::cout << "(stream_name,number)= " << stream_name << " " << stream_number << std::endl;
           if (stream_name != "")
             streams.insert(stream_name);
         } else ok= false;
@@ -162,6 +161,7 @@ private:
     if (ec) {
       LOG_INFO(str(boost::format("receive error: %s. Aborting") % ec.message()));
       stop();
+      return;
     }
     switch (rdt) {
     case received_header:
@@ -170,10 +170,10 @@ private:
       break;
     case received_data:
       assert(bytes_transferred == header_.length());
-      assert(bytes_transferred == data_buffer_.size());
       if (header_.id() == "DIR_0000") {
-        directory_.update(data_buffer_.size(),
-                          &data_buffer_.front());
+//         std::string bytes;
+//         std::copy(data_buffer_.begin(), data_buffer_.begin()+header_.length(), std::back_inserter(bytes));
+        directory_.update(header_.length(), data_buffer_.data());
       } else {
         // process data samples in a method overwritten in a derived class
         process(data_buffer_.begin(), data_buffer_.begin()+header_.length());

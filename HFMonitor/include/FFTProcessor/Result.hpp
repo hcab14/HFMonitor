@@ -50,10 +50,9 @@ namespace Result {
     void dumpToFile(std::string path,
                     std::string tag) {
       boost::filesystem::fstream *ofs(0);
-      handles_.push_front(Handle(this));
+      ofs = dumpSingle(ofs, path, tag, this);
       BOOST_FOREACH(const HandleVector::value_type& h, handles_)
         ofs = dumpSingle(ofs, path, tag, h.get());
-      handles_.pop_front();
       updateTimeTag(*ofs, posEndTime_, getLatest()->makeTimeLabel());
       delete ofs;
     }
@@ -62,20 +61,26 @@ namespace Result {
     void dumpToBC(std::string path,
                   std::string tag,
                   boost::shared_ptr<BROADCASTER> bc) {
-      handles_.push_front(Handle(this));
-      BOOST_FOREACH(const HandleVector::value_type& h, handles_) {
-        std::ostringstream sData;
-        h->dumpData(sData);
-        std::ostringstream sHeader;
-        h->dumpData(sHeader);
-        const boost::uint32_t stream_number(bc.register_stream(tag));
-        const header header(h->format(), h->time(), stream_number, sData.str().second.size());
-        std::string d;
-        std::copy(header.begin(),      header.end(),      std::back_inserter(d));
-        std::copy(sData.str().begin(), sData.str().end(), std::back_inserter(d));
-        bc->bc_data(this->time(), tag, d, sHeader.str());
-      }
-      handles_.pop_front();
+      dumpToBCSingle(path, tag, bc, this);
+      BOOST_FOREACH(const HandleVector::value_type& h, handles_)
+        dumpToBCSingle(path, tag, bc, h.get());
+    }
+
+    template<typename BROADCASTER>
+    void dumpToBCSingle(std::string path,
+                        std::string tag,
+                        boost::shared_ptr<BROADCASTER> bc,
+                        Base* h) {
+      std::ostringstream sData;
+      h->dumpData(sData);
+      std::ostringstream sHeader;
+      h->dumpData(sHeader);
+      const boost::uint32_t stream_number(bc.register_stream(tag));
+      const header header(h->format(), h->time(), stream_number, sData.str().size());
+      std::string d;
+      std::copy(header.begin(),      header.end(),      std::back_inserter(d));
+      std::copy(sData.str().begin(), sData.str().end(), std::back_inserter(d));
+      bc->bc_data(this->time(), tag, d, sHeader.str());
     }
 
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 

@@ -29,17 +29,17 @@ public:
 			   double min_df, // maximal frequency resolution (Hz)
 			   size_t max_history_size) // maximal size of history in seconds
 
-    : fs_(fs)      
-    , period_(fs/df+0.5)
+    : fs_(fs)
+    , period_(size_t(0.5+fs/df+0.5))
     , min_period_(period_)
-    , max_period_(fs/min_df+0.5)
+    , max_period_(size_t(0.5+fs/min_df))
     , left_((f0-df)/fs)
     , center_(f0/fs)
     , right_((f0+df)/fs)
     , sample_counter_(0)
     , last_state_(state::UNDEFINED)
-    , max_history_size_(max_history_size*fs+0.5) {}
-  
+    , max_history_size_(size_t(0.5+fs*max_history_size)) {}
+
   void update(complex_t sample) {
     ++sample_counter_;
     if (sample_counter_ == period_) {

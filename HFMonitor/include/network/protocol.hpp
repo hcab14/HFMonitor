@@ -115,18 +115,16 @@ public:
   directory_entry(boost::uint32_t stream_number,
                   boost::uint32_t length_of_name)
     : stream_number_(stream_number)
-    , length_of_name_(length_of_name)
-    , name_(NULL) {}
+    , length_of_name_(length_of_name) {}
 
   boost::uint32_t stream_number() const { return stream_number_; }
   boost::uint32_t length_of_name() const { return length_of_name_; }
-  std::string     name() const { return std::string(name_, name_+length_of_name_); }
 
-  boost::uint32_t size() const { return 2*sizeof(boost::uint32_t) + length_of_name(); }
+  static boost::uint32_t name_offset() { return 2*sizeof(boost::uint32_t); }
+  boost::uint32_t size() const { return name_offset() + length_of_name(); }
   const char* begin() const { return reinterpret_cast<const char*>(this); }
 
-  static std::string serialize(boost::uint32_t stream_number,
-                               std::string name) {
+  static std::string serialize(boost::uint32_t stream_number, std::string name) {
     std::string result;
     const directory_entry de(stream_number, name.size());
     std::copy(de.begin(), de.begin()+2*sizeof(boost::uint32_t), std::back_inserter(result));
@@ -141,7 +139,6 @@ private:
 
   boost::uint32_t stream_number_;   // stream number
   boost::uint32_t length_of_name_;  // number of following characters
-  char*           name_;            // name of stream
 } ;
 
 // -----------------------------------------------------------------------------

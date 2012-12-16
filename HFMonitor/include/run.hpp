@@ -34,7 +34,7 @@ public:
     int sig(0);
     sigwait(&_wait_mask, &sig);
 #else
-    const timespec ts = {1, 0}; // check every 1 second if the service is still running
+    const timespec ts = { 1, 0 }; // check every 1 second if the service is still running
     siginfo_t siginfo;
     while (sigtimedwait(&_wait_mask, &siginfo, &ts) < 0) {
       switch (errno) {
@@ -75,6 +75,7 @@ void run_in_thread(boost::asio::io_service& io_service) {
     s.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
     tp = thread_sptr(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
   }
+  io_service.stop();
   tp->join();
 }
 
