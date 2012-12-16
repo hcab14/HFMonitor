@@ -27,7 +27,7 @@ LIST(APPEND _libs ${FFTW3_LIBRARIES})
 SET(BOOST_ROOT /opt/local)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.40 REQUIRED COMPONENTS system thread filesystem date_time)
+FIND_PACKAGE(Boost 1.40 REQUIRED COMPONENTS system thread filesystem date_time regex)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 # Setup libperseus-sdr
@@ -70,3 +70,17 @@ TARGET_LINK_LIBRARIES(test_client_main ${_libs})
 
 ADD_EXECUTABLE(test_repack_main test_repack_main.cpp)
 TARGET_LINK_LIBRARIES(test_repack_main ${_libs})
+
+ADD_EXECUTABLE(test_fir test_fir_main.cpp)
+TARGET_LINK_LIBRARIES(test_fir ${_libs})
+
+MESSAGE(STATUS "XXXX _libs:${_libs}")
+
+ADD_EXECUTABLE(test_client_FFT test_client_FFT_main.cpp)
+TARGET_LINK_LIBRARIES(test_client_FFT ${_libs} FFTAction_cpp)
+
+ADD_EXECUTABLE(test_broadcaster test_broadcaster_main.cpp)
+TARGET_LINK_LIBRARIES(test_broadcaster ${_libs})
+
+ADD_EXECUTABLE(test_regex test_regex_main.cpp)
+TARGET_LINK_LIBRARIES(test_regex ${_libs})

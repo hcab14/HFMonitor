@@ -3,18 +3,20 @@
 #ifndef _DATA_CONNECTION_HPP_cm111219_
 #define _DATA_CONNECTION_HPP_cm111219_
 
+#include <deque>
 #include <iostream>
 #include <iterator>
 #include <string>
-#include <deque>
+#include <sstream>
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/format.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/foreach.hpp>
+#include <boost/regex.hpp>
 
 #include "logging.hpp"
 #include "network/broadcaster/directory.hpp"
@@ -28,7 +30,6 @@
 //     - "GET [stream_name]" : get 'stream_name', from then on data will be sent
 //  * when (binary) data is being sent, a "tick" protocol ensures that the
 //    connection is still there
-
 
 class data_connection : private boost::noncopyable {
 public:
@@ -44,8 +45,8 @@ public:
   
   enum status_type {
     status_error      = -1, //
-    status_init       = 0,  // negotiation phase: client asks for a certain stream
-    status_configured = 1   // after a certain stream has been selected, data is sent to the client
+    status_init       =  0, // negotiation phase: client asks for a certain stream
+    status_configured =  1  // after a certain stream has been selected, data is sent to the client
   } status;
   
 public:
@@ -64,9 +65,7 @@ public:
     , max_delay_(boost::posix_time::seconds(0))
     , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
     , status_(status_init) {
-    for (broadcaster_directory::const_iterator i(directory_.begin());
-         i != directory_.end(); ++i)
-      std::cout << "dir: '" << *i << "'" << std::endl;
+    std::cout << "dir: " << directory_ << std::endl;
     async_receive_command();
   }
   
@@ -74,13 +73,13 @@ public:
     close();
   }
   
-  broadcaster_directory::index_type stream_name() const {
+  std::string stream_name() const {
     if (status_ == status_configured) {
-      broadcaster_directory::index_type s;
-      for (std::set<broadcaster_directory::index_type>::const_iterator i(stream_names_.begin());
-           i!=stream_names_.end(); ++i)
-        s += *i + " ";
-      return s;      
+      std::ostringstream oss;
+      for (std::set<boost::regex>::const_iterator i(stream_names_.begin());
+           i != stream_names_.end(); ++i)
+        oss << *i << " ";
+      return oss.str();    
     }
     return "[INIT]";
   }
@@ -142,11 +141,19 @@ public:
   }
   
   ptime last_tick_time() const { return last_tick_time_; }
+
+  bool match_path(std::string path) const {
+    for (std::set<boost::regex>::const_iterator i(stream_names_.begin());
+         i != stream_names_.end(); ++i)
+      if (regex_match(path, *i)) return true;
+    return false;
+  }
   
-  bool push_back(ptime t, std::string path, const data_ptr& dp) {
+  // path="" is always broadcasted
+  bool push_back(ptime t, std::string path, const data_ptr& dp, data_type preamble) {
     if (status_ != status_configured)
       return true;
-    if (stream_names_.find(path) == stream_names_.end())
+    if (path != "" && match_path(path))
       return true;
     
     max_delay_ = std::max(max_delay_, delay(t));
@@ -161,6 +168,7 @@ public:
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
       list_of_packets_.push_back(std::make_pair(t, dp));
+      preamble_= preamble;
       if (listOfPacketsWasEmpty)
         async_write_data();
       return true;
@@ -220,8 +228,9 @@ public:
         std::string stream_name;
         while (response_stream >> stream_name) {          
           LOG_INFO(str(boost::format("handle_receive_command requested stream name='%s'") % stream_name));
-          if (directory_.contains(stream_name)) {
-            stream_names_.insert(stream_name);
+          const boost::regex stream_regex(stream_name);
+          if (directory_.contains(stream_regex)) {
+            stream_names_.insert(stream_regex);
             LOG_INFO(str(boost::format("handle_receive_command successfully requested stream name='%s'")
                          % stream_name));
           } else { // stream not available
@@ -266,29 +275,40 @@ public:
     if (ec) {
       async_receive_command();
     } else {
-      status_= new_status;
-      if (status_ == status_configured)
-        async_receive_tick();
+      // this is tricky: if we do not wait long enough
+      // the client will receiver more data than expected in async_read_until:
+      // therfore the status is updated only after the first tick has been received
+      if (new_status == status_configured) {
+        // make sure that first the current directory is broadcasted
+        const ptime now(boost::posix_time::microsec_clock::universal_time());
+        data_ptr dp(new std::string(directory_.serialize(now)));
+        list_of_packets_.push_back(std::make_pair(now, dp));
+        async_receive_tick(new_status);
+      }
       else
         async_receive_command();
     }
   }
 
-  void async_receive_tick() {
+  void async_receive_tick(status_type status=status_configured) {
     if (is_open())
       boost::asio::async_read(*tcp_socket_ptr_,
                               boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
                               strand_.wrap(boost::bind(&data_connection::handle_receive_tick,
                                                        this,
                                                        boost::asio::placeholders::error,
-                                                       boost::asio::placeholders::bytes_transferred)));
+                                                       boost::asio::placeholders::bytes_transferred,
+                                                       status)));
   }
   void handle_receive_tick(const boost::system::error_code& ec,
-                           std::size_t bytes_transferred) {
+                           std::size_t bytes_transferred,
+                           status_type new_status) {
     if (ec) {
       LOG_INFO(str(boost::format("handle_receive_tick ec=%s") % ec));
+      status_= status_error;
       close();
     } else {
+      status_= new_status;
       last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
       LOG_INFO(str(boost::format("tick %d '%c'") % bytes_transferred % dummy_data_));
       async_receive_tick();
@@ -306,9 +326,10 @@ private:
   const time_duration      max_queue_delay_;
   time_duration            max_delay_;
   list_of_packets          list_of_packets_;
+  data_type                preamble_;
   char                     dummy_data_;
   ptime                    last_tick_time_;
-  std::set<broadcaster_directory::index_type> stream_names_;
+  std::set<boost::regex>   stream_names_;
   status_type              status_;
 } ;
 

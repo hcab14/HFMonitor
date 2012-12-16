@@ -46,14 +46,13 @@ namespace Result {
          << " ratio="          << ratio_dB_;
       return ss.str();
     }
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
-      Base::dumpHeader(os) 
+    virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      return os
         << "fReference_Hz fShift_Hz fMeasuredRef_Hz fMeasuredShift_Hz "
         << "strength_dBm strengthRef_dBm strengthShift_dBm S/N_dB ";
-      return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
-      Base::dumpData(os)
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return os
         << boost::format("%12.3f") % peakRef_->fReference() << " "
         << boost::format("%12.3f") % peakShift_->fReference() << " "
         << boost::format("%12.3f") % peakRef_->fMeasured() << " "
@@ -62,7 +61,6 @@ namespace Result {
         << boost::format("%7.2f")  % peakRef_->strength() << " "
         << boost::format("%7.2f")  % peakShift_->strength() << " "
         << boost::format("%7.2f")  % ratio_dB_ << " ";
-      return os;
     }
 
   private:

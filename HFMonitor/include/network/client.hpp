@@ -4,6 +4,7 @@
 #define _CLIENT_HPP_cm111229_
 
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -49,16 +50,22 @@ public:
   const header&            get_header() const { return header_; }
 
   // blocking "ls"
-  broadcaster_directory::sptr ls() {
-    broadcaster_directory::sptr result(broadcaster_directory::make());
+  std::set<std::string> ls() {
+    std::set<std::string> streams;
     std::istringstream iss(send_request("LIST"));
-    std::string f;
-    while (iss >> f) {
-      std::cout << "f= " << f << std::endl;
-      if (f != "")
-        result->insert(f);
+    std::string     stream_name;
+    boost::uint32_t stream_number;
+    bool ok(true);
+    while (ok) {
+      if (iss >> stream_name) {
+        if (iss >> stream_number) {
+          std::cout << "(stream_name,number)= " << stream_name << " " << stream_number << std::endl;
+          if (stream_name != "")
+            streams.insert(stream_name);
+        } else ok= false;
+      } else ok= false;
     }
-    return result;
+    return streams;
   }
 
   // blocking "GET" command
@@ -162,10 +169,15 @@ private:
       async_receive_data();
       break;
     case received_data:
-      if (bytes_transferred != header_.length()) 
-        ; // complain, TBD
-      // process data samples in a method overwritten in a derived class
-      process(data_buffer_.begin(), data_buffer_.begin()+header_.length());
+      assert(bytes_transferred == header_.length());
+      assert(bytes_transferred == data_buffer_.size());
+      if (header_.id() == "DIR_0000") {
+        directory_.update(data_buffer_.size(),
+                          &data_buffer_.front());
+      } else {
+        // process data samples in a method overwritten in a derived class
+        process(data_buffer_.begin(), data_buffer_.begin()+header_.length());
+      }
       // then receive the next header
       async_receive_header();
       break;
@@ -184,14 +196,15 @@ private:
     boost::asio::write(socket_, request_streambuf);
     boost::asio::streambuf response_streambuf;
     boost::asio::read_until(socket_, response_streambuf, "\r\n");
-    std::istream is(&response_streambuf);
-    std::string line;
-    std::getline(is, line);
-    // std::istream buffer(&response_streambuf);
-    // std::stringstream string_buffer;    
-    // buffer >> string_buffer.rdbuf();
-    // std::cout << "response: " << string_buffer.str() << std::endl;
-    return line;//string_buffer.str();
+    // std::istream is(&response_streambuf);
+    // std::string line;
+    // std::getline(is, line);
+    // return line;
+    std::istream buffer(&response_streambuf);
+    std::stringstream string_buffer;    
+    buffer >> string_buffer.rdbuf();
+    std::cout << "response: " << string_buffer.str() << std::endl;
+    return string_buffer.str();
   }
 
   // blocking connect
@@ -218,6 +231,7 @@ private:
   data_buffer_type                  data_buffer_;
   char                              tick_buffer_;
   boost::asio::deadline_timer       timer_;
+  broadcaster_directory             directory_;
 } ;
 
 #endif // _CLIENT_HPP_cm111229_

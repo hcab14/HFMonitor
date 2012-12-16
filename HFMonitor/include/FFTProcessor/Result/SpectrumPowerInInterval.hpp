@@ -82,19 +82,17 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
-      os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
-         << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n";
-      Base::dumpHeader(os) 
+    virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      return os
+        << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
+        << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n"
         << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
-      return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
-      Base::dumpData(os)
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return os
         << boost::format("%7.2f")  % strength()        << " "
         << boost::format("%7.2f")  % averageStrength() << " "
         << boost::format("%7.2f")  % strengthRMS()     << " ";
-      return os;
     }
 
   private:

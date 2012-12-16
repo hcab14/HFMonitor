@@ -34,6 +34,10 @@ public:
   boost::uint32_t stream_number() const { return stream_number_; }
   boost::uint32_t length()        const { return length_; }
 
+  void set_stream_number(boost::uint32_t stream_number) {
+    stream_number_ = stream_number;
+  }
+
   ptime update_ptime(time_duration dt) { return (approx_ptime_ += dt); }
 
   const char* begin() const { return reinterpret_cast<const char*>(this); }
@@ -61,41 +65,83 @@ class iq_info {
   __attribute__((__packed__));
 public:
   iq_info(boost::uint32_t sample_rate_Hz=1,
-          double          center_frequecy_Hz=0.,
+          double          center_frequency_Hz=0.,
           char            sample_type='I',
           boost::uint8_t  bytes_per_sample=3,
-          float           offset_ppb=0.)
+          float           offset_ppb=0.,
+          float           offset_ppb_rms=0.)
     : sample_rate_Hz_(sample_rate_Hz)
-    , center_frequecy_Hz_(center_frequecy_Hz)
+    , center_frequency_Hz_(center_frequency_Hz)
     , sample_type_(sample_type)
     , bytes_per_sample_(bytes_per_sample)
-    , offset_ppb_(offset_ppb) {}
+    , offset_ppb_(offset_ppb)
+    , offset_ppb_rms_(offset_ppb_rms) {
+    dummy_[0] = dummy_[1] = 0;
+  }
 
-  boost::uint32_t sample_rate_Hz()     const { return sample_rate_Hz_; }
-  double          center_frequecy_Hz() const { return center_frequecy_Hz_; }
-  char            sample_type()        const { return sample_type_; }
-  boost::uint8_t  bytes_per_sample()   const { return bytes_per_sample_; }
-  float           offset_ppb()         const { return offset_ppb_; }
+  boost::uint32_t sample_rate_Hz()      const { return sample_rate_Hz_; }
+  double          center_frequency_Hz() const { return center_frequency_Hz_; }
+  char            sample_type()         const { return sample_type_; }
+  boost::uint8_t  bytes_per_sample()    const { return bytes_per_sample_; }
+  float           offset_ppb()          const { return offset_ppb_; }
+  float           offset_ppb_rms()      const { return offset_ppb_rms_; }
 
   const char* begin() const { return reinterpret_cast<const char*>(this); }
   const char* end()   const { return begin() + sizeof(iq_info); }
 
   friend std::ostream& operator<<(std::ostream& os, const iq_info& h) {
     return os << "sample_rate_Hz="      << h.sample_rate_Hz()
-              << " center_frequecy_Hz=" << h.center_frequecy_Hz()
+              << " center_frequency_Hz=" << h.center_frequency_Hz()
               << " sample_type='"       << h.sample_type() << "'"
               << " bytes_per_sample="   << int(h.bytes_per_sample())
-              << " offset_ppb="         << h.offset_ppb();
+              << " offset_ppb="         << h.offset_ppb()
+              << " offset_ppb_rms="     << h.offset_ppb_rms();
   }
 protected:
 private:
-  boost::uint32_t sample_rate_Hz_;      //  sample rate [Hz]        |  4b
-  double          center_frequecy_Hz_;  //  center frequency [Hz]   |  8b
-  char            sample_type_;         //                          |  1b
-  boost::uint8_t  bytes_per_sample_;    //                          |  1b
-  float           offset_ppb_;          //  deviation from nominal  |  2b
-  char            dummy_[8];            //  for future use          |  4b
-  //                                                           total: 24b
+  boost::uint32_t sample_rate_Hz_;       //  sample rate [Hz]        |  4b
+  double          center_frequency_Hz_;  //  center frequency [Hz]   |  8b
+  char            sample_type_;          //                          |  1b
+  boost::uint8_t  bytes_per_sample_;     //                          |  1b
+  float           offset_ppb_;           //  deviation from nominal  |  4b
+  float           offset_ppb_rms_;       //  deviation from nominal  |  4b
+  boost::int8_t   dummy_[2];             //  for future use          |  2b
+  //                                                            total: 24b
+} ;
+
+class directory_entry {
+  __attribute__((__packed__));
+public:
+  directory_entry(boost::uint32_t stream_number,
+                  boost::uint32_t length_of_name)
+    : stream_number_(stream_number)
+    , length_of_name_(length_of_name)
+    , name_(NULL) {}
+
+  boost::uint32_t stream_number() const { return stream_number_; }
+  boost::uint32_t length_of_name() const { return length_of_name_; }
+  std::string     name() const { return std::string(name_, name_+length_of_name_); }
+
+  boost::uint32_t size() const { return 2*sizeof(boost::uint32_t) + length_of_name(); }
+  const char* begin() const { return reinterpret_cast<const char*>(this); }
+
+  static std::string serialize(boost::uint32_t stream_number,
+                               std::string name) {
+    std::string result;
+    const directory_entry de(stream_number, name.size());
+    std::copy(de.begin(), de.begin()+2*sizeof(boost::uint32_t), std::back_inserter(result));
+    result += name;
+    return result;
+  }
+
+protected:
+private:
+  directory_entry(const directory_entry& );
+  directory_entry& operator=(const directory_entry& );
+
+  boost::uint32_t stream_number_;   // stream number
+  boost::uint32_t length_of_name_;  // number of following characters
+  char*           name_;            // name of stream
 } ;
 
 // -----------------------------------------------------------------------------

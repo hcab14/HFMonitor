@@ -101,18 +101,14 @@ namespace Result {
       return std::make_pair(fCal, std::sqrt(inner_prod(a, Vector(prod(q_, a)))));       
     }
     
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
-      Base::dumpHeader(os)
-        << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
-      return os;
+    virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      return os << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
-      Base::dumpData(os) 
-        << boost::format("%6.3f")  % x_(0) << " "
-        << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
-        << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "
-        << boost::format("%7.2f")  % (1e6*std::sqrt(q_(1,1))) << " ";
-      return os;
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return os << boost::format("%6.3f")  % x_(0) << " "
+                << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
+                << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "
+                << boost::format("%7.2f")  % (1e6*std::sqrt(q_(1,1))) << " ";
     }
   private:
     size_t n_;

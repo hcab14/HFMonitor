@@ -30,7 +30,7 @@ public:
     // Wait for signal indicating time to shut down.
     pthread_sigmask(SIG_BLOCK, &_wait_mask, 0);
     sleep(2);
-#ifdef APPLE
+#ifdef __APPLE__
     int sig(0);
     sigwait(&_wait_mask, &sig);
 #else
@@ -64,18 +64,17 @@ private:
   sigset_t _wait_mask;
 } ;
 
-template<typename T>
-void run(boost::asio::io_service& io_service, T& c) {
+// run the io service in a backgroud thread until
+//  - it is stopped
+//  - a signal is caught
+void run_in_thread(boost::asio::io_service& io_service) {
   typedef boost::shared_ptr<boost::thread> thread_sptr;
   thread_sptr tp;
   {
     wait_for_signal s(io_service);
-    s.add_signal(SIGINT)
-     .add_signal(SIGQUIT)
-     .add_signal(SIGTERM);
+    s.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
     tp = thread_sptr(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
-  }  
-  c.stop();
+  }
   tp->join();
 }
 
