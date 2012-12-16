@@ -49,12 +49,12 @@ namespace Result {
     virtual std::string lineBreak() const { return ""; }
     virtual std::string fileExtension() const { return "pnm";  }
     virtual file_period filePeriod() const { return gen_filename::Period5Minutes; }
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {
+    virtual boost::filesystem::fstream& dumpHeaderToFile(boost::filesystem::fstream& os) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.write_header();
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+    virtual boost::filesystem::fstream& dumpDataToFile(boost::filesystem::fstream& os) const {
       netpbm::pgm_writer pw(line_.size(), os);
       pw.read_header();
       ASSERT_THROW(pw.write_line(line_) == true);
@@ -65,6 +65,8 @@ namespace Result {
                                std::string timeTag) const {
       // NOP
     }
+    virtual std::string format() const { return "PGM_0000"; }
+
   protected:
   private:
     std::string line_;

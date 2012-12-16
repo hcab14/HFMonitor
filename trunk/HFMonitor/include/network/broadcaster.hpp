@@ -34,8 +34,8 @@ class broadcaster : private boost::noncopyable {
 public:
   typedef boost::shared_ptr<broadcaster> sptr;
 
-  static sptr make_broadcaster(boost::asio::io_service& io_service,
-                               const boost::property_tree::ptree& config) {
+  static sptr make(boost::asio::io_service& io_service,
+                   const boost::property_tree::ptree& config) {
     return sptr(new broadcaster(io_service, config));
   }
   virtual ~broadcaster() {}
@@ -60,14 +60,25 @@ public:
   typedef data_connection::ptime ptime;
   typedef std::string data_type;
 
+  // returns the unique stream number corresponding to id
+  boost::uint32_t register_stream(std::string path) {
+    const std::pair<boost::uint32_t, bool> r(directory_.insert(path));
+    // if the directory has changed, broadcast the new directory to all clients
+    if (r.second)
+      bc_directory();
+    return r.first;
+  }
+
+  void bc_directory() {
+    const ptime now(boost::posix_time::microsec_clock::universal_time());
+    bc_data(now, "", directory_.serialize(now));
+  }
+
   // broadcast data
   void bc_data(ptime t,
                std::string path,
-               data_type d) {
-    // std::cout << "bc_data path,t= " << path << " "<< t << std::endl;
-    // insert path into the directory
-    directory_.insert(path);
-
+               data_type d,
+               data_type preamble="") {
     // status of broadcaster -> log file
     log_status(t);
 
@@ -75,8 +86,9 @@ public:
     boost::shared_ptr<data_type> dp(new data_type(d));
     
     // insert to all data connections, checking if they are still alive
-    for (std::set<data_connection::sptr>::iterator k(data_connections_.begin()); k!=data_connections_.end();) {
-      if ((*k)->push_back(t, path, dp))
+    for (std::set<data_connection::sptr>::iterator k(data_connections_.begin());
+         k!=data_connections_.end(); ) {
+      if ((*k)->push_back(t, path, dp, preamble))
         ++k;
       else
         data_connections_.erase(k++);

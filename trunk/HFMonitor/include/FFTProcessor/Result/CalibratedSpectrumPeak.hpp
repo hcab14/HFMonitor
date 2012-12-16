@@ -38,15 +38,12 @@ namespace Result {
       return calibrationHandle_->uncal2cal(f);
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
-      SpectrumPeak::dumpHeader(os) 
-        << "diff_Hz ";
-      return os;
+    virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      return SpectrumPeak::dumpHeader(os) << "diff_Hz ";
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
-      SpectrumPeak::dumpData(os) 
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return SpectrumPeak::dumpData(os) 
         << boost::format("%8.3f")  % (fMeasured()-fReference()) << " ";
-      return os;
     }
 
   private:

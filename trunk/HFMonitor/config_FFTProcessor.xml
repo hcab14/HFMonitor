@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
-<FFTProcessor windowFunction="Blackman">
+<FFTProcessor windowFunction="Blackman"
+	      host="127.0.0.1">
+  <data port="18001"></data>  
   <Repack bufferLength_sec="1"
 	  overlap_percent="0">
   </Repack>

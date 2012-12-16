@@ -213,6 +213,10 @@ namespace FFT {
       normalizationFactor_= T(1)/in_.norm();
       execute(plan_);
     }
+    void transform() {
+      normalizationFactor_= 1;
+      execute(plan_);
+    }
 
     size_t size() const { return in_.size(); }
 
@@ -230,6 +234,12 @@ namespace FFT {
     std::complex<T> getInBin(size_t u) const { 
       return std::complex<T>(in_[u][0], in_[u][1]);
     }
+
+    std::complex<T>& in (size_t index) { return reinterpret_cast<std::complex<T>&>(in_[index]); }
+    std::complex<T>& out(size_t index) { return reinterpret_cast<std::complex<T>&>(out_[index]); }
+
+    const std::complex<T>& in (size_t index) const { return reinterpret_cast<const std::complex<T>&>(in_[index]); }
+    const std::complex<T>& out(size_t index) const { return reinterpret_cast<const std::complex<T>&>(out_[index]); }
 
   protected:
   private:

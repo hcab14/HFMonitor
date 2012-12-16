@@ -17,17 +17,17 @@
 #include <boost/make_shared.hpp>
 #include <boost/foreach.hpp>
 
-#include "logging.hpp"
-#include "InvertMatrix.hpp"
-
-#include "protocol.hpp"
 #include "FFT.hpp"
-#include "Spectrum.hpp"
+#include "FFTProcessor/Action.hpp"
 #include "FFTProcessor/Proxy.hpp"
 #include "FFTProcessor/Result.hpp"
 #include "FFTProcessor/Result/Calibration.hpp"
-#include "FFTProcessor/Action.hpp"
-#include "IQBuffer.hpp"
+#include "InvertMatrix.hpp"
+#include "logging.hpp"
+#include "network/protocol.hpp"
+#include "processor/IQBuffer.hpp"
+#include "processor/service.hpp"
+#include "Spectrum.hpp"
 
 template<typename FFTFloat>
 class FFTProcessor {
@@ -62,8 +62,8 @@ public:
 
   class FFTProxy : public Proxy::Base {
   public:
-    FFTProxy(const Header& header, std::string level, ResultMap& resultMap)
-      : header_(header)
+    FFTProxy(processor::service_iq::sptr sp, std::string level, ResultMap& resultMap)
+      : ptime_(sp->approx_ptime())
       , level_(level)
       , resultMap_(resultMap) {}
 
@@ -71,7 +71,7 @@ public:
       // LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
-        LOG_WARNING_T(header_.approxPTime(), str(boost::format("overwriting key %s") % key));
+        LOG_WARNING_T(ptime_, str(boost::format("overwriting key %s") % key));
       resultMap_[key] = result;
     }
 
@@ -80,7 +80,7 @@ public:
       ASSERT_THROW(i != resultMap_.end());
       return i->second;
     }
-    virtual ptime getApproxPTime() const { return header_.approxPTime(); }
+    virtual ptime getApproxPTime() const { return ptime_; }
     virtual double volt2dbm(double v) const {
       // P = U*U/R, R=50 Ohm, relative to 1mW
       return 10.*std::log10(0.5*v*v/50.) + 30.; // - 3.*header_.adcPreamp() + 10.*header_.attenId();
@@ -90,7 +90,7 @@ public:
     }
   private:
     std::string level() const { return level_; }
-    const Header& header_;
+    const processor::service_base::ptime ptime_;
     const std::string level_;
     ResultMap& resultMap_;
   } ;
@@ -116,13 +116,13 @@ public:
     }
   }
   ~FFTProcessor() {}
-  
-  void procIQ(const Header& header, 
-              Samples::const_iterator i0,
-              Samples::const_iterator i1) {
+
+  void process_iq(processor::service_iq::sptr sp,
+                  Samples::const_iterator i0,
+                  Samples::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
-    LOG_INFO_T(header.approxPTime(), str(boost::format("FFTProcessor::procIQ %s") % header));
+    LOG_INFO_T(sp->approx_ptime(), str(boost::format("FFTProcessor::procIQ %s") % sp->id()));
     if (windowFcnName_ == "Rectangular")
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<Complex::value_type>());
     else if (windowFcnName_ == "Hanning")
@@ -134,7 +134,7 @@ public:
     else 
       throw std::runtime_error(THROW_SITE_INFO(windowFcnName_ + ": unknown window function"));
     
-    const FFTWSpectrum<FFTFloat> s(fftw_, header.sampleRate(), header.ddcCenterFrequency());
+    const FFTWSpectrum<FFTFloat> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
   
     // operate on Spectrum
     ResultMap resultMap;
@@ -145,7 +145,7 @@ public:
 
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
-        FFTProxy proxy(header, level.first, resultMap);
+        FFTProxy proxy(sp, level.first, resultMap);
         // LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
         action.second->perform(proxy, s);
       }
@@ -164,8 +164,10 @@ public:
     
     // output results
     if (modCounter_ == 0) {
-      BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_)
-        result.second->dump(dataPath_, result.first);
+      BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_) {
+        result.second->dumpToFile(dataPath_, result.first);
+        result.second->clear();
+      }
       resultBuffer_.clear();
     }
 
@@ -178,7 +180,7 @@ public:
       if (ch != 0)
         calibrationHandle_= ch->withWorstCaseCov();
       else
-        LOG_WARNING_T(header.approxPTime(),
+        LOG_WARNING_T(sp->approx_ptime(),
                       str(boost::format("resultMap[%s] is not of type Result::Calibration::Handle")
                           % calibrationKey_));
     }

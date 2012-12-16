@@ -5,12 +5,14 @@
 
 #include <string>
 #include <fstream>
+#include <deque>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/weak_ptr.hpp>
 
+#include "network/protocol.hpp"
 #include "gen_filename.hpp"
 
 namespace Result {
@@ -19,7 +21,7 @@ namespace Result {
     typedef boost::shared_ptr<Base> Handle;
     typedef boost::weak_ptr<Base> WeakHandle;
     typedef boost::posix_time::ptime ptime;
-    typedef std::vector<Handle> HandleVector;
+    typedef std::deque<Handle> HandleVector;
 
     Base(std::string name, ptime time)
       : name_(name)
@@ -40,52 +42,91 @@ namespace Result {
       return handles_.empty() ? this : handles_.back().get();
     }
 
+    void clear() {
+      handles_.clear();
+    }
+
     // dump data
-    void dump(std::string path,
-              std::string tag) const {      
+    void dumpToFile(std::string path,
+                    std::string tag) {
       boost::filesystem::fstream *ofs(0);
-      ofs = dumpSingle(ofs, path, tag, this);
+      handles_.push_front(Handle(this));
       BOOST_FOREACH(const HandleVector::value_type& h, handles_)
         ofs = dumpSingle(ofs, path, tag, h.get());
-
+      handles_.pop_front();
       updateTimeTag(*ofs, posEndTime_, getLatest()->makeTimeLabel());
-      handles_.clear();
       delete ofs;
     }
+
+    template<typename BROADCASTER>
+    void dumpToBC(std::string path,
+                  std::string tag,
+                  boost::shared_ptr<BROADCASTER> bc) {
+      handles_.push_front(Handle(this));
+      BOOST_FOREACH(const HandleVector::value_type& h, handles_) {
+        std::ostringstream sData;
+        h->dumpData(sData);
+        std::ostringstream sHeader;
+        h->dumpData(sHeader);
+        const boost::uint32_t stream_number(bc.register_stream(tag));
+        const header header(h->format(), h->time(), stream_number, sData.str().second.size());
+        std::string d;
+        std::copy(header.begin(),      header.end(),      std::back_inserter(d));
+        std::copy(sData.str().begin(), sData.str().end(), std::back_inserter(d));
+        bc->bc_data(this->time(), tag, d, sHeader.str());
+      }
+      handles_.pop_front();
+    }
+
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 
                                            std::string path, std::string tag, 
                                            const Base* h) const {
       const boost::filesystem::path p(gen_file_path(path, tag, h->time()));
       const bool file_exists(boost::filesystem::exists(p));
       if (not file_exists) {
-        if (ofs != 0) { 
-          delete ofs; ofs=0; 
+        if (ofs != NULL) { 
+          delete ofs; ofs= NULL; 
         }
         boost::filesystem::fstream lofs(p, std::ios::out);  
-        h->dumpHeader(lofs) << h->lineBreak();
+        h->dumpHeaderToFile(lofs) << h->lineBreak();
       }
-      if (ofs == 0) {
+      if (ofs == NULL) {
         findPositionOfEndTime(p);
         ofs = new boost::filesystem::fstream(p, std::ios::in | std::ios::out);
         ofs->seekp(0, std::ios::end);
       }
-      h->dumpData(*ofs) << h->lineBreak();
+      h->dumpDataToFile(*ofs) << h->lineBreak();
       return ofs;
     }
   protected:
     virtual std::string lineBreak() const { return "\n"; }
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {
+
+    // virtual string context dump header and data
+    virtual std::ostream& dumpHeader(std::ostream& os) const {
+      return os;
+    }
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return os;
+    }
+
+    // file context dump:
+    virtual boost::filesystem::fstream& dumpHeaderToFile(boost::filesystem::fstream& os) const {
       std::string timeLabel(makeTimeLabel());
       os << "# StartTime = " << timeLabel << " [UTC]" << lineBreak();
       posEndTime_   = os.tellg() + std::streamoff(14);          
       os << "# EndTime   = " << timeLabel << " [UTC]" << lineBreak();
       os << "# Time_UTC ";
+      std::ostringstream oss; dumpHeader(oss);
+      os << oss.str();
       return os;
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
+    virtual boost::filesystem::fstream& dumpDataToFile(boost::filesystem::fstream& os) const {
       os << makeTimeLabel() << " ";
+      std::ostringstream oss; dumpData(oss);
+      os << oss.str();
       return os;
     }
+
     virtual void updateTimeTag(boost::filesystem::fstream& os,
                                std::ostream::streampos pos,
                                std::string timeTag) const {
@@ -93,6 +134,9 @@ namespace Result {
       os << timeTag;
       os.seekp(0,   std::ios::end);
     }
+
+    virtual std::string format() const { return "TXT_0000"; }
+
   protected:
     std::string name_;
     ptime time_;

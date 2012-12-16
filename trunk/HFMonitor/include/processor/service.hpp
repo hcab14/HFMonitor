@@ -61,6 +61,7 @@ namespace processor {
     virtual boost::uint32_t sample_rate_Hz()      const = 0;
     virtual double          center_frequency_Hz() const = 0;
     virtual float           offset_ppb()          const = 0;
+    virtual float           offset_ppb_rms()      const = 0;
     virtual boost::uint16_t stream_number()       const = 0;
   } ;
 

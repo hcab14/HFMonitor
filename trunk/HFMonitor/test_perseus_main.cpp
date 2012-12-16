@@ -9,11 +9,11 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "include/sdr/perseus/perseus_control.hpp"
-#include "include/buffer.hpp"
-#include "include/network/broadcaster.hpp"
-
-#include "include/network/protocol.hpp"
+#include "buffer.hpp"
+#include "network/broadcaster.hpp"
+#include "network/protocol.hpp"
+#include "run.hpp"
+#include "sdr/perseus/perseus_control.hpp"
 
 // perseus callback
 //  * makes copy of data, and
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 
 
     if (index != -1) {
-      broadcaster::sptr bc(broadcaster::make_broadcaster(service, config.get_child("Broadcaster")));
+      broadcaster::sptr bc(broadcaster::make(service, config.get_child("Broadcaster")));
       bc->start();
 
       // buffer between perseus and broadcaster
@@ -165,8 +165,10 @@ int main(int argc, char* argv[])
       // start receiver callback
       rec->start_async_input(cb);
 
-      // to be replaced by signal handlers
-      sleep(20);
+      { // wait until a signal is sent/service is stopped
+        wait_for_signal w(service);
+        w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
+      }
 
       rec->stop_async_input();      
       buf->stop();

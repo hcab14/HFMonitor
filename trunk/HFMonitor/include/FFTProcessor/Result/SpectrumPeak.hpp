@@ -127,20 +127,16 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual boost::filesystem::fstream& dumpHeader(boost::filesystem::fstream& os) const {      
+    virtual std::ostream& dumpHeader(std::ostream& os) const {
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n";
-      Base::dumpHeader(os) 
-        << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
-      return os;
+      return os << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
     }
-    virtual boost::filesystem::fstream& dumpData(boost::filesystem::fstream& os) const {
-      Base::dumpData(os)
-        << boost::format("%12.3f") % fMeasured() << " "
-        << boost::format("%6.3f")  % fMeasuredRMS() << " "
-        << boost::format("%7.2f")  % strength() << " "
-        << boost::format("%7.2f")  % strengthRMS() << " "
-        << boost::format("%7.2f")  % (20.*std::log10(ratio())) << " ";
-      return os;
+    virtual std::ostream& dumpData(std::ostream& os) const {
+      return os << boost::format("%12.3f") % fMeasured() << " "
+                << boost::format("%6.3f")  % fMeasuredRMS() << " "
+                << boost::format("%7.2f")  % strength() << " "
+                << boost::format("%7.2f")  % strengthRMS() << " "
+                << boost::format("%7.2f")  % (20.*std::log10(ratio())) << " ";
     }
 
   private:

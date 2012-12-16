@@ -3,26 +3,11 @@
 
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
+
+#include "FFTProcessor.hpp"
 #include "network/client_iq.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
-
-class test_proc {
-public:
-  test_proc(const boost::property_tree::ptree&) {}
-
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
-    std::cout << "process_iq nS=" << std::distance(i0, i1) 
-              << " " << sp->id()
-              << " " << sp->approx_ptime()
-              << " " << sp->sample_rate_Hz()
-              << " " << sp->center_frequency_Hz()
-              << " " << sp->offset_ppb()
-              << std::endl;
-  }
-} ;
 
 int main(int argc, char* argv[])
 {
@@ -36,7 +21,7 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-    client_iq<repack_processor<test_proc> > c(io_service, config.get_child("server"));
+    client_iq<repack_processor<FFTProcessor<double> > > c(io_service, config.get_child("FFTProcessor"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       c.connect_to(stream_name);
