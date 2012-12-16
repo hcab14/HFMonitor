@@ -153,7 +153,7 @@ private:
         // make new data connection and insert into the set of open connections
         data_connections_.insert(data_connection::make(get_io_service(), strand_, socket,
                                                        directory_, max_queue_total_size_, max_queue_delay_));
-        
+
         // asynchronously accept next data connection
         async_accept(a);
 

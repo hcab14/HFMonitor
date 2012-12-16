@@ -46,7 +46,7 @@ namespace Perseus {
       if (_poll_libusb_thread == 0) {
         _poll_libusb_refcount = 1;
         ASSERT_THROW(pthread_create(&_poll_libusb_thread, NULL, 
-                                    poll_libusb_thread_fn, NULL) == 0);
+                                    &poll_libusb_thread_fn, NULL) == 0);
       } else {
         ++_poll_libusb_refcount;
       }
@@ -63,7 +63,6 @@ namespace Perseus {
     }
 
     virtual void init(const boost::property_tree::ptree& config) {
-      std::cout << "init:" << std::endl;        
       _rbs_map.clear();
       BOOST_FOREACH(const boost::property_tree::ptree::value_type& v, config) {
         if (v.first == "rbs") {
@@ -71,7 +70,6 @@ namespace Perseus {
           _rbs_map[v.second.get<int>("<xmlattr>.fs")] = v.second.data();
         }
       }
-
       set_sample_rate(config.get<int>("<xmlattr>.fs"));
       set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
       const bool b=config.get<bool>("<xmlattr>.use_preselector");
@@ -94,7 +92,12 @@ namespace Perseus {
       set_sio(b, FPGA::sioctl::CMD::gain_high);
     }
     virtual void start_async_input(callback::sptr callback) {
-      _input_queue = input_queue::make(callback, 510 /*16230*/, 8,
+#ifdef __APPLE
+      const size_t queue_size(510);
+#else
+      const size_t queue_size(16320);
+#endif        
+      _input_queue = input_queue::make(callback, queue_size, 8,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
                                         (_fx2_control->get_usb_device_handle())->get_device()), 
@@ -153,20 +156,20 @@ namespace Perseus {
     }
 
     static void* poll_libusb_thread_fn(void*) {
+#if 1
       int maxpri(0);
       if ((maxpri = sched_get_priority_max(SCHED_FIFO))>=0) {
-#if 1
         struct sched_param sparam;
         sparam.sched_priority = maxpri;
         std::cerr << "setting thread priority to " << maxpri << std::endl;
         if (pthread_setschedparam(_poll_libusb_thread, SCHED_FIFO, &sparam) < 0)
           std::cerr << "pthread_setschedparam" << std::endl;
-#endif
       }
+#endif
       // handle libusb events until perseus_exit is called
       while (_poll_libusb_refcount > 0) {
-        static struct timeval tv = {1,0};
-        libusb_handle_events_timeout(NULL, &tv);
+        static struct timeval tv = { 1, 0 };
+        libusb_handle_events_timeout(libusb::session::get_global_session()->get_context(), &tv);
       }
       std::cerr << "poll_libusb_thread_fn: exit" << std::endl;
       return 0;

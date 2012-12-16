@@ -95,7 +95,7 @@ namespace Perseus {
         _usb_control->clear_halt(EndPoint::cmd);
         _usb_control->clear_halt(EndPoint::status);
         _usb_control->clear_halt(EndPoint::data_in);
-
+        
         _perseus_eeprom_pid = read_eeprom<Perseus::product_id>(EEPROM::ADDR::product_id);
         std::cout << "device is already configured " << _perseus_eeprom_pid.to_str() << std::endl;
         _is_configured = true;
@@ -152,9 +152,9 @@ namespace Perseus {
       fpga_reset();
       std::ifstream ifs(filename.c_str(), std::ios::binary);
       FPGA::sio_cmd<char[63]> cmd(CMD::fpga_config);
-      while (ifs.read(cmd.data, 63)) {
+      while (ifs.read(cmd.data, 63))
         fpga_load_line(cmd, ifs.gcount());
-      }
+
       fpga_load_line(cmd, ifs.gcount());
       fpga_check();
     }

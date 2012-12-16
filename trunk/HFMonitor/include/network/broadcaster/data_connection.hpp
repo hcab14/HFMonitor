@@ -64,7 +64,8 @@ public:
     , max_queue_delay_(max_queue_delay)
     , max_delay_(boost::posix_time::seconds(0))
     , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
-    , status_(status_init) {
+    , status_(status_init)
+    , start_async_write_(false) {
     std::cout << "dir: " << directory_ << std::endl;
     async_receive_command();
   }
@@ -81,7 +82,7 @@ public:
         oss << *i << " ";
       return oss.str();    
     }
-    return "[INIT]";
+    return ((status_ == status_init) ? "[INIT]" : "[ERROR]");
   }
   
   static sptr make(boost::asio::io_service& io_service,
@@ -151,9 +152,9 @@ public:
   
   // path="" is always broadcasted
   bool push_back(ptime t, std::string path, const data_ptr& dp, data_type preamble) {
-    if (status_ != status_configured)
-      return true;
-    if (path != "" && match_path(path))
+    if (status_ == status_init)  return true; 
+    if (status_ == status_error) return false; 
+    if (path != "" && !match_path(path))
       return true;
     
     max_delay_ = std::max(max_delay_, delay(t));
@@ -169,8 +170,10 @@ public:
       const bool listOfPacketsWasEmpty(empty());
       list_of_packets_.push_back(std::make_pair(t, dp));
       preamble_= preamble;
-      if (listOfPacketsWasEmpty)
+      if (listOfPacketsWasEmpty || start_async_write_) {
         async_write_data();
+        start_async_write_= false;
+      }
       return true;
     }
     return false;
@@ -217,6 +220,12 @@ public:
   }
 
   void handle_receive_command(const boost::system::error_code& ec) {
+    if (ec) {
+      LOG_INFO(str(boost::format("handle_receive_command ec=%s") % ec));
+      status_= status_error;
+      close();
+      return;
+    }
     std::istream response_stream(&response_);
     std::string action;
     if (response_stream >> action) {
@@ -283,6 +292,7 @@ public:
         const ptime now(boost::posix_time::microsec_clock::universal_time());
         data_ptr dp(new std::string(directory_.serialize(now)));
         list_of_packets_.push_back(std::make_pair(now, dp));
+        start_async_write_ = true; // this makes push_back start async_write with non-empty queue
         async_receive_tick(new_status);
       }
       else
@@ -310,7 +320,7 @@ public:
     } else {
       status_= new_status;
       last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
-      LOG_INFO(str(boost::format("tick %d '%c'") % bytes_transferred % dummy_data_));
+      LOG_INFO(str(boost::format("tick %d '%c' %d") % bytes_transferred % dummy_data_ % status_));
       async_receive_tick();
     }
   }
@@ -331,6 +341,7 @@ private:
   ptime                    last_tick_time_;
   std::set<boost::regex>   stream_names_;
   status_type              status_;
+  bool                     start_async_write_;
 } ;
 
 #endif //  _DATA_CONNECTION_HPP_cm111219_
