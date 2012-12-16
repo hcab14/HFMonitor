@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
         
-        const size_t thread_pool_size_(1);
+        const size_t thread_pool_size_(2);
         for (std::size_t i(0); i<thread_pool_size_; ++i) {
           boost::shared_ptr<boost::thread> thread
             (new boost::thread(boost::bind(&boost::asio::io_service::run, &service)));

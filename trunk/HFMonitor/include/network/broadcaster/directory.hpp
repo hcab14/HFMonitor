@@ -12,6 +12,7 @@
 #include <boost/regex.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "logging.hpp"
 #include "network/protocol.hpp"
 
 // -----------------------------------------------------------------------------
@@ -56,14 +57,12 @@ public:
 
   void update(size_t n, const char* bytes) {
     directory_.clear();
-    std::cout << "directory::update n=" << n << "'" << std::string(bytes,bytes+n) << "'" <<std::endl;
     size_t i(0);
     while (i < n) {
       const directory_entry* de(reinterpret_cast<const directory_entry* >(bytes+i));
-      std::cout << "directory::update (" << de->length_of_name() << "," << de->stream_number() << ") " << i << " " << n << std::endl;
       const std::string name(bytes+i+directory_entry::name_offset(),
                              bytes+i+directory_entry::name_offset() + de->length_of_name());
-      std::cout << "directory::update (" << name << "," << de->stream_number() << ") " << i << " " << n << std::endl;
+      LOG_INFO(str(boost::format("directory::update (%04d,%d)") % de->stream_number() % name));
       directory_.insert(std::make_pair(name, de->stream_number()));
       i += de->size();
     }
