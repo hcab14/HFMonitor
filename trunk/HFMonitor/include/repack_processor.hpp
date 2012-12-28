@@ -16,6 +16,15 @@
 template<typename PROCESSOR>
 class repack_processor {
 public:
+  repack_processor(boost::asio::io_service&           service,
+                   const boost::property_tree::ptree& config)
+    : p_(service, config)
+    , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
+    , overlap_(   0.01*config.get<double>("Repack.<xmlattr>.overlap_percent"))
+    , service_(service)
+    , iqBuffer_(4, 0.0)
+    , counter_(0) {}
+
   repack_processor(const boost::property_tree::ptree& config)
     : p_(config)
     , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
@@ -25,6 +34,8 @@ public:
     , counter_(0) {}
 
   ~repack_processor() {}
+
+  boost::asio::io_service& get_service() { return service_; }
 
   void process_iq(processor::service_iq::sptr sp,
                   std::vector<std::complex<double> >::const_iterator i0,

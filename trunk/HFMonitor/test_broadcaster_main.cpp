@@ -13,14 +13,12 @@ public:
   typedef data_connection::ptime ptime;
   typedef std::string data_type;
   
-  test_bc(boost::asio::io_service& io_service,
-	  const boost::property_tree::ptree& config)
-    : bc_(broadcaster::make(io_service, config)) {
+  test_bc(const boost::property_tree::ptree& config)
+    : bc_(broadcaster::make(config)) {
   }
 
-  static sptr make(boost::asio::io_service& io_service,
-		   const boost::property_tree::ptree& config) {
-    return sptr(new test_bc(io_service, config));
+  static sptr make(const boost::property_tree::ptree& config) {
+    return sptr(new test_bc(config));
   }
 
   void start() { bc_->start(); }
@@ -66,9 +64,8 @@ int main(int argc, char* argv[])
     const std::string filename((argc > 1 ) ? argv[1] : "config.xml");
     boost::property_tree::ptree config;
     read_xml(filename, config);
-    boost::asio::io_service io_service;
 
-    test_bc::sptr bp = test_bc::make(io_service, config);
+    test_bc::sptr bp = test_bc::make(config);
     bp->start();
     const size_t n(100);
     for (size_t i=0; i<n; ++i) {

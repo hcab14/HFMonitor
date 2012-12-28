@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
-    const boost::property_tree::ptree& config_server(config.get_child("server"));
+    const boost::property_tree::ptree& config_server(config.get_child("Server"));
     const boost::property_tree::ptree& config_perseus(config_server.get_child("perseus"));
 
     perseus_set_debug(config_perseus.get<int>("<xmlattr>.debugLevel"));

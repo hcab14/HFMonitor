@@ -9,6 +9,28 @@
 #include "repack_processor.hpp"
 #include "run.hpp"
 
+template<typename FFTFloat>
+class FFTProcToFile : public FFTProcessor<FFTFloat> {
+public:
+  FFTProcToFile(const boost::property_tree::ptree& config)
+    : FFTProcessor<FFTFloat>(config)
+    , dataPath_(config.get<std::string>("FileSink.<xmlattr>.path")) {}
+
+  virtual ~FFTProcToFile() {}
+
+  boost::asio::io_service& get_service() { return service_; }
+  
+protected:
+  typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
+
+  virtual void dump(const typename ResultMap::value_type& result) {
+    result.second->dumpToFile(dataPath_, result.first);
+  }
+private:
+  std::string dataPath_;
+  boost::asio::io_service service_;
+} ;
+
 int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "test_client");
@@ -21,7 +43,7 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-    client_iq<repack_processor<FFTProcessor<double> > > c(io_service, config.get_child("FFTProcessor"));
+    client_iq<repack_processor<FFTProcToFile<double> > > c(io_service, config.get_child("FFTProcessor"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       c.connect_to(stream_name);
