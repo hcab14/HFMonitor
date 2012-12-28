@@ -75,7 +75,7 @@ namespace Result {
       h->dumpData(sData);
       std::ostringstream sHeader;
       h->dumpData(sHeader);
-      const boost::uint32_t stream_number(bc.register_stream(tag));
+      const boost::uint32_t stream_number(bc->register_stream(tag));
       const header header(h->format(), h->time(), stream_number, sData.str().size());
       std::string d;
       std::copy(header.begin(),      header.end(),      std::back_inserter(d));

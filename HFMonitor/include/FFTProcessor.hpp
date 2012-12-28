@@ -99,8 +99,7 @@ public:
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , calibrationKey_(config.get<std::string>("Actions.<xmlattr>.calibrationKey"))
-    , dataPath_(config.get<std::string>("Data.<xmlattr>.path"))
-    , modCounter_(std::max(1u, config.get<unsigned>("Data.<xmlattr>.numberOfCollectedEpochs"))) {
+    , modCounter_(std::max(1u, config.get<unsigned>("<xmlattr>.numberOfCollectedEpochs"))) {
     using boost::property_tree::ptree;
     // Levels
     BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
@@ -115,7 +114,7 @@ public:
       }
     }
   }
-  ~FFTProcessor() {}
+  virtual ~FFTProcessor() {}
 
   void process_iq(processor::service_iq::sptr sp,
                   Samples::const_iterator i0,
@@ -165,7 +164,7 @@ public:
     // output results
     if (modCounter_ == 0) {
       BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_) {
-        result.second->dumpToFile(dataPath_, result.first);
+        dump(result);
         result.second->clear();
       }
       resultBuffer_.clear();
@@ -187,11 +186,14 @@ public:
   }
 
 protected:
+  virtual void dump(const ResultMap::value_type& result) {
+    // to be overwritten in a derived class
+  }
+
 private:
   FFT::FFTWTransform<FFTFloat> fftw_;
   std::string windowFcnName_;
   std::string calibrationKey_;
-  std::string dataPath_;
   Internal::ModuloCounter<size_t> modCounter_;
   Result::Base::Handle calibrationHandle_;
   LevelMap actions_;

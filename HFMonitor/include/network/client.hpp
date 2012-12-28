@@ -15,27 +15,22 @@
 #include "network/protocol.hpp"
 
 // generic base class for connecting to a broadcaster
-class client : private boost::noncopyable {
+class client : public processor::processor {
 public:
-  enum {
-    max_buffer_size = 1024*1024 // 1MB
-  } ;
-  typedef boost::array<char, max_buffer_size> data_buffer_type;
-
   enum received_data_type {
     received_header, 
     received_data
   } ;
 
-  client(boost::asio::io_service&           io_service,
+  client(boost::asio::io_service& io_service,
          const boost::property_tree::ptree& config)
     : io_service_(io_service)
     , strand_(io_service)
     , socket_(io_service)
     , tick_buffer_('a')
     , timer_(io_service, boost::posix_time::seconds(1)) {
-    if (!connect_socket(config.get<std::string>("<xmlattr>.host"),
-                        config.get<std::string>("data.<xmlattr>.port")))
+    if (!connect_socket(config.get<std::string>("server.<xmlattr>.host"),
+                        config.get<std::string>("server.<xmlattr>.port")))
       throw std::runtime_error("connect failed");
   }
 
@@ -68,8 +63,10 @@ public:
   }
 
   // blocking "GET" command
-  bool connect_to(std::string name) {
-    std::istringstream iss(send_request(str(boost::format("GET %s") % name)));
+  //  * names can be a list (separated by white space) of names
+  //  * a name can also be a perl regular expression
+  bool connect_to(std::string names) {
+    std::istringstream iss(send_request(str(boost::format("GET %s") % names)));
     std::string f;
     if (iss >> f) {
       std::cout << "f='" << f << "'" << std::endl;
@@ -78,7 +75,7 @@ public:
         timer_.async_wait(get_strand().wrap(boost::bind(&client::on_tick, this)));
         return true;
       } else {
-        std::cerr << "response= " << f << " " << name << std::endl;
+        std::cerr << "response= " << f << " " << names << std::endl;
         return false;
       }
     } else {

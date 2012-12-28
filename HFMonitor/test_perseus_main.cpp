@@ -10,6 +10,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "buffer.hpp"
+#include "network.hpp"
 #include "network/broadcaster.hpp"
 #include "network/protocol.hpp"
 #include "run.hpp"
@@ -26,7 +27,7 @@ public:
   test_cb(buffer<std::string>::sptr buf)
     : buffer_(buf) {}
   virtual ~test_cb() {}
-  void operator()(unsigned char* data, size_t length) {    
+  void operator()(unsigned char* data, size_t length) {
     using namespace boost::posix_time;
     std::string s((char*)(data), length);
     const ptime t(microsec_clock::universal_time());
@@ -43,13 +44,12 @@ private:
 class bridge {
 public:
 
-  bridge(boost::asio::io_service&        service,
-         buffer<std::string>::sptr       buffer,
+  bridge(buffer<std::string>::sptr       buffer,
          broadcaster::sptr               broadcaster,
-         Perseus::receiver_control::sptr receiver) 
+         Perseus::receiver_control::sptr receiver)
     : buffer_(buffer)
     , broadcaster_(broadcaster)
-    , strand_(service)
+    , strand_(network::get_io_service())
     , receiver_(receiver)
     , do_run_(true)
     , mutex_(new boost::mutex)
@@ -57,7 +57,7 @@ public:
 
   ~bridge() {}
 
-  void operator()() {    
+  void operator()() {
     while (do_run_) {
       try {
         boost::mutex::scoped_lock lock(*mutex_);
@@ -105,7 +105,6 @@ private:
 
 int main(int argc, char* argv[])
 {
-  boost::asio::io_service service;
   LOGGER_INIT("./Log", "test_perseus");
   try {
     libusb::session::sptr s(libusb::session::get_global_session());
@@ -137,10 +136,11 @@ int main(int argc, char* argv[])
       Perseus::receiver_control::sptr rec;
         
       { // wait until a signal is sent/service is stopped
-        wait_for_signal w(service);
+       bc = broadcaster::make(config.get_child("Broadcaster"));
+
+       wait_for_signal w(network::get_io_service());
         w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
 
-        bc = broadcaster::make(service, config.get_child("Broadcaster"));
         bc->start();
         
         // buffer between perseus and broadcaster
@@ -154,13 +154,13 @@ int main(int argc, char* argv[])
         const size_t thread_pool_size_(2);
         for (std::size_t i(0); i<thread_pool_size_; ++i) {
           boost::shared_ptr<boost::thread> thread
-            (new boost::thread(boost::bind(&boost::asio::io_service::run, &service)));
+            (new boost::thread(boost::bind(&boost::asio::io_service::run, &network::get_io_service())));
           threads.push_back(thread);
         }
         
         // bridge running in a thread
         {
-          bridge r(service, buf, bc, rec);
+          bridge r(buf, bc, rec);
           boost::shared_ptr<boost::thread> bridge_thread(new boost::thread(r));
           threads.push_back(bridge_thread);
         }
@@ -173,7 +173,6 @@ int main(int argc, char* argv[])
       rec->stop_async_input();      
       buf->stop();
       bc->stop();
-      service.stop();
 
       // Wait for all threads in the pool to exit.
       for (std::size_t i(0); i<threads.size(); ++i)

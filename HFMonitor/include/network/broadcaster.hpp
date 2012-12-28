@@ -16,6 +16,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "logging.hpp"
+#include "network.hpp"
 #include "network/broadcaster/directory.hpp"
 #include "network/broadcaster/data_connection.hpp"
 
@@ -34,9 +35,8 @@ class broadcaster : private boost::noncopyable {
 public:
   typedef boost::shared_ptr<broadcaster> sptr;
 
-  static sptr make(boost::asio::io_service& io_service,
-                   const boost::property_tree::ptree& config) {
-    return sptr(new broadcaster(io_service, config));
+  static sptr make(const boost::property_tree::ptree& config) {
+    return sptr(new broadcaster(config));
   }
   virtual ~broadcaster() {}
 
@@ -51,11 +51,11 @@ public:
   void stop() {
     // announce stop of io_service
     LOG_INFO("broadcaster stop");
-    get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
+    network::get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
   }
 
-  // returns a reference to the io service object
-  boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
+  // // returns a reference to the io service object
+  // boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
 
   typedef data_connection::ptime ptime;
   typedef std::string data_type;
@@ -100,19 +100,22 @@ protected:
   boost::asio::strand& get_strand() { return strand_; }
 
 private:
-  broadcaster(boost::asio::io_service& io_service,
-              const boost::property_tree::ptree& config)
-    : strand_(io_service)
+  broadcaster(const boost::property_tree::ptree& config)
+    : strand_(network::get_io_service())
     , max_queue_total_size_(1024*1024*config.get<size_t>("Data.<xmlattr>.maxQueueSize_MB"))
     , max_queue_delay_(boost::posix_time::minutes(config.get<size_t>("Data.<xmlattr>.maxQueueDelay_Minutes")))
     , last_log_status_time_(boost::posix_time::microsec_clock::universal_time())
   {
     using namespace boost::asio::ip;
     acceptor_map_["Data"] = acceptor_ptr
-      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
+      (new tcp::acceptor(network::get_io_service(),
+                         tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
     acceptor_map_["Ctrl"] = acceptor_ptr
-      (new tcp::acceptor(io_service, tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
+      (new tcp::acceptor(network::get_io_service(),
+                         tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
   }
+
+  static
 
   typedef data_connection::time_duration time_duration;
   typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
@@ -134,7 +137,7 @@ private:
   }
 
   void async_accept(const acceptor_map::value_type& a) {
-    tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(a.second->get_io_service()));
+    tcp_socket_ptr new_socket(new boost::asio::ip::tcp::socket(network::get_io_service()));
     a.second->async_accept(*new_socket,
                            strand_.wrap(boost::bind(&broadcaster::handle_accept, this,
                                                     boost::asio::placeholders::error,
@@ -151,7 +154,7 @@ private:
         LOG_INFO(str(boost::format("remote endpoint='%s'") % socket->remote_endpoint(ec_ignore)));
 
         // make new data connection and insert into the set of open connections
-        data_connections_.insert(data_connection::make(get_io_service(), strand_, socket,
+        data_connections_.insert(data_connection::make(network::get_io_service(), strand_, socket,
                                                        directory_, max_queue_total_size_, max_queue_delay_));
 
         // asynchronously accept next data connection
@@ -187,13 +190,14 @@ private:
     data_connections_.clear();
   }
 
-  boost::asio::strand   strand_;               // asio strand, keeps io service
-  acceptor_map          acceptor_map_;         // map of acceptors
-  const size_t          max_queue_total_size_; // queue total size of data connections
-  const time_duration   max_queue_delay_;      // queue maximum delay of data connections
-  broadcaster_directory directory_;            // directory of available data streams
-  data_connections      data_connections_;     // set of data connections
-  mutable ptime         last_log_status_time_; // 
+  boost::asio::io_service service_;              // io service object
+  boost::asio::strand     strand_;               // asio strand
+  acceptor_map            acceptor_map_;         // map of acceptors
+  const size_t            max_queue_total_size_; // queue total size of data connections
+  const time_duration     max_queue_delay_;      // queue maximum delay of data connections
+  broadcaster_directory   directory_;            // directory of available data streams
+  data_connections        data_connections_;     // set of data connections
+  mutable ptime           last_log_status_time_; // 
 } ;
 
 #endif // _BROADCASTER_HPP_cm111219_

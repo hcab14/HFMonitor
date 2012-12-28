@@ -1,14 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman"
-	      host="127.0.0.1">
-  <data port="18001"></data>  
+	      numberOfCollectedEpochs="4">
+  <Server host="127.0.0.1"
+	  port="18001">
+  </Server>
+  <Broadcaster>
+    <Data port="19001"
+	  maxQueueSize_MB="1"
+	  maxQueueDelay_Minutes="2">
+    </Data>
+    <Ctrl port="19002"></Ctrl>
+  </Broadcaster>
   <Repack bufferLength_sec="1"
 	  overlap_percent="0">
   </Repack>
-  <Data path="Data"
-	numberOfCollectedEpochs="4">
-  </Data>
+  <FileSink path="Data">
+  </FileSink>
   <Actions calibrationKey="L1.CAL">
     <L0>
       <FindPeak name="060000_TS_MSF"

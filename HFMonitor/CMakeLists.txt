@@ -20,7 +20,7 @@ SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules")
 SET(_libs)
 
 # Setup FFTW3
-FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads )
+FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
@@ -71,10 +71,11 @@ TARGET_LINK_LIBRARIES(test_client_main ${_libs})
 ADD_EXECUTABLE(test_fir test_fir_main.cpp)
 TARGET_LINK_LIBRARIES(test_fir ${_libs})
 
-MESSAGE(STATUS "XXXX _libs:${_libs}")
+ADD_EXECUTABLE(test_client_FFTtoFile test_client_FFTtoFile_main.cpp)
+TARGET_LINK_LIBRARIES(test_client_FFTtoFile ${_libs} FFTAction_cpp)
 
-ADD_EXECUTABLE(test_client_FFT test_client_FFT_main.cpp)
-TARGET_LINK_LIBRARIES(test_client_FFT ${_libs} FFTAction_cpp)
+ADD_EXECUTABLE(test_client_FFTtoBC test_client_FFTtoBC_main.cpp)
+TARGET_LINK_LIBRARIES(test_client_FFTtoBC ${_libs} FFTAction_cpp)
 
 ADD_EXECUTABLE(test_broadcaster test_broadcaster_main.cpp)
 TARGET_LINK_LIBRARIES(test_broadcaster ${_libs})
