@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
+#include "network.hpp"
 #include "network/client_iq.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
@@ -32,19 +33,17 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
-    boost::asio::io_service io_service;
-
     const std::string stream_name("DataIQ");
 
-    client_iq<repack_processor<test_proc> > c(io_service, config.get_child("Server"));
+    client_iq<repack_processor<test_proc> > c(config.get_child("Server"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
-      c.connect_to(stream_name);
+      ASSERT_THROW(c.connect_to(stream_name) == true);
     else
       throw std::runtime_error(str(boost::format("stream '%s' is not available")
                                    % stream_name));
-    
-    run_in_thread(io_service);
+    c.start();
+    run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;

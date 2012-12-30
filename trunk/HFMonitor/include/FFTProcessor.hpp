@@ -25,12 +25,13 @@
 #include "InvertMatrix.hpp"
 #include "logging.hpp"
 #include "network/protocol.hpp"
+#include "processor.hpp"
 #include "processor/IQBuffer.hpp"
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
 
 template<typename FFTFloat>
-class FFTProcessor {
+class FFTProcessor : public processor::processor_iq {
 public:
   // typedef float FFTFloat;
   typedef std::complex<double> Complex;
@@ -62,7 +63,7 @@ public:
 
   class FFTProxy : public Proxy::Base {
   public:
-    FFTProxy(processor::service_iq::sptr sp, std::string level, ResultMap& resultMap)
+    FFTProxy(::processor::service_iq::sptr sp, std::string level, ResultMap& resultMap)
       : ptime_(sp->approx_ptime())
       , level_(level)
       , resultMap_(resultMap) {}
@@ -90,11 +91,11 @@ public:
     }
   private:
     std::string level() const { return level_; }
-    const processor::service_base::ptime ptime_;
+    const ::processor::service_base::ptime ptime_;
     const std::string level_;
     ResultMap& resultMap_;
   } ;
-  
+ 
   FFTProcessor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
@@ -116,9 +117,14 @@ public:
   }
   virtual ~FFTProcessor() {}
 
-  void process_iq(processor::service_iq::sptr sp,
-                  Samples::const_iterator i0,
-                  Samples::const_iterator i1) {
+  static sptr make(const boost::property_tree::ptree& config) {
+    sptr result(new FFTProcessor<FFTFloat>(config));
+    return result;
+  }
+
+  virtual void process_iq(::processor::service_iq::sptr sp,
+                          Samples::const_iterator i0,
+                          Samples::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
     LOG_INFO_T(sp->approx_ptime(), str(boost::format("FFTProcessor::procIQ %s") % sp->id()));

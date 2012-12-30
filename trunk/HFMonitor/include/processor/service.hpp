@@ -18,6 +18,7 @@
 //
 #ifndef _SERVICE_HPP_cm110729_
 #define _SERVICE_HPP_cm110729_
+
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>

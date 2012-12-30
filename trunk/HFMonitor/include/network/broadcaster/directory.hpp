@@ -19,7 +19,7 @@
 // broadcaster_directory
 //  * hold a set of data streams
 
-class broadcaster_directory : private boost::noncopyable {
+class broadcaster_directory {
 public:
   typedef boost::posix_time::ptime ptime;
   typedef boost::shared_ptr<broadcaster_directory> sptr;
@@ -84,6 +84,12 @@ public:
     return i->second;
   }
 
+  std::string stream_name_of(boost::uint32_t number) const {
+    for (const_iterator i(directory_.begin()); i!=directory_.end(); ++i)
+      if (i->second == number) return i->first;
+    throw std::runtime_error("no stream associated with this stream number");
+  }
+
   std::string ls() const {
     std::ostringstream oss;
     for (const_iterator i(begin()); i!=end(); ++i)
@@ -98,9 +104,9 @@ public:
     return os;
   }
   
-protected:
   const_iterator begin() const { return directory_.begin(); }
   const_iterator end()   const { return directory_.end(); }
+protected:
 
 private:
   directory_map directory_;
