@@ -5,7 +5,7 @@
 
 #include "processor.hpp"
 #include "network/protocol.hpp"
-#include "network/client.hpp"
+#include "network/client/client_base.hpp"
 
 namespace {
   class service_net_iq : public processor::service_iq {
@@ -39,7 +39,7 @@ namespace {
 
 // client for streams of I/Q samples
 template<typename PROCESSOR>
-class client_iq : public client {
+class client_iq : public client_base {
   // for integer I/Q samples
   typedef union {
     struct __attribute__((__packed__)) {
@@ -53,13 +53,8 @@ class client_iq : public client {
   } iq_sample;
 
 public:
-  client_iq(boost::asio::io_service&           io_service,
-	    const boost::property_tree::ptree& config)
-    : client(io_service, config)
-    , p_(config) {}
-
   client_iq(const boost::property_tree::ptree& config)
-    : client(config)
+    : client_base(network::get_io_service(), config)
     , p_(config) {}
 
   virtual ~client_iq() {}
@@ -99,6 +94,5 @@ protected:
 private:
   PROCESSOR p_;
 } ;
-
 
 #endif // _CLIENT_IQ_HPP_cm121126_ 

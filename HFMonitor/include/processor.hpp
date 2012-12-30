@@ -19,13 +19,15 @@
 #ifndef _PROCESSOR_HPP_cm121221_
 #define _PROCESSOR_HPP_cm121221_
 
-#include <string>
 #include <complex>
+#include <stdexcept>
+#include <string>
 #include <vector>
 #include <boost/array.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "processor/service.hpp"
 
 namespace processor {
@@ -41,8 +43,11 @@ namespace processor {
     processor() {}
     virtual ~processor() {};
 
-    virtual void process(data_buffer_type::const_iterator begin,
-			 data_buffer_type::const_iterator end) = 0;
+    virtual void process(service_base::sptr, 
+                         data_buffer_type::const_iterator,
+			 data_buffer_type::const_iterator) {
+      throw std::runtime_error("not implemented");
+    }
 
   } ;
 
@@ -51,7 +56,11 @@ namespace processor {
     typedef boost::shared_ptr<processor_iq> sptr;
     typedef std::vector<std::complex<double> > const_iterator;
     virtual ~processor_iq() {};
-    virtual void process_iq(const_iterator beg, const_iterator end) = 0;
+    virtual void process_iq(service_iq::sptr,
+                            const_iterator,
+                            const_iterator) {
+      throw std::runtime_error("not implemented");
+    }
   } ;
 
   class processor_txt : public processor {
