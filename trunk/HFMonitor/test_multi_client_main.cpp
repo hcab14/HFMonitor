@@ -2,50 +2,61 @@
 // $Id$
 
 #include <iostream>
+#include <boost/property_tree/xml_parser.hpp>
 
-#include <boost/foreach.hpp>
-#include <boost/program_options.hpp>
-
+#include "FFTProcessor.hpp"
 #include "network.hpp"
-#include "network/client/client_base.hpp"
+#include "network/broadcaster.hpp"
+#include "network/multi_client.hpp"
+#include "network/iq_adapter.hpp"
+#include "repack_processor.hpp"
+#include "run.hpp"
+
+template<typename FFTFloat>
+class FFTProcToBC : public FFTProcessor<FFTFloat> {
+public:
+  FFTProcToBC(const boost::property_tree::ptree& config)
+    : FFTProcessor<FFTFloat>(config)
+    , broadcaster_(broadcaster::make(config.get_child("Broadcaster"))) {}
+
+  virtual ~FFTProcToBC() {}
+
+protected:
+  typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
+  virtual void dump(const typename ResultMap::value_type& result) {
+    const std::string path("");
+    result.second->dumpToBC(path, result.first, broadcaster_);
+  }
+private:
+  broadcaster::sptr broadcaster_;
+} ;
 
 int main(int argc, char* argv[])
 {
-  namespace po = boost::program_options;
-  po::options_description desc("Allowed options");
-  desc.add_options()
-    ("help,?",                                                       "produce help message")
-    ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
-    ("port,p", po::value<std::string>()->default_value("18001"),     "server port");
-
-  po::variables_map vm;
+  LOGGER_INIT("./Log", "test_client");
   try {
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-    
-    if (vm.count("help")) {
-      std::cout << desc << std::endl;
-      return 1;
-    }
-  } catch (const std::exception &e) {
-    std::cout << e.what() << std::endl;
-    std::cout << desc << std::endl;
-    return 1;
-  }
+    processor::registry::reg<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
+    processor::registry::reg<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
 
-  LOGGER_INIT("./Log", "server_ls");
-  try {
-    // make up ptree config
+    const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
     boost::property_tree::ptree config;
-    config.put("server.<xmlattr>.host", vm["host"].as<std::string>());
-    config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
+    read_xml(filename, config);
 
-    client_base c(network::get_io_service(), config);
+    std::cout << "pxx= " << config.front().first << std::endl;
+    std::cout << "pxx= " << config.get_child("").front().first << std::endl;
+
+    const std::string stream_name("DataIQ");
+
+    multi_client c(config.get_child("FFTProcessor"));
 
     const std::set<std::string> streams(c.ls());
-    BOOST_FOREACH (std::string s, streams) {
-      std::cout << s;
-    }
+    // if (streams.find(stream_name) != streams.end())
+    //   ASSERT_THROW(c.connect_to(stream_name) == true);
+    // else
+    //   throw std::runtime_error(str(boost::format("stream '%s' is not available")
+    //                                % stream_name));
+    c.start();
+    run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;
