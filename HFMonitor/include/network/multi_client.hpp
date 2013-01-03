@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <string>
 
+#include "boost/tuple/tuple.hpp"
 #include "network.hpp"
 #include "network/client/client_base.hpp"
 #include "network/client/service_net.hpp"
@@ -20,10 +21,9 @@ public:
 
   // regex (matching stream names) -> processor type
   typedef std::string processor_type;
-  typedef std::vector<std::pair<boost::regex, processor_type> > processor_type_map;
+  typedef std::vector<boost::tuple<boost::regex, processor_type, std::string> > processor_type_map;
 
-  // 
-
+  //
   multi_client(const boost::property_tree::ptree& config)
     : client_base(network::get_io_service(), config)
     , config_(config) {}
@@ -31,10 +31,12 @@ public:
 
   bool connect_to(std::string stream_names,
 		  std::string processor_type,
-		  std::string extra_argument="") {
+		  std::string ptree_path="")  { // extra_argument -> key in ptree
     if (client_base::connect_to(stream_names) == false)
       return false;
-    processor_type_map_.push_back(std::make_pair(boost::regex(stream_names), processor_type));
+    processor_type_map_.push_back(boost::make_tuple(boost::regex(stream_names),
+                                                    processor_type,
+                                                    ptree_path));
     return true;
   }
 
@@ -67,16 +69,19 @@ protected:
       const stream_name str_name(i->first);
       // if not found: make new
       if (processor_id_map_.find(str_name) != processor_id_map_.end()) continue;
-      processor_id_map_[str_name] = processor::registry::make(find_type_of_stream(str_name), config_);
+      const std::pair<processor_type, std::string> p(find_type_of_stream(str_name));
+      // p.first : processor name
+      // p.second: to be used path in ptree config
+      processor_id_map_[str_name] = processor::registry::make(p.first, config_.get_child(p.second));
     }
-  }  
+  }
 
   // 
-  processor_type find_type_of_stream(std::string stream_name) const {
+  std::pair<processor_type, std::string> find_type_of_stream(std::string stream_name) const {
     processor_type_map::const_iterator end(processor_type_map_.end());
     for (processor_type_map::const_iterator i(processor_type_map_.begin()); i!=end; ++i)
-      if (regex_match(stream_name, i->first))
-        return i->second;
+      if (regex_match(stream_name, i->get<0>()))
+        return std::make_pair(i->get<1>(), i->get<2>());
     throw std::runtime_error("stream not found");
   }
 
@@ -86,6 +91,5 @@ private:
   processor_id_map   processor_id_map_;
   processor_type_map processor_type_map_;
 } ;
-
 
 #endif // _MULTI_CLIENT_HPP_cm121228_
