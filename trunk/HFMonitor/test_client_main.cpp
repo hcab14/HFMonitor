@@ -4,7 +4,8 @@
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
 #include "network.hpp"
-#include "network/client_iq.hpp"
+#include "network/client.hpp"
+#include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 
@@ -35,7 +36,8 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-    client_iq<repack_processor<test_proc> > c(config.get_child("Server"));
+    client<iq_adapter<repack_processor<test_proc> > >
+      c(config.get_child("Server"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       ASSERT_THROW(c.connect_to(stream_name) == true);

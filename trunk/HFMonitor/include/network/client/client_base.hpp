@@ -11,8 +11,8 @@
 
 #include "logging.hpp"
 #include "network/broadcaster/directory.hpp"
-
 #include "network/protocol.hpp"
+#include "processor.hpp"
 
 // generic base class for connecting to a broadcaster
 class client_base : public boost::noncopyable {
@@ -22,7 +22,7 @@ public:
     received_data
   } ;
 
-  typedef processor::processor::data_buffer_type data_buffer_type;
+  typedef processor::base::data_buffer_type data_buffer_type;
 
   client_base(boost::asio::io_service& io_service,
               const boost::property_tree::ptree& config)

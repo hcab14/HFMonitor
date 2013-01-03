@@ -45,9 +45,11 @@ namespace processor {
     service_base() {}
     virtual ~service_base() {}
     
-    virtual std::string id() const = 0;
-    virtual ptime       approx_ptime() const = 0;
-    virtual ptime       update_ptime(time_duration) = 0;
+    virtual std::string     id() const = 0;
+    virtual ptime           approx_ptime() const = 0;
+    virtual boost::uint16_t stream_number() const = 0;
+
+    virtual ptime update_ptime(time_duration) = 0;
   protected:
   private:
   } ;
@@ -63,7 +65,6 @@ namespace processor {
     virtual double          center_frequency_Hz() const = 0;
     virtual float           offset_ppb()          const = 0;
     virtual float           offset_ppb_rms()      const = 0;
-    virtual boost::uint16_t stream_number()       const = 0;
   } ;
 
   // // processor service object 
