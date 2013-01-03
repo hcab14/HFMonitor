@@ -72,11 +72,14 @@ ADD_EXECUTABLE(test_fir test_fir_main.cpp)
 TARGET_LINK_LIBRARIES(test_fir ${_libs})
 
 ADD_EXECUTABLE(test_client_FFTtoFile test_client_FFTtoFile_main.cpp)
-TARGET_LINK_LIBRARIES(test_client_FFTtoFile ${_libs} FFTAction_cpp)
+TARGET_LINK_LIBRARIES(test_client_FFTtoFile ${_libs} FFTAction_cpp processor_cpp)
 
 ADD_EXECUTABLE(test_client_FFTtoBC test_client_FFTtoBC_main.cpp)
-TARGET_LINK_LIBRARIES(test_client_FFTtoBC ${_libs} FFTAction_cpp)
+TARGET_LINK_LIBRARIES(test_client_FFTtoBC ${_libs} FFTAction_cpp processor_cpp)
 
 ADD_EXECUTABLE(test_broadcaster test_broadcaster_main.cpp)
 TARGET_LINK_LIBRARIES(test_broadcaster ${_libs})
+
+ADD_EXECUTABLE(test_multi_client test_multi_client_main.cpp)
+TARGET_LINK_LIBRARIES(test_multi_client ${_libs} FFTAction_cpp processor_cpp)
 

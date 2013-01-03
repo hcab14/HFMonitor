@@ -7,7 +7,8 @@
 #include "FFTProcessor.hpp"
 #include "network.hpp"
 #include "network/broadcaster.hpp"
-#include "network/client_iq.hpp"
+#include "network/client.hpp"
+#include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 
@@ -34,13 +35,17 @@ int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "test_client");
   try {
+    processor::registry::reg<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
+    processor::registry::reg<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
+
     const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
     const std::string stream_name("DataIQ");
 
-    client_iq<repack_processor<FFTProcToBC<double> > > c(config.get_child("FFTProcessor"));
+    client<iq_adapter<repack_processor<FFTProcToBC<double> > > >
+      c(config.get_child("FFTProcessor"));
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())

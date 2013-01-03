@@ -31,7 +31,7 @@
 #include "Spectrum.hpp"
 
 template<typename FFTFloat>
-class FFTProcessor : public processor::processor_iq {
+class FFTProcessor : public processor::base_iq {
 public:
   // typedef float FFTFloat;
   typedef std::complex<double> Complex;
@@ -97,7 +97,8 @@ public:
   } ;
  
   FFTProcessor(const boost::property_tree::ptree& config)
-    : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+    : base_iq(config)
+    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , calibrationKey_(config.get<std::string>("Actions.<xmlattr>.calibrationKey"))
     , modCounter_(std::max(1u, config.get<unsigned>("<xmlattr>.numberOfCollectedEpochs"))) {

@@ -6,52 +6,52 @@
 
 #include "FFTProcessor.hpp"
 #include "network.hpp"
-#include "network/client.hpp"
+#include "network/broadcaster.hpp"
+#include "network/multi_client.hpp"
 #include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 
 template<typename FFTFloat>
-class FFTProcToFile : public FFTProcessor<FFTFloat> {
+class FFTProcToBC : public FFTProcessor<FFTFloat> {
 public:
-  FFTProcToFile(const boost::property_tree::ptree& config)
+  FFTProcToBC(const boost::property_tree::ptree& config)
     : FFTProcessor<FFTFloat>(config)
-    , dataPath_(config.get<std::string>("FileSink.<xmlattr>.path")) {}
+    , broadcaster_(broadcaster::make(config.get_child("Broadcaster"))) {}
 
-  virtual ~FFTProcToFile() {}
+  virtual ~FFTProcToBC() {}
 
-  boost::asio::io_service& get_service() { return service_; }
-  
 protected:
   typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
-
   virtual void dump(const typename ResultMap::value_type& result) {
-    result.second->dumpToFile(dataPath_, result.first);
+    const std::string path("");
+    result.second->dumpToBC(path, result.first, broadcaster_);
   }
 private:
-  std::string dataPath_;
-  boost::asio::io_service service_;
+  broadcaster::sptr broadcaster_;
 } ;
 
 int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "test_client");
   try {
+    processor::registry::reg<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
+    processor::registry::reg<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
+
     const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
     const std::string stream_name("DataIQ");
 
-    client<iq_adapter<repack_processor<FFTProcToFile<double> > > >
-      c(config.get_child("FFTProcessor"));
+    multi_client c(config.get_child("FFTProcessor"));
+
     const std::set<std::string> streams(c.ls());
-    if (streams.find(stream_name) != streams.end())
-      ASSERT_THROW(c.connect_to(stream_name) == true);
-    else
-      throw std::runtime_error(str(boost::format("stream '%s' is not available")
-                                   % stream_name));
-    
+    // if (streams.find(stream_name) != streams.end())
+    //   ASSERT_THROW(c.connect_to(stream_name) == true);
+    // else
+    //   throw std::runtime_error(str(boost::format("stream '%s' is not available")
+    //                                % stream_name));
     c.start();
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {

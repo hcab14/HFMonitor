@@ -20,42 +20,73 @@
 #define _PROCESSOR_HPP_cm121221_
 
 #include <complex>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/function.hpp>
+#include <boost/functional/factory.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "processor/service.hpp"
 
 namespace processor {
-  class processor : public boost::noncopyable {
+  class base : public boost::noncopyable {
   public:
-    typedef boost::shared_ptr<processor> sptr;
+    typedef boost::shared_ptr<base> sptr;
 
     enum {
       max_buffer_size = 1024*1024 // 1MB
     } ;
     typedef boost::array<char, max_buffer_size> data_buffer_type;
     
-    processor() {}
-    virtual ~processor() {};
+    base(const boost::property_tree::ptree&) {}
+    virtual ~base() {};
 
     virtual void process(service_base::sptr, 
                          data_buffer_type::const_iterator,
 			 data_buffer_type::const_iterator) {
       throw std::runtime_error("not implemented");
     }
-
   } ;
 
-  class processor_iq : public processor {
+  class registry {
   public:
-    typedef boost::shared_ptr<processor_iq> sptr;
+    typedef boost::function<base::sptr(const boost::property_tree::ptree&)> a_factory;
+    typedef std::map<std::string, a_factory> map_type;
+
+    registry() {}
+
+    static base::sptr make(std::string key, const boost::property_tree::ptree& config) {
+      map_type::iterator i(map().find(key));
+      if (i == map().end())
+        return base::sptr();
+      return i->second(config);
+    }
+
+    template<typename T>
+    static void reg(std::string key) {
+      map()[key] = boost::factory<typename T::sptr>();
+    }
+
+    static map_type& map() { return map_; }
+    static map_type map_;
+  private:
+  } ;
+
+  class base_iq : public base {
+  public:
+    typedef boost::shared_ptr<base_iq> sptr;
     typedef std::vector<std::complex<double> > const_iterator;
-    virtual ~processor_iq() {};
+
+    base_iq(const boost::property_tree::ptree& config)
+      : base(config) {}
+
+    virtual ~base_iq() {};
     virtual void process_iq(service_iq::sptr,
                             const_iterator,
                             const_iterator) {
@@ -63,13 +94,13 @@ namespace processor {
     }
   } ;
 
-  class processor_txt : public processor {
+  class processor_txt : public base {
   public:
     typedef boost::shared_ptr<processor_txt> sptr;
     virtual ~processor_txt() {};
   } ;
 
-  class processor_png : public processor {
+  class processor_png : public base {
   public:
     typedef boost::shared_ptr<processor_png> sptr;
     virtual ~processor_png() {};
