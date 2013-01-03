@@ -17,8 +17,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "FIR.hpp"
-#include "fir/overlap_save.hpp"
+#include "filter/fir.hpp"
+#include "filter/fir/overlap_save.hpp"
 
 int main()
 {

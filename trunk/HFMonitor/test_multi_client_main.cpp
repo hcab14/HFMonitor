@@ -42,9 +42,6 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
-    std::cout << "pxx= " << config.front().first << std::endl;
-    std::cout << "pxx= " << config.get_child("").front().first << std::endl;
-
     const std::string stream_name("DataIQ");
 
     multi_client c(config.get_child("FFTProcessor"));
