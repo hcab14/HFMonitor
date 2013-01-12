@@ -30,9 +30,9 @@ public:
 
   virtual void process(data_buffer_type::const_iterator begin,
                        data_buffer_type::const_iterator end) {
-    LOG_INFO(str(boost::format("process: h='%s', length=%d")
+    LOG_INFO(str(boost::format("client::process: h='%s', length=%d")
                  % get_header()
-                 % std::distance(begin,end)));
+                 % std::distance(begin,end)));    
     processor::service_base::sptr sp(service_net::make(get_header()));
     p_.process(sp, begin, end);
   }

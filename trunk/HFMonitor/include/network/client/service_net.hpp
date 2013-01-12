@@ -19,7 +19,8 @@ public:
   virtual ~service_net() {}
   
   static sptr make(const header& h) {
-    return sptr(new service_net(h)); 
+    sptr result(new service_net(h));
+    return result;
   }
   
   virtual std::string     id()            const { return header_.id(); }
@@ -43,7 +44,8 @@ public:
   
   static sptr make(processor::service_base::sptr sp,
                    const iq_info& hiq) {
-    return sptr(new service_net_iq(sp, hiq)); 
+    sptr result(new service_net_iq(sp, hiq));
+    return result;
   }
   
   virtual std::string     id()                  const { return sp_->id(); }
