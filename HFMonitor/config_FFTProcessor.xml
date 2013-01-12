@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
+<Broadcaster> 
+ <Data maxQueueSize_MB="2"
+       maxQueueDelay_Minutes="5"
+       port="19001">
+ </Data>
+ <Ctrl port="19002"></Ctrl>
+</Broadcaster>
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="4">
   <server host="127.0.0.1"

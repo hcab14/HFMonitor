@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
     // else
     //   throw std::runtime_error(str(boost::format("stream '%s' is not available")
     //                                % stream_name));
+    ASSERT_THROW(c.connect_to("*", "WriterTXT") == true);
     c.start();
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {

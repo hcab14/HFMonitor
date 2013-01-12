@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-//     client<iq_adapter<repack_processor<FFTProcToFile<double> > > >
-    client<iq_adapter<null_processor_iq> >
+    // client<iq_adapter<null_processor_iq> >
+    client<iq_adapter<repack_processor<FFTProcToFile<double> > > >
       c(config.get_child("FFTProcessor"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
