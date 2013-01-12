@@ -33,16 +33,13 @@ public:
   void process(service::sptr sp,
                const_iterator begin,
                const_iterator end) {
-    std::cout << "sp->id()" << " " << sp->approx_ptime() << " " << sp->stream_number() << std::endl;
     if (std::string(sp->id(), 0, 2) != "IQ")
       return;
 
     iq_info header_iq;
     bcopy(begin, &header_iq, sizeof(iq_info));
-    std::cout << "header_iq: " << header_iq << std::endl;
     begin += sizeof(iq_info);
 
-    // std::cout << "process: " << h << " " << header_iq << std::endl;
     std::vector<std::complex<double> > iqs;
     if (header_iq.sample_type() == 'I' && header_iq.bytes_per_sample() ==3) {
       const double norm(1./static_cast<double>(1L << 31));
@@ -54,11 +51,12 @@ public:
                                       s.iq.i*norm);
         iqs.push_back(cs);
       }
+
       // make up service object
-      service_net_iq::sptr sp(service_net_iq::make(sp, header_iq));
+      service_net_iq::sptr snp(service_net_iq::make(sp, header_iq));
 
       // call processor
-      p_.process_iq(sp, iqs.begin(), iqs.end());
+      p_.process_iq(snp, iqs.begin(), iqs.end());
     } else {
       // complain
     }

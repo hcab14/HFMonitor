@@ -42,8 +42,7 @@ public:
   typedef boost::shared_ptr<service_net_iq> sptr;
   virtual ~service_net_iq() {}
   
-  static sptr make(processor::service_base::sptr sp,
-                   const iq_info& hiq) {
+  static sptr make(processor::service_base::sptr sp, const iq_info& hiq) {
     sptr result(new service_net_iq(sp, hiq));
     return result;
   }

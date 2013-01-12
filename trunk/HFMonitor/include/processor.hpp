@@ -61,6 +61,7 @@ namespace processor {
       : base(config) {}
 
     virtual ~base_iq() {};
+
     virtual void process_iq(service::sptr, const_iterator, const_iterator) {
       throw std::runtime_error("not implemented");
     }

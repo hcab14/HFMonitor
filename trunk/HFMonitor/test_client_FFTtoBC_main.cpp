@@ -18,23 +18,29 @@ class FFTProcToBC : public FFTProcessor<FFTFloat> {
 public:
   FFTProcToBC(const boost::property_tree::ptree& config)
     : FFTProcessor<FFTFloat>(config)
-    , broadcaster_(broadcaster::make(config.get_child("Broadcaster"))) {}
+    , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
+    , started_(false) {}
 
   virtual ~FFTProcToBC() {}
 
 protected:
   typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
   virtual void dump(const typename ResultMap::value_type& result) {
-    const std::string path("");
+    if (!started_) {
+      broadcaster_->start();
+      started_= false;
+    }
+    const std::string path(result.second->name());
     result.second->dumpToBC(path, result.first, broadcaster_);
   }
 private:
   broadcaster::sptr broadcaster_;
+  bool              started_;
 } ;
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "test_client");
+  LOGGER_INIT("./Log", "test_client_FFTProcToBC");
   try {
     processor::registry::add<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
     processor::registry::add<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
