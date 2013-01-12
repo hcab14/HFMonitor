@@ -20,14 +20,10 @@
 #define _PROCESSOR_HPP_cm121221_
 
 #include <complex>
-#include <map>
 #include <stdexcept>
-#include <string>
 #include <vector>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/function.hpp>
-#include <boost/functional/factory.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
@@ -43,53 +39,29 @@ namespace processor {
       max_buffer_size = 1024*1024 // 1MB
     } ;
     typedef boost::array<char, max_buffer_size> data_buffer_type;
-    
+    typedef data_buffer_type::const_iterator const_iterator;
+    typedef service_base service;
+
     base(const boost::property_tree::ptree&) {}
     virtual ~base() {};
 
-    virtual void process(service_base::sptr, 
-                         data_buffer_type::const_iterator,
-			 data_buffer_type::const_iterator) {
+    virtual void process(service::sptr, const_iterator, const_iterator) {
       throw std::runtime_error("not implemented");
     }
-  } ;
-
-  class registry {
-  public:
-    typedef boost::function<base::sptr(const boost::property_tree::ptree&)> a_factory;
-    typedef std::map<std::string, a_factory> map_type;
-
-    registry() {}
-
-    static base::sptr make(std::string key, const boost::property_tree::ptree& config) {
-      map_type::iterator i(map().find(key));
-      if (i == map().end())
-        return base::sptr();
-      return i->second(config);
-    }
-
-    template<typename T>
-    static void reg(std::string key) {
-      map()[key] = boost::factory<typename T::sptr>();
-    }
-
-    static map_type& map() { return map_; }
-    static map_type map_;
-  private:
   } ;
 
   class base_iq : public base {
   public:
     typedef boost::shared_ptr<base_iq> sptr;
-    typedef std::vector<std::complex<double> > const_iterator;
+    typedef std::vector<std::complex<double> >::const_iterator const_iterator;
+
+    typedef service_iq service;
 
     base_iq(const boost::property_tree::ptree& config)
       : base(config) {}
 
     virtual ~base_iq() {};
-    virtual void process_iq(service_iq::sptr,
-                            const_iterator,
-                            const_iterator) {
+    virtual void process_iq(service::sptr, const_iterator, const_iterator) {
       throw std::runtime_error("not implemented");
     }
   } ;

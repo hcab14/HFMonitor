@@ -9,6 +9,7 @@
 #include "network/broadcaster.hpp"
 #include "network/client.hpp"
 #include "network/iq_adapter.hpp"
+#include "processor/registry.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 
@@ -35,8 +36,8 @@ int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "test_client");
   try {
-    processor::registry::reg<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
-    processor::registry::reg<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
+    processor::registry::add<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
+    processor::registry::add<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
 
     const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
     boost::property_tree::ptree config;

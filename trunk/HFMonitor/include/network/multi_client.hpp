@@ -12,6 +12,7 @@
 #include "network/client/client_base.hpp"
 #include "network/client/service_net.hpp"
 #include "processor.hpp"
+#include "processor/registry.hpp"
 
 class multi_client : public client_base {
 public:
