@@ -33,6 +33,35 @@ private:
   boost::asio::io_service service_;
 } ;
 
+class null_processor : public processor::base {
+public:  
+  null_processor(const boost::property_tree::ptree& config)
+    : base(config) {}
+  virtual ~null_processor() {}
+
+  virtual void process(service::sptr s, const_iterator i0, const_iterator i1) {
+    std::cout << "null_processor::process " << s->approx_ptime() << std::distance(i0, i1) << std::endl;
+  }
+protected:
+private:
+
+} ;
+
+class null_processor_iq : public processor::base_iq {
+public:  
+  null_processor_iq(const boost::property_tree::ptree& config)
+    : base_iq(config) {}
+  virtual ~null_processor_iq() {}
+
+  virtual void process_iq(service::sptr s, const_iterator i0, const_iterator i1) {
+    std::cout << "process_iq " << s.get() << std::endl;
+    std::cout << "null_processor::process " << s->id() << std::endl;
+  }
+protected:
+private:
+
+} ;
+
 int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "test_client");
@@ -43,7 +72,8 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-    client<iq_adapter<repack_processor<FFTProcToFile<double> > > >
+//     client<iq_adapter<repack_processor<FFTProcToFile<double> > > >
+    client<iq_adapter<null_processor_iq> >
       c(config.get_child("FFTProcessor"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())

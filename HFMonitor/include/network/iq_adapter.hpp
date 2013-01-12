@@ -9,7 +9,7 @@
 
 // adapter
 template<typename PROCESSOR>
-class iq_adapter {
+class iq_adapter : public processor::base {
   // for integer I/Q samples
   typedef union {
     struct __attribute__((__packed__)) {
@@ -23,27 +23,30 @@ class iq_adapter {
   } iq_sample;
 
 public:
-  typedef processor::base::data_buffer_type data_buffer_type;
 
   iq_adapter(const boost::property_tree::ptree& config)
-    : p_(config) {}
+    : base(config)
+    , p_(config) {}
   
   virtual ~iq_adapter() {}
   
-  void process(processor::service_base::sptr sp,
-               data_buffer_type::const_iterator begin,
-               data_buffer_type::const_iterator end) {
+  void process(service::sptr sp,
+               const_iterator begin,
+               const_iterator end) {
+    std::cout << "sp->id()" << " " << sp->approx_ptime() << " " << sp->stream_number() << std::endl;
     if (std::string(sp->id(), 0, 2) != "IQ")
       return;
 
     iq_info header_iq;
     bcopy(begin, &header_iq, sizeof(iq_info));
+    std::cout << "header_iq: " << header_iq << std::endl;
     begin += sizeof(iq_info);
+
     // std::cout << "process: " << h << " " << header_iq << std::endl;
     std::vector<std::complex<double> > iqs;
     if (header_iq.sample_type() == 'I' && header_iq.bytes_per_sample() ==3) {
       const double norm(1./static_cast<double>(1L << 31));
-      for (data_buffer_type::const_iterator i(begin); i!=end;) {
+      for (const_iterator i(begin); i!=end;) {
         iq_sample s;
         s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
         s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;

@@ -2,9 +2,9 @@
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="4">
-  <Server host="127.0.0.1"
+  <server host="127.0.0.1"
 	  port="18001">
-  </Server>
+  </server>
   <Broadcaster>
     <Data port="19001"
 	  maxQueueSize_MB="1"
