@@ -16,7 +16,7 @@ public:
     PeriodHour,
     Period5Minutes,
     Period1Minute
-  } FilePeriod;
+  } file_period;
   
   virtual ~gen_filename() {}
 
@@ -41,6 +41,14 @@ public:
     return p/=(oss.str());
   }
   
+  static file_period str2period(std::string s) {
+    if (s == "1d") return PeriodDay;
+    if (s == "1h") return PeriodHour;
+    if (s == "5m") return Period5Minutes;
+    if (s == "1m") return Period1Minute;
+    throw std::runtime_error("str2period: invalid period '" + s + "'");
+  }
+
 protected:
 private:
   static std::string make_time_format(file_period p) {

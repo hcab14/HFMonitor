@@ -28,12 +28,11 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include "gen_filename.hpp"
+#include "processor.hpp"
+#include "network/protocol.hpp"
+//#include "service/perseus.hpp"
 #include "wave/definitions.hpp"
-#include "service/IQBuffer.hpp"
-#include "service/protocol.hpp"
-
-#include "service/generic_iq.hpp"
-#include "service/perseus.hpp"
 
 namespace wave {
   namespace { // anonymous
@@ -45,8 +44,8 @@ namespace wave {
       // we assume abs(s)<=1
       boost::uint32_t si= boost::uint32_t(std::abs(s) * (1L << (bitsPerSample-1)));
       if (s < 0.) si= 1L + (0xFFFFFFFFL ^ si);
-      for (size_t u=0; u<bitsPerSample; u+=8) {
-        const boost::uint8_t c= (si >> u) & 0xFF;
+      for (size_t u(0); u<bitsPerSample; u+=8) {
+        const boost::uint8_t c((si >> u) & 0xFF);
         writeT(os, c);
       }
     } // namespace anonymous
@@ -60,11 +59,11 @@ namespace wave {
                   bitsPerSample,
                   numChannels) {}
 
-      const wave_header& change_sample_rate(boost::uint32_t new_sample_rate) {
+      wave_header& change_sample_rate(boost::uint32_t new_sample_rate) {
         format_.changeSampleRate(new_sample_rate);
         return *this;
       }
-      const wave_header& add_samples(size_t number_of_samples) {
+      wave_header& add_samples(size_t number_of_samples) {
         data_.size() +=  number_of_samples * format_.numChannels() * format_.bitsPerSample()/8;
         riff_.size() =  4 + (8 + format_.size()) + (8 + data_.size());
         return *this;
@@ -80,40 +79,50 @@ namespace wave {
     } ;
   } // namespace anonymous
 
-  class writer_iq {
+  class writer_iq : public processor::base_iq, public gen_filename {
   public:
-    writer_iq(std::string filename,
-              boost::uint32_t sampleRate,
-              boost::uint16_t bitsPerSample,
-              boost::uint16_t numChannels)
-      : filename_(filename)
+    writer_iq(const boost::property_tree::ptree& config)
+      : base_iq(config)
+      , base_path_(config.get<std::string>("<xmlattr>.filePath"))
+      , tag_(config.get<std::string>("<xmlattr>.fileTag"))
+      , file_period_(gen_filename::str2period(config.get<std::string>("<xmlattr>.filePeriod")))
       , pos_(0)
-      , header_(sampleRate, bitsPerSample, numChannels) {}
+      , header_(0, config.get<int>("<xmlattr>.bitsPerSample", 16), 2) 
+        // set correct sampling frequency later, number of channels is fixed to 2
+    {}
+
+    virtual ~writer_iq() {}
     
-    void process_iq(processor::service_base::sptr service,
-                    IQBuffer::Samples::const_iterator i0, 
-                    IQBuffer::Samples::const_iterator i1) {
+    // gen_filename methods
+    virtual file_period filePeriod()    const { return file_period_; }
+    virtual std::string fileExtension() const { return "wav"; }
+
+    virtual void process_iq(processor::service_iq::sptr service,
+                            processor::base_iq::const_iterator i0, 
+                            processor::base_iq::const_iterator i1) {
       std::cout << "writer_iq::process_iq " << service->approx_ptime() << " "
                 << pos_ << " " 
                 << std::distance(i0, i1) << std::endl;
-      const boost::filesystem::path filepath(filename_);
+      const boost::filesystem::path
+        filepath(gen_file_path(base_path_, tag_, service->approx_ptime()));
+
       if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
         std::cerr << "file '" << filepath << "' exists and will be overwritten" << std::endl;
         boost::filesystem::remove(filepath);
       }
       if (not boost::filesystem::exists(filepath)) {
         std::cerr << "new file " << filepath << " samplerate= " 
-                  << service->sample_rate_hz() << std::endl;
-        std::ofstream ofs(filename_.c_str(), std::ios::binary);        
-        writeT(ofs, header_.change_sample_rate(service->sample_rate_hz()));
+                  << service->sample_rate_Hz() << std::endl;
+        std::ofstream ofs(filepath.c_str(), std::ios::binary);        
+        writeT(ofs, header_.change_sample_rate(service->sample_rate_Hz()));
         pos_ = ofs.tellp();
         std::cerr << "writing header to file '" << filepath << "' exists " << std::endl;
       }
       // write data
       // TBD
-      std::ofstream ofs(filename_.c_str(), std::ios::in | std::ios::out | std::ios::binary);
+      std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
       ofs.seekp(pos_);
-      for (IQBuffer::Samples::const_iterator i=i0; i!=i1; ++i) {
+      for (processor::base_iq::const_iterator i(i0); i!=i1; ++i) {
         write_real_sample(ofs, header_.format().bitsPerSample(), i->real()); // i
         write_real_sample(ofs, header_.format().bitsPerSample(), i->imag()); // q
       }
@@ -123,7 +132,9 @@ namespace wave {
 
   protected:
   private:
-    std::string    filename_;
+    std::string    base_path_;
+    std::string    tag_;
+    gen_filename::file_period file_period_;
     std::streampos pos_;    
     wave_header    header_;
   } ;
