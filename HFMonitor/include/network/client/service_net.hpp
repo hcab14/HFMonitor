@@ -64,7 +64,7 @@ private:
     : sp_(sp)
     , iq_info_(hiq) {}
   
-  processor::service_base::sptr sp_;
+  processor::base::service::sptr sp_;
   iq_info iq_info_;
 } ;
 
