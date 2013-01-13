@@ -48,6 +48,7 @@ namespace processor {
     virtual std::string     id() const = 0;
     virtual ptime           approx_ptime() const = 0;
     virtual boost::uint16_t stream_number() const = 0;
+    virtual std::string     stream_name() const = 0;
 
     virtual ptime update_ptime(time_duration) = 0;
   protected:

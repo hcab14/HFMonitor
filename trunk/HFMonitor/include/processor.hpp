@@ -46,7 +46,7 @@ namespace processor {
     virtual ~base() {};
 
     virtual void process(service::sptr, const_iterator, const_iterator) {
-      throw std::runtime_error("not implemented");
+      throw std::runtime_error("processor::base::process is not implemented");
     }
   } ;
 
@@ -63,7 +63,7 @@ namespace processor {
     virtual ~base_iq() {};
 
     virtual void process_iq(service::sptr, const_iterator, const_iterator) {
-      throw std::runtime_error("not implemented");
+      throw std::runtime_error("processor::base_iq::process_iq is not implemented");
     }
   } ;
 

@@ -8,7 +8,7 @@
  <Ctrl port="19002"></Ctrl>
 </Broadcaster>
 <FFTProcessor windowFunction="Blackman"
-	      numberOfCollectedEpochs="4">
+	      numberOfCollectedEpochs="1">
   <server host="127.0.0.1"
 	  port="18001">
   </server>
@@ -373,14 +373,6 @@
 		fMin_Hz="182.800e3"
 		fMax_Hz="183.200e3"
 		fRef_Hz="183.000e3"
-		minRatio="10"
-		plotSpectrum="0">
-	<Calibration key="L1.CAL"></Calibration>
-      </FindPeak>
-      <FindPeak name="189000_AM_XXX"
-		fMin_Hz="188.800e3"
-		fMax_Hz="189.200e3"
-		fRef_Hz="189.000e3"
 		minRatio="10"
 		plotSpectrum="0">
 	<Calibration key="L1.CAL"></Calibration>

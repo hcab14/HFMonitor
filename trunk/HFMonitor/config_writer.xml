@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<WriterTXT filePath="DataBC"
+           fileTag="tag"
+           filePeriod="5m">
+  <server host="127.0.0.1"
+	  port="19001">
+  </server>
+</WriterTXT>

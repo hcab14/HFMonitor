@@ -102,8 +102,7 @@ public:
   }
 
   // notifies derived classes of an update of directory
-  virtual void directory_update(const broadcaster_directory& old_directory,
-                                const broadcaster_directory& new_directory) {
+  virtual void directory_update(const broadcaster_directory&) {
     // NOP by default
   }
 
@@ -174,7 +173,6 @@ private:
     }
     switch (rdt) {
     case received_header:
-      // std::cout << "header= " << header_ << std::endl;
       async_receive_data();
       break;
     case received_data:
@@ -182,7 +180,7 @@ private:
       if (header_.id() == "DIR_0000") {
         broadcaster_directory new_directory;
         new_directory.update(header_.length(), data_buffer_.data());
-        directory_update(directory_, new_directory);
+        directory_update(new_directory);
         std::swap(new_directory, directory_);
       } else {
         // process data samples in a method overwritten in a derived class
@@ -192,7 +190,7 @@ private:
       async_receive_header();
       break;
     default:
-      ; // this should never happen : complaint TBD
+      throw std::runtime_error("client_base::on_receive: invalid received data type");
     }
   }
 
