@@ -26,9 +26,9 @@ public:
 protected:
   typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
   virtual void dump(const typename ResultMap::value_type& result) {
-    if (!started_) {
+    if (not started_) {
       broadcaster_->start();
-      started_= false;
+      started_= true;
     }
     const std::string path(result.second->name());
     result.second->dumpToBC(path, result.first, broadcaster_);

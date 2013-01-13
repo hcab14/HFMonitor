@@ -73,14 +73,20 @@ namespace Result {
                         Base* h) {
       std::ostringstream sData;
       h->dumpData(sData);
-      std::ostringstream sHeader;
-      h->dumpData(sHeader);
+//       std::cout << "dumpToBCSingle: " << path << " " << tag << " '" << sData.str() << "'" << std::endl;
+//       std::ostringstream sHeader;
+//       h->dumpData(sHeader);
+      std::string sd(sData.str());
       const boost::uint32_t stream_number(bc->register_stream(tag));
       const header header(h->format(), h->time(), stream_number, sData.str().size());
       std::string d;
-      std::copy(header.begin(),      header.end(),      std::back_inserter(d));
-      std::copy(sData.str().begin(), sData.str().end(), std::back_inserter(d));
-      bc->bc_data(this->time(), tag, d, sHeader.str());
+      std::copy(header.begin(), header.end(), std::back_inserter(d));
+      std::copy(sd.begin(),     sd.end(),     std::back_inserter(d));
+//       std::cout << "dumpToBCSingle: " << path << " " << tag << " '" << sData.str()
+//                 << "' s=" << d.size() - sizeof(header)
+//                 << " sData.size=" << sData.str().size()        
+//                 << std::endl;
+      bc->bc_data(this->time(), tag, d);//, sHeader.str());
     }
 
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 

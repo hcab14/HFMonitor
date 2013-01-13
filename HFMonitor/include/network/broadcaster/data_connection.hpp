@@ -144,18 +144,21 @@ public:
   ptime last_tick_time() const { return last_tick_time_; }
 
   bool match_path(std::string path) const {
-    for (std::set<boost::regex>::const_iterator i(stream_names_.begin());
-         i != stream_names_.end(); ++i)
-      if (regex_match(path, *i)) return true;
+    BOOST_FOREACH(const boost::regex& r, stream_names_) 
+      if (regex_match(path, r)) return true;
     return false;
   }
   
-  // path="" is always broadcasted
   bool push_back(ptime t, std::string path, const data_ptr& dp, data_type preamble) {
     if (status_ == status_init)  return true; 
     if (status_ == status_error) return false; 
+    // path="" is always broadcasted
     if (path != "" && !match_path(path))
       return true;
+
+    // pedantic check
+    const header* hp(reinterpret_cast<const header*>(&(*dp)[0]));
+    assert(sizeof(header)+hp->length() == dp->size());
     
     max_delay_ = std::max(max_delay_, delay(t));
     // if the buffer is full forget all data except first packets which may be being sent
@@ -182,6 +185,11 @@ public:
   void async_write_data() {
     if (!empty() && is_open()) {
       data_ptr dataPtr(front().second);
+      const header* hp = (const header*)dataPtr->data();
+      if (hp->length() != dataPtr->size() - sizeof(header)) {
+        std::cout << "async_write_data: " << hp->length()  << " " << dataPtr->size() - sizeof(header)
+                  << " " << *hp << std::endl;
+      }
       boost::asio::async_write(*tcp_socket_ptr_,
                                boost::asio::buffer(dataPtr->data(), dataPtr->size()),
                                strand_.wrap(boost::bind(&data_connection::handle_write_data,
@@ -237,7 +245,14 @@ public:
         std::string stream_name;
         while (response_stream >> stream_name) {          
           LOG_INFO(str(boost::format("handle_receive_command requested stream name='%s'") % stream_name));
-          const boost::regex stream_regex(stream_name);
+          boost::regex stream_regex;
+          try { // stream_name may not be a proper reguar expression
+            stream_regex = boost::regex(stream_name);
+          } catch (const boost::regex_error& e) {
+            LOG_ERROR(str(boost::format("handle_receive_command: invalid regex '%s'") % stream_name));
+            send_reply(str(boost::format("ERROR: invalid regex '%s'") % stream_name), status_);
+            return;
+          }
           if (directory_.contains(stream_regex)) {
             stream_names_.insert(stream_regex);
             LOG_INFO(str(boost::format("handle_receive_command successfully requested stream name='%s'")
@@ -286,7 +301,7 @@ public:
     } else {
       // this is tricky: if we do not wait long enough
       // the client will receiver more data than expected in async_read_until:
-      // therfore the status is updated only after the first tick has been received
+      // therefore the status is updated only after the first tick has been received
       if (new_status == status_configured) {
         // make sure that first the current directory is broadcasted
         const ptime now(boost::posix_time::microsec_clock::universal_time());

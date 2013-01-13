@@ -15,49 +15,30 @@
 #include "writer.hpp"
 #include "run.hpp"
 
-template<typename FFTFloat>
-class FFTProcToBC : public FFTProcessor<FFTFloat> {
-public:
-  FFTProcToBC(const boost::property_tree::ptree& config)
-    : FFTProcessor<FFTFloat>(config)
-    , broadcaster_(broadcaster::make(config.get_child("Broadcaster"))) {}
-
-  virtual ~FFTProcToBC() {}
-
-protected:
-  typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
-  virtual void dump(const typename ResultMap::value_type& result) {
-    const std::string path("");
-    result.second->dumpToBC(path, result.first, broadcaster_);
-  }
-private:
-  broadcaster::sptr broadcaster_;
-} ;
-
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "test_client");
+  LOGGER_INIT("./Log", "test_multi_client");
   try {
-    processor::registry::add<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
-    processor::registry::add<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
-    processor::registry::add<wave::writer_iq>     ("WriterIQ");
+//     processor::registry::add<FFTProcToBC<float>  >("FFTProcToBC_FLOAT");
+//     processor::registry::add<FFTProcToBC<double> >("FFTProcToBC_DOUBLE");
+//     processor::registry::add<wave::writer_iq>     ("WriterIQ");
     processor::registry::add<writer_txt>          ("WriterTXT");
 
     const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
-    const std::string stream_name("DataIQ");
-
-    multi_client c(config.get_child("FFTProcessor"));
+    multi_client c(config.get_child("WriterTXT"));
 
     const std::set<std::string> streams(c.ls());
+    BOOST_FOREACH(std::string stream, streams)
+      std::cout << "-- " << stream << std::endl;
     // if (streams.find(stream_name) != streams.end())
     //   ASSERT_THROW(c.connect_to(stream_name) == true);
     // else
     //   throw std::runtime_error(str(boost::format("stream '%s' is not available")
     //                                % stream_name));
-    ASSERT_THROW(c.connect_to("*", "WriterTXT") == true);
+    ASSERT_THROW(c.connect_to("L2.*", "WriterTXT") == true);
     c.start();
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {

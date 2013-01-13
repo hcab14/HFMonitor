@@ -35,7 +35,7 @@
 #include "wave/definitions.hpp"
 
 namespace wave {
-  namespace { // anonymous
+  namespace detail {
     template<typename T>
     std::ostream& writeT(std::ostream& os, const T& data) {
       return os.write((char *)(&data), sizeof(T));
@@ -48,7 +48,7 @@ namespace wave {
         const boost::uint8_t c((si >> u) & 0xFF);
         writeT(os, c);
       }
-    } // namespace anonymous
+    }
 
     class wave_header {
     public:
@@ -77,10 +77,12 @@ namespace wave {
       chunk::format format_;
       chunk::data   data_;
     } ;
-  } // namespace anonymous
+  } // namespace detail
 
   class writer_iq : public processor::base_iq, public gen_filename {
   public:
+    typedef boost::shared_ptr<writer_iq> sptr;
+
     writer_iq(const boost::property_tree::ptree& config)
       : base_iq(config)
       , base_path_(config.get<std::string>("<xmlattr>.filePath"))
@@ -114,7 +116,7 @@ namespace wave {
         std::cerr << "new file " << filepath << " samplerate= " 
                   << service->sample_rate_Hz() << std::endl;
         std::ofstream ofs(filepath.c_str(), std::ios::binary);        
-        writeT(ofs, header_.change_sample_rate(service->sample_rate_Hz()));
+        detail::writeT(ofs, header_.change_sample_rate(service->sample_rate_Hz()));
         pos_ = ofs.tellp();
         std::cerr << "writing header to file '" << filepath << "' exists " << std::endl;
       }
@@ -123,11 +125,11 @@ namespace wave {
       std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
       ofs.seekp(pos_);
       for (processor::base_iq::const_iterator i(i0); i!=i1; ++i) {
-        write_real_sample(ofs, header_.format().bitsPerSample(), i->real()); // i
-        write_real_sample(ofs, header_.format().bitsPerSample(), i->imag()); // q
+        detail::write_real_sample(ofs, header_.format().bitsPerSample(), i->real()); // i
+        detail::write_real_sample(ofs, header_.format().bitsPerSample(), i->imag()); // q
       }
       pos_ = ofs.tellp();      
-      writeT(ofs.seekp(0), header_.add_samples(std::distance(i0, i1)));
+      detail::writeT(ofs.seekp(0), header_.add_samples(std::distance(i0, i1)));
     }
 
   protected:
@@ -136,7 +138,7 @@ namespace wave {
     std::string    tag_;
     gen_filename::file_period file_period_;
     std::streampos pos_;    
-    wave_header    header_;
+    detail::wave_header header_;
   } ;
 } // namespace wave
 

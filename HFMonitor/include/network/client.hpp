@@ -33,12 +33,11 @@ public:
 //     LOG_INFO(str(boost::format("client::process: h='%s', length=%d")
 //                  % get_header()
 //                  % std::distance(begin,end)));    
-    processor::service_base::sptr sp(service_net::make(get_header()));
+    processor::service_base::sptr sp(service_net::make(get_header(), get_directory()));
     p_.process(sp, begin, end);
   }
 
-  virtual void directory_update(const broadcaster_directory& old_directory,
-                                const broadcaster_directory& new_directory) {
+  virtual void directory_update(const broadcaster_directory& new_directory) {
     // NOP
   }
 

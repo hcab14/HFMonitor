@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 
 #include "logging.hpp"
+#include "network/broadcaster/directory.hpp"
 #include "network/protocol.hpp"
 #include "processor.hpp"
 
@@ -18,23 +19,28 @@ public:
   typedef boost::shared_ptr<service_net> sptr;
   virtual ~service_net() {}
   
-  static sptr make(const header& h) {
-    sptr result(new service_net(h));
+  static sptr make(const header& h,
+                   const broadcaster_directory& d) {
+    sptr result(new service_net(h, d));
     return result;
   }
   
   virtual std::string     id()            const { return header_.id(); }
   virtual ptime           approx_ptime()  const { return header_.approx_ptime(); }
   virtual boost::uint16_t stream_number() const { return header_.stream_number(); }
-  
+  virtual std::string     stream_name()   const { return directory_.stream_name_of(stream_number()); }
+
   virtual ptime update_ptime(time_duration dt) { return header_.update_ptime(dt); }
 protected:
 private:
-  service_net(const header& h)
-  : service_base()
-  , header_(h) {}
+  service_net(const header& h,
+              const broadcaster_directory& d)
+    : service_base()
+    , header_(h)
+    , directory_(d) {}
   
-  header  header_;
+  header header_;
+  const broadcaster_directory& directory_;
 } ;
 
 class service_net_iq : public processor::service_iq {
@@ -50,6 +56,7 @@ public:
   virtual std::string     id()                  const { return sp_->id(); }
   virtual ptime           approx_ptime()        const { return sp_->approx_ptime(); }
   virtual boost::uint16_t stream_number()       const { return sp_->stream_number(); }
+  virtual std::string     stream_name()         const { return sp_->stream_name(); }
   virtual boost::uint32_t sample_rate_Hz()      const { return iq_info_.sample_rate_Hz(); }
   virtual double          center_frequency_Hz() const { return iq_info_.center_frequency_Hz(); }
   virtual float           offset_ppb()          const { return iq_info_.offset_ppb(); }

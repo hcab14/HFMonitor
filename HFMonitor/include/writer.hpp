@@ -8,12 +8,15 @@
 
 class writer_txt : public processor::base, public gen_filename {
 public:
+  typedef boost::shared_ptr<writer_txt> sptr;
+
   writer_txt(const boost::property_tree::ptree& config)
     : base(config)
     , base_path_(config.get<std::string>("<xmlattr>.filePath"))
-    , tag_(config.get<std::string>("<xmlattr>.fileTag"))
     , file_period_(gen_filename::str2period(config.get<std::string>("<xmlattr>.filePeriod")))
-    , pos_(0) {}
+    , pos_(0) {
+    std::cout << "writer_txt::writer_txt" << std::endl;
+  }
 
   virtual ~writer_txt() {}
 
@@ -27,7 +30,7 @@ public:
     std::cout << "writer_txt::process " << service->approx_ptime() << " "
 	      << std::distance(i0, i1) << std::endl;
     const boost::filesystem::path
-      filepath(gen_file_path(base_path_, tag_, service->approx_ptime()));
+      filepath(gen_file_path(base_path_, service->stream_name(), service->approx_ptime()));
 
     if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
       std::cerr << "file '" << filepath << "' exists and will be overwritten" << std::endl;
@@ -43,13 +46,13 @@ public:
     std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
     ofs.seekp(pos_);
     std::copy(i0, i1, std::ostream_iterator<char>(ofs));
+    ofs << "\n";
     pos_ = ofs.tellp();      
   }
   
 protected:
 private:
   std::string    base_path_;
-  std::string    tag_;
   gen_filename::file_period file_period_;
   std::streampos pos_;    
 } ;
