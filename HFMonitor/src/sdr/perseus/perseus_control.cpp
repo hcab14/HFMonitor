@@ -52,7 +52,7 @@ namespace Perseus {
       }
     }
     virtual ~receiver_control_impl() {
-      std::cerr << "~receiver_control_impl" << std::endl;
+      std::cerr << "~receiver_control_impl refcount=" << _poll_libusb_refcount << std::endl;
       _input_queue.reset();
       if (--_poll_libusb_refcount == 0) {
         std::cerr << "receiver_control_impl join ..." << std::endl;
@@ -105,8 +105,8 @@ namespace Perseus {
       set_sio(true, FPGA::sioctl::CMD::fifo_enable);
     }
     virtual void stop_async_input() {
-      _input_queue.reset();
       set_sio(false, FPGA::sioctl::CMD::fifo_enable);
+      _input_queue.reset();
     }
     virtual void use_preselector(bool b) {
       if (_use_preselector == b) return;

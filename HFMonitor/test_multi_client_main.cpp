@@ -38,7 +38,14 @@ int main(int argc, char* argv[])
     // else
     //   throw std::runtime_error(str(boost::format("stream '%s' is not available")
     //                                % stream_name));
-    ASSERT_THROW(c.connect_to("L2.*", "WriterTXT") == true);
+
+    multi_client::stream_processor_map spm;
+    spm["L2.*"] = "WriterTXT";
+    spm["L0.*"] = "WriterTXT";
+
+    ASSERT_THROW(c.connect_to(spm) == true);
+//     ASSERT_THROW(c.connect_to("L1.*", "WriterTXT") == true);
+//     ASSERT_THROW(c.connect_to("L0.*", "WriterTXT") == true);
     c.start();
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {

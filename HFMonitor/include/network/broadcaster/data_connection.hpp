@@ -45,8 +45,8 @@ public:
   
   enum status_type {
     status_error      = -1, //
-    status_init       =  0, // negotiation phase: client asks for a certain stream
-    status_configured =  1  // after a certain stream has been selected, data is sent to the client
+    status_init       =  0, // negotiation phase: client asks for streams
+    status_configured =  1  // after streams have been selected, data is sent to the client
   } status;
   
 public:
@@ -77,9 +77,8 @@ public:
   std::string stream_name() const {
     if (status_ == status_configured) {
       std::ostringstream oss;
-      for (std::set<boost::regex>::const_iterator i(stream_names_.begin());
-           i != stream_names_.end(); ++i)
-        oss << *i << " ";
+      BOOST_FOREACH(const boost::regex& r, stream_names_)
+        oss << r << " ";
       return oss.str();    
     }
     return ((status_ == status_init) ? "[INIT]" : "[ERROR]");
@@ -144,7 +143,7 @@ public:
   ptime last_tick_time() const { return last_tick_time_; }
 
   bool match_path(std::string path) const {
-    BOOST_FOREACH(const boost::regex& r, stream_names_) 
+    BOOST_FOREACH(const boost::regex& r, stream_names_)
       if (regex_match(path, r)) return true;
     return false;
   }

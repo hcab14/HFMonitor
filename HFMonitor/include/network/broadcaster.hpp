@@ -190,7 +190,6 @@ private:
     data_connections_.clear();
   }
 
-  boost::asio::io_service service_;              // io service object
   boost::asio::strand     strand_;               // asio strand
   acceptor_map            acceptor_map_;         // map of acceptors
   const size_t            max_queue_total_size_; // queue total size of data connections

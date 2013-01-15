@@ -26,7 +26,7 @@ public:
   test_cb() {}
   test_cb(buffer<std::string>::sptr buf)
     : buffer_(buf) {}
-  virtual ~test_cb() {}
+  virtual ~test_cb() { std::cout << "~test_cb" << std::endl; }
   void operator()(unsigned char* data, size_t length) {
     using namespace boost::posix_time;
     std::string s((char*)(data), length);
@@ -68,7 +68,6 @@ public:
           cond_->wait(lock);
       } catch (...) {
         do_run_= false;
-        std::cout << "************* stopped ***********" << std::endl;
       }
     }
     // finish
@@ -134,12 +133,12 @@ int main(int argc, char* argv[])
       broadcaster::sptr bc;
       buffer<std::string>::sptr buf;
       Perseus::receiver_control::sptr rec;
-        
       { // wait until a signal is sent/service is stopped
-       bc = broadcaster::make(config.get_child("Broadcaster"));
-
        wait_for_signal w(network::get_io_service());
         w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
+
+        bc = broadcaster::make(config.get_child("Broadcaster"));
+
 
         bc->start();
         
@@ -170,16 +169,18 @@ int main(int argc, char* argv[])
         
       } // here the destructor of wait_for_signal waits for a signal
 
+
       rec->stop_async_input();      
       buf->stop();
       bc->stop();
+      network::get_io_service().stop();
 
       // Wait for all threads in the pool to exit.
-      for (std::size_t i(0); i<threads.size(); ++i)
-        threads[i]->join();
+      BOOST_FOREACH(boost::shared_ptr<boost::thread> thr, threads)
+        thr->join();
       
       std::cout << "**** stopped *** " << std::endl;
-    }    
+    }
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;

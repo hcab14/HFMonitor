@@ -24,20 +24,46 @@ public:
   typedef std::string processor_type;
   typedef std::vector<boost::tuple<boost::regex, processor_type, std::string> > processor_type_map;
 
+  // stream_name -> processor_type
+  typedef std::map<stream_name, processor_type> stream_processor_map;
+
+  // stream_name -> (processor_type, config_id)
+  typedef std::map<stream_name, std::pair<processor_type, std::string> > stream_processor_config_map;
+
   //
   multi_client(const boost::property_tree::ptree& config)
     : client_base(network::get_io_service(), config)
     , config_(config) {}
   virtual ~multi_client() {}
 
+  bool connect_to(const stream_processor_config_map& map) {
+    std::ostringstream stream_names;
+    BOOST_FOREACH(const stream_processor_config_map::value_type& p, map)
+      stream_names << p.first << " ";
+    if (not client_base::connect_to(stream_names.str()))
+      return false;
+    BOOST_FOREACH(const stream_processor_config_map::value_type& p, map) 
+      add_processors(p.first, p.second.first, p.second.second);
+    return true;
+  }
+
+  bool connect_to(const stream_processor_map& map) {
+    std::ostringstream stream_names;
+    BOOST_FOREACH(const stream_processor_map::value_type& p, map)
+      stream_names << p.first << " ";
+    if (not client_base::connect_to(stream_names.str()))
+      return false;
+    BOOST_FOREACH(const stream_processor_map::value_type& p, map) 
+      add_processors(p.first, p.second);
+    return true;
+  }
+  
   bool connect_to(std::string stream_names,
 		  std::string processor_type,
 		  std::string ptree_path="")  { // extra_argument -> key in ptree
     if (client_base::connect_to(stream_names) == false)
       return false;
-    processor_type_map_.push_back(boost::make_tuple(boost::regex(stream_names),
-                                                    processor_type,
-                                                    ptree_path));
+    add_processors(stream_names, processor_type, ptree_path);
     return true;
   }
 
@@ -54,6 +80,15 @@ public:
   }
 
 protected:
+  void add_processors(std::string stream_names, std::string processor_type, std::string ptree_path="") {
+    std::istringstream iss(stream_names);
+    std::string stream_name;
+    while (iss >> stream_name)
+      processor_type_map_.push_back(boost::make_tuple(boost::regex(stream_name),
+                                                      processor_type,
+                                                      ptree_path));
+  }
+
   // notifies derived classes of an update of directory
   virtual void directory_update(const broadcaster_directory& new_directory) {
     // remove processors not present anymore
