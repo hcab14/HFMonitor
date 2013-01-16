@@ -38,11 +38,9 @@ namespace processor {
     registry() {}
 
     static base::sptr make(std::string key, const boost::property_tree::ptree& config) {
-      std::cout << "registry::make " << key << std::endl;
       map_type::iterator i(map().find(key));
       if (i == map().end())
         return base::sptr();
-      std::cout << "registry::make found " << key << std::endl;
       return i->second(config);
     }
 

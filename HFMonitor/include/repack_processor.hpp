@@ -6,27 +6,30 @@
 #include <iostream>
 #include <vector>
 #include <complex>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/integer.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "logging.hpp"
+#include "network.hpp"
+#include "processor.hpp"
 #include "processor/IQBuffer.hpp"
-#include "processor/service.hpp"
 
 template<typename PROCESSOR>
-class repack_processor {
+class repack_processor : public processor::base_iq {
 public:
   repack_processor(boost::asio::io_service&           service,
                    const boost::property_tree::ptree& config)
-    : p_(service, config)
+    : base_iq(config)
+    , p_(service, config)
     , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
     , overlap_(   0.01*config.get<double>("Repack.<xmlattr>.overlap_percent"))
-    , service_(service)
+    , service_()
     , iqBuffer_(4, 0.0)
     , counter_(0) {}
 
   repack_processor(const boost::property_tree::ptree& config)
-    : p_(config)
+    : base_iq(config)
+    , p_(config)
     , bufferLengthSec_(config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
     , overlap_(   0.01*config.get<double>("Repack.<xmlattr>.overlap_percent"))
     , service_()
@@ -37,9 +40,9 @@ public:
 
   boost::asio::io_service& get_service() { return service_; }
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
+  void process_iq(processor::base_iq::service::sptr sp,
+                  processor::base_iq::const_iterator i0,
+                  processor::base_iq::const_iterator i1) {
     using namespace boost::posix_time;
     if (!service_)
       iqBuffer_.update(size_t(sp->sample_rate_Hz()*bufferLengthSec_), overlap_);
@@ -82,7 +85,7 @@ private:
   PROCESSOR p_;
   double    bufferLengthSec_;
   double    overlap_;
-  processor::service_iq::sptr service_;
+  processor::base_iq::service::sptr service_;
   IQBuffer  iqBuffer_;
   boost::int64_t counter_;
 } ;

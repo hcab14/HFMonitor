@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 
 #include "logging.hpp"
+#include "network.hpp"
 #include "network/broadcaster/directory.hpp"
 #include "network/client/client_base.hpp"
 #include "network/client/service_net.hpp"

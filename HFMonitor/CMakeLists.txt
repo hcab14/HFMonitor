@@ -77,6 +77,9 @@ TARGET_LINK_LIBRARIES(test_client_FFTtoFile ${_libs} FFTAction_cpp processor_cpp
 ADD_EXECUTABLE(test_client_FFTtoBC test_client_FFTtoBC_main.cpp)
 TARGET_LINK_LIBRARIES(test_client_FFTtoBC ${_libs} FFTAction_cpp processor_cpp)
 
+ADD_EXECUTABLE(test_multi_downconvert test_multi_downconvert_main.cpp)
+TARGET_LINK_LIBRARIES(test_multi_downconvert ${_libs} FFTAction_cpp processor_cpp)
+
 ADD_EXECUTABLE(test_broadcaster test_broadcaster_main.cpp)
 TARGET_LINK_LIBRARIES(test_broadcaster ${_libs})
 

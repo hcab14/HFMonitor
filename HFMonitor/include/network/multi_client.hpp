@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <string>
 
+#include "boost/foreach.hpp"
 #include "boost/tuple/tuple.hpp"
 #include "network.hpp"
 #include "network/client/client_base.hpp"
@@ -110,12 +111,12 @@ protected:
         // p.second: to be used path in ptree config
         processor_id_map_[str_name] = processor::registry::make(p.first, config_.get_child(p.second));
       } catch (...) {
-        // NOP: 
+        // NOP 
       }
     }
   }
 
-  // 
+  // returns (processor_type, ptree section name)
   std::pair<processor_type, std::string> find_type_of_stream(std::string stream_name) const {
     processor_type_map::const_iterator end(processor_type_map_.end());
     for (processor_type_map::const_iterator i(processor_type_map_.begin()); i!=end; ++i) {
