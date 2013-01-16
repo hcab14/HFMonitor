@@ -1,0 +1,17 @@
+<!---*- xml -*--->
+<!-- $Id$ -->
+<?xml version="1.0" encoding="utf-8"?>
+<MultiDownConverter l="500000"
+                    m="125001">
+  <Repack bufferLength_sec="1"
+          overlap_percent="0">
+  </Repack>
+  <server host="nz23-18.ifj.edu.pl"
+          port="18001">
+  </server>
+  <Filters>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 23.6e3" decim="100">Test_2</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 77.5e3" decim="100">Test_3</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz="225.0e3" decim="100">Test_6</FIR>
+  </Filters>  
+</MultiDownConverter>

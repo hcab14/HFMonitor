@@ -26,6 +26,7 @@
 
 #include "FFT.hpp"
 
+//
 // multi overlap-save filter
 // 
 namespace filter {
@@ -133,6 +134,9 @@ namespace filter {
           fft_.in(i) = 0;
       }
 
+      size_t l() const { return l_; }
+      size_t p() const { return p_; }
+
       typedef std::map<size_t, typename filt::sptr> filter_map;
 
       static size_t design_optimal(size_t p) {
@@ -157,7 +161,7 @@ namespace filter {
       }
 
       // add one filter
-      //  * returns a pair of handle (size_t) and the mid-frequency of the filter
+      //  * returns a pair of handle (size_t) and the (rounded) mid-frequency of the filter
       template<typename U>
       std::pair<size_t, double> add_filter(const typename std::vector<U>& b,
                                            double_t offset,
@@ -170,12 +174,17 @@ namespace filter {
       }
       
       void proc(const complex_vector_type& in) {
-        if (in.size() != l_)
+        proc(in.begin(), in.end());
+      }
+
+      void proc(typename complex_vector_type::const_iterator i0,
+                typename complex_vector_type::const_iterator i1) {
+        if (std::distance(i0, i1) != int(l_))
           throw std::runtime_error("overlap_save::proc in.size() != l_");
 
         // copy input data
         for (size_t i(0); i<l_; ++i)
-          fft_.in(p_+i-1) = in[i];
+          fft_.in(p_+i-1) = *i0++;
         fft_.transform();
 
         // for each filter
@@ -187,7 +196,6 @@ namespace filter {
         // save old samples
         for (size_t i=0; i<p_-1; ++i)
           fft_.in(i) = fft_.in(l_+i);
-
       }
       
     private:

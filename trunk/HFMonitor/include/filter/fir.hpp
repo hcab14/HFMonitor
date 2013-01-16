@@ -26,7 +26,7 @@
 
 namespace filter {
   namespace fir {    
-    namespace { // anonymous
+    namespace detail {
       template<typename T>
       class FFTWindowDesign {
       public:
@@ -82,12 +82,12 @@ namespace filter {
       private:
         real_vector_type b_;
       } ;  
-    } // namespace anonymous
+    } // namespace detail
 
     template<typename T>
-    class lowpass : public FFTWindowDesign<T> {
+    class lowpass : public detail::FFTWindowDesign<T> {
     public:
-      typedef FFTWindowDesign<T> base_type;
+      typedef detail::FFTWindowDesign<T> base_type;
       typedef typename base_type::float_type float_type;
       typedef typename base_type::complex_type complex_type;
       typedef typename base_type::real_vector_type real_vector_type;
@@ -107,10 +107,10 @@ namespace filter {
         const size_t n(coeff().size());
         const size_t m(compute_m(n));
         complex_vector_type v(m);
-        const size_t if0(std::floor(f0*m));
+        const size_t if0(size_t(std::floor(f0*m)));
         for (size_t i=0; i<m; ++i)
           v[i] = (i<=if0);
-        const size_t k(f_ramp*m);
+        const size_t k(size_t(f_ramp*m));
         std::cerr << "k= " << k << std::endl;
         for (size_t i=0; i<k; ++i) {
           const int j(int(if0+k/2)-int(i));
