@@ -99,9 +99,9 @@ namespace wave {
     virtual file_period filePeriod()    const { return file_period_; }
     virtual std::string fileExtension() const { return "wav"; }
 
-    virtual void process_iq(processor::service_iq::sptr service,
-                            processor::base_iq::const_iterator i0, 
-                            processor::base_iq::const_iterator i1) {
+    virtual void process_iq(service::sptr service,
+                            const_iterator i0, 
+                            const_iterator i1) {
       std::cout << "writer_iq::process_iq " << service->approx_ptime() << " "
                 << pos_ << " " 
                 << std::distance(i0, i1) << std::endl;

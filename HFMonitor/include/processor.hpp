@@ -42,7 +42,9 @@ namespace processor {
     typedef data_buffer_type::const_iterator const_iterator;
     typedef service_base service;
 
-    base(const boost::property_tree::ptree&) {}
+    typedef boost::property_tree::ptree ptree;
+
+    base(const ptree&) {}
     virtual ~base() {};
 
     virtual void process(service::sptr, const_iterator, const_iterator) {
@@ -57,7 +59,7 @@ namespace processor {
 
     typedef service_iq service;
 
-    base_iq(const boost::property_tree::ptree& config)
+    base_iq(const ptree& config)
       : base(config) {}
 
     virtual ~base_iq() {};
