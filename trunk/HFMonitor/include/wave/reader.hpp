@@ -28,15 +28,14 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include "processor.hpp"
+#include "processor/IQBuffer.hpp"
+#include "network/protocol.hpp"
+//#include "service/perseus.hpp"
 #include "wave/definitions.hpp"
-#include "service/IQBuffer.hpp"
-#include "service/protocol.hpp"
-
-#include "service/generic_iq.hpp"
-#include "service/perseus.hpp"
 
 namespace wave {
-  namespace { // anonymous 
+  namespace detail { // anonymous 
     template<typename T>
     T readT(std::istream& is) {
       T data;
@@ -60,15 +59,54 @@ namespace wave {
       const double norm(2. / static_cast<double>(i_max));
       return ( ((a&0x80) == 0x80) ? sum-i_max : sum) * norm;
     }    
-  } // namespace anonymous
-  
+
+    class service_wave_iq : public processor::base_iq::service {
+    public:
+      virtual ~service_wave_iq() {}
+      typedef boost::shared_ptr<service_wave_iq> sptr;
+      sptr make(ptime approx_ptime,
+                std::string stream_name,
+                double center_frequency_Hz,
+                const chunk::format& format) {
+        return sptr(new service_wave_iq(approx_ptime, stream_name,
+                                        center_frequency_Hz, format));
+      }
+      
+      virtual std::string     id() const { return "WAVE_000"; }
+      virtual ptime           approx_ptime() const { return approx_ptime_; }
+      virtual boost::uint16_t stream_number() const { return 1; }
+      virtual std::string     stream_name() const { return stream_name_; }
+      
+      virtual boost::uint32_t sample_rate_Hz()      const { return format_.sampleRate(); }
+      virtual double          center_frequency_Hz() const { return center_frequency_Hz_; }
+      virtual float           offset_ppb()          const { return 0; }
+      virtual float           offset_ppb_rms()      const { return 0; }
+
+      virtual ptime update_ptime(boost::posix_time::time_duration dt) {
+        return approx_ptime_ += dt;
+      }
+
+    private:
+      service_wave_iq(ptime approx_ptime,
+                      std::string stream_name,
+                      double center_frequency_Hz,
+                      const chunk::format& format)
+        : approx_ptime_(approx_ptime)
+        , stream_name_(stream_name)
+        , center_frequency_Hz_(center_frequency_Hz)
+        , format_(format) {}
+      
+      ptime         approx_ptime_;
+      std::string   stream_name_;
+      double        center_frequency_Hz_;
+      chunk::format format_;    
+    } ;
+  } // namespace detail
+
   template<typename PROCESSOR>
-  class reader_iq_base : public boost::noncopyable {
+  class reader_iq_base : public processor::base_iq {
   public:
-    typedef std::complex<double> complex_type;
-    typedef std::vector<complex_type> complex_vector_type;
     typedef boost::shared_ptr<reader_iq_base> sptr;
-    typedef boost::posix_time::ptime ptime;
 
     reader_iq_base(PROCESSOR& p,
                    double buffer_length_sec,
@@ -90,14 +128,15 @@ namespace wave {
     }
     void finish() {
       // insert one last dummy sample to trigger processing of left over data
-      iq_buffer_.insert(this, complex_type(0, 0));
+      iq_buffer_.insert(this, std::complex<double>(0, 0));
     }
 
-    complex_vector_type samples() const { return iq_buffer_.samples(); }
+    // complex_vector_type samples() const { return iq_buffer_.samples(); }
 
     // called from IQBuffer::insert
-    void process_iq(IQBuffer::Samples::const_iterator i0, 
-                    IQBuffer::Samples::const_iterator i1) {
+    void process_iq(service::sptr service,
+                    const_iterator i0, 
+                    const_iterator i1) {
       using namespace boost::posix_time;
       p_.process_iq(get_service(std::distance(i0, i1)), i0, i1);
       start_time_ += time_duration(0, 0, 0,
@@ -112,7 +151,7 @@ namespace wave {
     void update_start_time(ptime t) { start_time_ = t; }
     boost::int64_t sample_number() const { return sample_number_; }
 
-    virtual processor::service_base::sptr get_service(size_t number_of_samples) const = 0;
+    virtual service::sptr get_service(size_t number_of_samples) const = 0;
 
     virtual void reset() {
       read_riff_   = false;
@@ -122,27 +161,27 @@ namespace wave {
 
     bool read_chunks(std::istream& is) {
       reset();
-      riff_      = readT<chunk::riff>(is);
+      riff_      = detail::readT<chunk::riff>(is);
       read_riff_ = true;
       std::cout << riff_ << std::endl;
       if (!riff_.ok()) return false;
       while (is && is.tellg() < sizeof(chunk::header)+riff_.size()) {
-        const chunk::header h(read_header(is));
+        const chunk::header h(detail::read_header(is));
         if (h.id() == "fmt ") {
-          format_      = readT<chunk::format>(is);
+          format_      = detail::readT<chunk::format>(is);
           read_format_ = true;
           std::cout << format_ << std::endl;
           iq_buffer_.update(format_.sampleRate() * buffer_length_sec_, overlap_);
         } else if (h.id() == "data") {
-          data_      = readT<chunk::data>(is);
+          data_      = detail::readT<chunk::data>(is);
           read_data_ = true;
           std::cout << data_ << std::endl;
           // process data here:
           // is.seekg(h.size(), std::ios_base::cur);
           for (size_t i=0; i<h.size(); i+=format_.bytesPerSample()) {
-            const double xi(read_real_sample(is, format_.bitsPerSample()));
-            const double xq(read_real_sample(is, format_.bitsPerSample()));
-            iq_buffer_.insert(this, complex_type(xi, xq));
+            const double xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
+            const double xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
+            iq_buffer_.insert(this, std::complex<double>(xi, xq));
             ++sample_number_;
           }
         } else if (read_chunk(h, is)) {
@@ -198,25 +237,26 @@ namespace wave {
       , center_freq_hz_(center_freq_hz) {
       update_start_time(start_time);
     }
-    
+
     virtual ~reader_iq() {}
 
+    typedef typename reader_iq_base<PROCESSOR>::service service;
     using reader_iq_base<PROCESSOR>::get_service;
     using reader_iq_base<PROCESSOR>::format;
     using reader_iq_base<PROCESSOR>::start_time;
     using reader_iq_base<PROCESSOR>::update_start_time;
-    
-    virtual processor::service_base::sptr get_service(size_t ) const {
-      return processor::service_generic_iq::sptr
-        (new processor::service_generic_iq(center_freq_hz_,
-                                           format().sampleRate(),
-                                           start_time()));
+
+    virtual typename service::sptr get_service(size_t number_of_samples) const {
+      return detail::service_wave_iq::make(start_time(),
+                                           "name",
+                                           center_freq_hz_,
+                                           format());                                           
     }
 
   private:
     double center_freq_hz_;
   } ;
-  
+#if 0  
   template<typename PROCESSOR>
   class reader_perseus : public reader_iq_base<PROCESSOR> {
   public:
@@ -261,7 +301,7 @@ namespace wave {
                             std::istream& is) { 
       if (h.id() != "rcvr")
         return false;
-      rcvr_       = readT<chunk::rcvr>(is);
+      rcvr_       = detail::readT<chunk::rcvr>(is);
       read_rcvr_  = true;
       update_start_time(rcvr_.ptimeStart());
       return rcvr_.ok();
@@ -274,5 +314,6 @@ namespace wave {
     bool read_rcvr_;
     chunk::rcvr rcvr_;
   } ;
+#endif
 } // namespace wave
 #endif // _WAVE_READER_HPP_cm110729_

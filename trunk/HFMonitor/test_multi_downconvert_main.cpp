@@ -36,15 +36,16 @@ private:
     std::cout << "multi_downconvert_toBC::dump: " << fp.name() << " " << out.size() << std::endl;
 
     typedef typename overlap_save_type::complex_vector_type complex_vector_type;
+    const size_t bytes_per_sample(3);
     // data
     std::ostringstream oss;
     for (typename complex_vector_type::const_iterator i(out.begin()); i!=out.end(); ++i) {
-      wave::detail::write_real_sample(oss, 3, i->real());
-      wave::detail::write_real_sample(oss, 3, i->imag());
+      wave::detail::write_real_sample(oss, bytes_per_sample, i->real());
+      wave::detail::write_real_sample(oss, bytes_per_sample, i->imag());
     }
     iq_info h_iq(sp->sample_rate_Hz()/fp.decim(), 
                  sp->center_frequency_Hz()+fp.center_freq_Hz(),
-                 'I', 3, 0, 0);
+                 'I', bytes_per_sample, 0, 0);
     std::string data;
     std::copy(h_iq.begin(), h_iq.end(), std::back_inserter(data));
     data += oss.str();
