@@ -8,10 +8,14 @@
 #include <iomanip>
 #include <vector>
 #include <deque>
-#include "goertzel.hpp"
 
-class tracking_goertzel_filter {
+#include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
+#include "filter/goertzel.hpp"
+
+class tracking_goertzel_filter : private boost::noncopyable {
 public:
+  typedef boost::shared_ptr<tracking_goertzel_filter> sptr;
   struct state {
     typedef enum {
       UNDEFINED  = 0,

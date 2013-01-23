@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <WriterTXT filePath="DataBC"
-           fileTag="tag"
            filePeriod="5m">
-  <server host="127.0.0.1"
+  <server host="nz23-18.ifj.edu.pl"
 	  port="19001">
   </server>
 </WriterTXT>

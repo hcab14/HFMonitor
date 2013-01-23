@@ -1,7 +1,7 @@
 // -*- c++ -*-
 
 #include <iostream>
-#include "include/tracking_goertzel_filter.hpp"
+#include "include/filter/tracking_goertzel_filter.hpp"
 
 typedef goertzel<std::complex<double> > goertzel_t;
 

@@ -43,6 +43,7 @@ namespace processor {
     typedef service_base service;
 
     typedef boost::property_tree::ptree ptree;
+    typedef boost::posix_time::ptime ptime;
 
     base(const ptree&) {}
     virtual ~base() {};
