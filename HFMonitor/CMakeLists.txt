@@ -16,6 +16,8 @@ SET(CMAKE_VERBOSE_MAKEFILE OFF)
 # where to look first for cmake modules
 SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules")
 
+SET(CMAKE_INSTALL_PREFIX ${CMAKE_HOME_DIRECTORY}/bin)
+
 # List of libraries
 SET(_libs)
 
@@ -56,38 +58,3 @@ INCLUDE_DIRECTORIES(
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)
-
-# ADD_EXECUTABLE(test_perseus test_perseus_main.cpp)
-# TARGET_LINK_LIBRARIES(test_perseus ${_libs} usb1_cpp perseus_control_cpp fx2_control_cpp)
-
-# #ADD_EXECUTABLE(test_fltk_main test_fltk_main.cpp)
-# #TARGET_LINK_LIBRARIES(test_fltk_main ${_libs})
-
-# ADD_EXECUTABLE(test_goertzel_main test_goertzel_main.cpp)
-# TARGET_LINK_LIBRARIES(test_goertzel_main ${_libs})
-
-# ADD_EXECUTABLE(test_client_main test_client_main.cpp)
-# TARGET_LINK_LIBRARIES(test_client_main ${_libs})
-
-# ADD_EXECUTABLE(test_fir test_fir_main.cpp)
-# TARGET_LINK_LIBRARIES(test_fir ${_libs})
-
-# ADD_EXECUTABLE(test_client_FFTtoFile test_client_FFTtoFile_main.cpp)
-# TARGET_LINK_LIBRARIES(test_client_FFTtoFile ${_libs} FFTAction_cpp processor_cpp)
-
-# ADD_EXECUTABLE(test_client_FFTtoBC test_client_FFTtoBC_main.cpp)
-# TARGET_LINK_LIBRARIES(test_client_FFTtoBC ${_libs} FFTAction_cpp processor_cpp)
-
-# ADD_EXECUTABLE(test_multi_downconvert test_multi_downconvert_main.cpp)
-# TARGET_LINK_LIBRARIES(test_multi_downconvert ${_libs} FFTAction_cpp processor_cpp)
-
-# ADD_EXECUTABLE(test_broadcaster test_broadcaster_main.cpp)
-# TARGET_LINK_LIBRARIES(test_broadcaster ${_libs})
-
-# ADD_EXECUTABLE(test_multi_client test_multi_client_main.cpp)
-# TARGET_LINK_LIBRARIES(test_multi_client ${_libs} FFTAction_cpp processor_cpp)
-
-# ADD_EXECUTABLE(server_ls server_ls_main.cpp)
-# TARGET_LINK_LIBRARIES(server_ls ${_libs} processor_cpp)
-
-
