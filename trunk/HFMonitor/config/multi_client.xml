@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<MultiClient>
+  <server host="nz23-18.ifj.edu.pl"
+	  port="19001">
+  </server>
+  <Streams>
+    <Stream pattern="L0.*">Writer0</Stream>
+    <Stream pattern="L2.*">Writer1</Stream>
+  </Streams>
+  <Clients>
+    <Writer0 type="WriterTXT"
+             filePath="DataBC"
+             filePeriod="5m">
+    </Writer0>
+    <Writer1 type="WriterTXT"
+             filePath="DataBC"
+             filePeriod="5m">
+    </Writer1>
+  </Clients>
+</MultiClient>

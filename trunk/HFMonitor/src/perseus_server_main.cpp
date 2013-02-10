@@ -5,18 +5,18 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/foreach.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/program_options.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "buffer.hpp"
+#include "libusb1.0/libusb1.hpp"
 #include "network.hpp"
 #include "network/broadcaster.hpp"
 #include "network/protocol.hpp"
 #include "run.hpp"
-#include "run.hpp"
 #include "sdr/perseus/perseus_control.hpp"
-#include "libusb1.0/libusb1.hpp"
 
 // perseus callback
 //  * makes copy of data, and
@@ -40,10 +40,9 @@ private:
 
 // bridge between perseus and the broadcaster
 //  * running in its own thread
-//  * the data taken out of the buffer sent to the broadcaster
+//  * data is taken out of the buffer and sent to the broadcaster
 class bridge {
 public:
-
   bridge(buffer<std::string>::sptr       buffer,
          broadcaster::sptr               broadcaster,
          Perseus::receiver_control::sptr receiver)
@@ -104,10 +103,30 @@ private:
 
 int main(int argc, char* argv[])
 {
+  namespace po = boost::program_options;
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help,?", "produce help message")
+    ("config,c", po::value<std::string>()->default_value("config/perseus_server.xml"), "path to XML configuration file");
+
+  po::variables_map vm;
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);    
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
+      return 1;
+    }
+  } catch (const std::exception &e) {
+    std::cout << e.what() << std::endl;
+    std::cout << desc << std::endl;
+    return 1;
+  }
+
   LOGGER_INIT("./Log", "test_perseus");
   try {
     libusb::session::sptr s(libusb::session::get_global_session());
-    const std::string filename((argc > 1 ) ? argv[1] : "config_perseus.xml");
+    const std::string filename(vm["config"].as<std::string>());
     boost::property_tree::ptree config;
     read_xml(filename, config);
 
