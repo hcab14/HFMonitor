@@ -10,6 +10,7 @@
 #include "multi_downconvert_processor.hpp"
 #include "processor/registry.hpp"
 #include "repack_processor.hpp"
+#include "network/broadcaster.hpp"
 #include "run.hpp"
 
 #include "network/protocol.hpp"
@@ -24,15 +25,20 @@ public:
   typedef typename multi_downconvert_processor<FFTFloat>::filter_param filter_param;
   typedef typename multi_downconvert_processor<FFTFloat>::overlap_save_type overlap_save_type;
   multi_downconvert_toBC(const ptree& config)
-    : multi_downconvert_processor<FFTFloat>(config) {}
+    : multi_downconvert_processor<FFTFloat>(config),
+    , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
+    , started_(false) {}
+
   virtual ~multi_downconvert_toBC() {}
 
 protected:
-
-private:
   virtual void dump(typename service::sptr sp,
                     const filter_param& fp,
                     const typename overlap_save_type::complex_vector_type& out) {
+    if (not started_) {
+      broadcaster_->start();
+      started_= true;
+    }
     std::cout << "multi_downconvert_toBC::dump: " << fp.name() << " " << out.size() << std::endl;
 
     typedef typename overlap_save_type::complex_vector_type complex_vector_type;
@@ -51,29 +57,32 @@ private:
     data += oss.str();
 
     // header
-    boost::uint32_t stream_number(0); //TODO
+    const boost::uint32_t stream_number(broadcaster_->register_stream(fp.name()));
     header h("WAV_0000", sp->approx_ptime(), stream_number, data.size());
     std::string bytes;
     std::copy(h.begin(), h.end(), std::back_inserter(bytes));
     bytes += data;
-    // bc->bc_data(sp->approx_ptime(), fp.name(), bytes);    
+    bcroadcaster_->bc_data(sp->approx_ptime(), fp.name(), bytes);
   }
+private:
+  broadcaster::sptr broadcaster_;
+  bool              started_;
+
 } ;
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "test_config_multi_downconvert");
+  LOGGER_INIT("./Log", "multi_downconvert");
   try {
-    const std::string filename((argc > 1 ) ? argv[1] : "config_multi_downconverter.xml");
+    const boost::program_options::variables_map vm(process_options("config/multi_downconvert.xml", argc, argv));
     boost::property_tree::ptree config;
-    read_xml(filename, config);
+    read_xml(vm["config"].as<std::string>(), config);
 
     const std::string stream_name("DataIQ");
 
     client<iq_adapter<repack_processor<multi_downconvert_toBC<double> > > >
       c(config.get_child("MultiDownConverter"));
-    
-    
+        
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       ASSERT_THROW(c.connect_to(stream_name) == true);
