@@ -3,15 +3,46 @@
 #ifndef _run_hpp_cm100727
 #define _run_hpp_cm100727
 
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
+#include <pthread.h>
+#include <signal.h>
+
+#include <stdexcept>
+
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
+#include <boost/thread.hpp>
 
 #include "logging.hpp"
 
-#include <pthread.h>
-#include <signal.h>
+boost::program_options::variables_map
+process_options(std::string default_config_file,
+                int argc, char* argv[]) {
+  namespace po = boost::program_options;
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help,?", "produce help message")
+    ("config,c", po::value<std::string>()->default_value(default_config_file), "path to XML configuration file");
+  
+  po::variables_map vm;
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+    if (vm.count("help")) {
+      std::ostringstream oss;
+      oss << desc;
+      throw std::runtime_error(oss.str());
+    }
+  } catch (const std::exception &e) {
+    std::ostringstream oss;
+    oss << e.what() << std::endl;
+    if (not vm.count("help"))
+      oss << desc;
+    throw std::runtime_error(oss.str());
+  }
+  return vm;
+}
 
 class wait_for_signal : public boost::noncopyable {
 public:
