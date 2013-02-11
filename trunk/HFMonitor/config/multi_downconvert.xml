@@ -3,6 +3,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <MultiDownConverter l="500000"
                     m="125001">
+  <Broadcaster>
+    <Data maxQueueSize_MB="2"
+          maxQueueDelay_Minutes="5"
+          port="19001">
+    </Data>
+    <Ctrl port="19002"></Ctrl>
+  </Broadcaster>
   <Repack bufferLength_sec="1"
           overlap_percent="0">
   </Repack>
@@ -10,8 +17,17 @@
           port="18001">
   </server>
   <Filters>
-    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 23.6e3" decim="100">Test_2</FIR>
-    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 77.5e3" decim="100">Test_3</FIR>
-    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz="225.0e3" decim="100">Test_6</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 23.4e3" decim="100">Test_1</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 24.0e3" decim="100">Test_2</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 60.0e3" decim="100">Test_3</FIR>
+    <FIR type="lowpass" cutoff="0.005" centerFrequency_Hz=" 77.5e3" decim="100">Test_4</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="153.0e3" decim="50">Test_5</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="162.0e3" decim="50">Test_6</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="171.0e3" decim="50">Test_7</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="177.0e3" decim="50">Test_8</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="189.0e3" decim="50">Test_9</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="207.0e3" decim="50">Test_10</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="216.0e3" decim="50">Test_11</FIR>
+    <FIR type="lowpass" cutoff="0.010" centerFrequency_Hz="225.0e3" decim="50">Test_12</FIR>
   </Filters>  
 </MultiDownConverter>

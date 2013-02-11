@@ -74,7 +74,11 @@ namespace filter {
           }
           for (size_t i(0); i<n()/d_; ++i)
             ifft_.in(i) = 0;
-          shift_ = (shift_/size_t(v()))*size_t(v());
+          std::cout << "shift= " << shift 
+                    << " n=" << n_ << std::endl;
+          std::cout << "shift_= " << shift_ << std::endl;
+          shift_ = (shift_/size_t(v()+.5))*size_t(v()+0.5);
+          std::cout << "shift_= " << shift_ << std::endl;
           std::cout << "v= " << v() << std::endl;
         }
         ~filt() {}
@@ -87,7 +91,7 @@ namespace filter {
         double v() const { return double(n())/(p_-1.); } // Overlap factor
 
         double offset() const {
-          return (shift() > n()/2) ? double(int(shift())-n())/n(): double(shift())/n();
+          return (shift() > n()/2) ? double(int(shift())-int(n()))/n(): double(shift())/n();
         }
         typename complex_vector_type::const_iterator begin() const {
           return result_.begin();
@@ -99,7 +103,9 @@ namespace filter {
 
         // performs inverse FFT of (shifted) input and downsampling       
         void transform(const fft_type& fft) {
-          std::cout << "#shift " << shift() << " l=" << l()<< std::endl;
+//           std::cout << "#shift " << shift() << " l=" << l() 
+//                     << " offset=" << offset() 
+//                     << " n/2 " << n()/2 << std::endl;
           for (size_t i(0); i<n()/d(); ++i)
             ifft_.in(i) = 0;
           for (size_t i(0); i<n(); ++i)

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
-<Perseus sn="241"
-	 fs="125000"
-	 fc="75000"
+<Perseus sn="2670"
+	 fs="500000"
+	 fc="220000"
 	 use_preselector="true"
 	 attenuator="0"
 	 firmware="config/perseus/perseus.hex">

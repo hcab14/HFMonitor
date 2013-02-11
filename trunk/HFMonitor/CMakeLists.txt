@@ -33,8 +33,8 @@ FIND_PACKAGE(Boost 1.40 REQUIRED COMPONENTS system thread filesystem date_time r
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 # Setup libperseus-sdr
-FIND_PACKAGE(PerseusSDR REQUIRED)
-LIST(APPEND _libs ${PerseusSDR_LIBRARY})
+#FIND_PACKAGE(PerseusSDR REQUIRED)
+#LIST(APPEND _libs ${PerseusSDR_LIBRARY})
 
 # Setup libusb-1.0
 FIND_PACKAGE(libusb-1.0 REQUIRED)
