@@ -5,8 +5,9 @@
 	  port="19001">
   </server>
   <Streams>
-    <Stream pattern="L0.*">Writer0</Stream>
-    <Stream pattern="L2.*">Writer1</Stream>
+    <Stream pattern="Test.*">Writer2</Stream>
+    <!-- <Stream pattern="L0.*">Writer0</Stream>
+         <Stream pattern="L2.*">Writer1</Stream> -->
   </Streams>
   <Clients>
     <Writer0 type="WriterTXT"
@@ -17,5 +18,11 @@
              filePath="DataBC"
              filePeriod="5m">
     </Writer1>
+    <Writer2 type="WriterIQ"
+             filePath="DataBC"
+             filePeriod="5m"
+             fileTag="AAA"
+             bitsPerSample="24">
+    </Writer2>
   </Clients>
 </MultiClient>

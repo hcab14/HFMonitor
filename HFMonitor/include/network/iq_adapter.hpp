@@ -24,16 +24,19 @@ class iq_adapter : public processor::base {
   } iq_sample;
 
 public:
+  typedef boost::shared_ptr<iq_adapter > sptr;
 
   iq_adapter(const boost::property_tree::ptree& config)
     : base(config)
-    , p_(config) {}
+    , p_(config) {
+    std::cout << "iq_adapter" << std::endl;
+  }
   
   virtual ~iq_adapter() {}
   
-  void process(service::sptr sp,
-               const_iterator begin,
-               const_iterator end) {
+  virtual void process(service::sptr sp,
+                       const_iterator begin,
+                       const_iterator end) {
     const bool is_iq (std::string(sp->id(), 0, 2) == "IQ");
     const bool is_wav(std::string(sp->id(), 0, 3) == "WAV");
     if (not is_iq && not is_wav)
@@ -59,6 +62,8 @@ public:
         const size_t bytes_per_sample(header_iq.bytes_per_sample());
         assert((std::distance(begin, end) % 2*bytes_per_sample) == 0);
         std::istringstream iss_iq;
+        std::cout << "is_wav bytes_per_sample= " << bytes_per_sample 
+                  << " n= " << std::distance(begin, end) << std::endl;
         for (const_iterator i(begin); i!=end;) {
           const std::string str_iq(i, i+2*bytes_per_sample); i+=2*bytes_per_sample;
           iss_iq.str(str_iq);

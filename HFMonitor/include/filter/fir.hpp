@@ -56,8 +56,8 @@ namespace filter {
           std::reverse_copy(f_neg.begin()+1, f_neg.end()-1, std::back_inserter(f));
           const size_t m(f.size());
           
-          for (size_t i=0; i<m; ++i)
-            std::cout << "# f["<< i << "] = "<< f[i] << std::endl;
+//           for (size_t i(0); i<m; ++i)
+//             std::cout << "# f["<< i << "] = "<< f[i] << std::endl;
           
           //inverse FFT
           FFT::FFTWTransform<float_type> ifft(m, -1, FFTW_ESTIMATE);
@@ -66,18 +66,18 @@ namespace filter {
           // multiply with window function
           const size_t n(b_.size());
           float_t sum(0);
-          for (size_t i=0; i<n; ++i) {
+          for (size_t i(0); i<n; ++i) {
             b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i, n);
             sum += b_[i];
           }
           
           // normalize
-          std::cout << "b=[\n";
-          for (size_t i=0; i<n; ++i)  {
+//           std::cout << "b=[\n";
+          for (size_t i(0); i<n; ++i)  {
             b_[i] /= sum;
-            std::cout << std::scientific << b_[i] << std::endl;
+//             std::cout << std::scientific << b_[i] << std::endl;
           }
-          std::cout << "];\n";
+//           std::cout << "];\n";
         }
       private:
         real_vector_type b_;
@@ -108,11 +108,11 @@ namespace filter {
         const size_t m(compute_m(n));
         complex_vector_type v(m);
         const size_t if0(size_t(std::floor(f0*m)));
-        for (size_t i=0; i<m; ++i)
+        for (size_t i(0); i<m; ++i)
           v[i] = (i<=if0);
         const size_t k(size_t(f_ramp*m));
-        std::cerr << "k= " << k << std::endl;
-        for (size_t i=0; i<k; ++i) {
+//         std::cerr << "k= " << k << std::endl;
+        for (size_t i(0); i<k; ++i) {
           const int j(int(if0+k/2)-int(i));
           if (j<0 || j>int(m)) continue;
           v[j] = double(i)/k;

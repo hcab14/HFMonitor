@@ -25,7 +25,7 @@ public:
   typedef typename multi_downconvert_processor<FFTFloat>::filter_param filter_param;
   typedef typename multi_downconvert_processor<FFTFloat>::overlap_save_type overlap_save_type;
   multi_downconvert_toBC(const ptree& config)
-    : multi_downconvert_processor<FFTFloat>(config),
+    : multi_downconvert_processor<FFTFloat>(config)
     , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
     , started_(false) {}
 
@@ -39,15 +39,16 @@ protected:
       broadcaster_->start();
       started_= true;
     }
-    std::cout << "multi_downconvert_toBC::dump: " << fp.name() << " " << out.size() << std::endl;
+    LOG_INFO(str(boost::format("multi_downconvert_toBC::dump  '%s' size=%d")
+                 % fp.name() % out.size()));
 
     typedef typename overlap_save_type::complex_vector_type complex_vector_type;
     const size_t bytes_per_sample(3);
     // data
     std::ostringstream oss;
     for (typename complex_vector_type::const_iterator i(out.begin()); i!=out.end(); ++i) {
-      wave::detail::write_real_sample(oss, bytes_per_sample, i->real());
-      wave::detail::write_real_sample(oss, bytes_per_sample, i->imag());
+      wave::detail::write_real_sample(oss, 8*bytes_per_sample, i->real());
+      wave::detail::write_real_sample(oss, 8*bytes_per_sample, i->imag());
     }
     iq_info h_iq(sp->sample_rate_Hz()/fp.decim(), 
                  sp->center_frequency_Hz()+fp.center_freq_Hz(),
@@ -62,7 +63,7 @@ protected:
     std::string bytes;
     std::copy(h.begin(), h.end(), std::back_inserter(bytes));
     bytes += data;
-    bcroadcaster_->bc_data(sp->approx_ptime(), fp.name(), bytes);
+    broadcaster_->bc_data(sp->approx_ptime(), fp.name(), bytes);
   }
 private:
   broadcaster::sptr broadcaster_;
@@ -74,7 +75,8 @@ int main(int argc, char* argv[])
 {
   LOGGER_INIT("./Log", "multi_downconvert");
   try {
-    const boost::program_options::variables_map vm(process_options("config/multi_downconvert.xml", argc, argv));
+    const boost::program_options::variables_map
+      vm(process_options("config/multi_downconvert.xml", argc, argv));
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config);
 

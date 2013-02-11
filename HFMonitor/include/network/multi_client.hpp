@@ -4,11 +4,13 @@
 #ifndef _MULTI_CLIENT_HPP_cm121228_
 #define _MULTI_CLIENT_HPP_cm121228_
 
-#include <boost/regex.hpp>
 #include <string>
 
-#include "boost/foreach.hpp"
-#include "boost/tuple/tuple.hpp"
+#include <boost/foreach.hpp>
+#include <boost/format.hpp>
+#include <boost/regex.hpp>
+#include <boost/tuple/tuple.hpp>
+
 #include "network.hpp"
 #include "network/client/client_base.hpp"
 #include "network/client/service_net.hpp"
@@ -21,7 +23,7 @@ public:
   typedef std::string stream_name;
   typedef std::map<stream_name, processor::base::sptr> processor_id_map;
 
-  // regex (matching stream names) -> processor type
+  // (regex matching stream names, processor type, config)
   typedef std::string processor_type;
   typedef std::vector<boost::tuple<boost::regex, processor_type, std::string> > processor_type_map;
 
@@ -72,8 +74,9 @@ public:
                        data_buffer_type::const_iterator end) {
     const stream_name str_name(get_directory().stream_name_of(get_header().stream_number()));
     processor_id_map::iterator i(processor_id_map_.find(str_name));
-    if (i == processor_id_map_.end())
+    if (i == processor_id_map_.end()) {
       return; // TODO: complain
+    }
 
     // make up service object
     processor::service_base::sptr sp(service_net::make(get_header(), get_directory()));
@@ -109,6 +112,8 @@ protected:
         const std::pair<processor_type, std::string> p(find_type_of_stream(str_name));
         // p.first : processor name
         // p.second: to be used path in ptree config
+        LOG_INFO(str(boost::format("making processor '%s' type='%s' config='%s'")
+                     % str_name % p.first % p.second));
         processor_id_map_[str_name] = processor::registry::make(p.first, config_.get_child(p.second));
       } catch (...) {
         // NOP 

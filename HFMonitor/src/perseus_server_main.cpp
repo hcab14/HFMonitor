@@ -103,32 +103,13 @@ private:
 
 int main(int argc, char* argv[])
 {
-  namespace po = boost::program_options;
-  po::options_description desc("Allowed options");
-  desc.add_options()
-    ("help,?", "produce help message")
-    ("config,c", po::value<std::string>()->default_value("config/perseus_server.xml"), "path to XML configuration file");
-
-  po::variables_map vm;
+  LOGGER_INIT("./Log", "perseus_server");
   try {
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);    
-    if (vm.count("help")) {
-      std::cout << desc << std::endl;
-      return 1;
-    }
-  } catch (const std::exception &e) {
-    std::cout << e.what() << std::endl;
-    std::cout << desc << std::endl;
-    return 1;
-  }
-
-  LOGGER_INIT("./Log", "test_perseus");
-  try {
-    libusb::session::sptr s(libusb::session::get_global_session());
-    const std::string filename(vm["config"].as<std::string>());
+    const boost::program_options::variables_map vm(process_options("config/perseus_server.xml", argc, argv));
     boost::property_tree::ptree config;
-    read_xml(filename, config);
+    read_xml(vm["config"].as<std::string>(), config);
+
+    libusb::session::sptr s(libusb::session::get_global_session());
 
     const boost::property_tree::ptree& config_perseus(config.get_child("Perseus"));
     const std::string perseus_firmware(config_perseus.get<std::string>("<xmlattr>.firmware"));

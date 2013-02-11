@@ -5,6 +5,7 @@
 
 #include <complex>
 #include <map>
+#include <sstream>
 #include <vector>
 
 #include <boost/format.hpp>
@@ -51,9 +52,10 @@ protected:
                                 double sample_rate_Hz) {
       assert(sample_rate_Hz != 0.0);
       center_freq_input_Hz_ = _center_freq_input_Hz;
-      offset_ = (center_freq_Hz()-center_freq_input_Hz())/sample_rate_Hz;
+      offset_ = (center_freq_input_Hz()-center_freq_Hz())/sample_rate_Hz;
       return *this;
     }
+    //                                           (handle, offset)
     filter_param& set_initialized(const std::pair<size_t,double>& r,
                                   double sample_rate_Hz) {
       offset_         = r.second;
@@ -97,9 +99,11 @@ public:
                               filt.second.get<double>("<xmlattr>.centerFrequency_Hz"),
                               filt.second.get<size_t>("<xmlattr>.decim"));
         filter_params_.push_back(fp);
-        std::cout << fp << std::endl;
+        LOG_INFO(str(boost::format("multi_downconvert_processor: filter %s")
+                      % fp));
       } else {
-        std::cout << "unknown filter type: " << filt.first << std::endl;
+        LOG_ERROR(str(boost::format("multi_downconvert_processor: unknown filter type '%s'")
+                      % filt.first));
       }
     }
   }

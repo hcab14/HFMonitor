@@ -86,12 +86,13 @@ namespace wave {
     writer_iq(const boost::property_tree::ptree& config)
       : base_iq(config)
       , base_path_(config.get<std::string>("<xmlattr>.filePath"))
-      , tag_(config.get<std::string>("<xmlattr>.fileTag"))
       , file_period_(gen_filename::str2period(config.get<std::string>("<xmlattr>.filePeriod")))
       , pos_(0)
       , header_(0, config.get<int>("<xmlattr>.bitsPerSample", 16), 2) 
         // set correct sampling frequency later, number of channels is fixed to 2
-    {}
+    {
+      std::cout << "writer_iq" << std::endl;
+    }
 
     virtual ~writer_iq() {}
     
@@ -106,7 +107,7 @@ namespace wave {
                 << pos_ << " " 
                 << std::distance(i0, i1) << std::endl;
       const boost::filesystem::path
-        filepath(gen_file_path(base_path_, tag_, service->approx_ptime()));
+        filepath(gen_file_path(base_path_, service->stream_name(), service->approx_ptime()));
 
       if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
         std::cerr << "file '" << filepath << "' exists and will be overwritten" << std::endl;
@@ -135,7 +136,6 @@ namespace wave {
   protected:
   private:
     std::string    base_path_;
-    std::string    tag_;
     gen_filename::file_period file_period_;
     std::streampos pos_;    
     detail::wave_header header_;
