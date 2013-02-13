@@ -25,15 +25,33 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace processor {
-  // base class for source-specific parameters to the service object
-  class specific_param_base {
+  // base class for processor results which can be given to the service object
+  class result_base : private boost::noncopyable {
   public:
-    typedef boost::shared_ptr<specific_param_base> sptr;
-    virtual ~specific_param_base() {}
+    typedef boost::posix_time::ptime ptime;
 
-    virtual std::string to_string() const {
-      return "specific_param_base"; 
+    typedef boost::shared_ptr<result_base> sptr;
+    virtual ~result_base() {}
+
+    virtual std::string name() const { return name_; }
+    virtual ptime approx_ptime() const { return t_; }
+
+    virtual std::string to_string() const { return name(); }    
+
+    virtual std::ostream& dump_header(std::ostream& os) const {  return os;  }
+    virtual std::ostream& dump_data(std::ostream& os)   const { return os; }
+
+    friend std::ostream& operator<<(std::ostream& os, const result_base& r) {
+      return os << r.to_string();
     }
+  protected:
+    result_base(std::string name, ptime t)
+      : name_(name)
+      , t_(t) {}
+
+  private:    
+    const std::string name_;
+    const ptime       t_;
   } ;
   
   class service_base : private boost::noncopyable {
@@ -42,13 +60,17 @@ namespace processor {
     typedef boost::shared_ptr<service_base> sptr;
     typedef boost::posix_time::time_duration time_duration;
     
-    service_base() {}
     virtual ~service_base() {}
     
     virtual std::string     id() const = 0;
     virtual ptime           approx_ptime() const = 0;
     virtual boost::uint16_t stream_number() const = 0;
     virtual std::string     stream_name() const = 0;
+
+    virtual void              put_result(result_base::sptr ) {}
+    virtual result_base::sptr get_result(std::string name) const {
+      return result_base::sptr();
+    }
   protected:
   private:
   } ;
@@ -57,7 +79,6 @@ namespace processor {
   public:
     typedef boost::shared_ptr<service_iq> sptr;
     
-    service_iq() {}
     virtual ~service_iq() {}
     
     virtual boost::uint32_t sample_rate_Hz()      const = 0;
@@ -66,37 +87,5 @@ namespace processor {
     virtual float           offset_ppb_rms()      const = 0;
   } ;
 
-  // // processor service object 
-  // class service_base : private boost::noncopyable {
-  // public:
-  //   typedef boost::posix_time::ptime ptime;
-  //   typedef boost::shared_ptr<service_base> sptr;
-
-  //   service_base(std::string source_name)
-  //     : source_name_(source_name) {}
-  //   virtual ~service_base() {}
-
-  //   // name of iq data source
-  //   virtual std::string source_name() const { return source_name_; }
-
-  //   virtual double center_freq_hz() const = 0;
-  //   virtual double sample_rate_hz() const = 0;
-
-  //   // approx. time at start of samples
-  //   virtual ptime approx_ptime() const = 0;
-
-  //   // param specific to the source
-  //   virtual specific_param_base::sptr specific_param() const = 0;
-
-  //   // return a service object with samplerate changed by factor num/denum
-  //   virtual sptr resample(size_t num, size_t denum) const = 0;
-
-  //   // return a service object with a shifted center frequency
-  //   virtual sptr freq_shift(double freq_shift_hz) const = 0;
-
-  // protected:
-  // private:
-  //   const std::string source_name_;
-  // } ;
 } // namespace processor
 #endif // _SERVICE_HPP_cm110729_

@@ -24,6 +24,13 @@
                       minDf_Hz=".1"
                       maxHistorySize="300">
     </TrackingGoertzel>
+    <TrackingGoertzel name="TGF_DCF77"
+                      input="DC_077500_DCF"
+                      f0_Hz="77.5e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="300">
+    </TrackingGoertzel>
   </Processors>
   <Filters>
     <FIR name="DC_023400_DH0" type="lowpass" cutoff="0.005" centerFrequency_Hz="23.4e3" decim="100"></FIR>

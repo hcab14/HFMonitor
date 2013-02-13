@@ -91,11 +91,12 @@ protected:
   class service_dc : public service {
   public:
     typedef boost::shared_ptr<service_dc> sptr;
-    static sptr make(service::sptr   sp,
+    static sptr make(multi_downconvert_processor<FFTFloat>* pp,
+                     service::sptr   sp,
                      std::string     stream_name,
                      boost::uint32_t sample_rate_Hz,
                      double          center_frequency_Hz) {
-      return sptr(new service_dc(sp, stream_name, sample_rate_Hz, center_frequency_Hz));
+      return sptr(new service_dc(pp, sp, stream_name, sample_rate_Hz, center_frequency_Hz));
     }
     virtual ~service_dc() {}
 
@@ -108,17 +109,27 @@ protected:
     virtual float           offset_ppb()          const { return sp_->offset_ppb(); }
     virtual float           offset_ppb_rms()      const { return sp_->offset_ppb_rms(); }
 
+    virtual void put_result(processor::result_base::sptr rp) {
+      pp_->put_result(rp);
+    }
+    virtual processor::result_base::sptr get_result(std::string name) const {
+      return pp_->get_result(name);
+    }
+
   protected:
   private:
-    service_dc(service::sptr   sp,
+    service_dc(multi_downconvert_processor<FFTFloat>* pp,
+               service::sptr   sp,
                std::string     stream_name,
                boost::uint32_t sample_rate_Hz,
                double          center_frequency_Hz)
-      : sp_(sp)
+      : pp_(pp)
+      , sp_(sp)
       , stream_name_(stream_name)
       , sample_rate_Hz_(sample_rate_Hz)
       , center_frequency_Hz_(center_frequency_Hz) {}
 
+    multi_downconvert_processor<FFTFloat>* pp_;
     const service::sptr   sp_;
     const std::string     stream_name_;
     const boost::uint32_t sample_rate_Hz_;
@@ -134,6 +145,8 @@ protected:
 public: 
   typedef boost::shared_ptr< multi_downconvert_processor<FFTFloat> > sptr;
   typedef typename filter::fir::overlap_save<FFTFloat> overlap_save_type;
+
+  typedef std::map<std::string, processor::result_base::sptr> result_map;
 
   multi_downconvert_processor(const ptree& config)
     : base_iq(config)
@@ -198,7 +211,8 @@ public:
       processor_map::iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
-        proc(service_dc::make(sp,
+        proc(service_dc::make(this,
+                              sp,
                               fp.name(),
                               sp->sample_rate_Hz()/fp.decim(),
                               fp.center_freq_Hz()),
@@ -220,10 +234,22 @@ protected:
                     const typename overlap_save_type::complex_vector_type& out) {
     pp->process_iq(sp, out.begin(), out.end());
   }
+  
 private:
+  // results
+  void put_result(processor::result_base::sptr rp) {
+    LOG_INFO(str(boost::format("multi_downconvert_processor::put_result %s") % rp->to_string()));
+    result_map_[rp->name()] = rp;
+  }
+  processor::result_base::sptr get_result(std::string name) const {
+    result_map::const_iterator i(result_map_.find(name));
+    return (i != result_map_.end()) ? i->second : processor::result_base::sptr();
+  }
+
   overlap_save_type overlap_save_;
   filter_params     filter_params_;
   processor_map     processor_map_;
+  result_map        result_map_;
 } ;
 
 #endif // _MULTI_DOWNCONVERT_PROCESSOR_HPP_cm130115_
