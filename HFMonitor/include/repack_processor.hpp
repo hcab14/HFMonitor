@@ -17,6 +17,8 @@
 template<typename PROCESSOR>
 class repack_processor : public processor::base_iq {
 public:
+  typedef boost::shared_ptr<repack_processor> sptr;
+
   repack_processor(boost::asio::io_service&           service,
                    const boost::property_tree::ptree& config)
     : base_iq(config)
@@ -40,17 +42,17 @@ public:
 
   boost::asio::io_service& get_service() { return service_; }
 
-  void process_iq(processor::base_iq::service::sptr sp,
-                  processor::base_iq::const_iterator i0,
-                  processor::base_iq::const_iterator i1) {
+  void process_iq(service::sptr sp,
+                  const_iterator i0,
+                  const_iterator i1) {
     using namespace boost::posix_time;
     if (!service_)
       iqBuffer_.update(size_t(sp->sample_rate_Hz()*bufferLengthSec_), overlap_);
-    
-    service_ = sp;
+
     const time_duration dt
-      (0,0,0, counter_*time_duration::ticks_per_second()/service_->sample_rate_Hz());
-    service_->update_ptime(-dt);
+      (0,0,0, counter_*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+    const ptime t(sp->approx_ptime()-dt);
+    service_ = service_repack::make(sp, t);
 
     // if (!currentHeader_.hasEqualParameters(header)) 
     //   update(header);    
@@ -72,21 +74,37 @@ public:
   }
 
 protected:
-  // void update(const Header& h) {
-  //   ASSERT_THROW(h.sampleRate() != 0);
-  //   iqBuffer_.update(size_t(h.sampleRate()*bufferLengthSec_), overlap_);
-  //   currentHeader_ = h;
-  //   currentHeader_.sampleNumber() -= iqBuffer_.n();
-  //   currentHeader_.setNumberOfSamples(iqBuffer_.n());
-  //   counter_ = 0;
-  // }
+  class service_repack : public service {
+  public:
+    typedef boost::shared_ptr<service_repack> sptr;
+    virtual ~service_repack() {}
 
+    static sptr make(service::sptr sp, ptime t) {
+      return sptr(new service_repack(sp, t));
+    }
+    virtual std::string     id()                  const { return sp_->id(); }
+    virtual ptime           approx_ptime()        const { return t_; }
+    virtual boost::uint16_t stream_number()       const { return sp_->stream_number(); }
+    virtual std::string     stream_name()         const { return sp_->stream_name(); }
+    virtual boost::uint32_t sample_rate_Hz()      const { return sp_->sample_rate_Hz(); }
+    virtual double          center_frequency_Hz() const { return sp_->center_frequency_Hz(); }
+    virtual float           offset_ppb()          const { return sp_->offset_ppb(); }
+    virtual float           offset_ppb_rms()      const { return sp_->offset_ppb_rms(); }
+
+  protected:
+  private:
+    service_repack(service::sptr sp, ptime t)
+      : sp_(sp)
+      , t_(t) {}
+    const service::sptr sp_;
+    const ptime         t_;
+  } ;
 private:
-  PROCESSOR p_;
-  double    bufferLengthSec_;
-  double    overlap_;
-  processor::base_iq::service::sptr service_;
-  IQBuffer  iqBuffer_;
+  PROCESSOR      p_;
+  double         bufferLengthSec_;
+  double         overlap_;
+  service::sptr  service_;
+  IQBuffer       iqBuffer_;
   boost::int64_t counter_;
 } ;
 

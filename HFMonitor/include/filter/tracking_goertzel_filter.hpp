@@ -57,6 +57,12 @@ public:
     } state_t;
   } ;
 
+  static std::string state2str(state::state_t s) {
+    static std::string stab[] = { "UNDEFINED", "PEAK", "MOVE_RIGHT", "MOVE_LEFT", "REST" };
+    assert(s<5 && s>=0);
+    return stab[s];
+  }
+
   typedef std::complex<double> complex_t;
 
   static sptr make(double fs,              // sampling frequency (Hz)
@@ -69,7 +75,9 @@ public:
 
   double         fs_Hz()         const { return fs_; }
   state::state_t last_state()    const { return last_state_; }
-  bool           state_updated() const { return sample_counter_ == 0 && last_state() != state::UNDEFINED; }
+  bool           state_updated() const {
+    return sample_counter_ == 0 && last_state() != state::UNDEFINED;
+  }
   size_t         period()        const { return period_; }
   const detail::value_and_error& estimated_f_Hz() const { return estimated_f_; }
   const detail::value_and_error& estimated_df()   const { return estimated_df_; }  
@@ -90,7 +98,7 @@ public:
 	std::cout << "peak " << std::max(b/a, b/c);
 	phases_.push_back(std::make_pair(period_, std::arg(center_.x())));
 	compute_exact_frequency();
-	if (std::max(b/a, b/c) > 1.1 && period_ < max_period_) {
+	if (std::max(b/a, b/c) > 1.1 && period_ < max_period_ && history_size() > 5*period_) {
 	  period_ *= 2;
 	  left_  = goertzel_t(left_.kN()  + 1./period_);
 	  right_ = goertzel_t(right_.kN() - 1./period_);

@@ -134,7 +134,7 @@ namespace Perseus {
       return counts/double(1ULL<<32)*80e6;
     }
     static boost::uint32_t hz2counts(double freq_hz) {
-      return boost::uint32_t(freq_hz/80e6*(1ULL<<32));
+      return boost::uint32_t(freq_hz/80e6*double(1ULL<<32)+0.5);
     }
     static filter_cutoffs make_filter_cutoffs() {
       const double flt[] = {1.7e6, 2.1e6, 3.0e6, 4.2e6, 6.0e6, 8.4e6, 12e6, 17e6, 24e6, 32e6};
