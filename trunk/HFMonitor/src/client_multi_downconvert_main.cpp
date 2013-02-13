@@ -4,6 +4,8 @@
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include "FFTProcessorToBC.hpp"
+#include "FFTProcessorToFile.hpp"
 #include "network/broadcaster.hpp"
 #include "network/client.hpp"
 #include "network/iq_adapter.hpp"
@@ -12,6 +14,9 @@
 #include "repack_processor.hpp"
 #include "network/broadcaster.hpp"
 #include "run.hpp"
+#include "tracking_goertzel_processor.hpp"
+#include "wave/writer.hpp"
+#include "writer.hpp"
 
 #include "network/protocol.hpp"
 #include "wave/writer.hpp"
@@ -79,6 +84,13 @@ int main(int argc, char* argv[])
       vm(process_options("config/multi_downconvert.xml", argc, argv));
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config);
+
+    processor::registry::add<writer_txt                  >("WriterTXT");
+    processor::registry::add<iq_adapter<wave::writer_iq> >("WriterIQ");
+    processor::registry::add<FFTProcessorToBC<float>     >("FFTProcToBC_FLOAT");
+    processor::registry::add<FFTProcessorToBC<double>    >("FFTProcToBC_DOUBLE");
+
+    processor::registry::add<tracking_goertzel_processor >("TrackingGoertzel");
 
     const std::string stream_name("DataIQ");
 

@@ -38,8 +38,6 @@ public:
     stream_number_ = stream_number;
   }
 
-  ptime update_ptime(time_duration dt) { return (approx_ptime_ += dt); }
-
   const char* begin() const { return reinterpret_cast<const char*>(this); }
   const char* end() const { return reinterpret_cast<const char*>(this) + sizeof(header); }
 

@@ -72,19 +72,14 @@ namespace wave {
                                         center_frequency_Hz, format));
       }
       
-      virtual std::string     id() const { return "WAVE_000"; }
-      virtual ptime           approx_ptime() const { return approx_ptime_; }
-      virtual boost::uint16_t stream_number() const { return 1; }
-      virtual std::string     stream_name() const { return stream_name_; }
-      
+      virtual std::string     id()                  const { return "WAVE_000"; }
+      virtual ptime           approx_ptime()        const { return approx_ptime_; }
+      virtual boost::uint16_t stream_number()       const { return 1; }
+      virtual std::string     stream_name()         const { return stream_name_; }      
       virtual boost::uint32_t sample_rate_Hz()      const { return format_.sampleRate(); }
       virtual double          center_frequency_Hz() const { return center_frequency_Hz_; }
       virtual float           offset_ppb()          const { return 0; }
       virtual float           offset_ppb_rms()      const { return 0; }
-
-      virtual ptime update_ptime(boost::posix_time::time_duration dt) {
-        return approx_ptime_ += dt;
-      }
 
     private:
       service_wave_iq(ptime approx_ptime,
@@ -96,10 +91,10 @@ namespace wave {
         , center_frequency_Hz_(center_frequency_Hz)
         , format_(format) {}
       
-      ptime         approx_ptime_;
-      std::string   stream_name_;
-      double        center_frequency_Hz_;
-      chunk::format format_;    
+      const ptime         approx_ptime_;
+      const std::string   stream_name_;
+      const double        center_frequency_Hz_;
+      const chunk::format format_;    
     } ;
   } // namespace detail
 

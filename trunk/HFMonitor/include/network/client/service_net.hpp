@@ -30,7 +30,6 @@ public:
   virtual boost::uint16_t stream_number() const { return header_.stream_number(); }
   virtual std::string     stream_name()   const { return directory_.stream_name_of(stream_number()); }
 
-  virtual ptime update_ptime(time_duration dt) { return header_.update_ptime(dt); }
 protected:
 private:
   service_net(const header& h,
@@ -62,7 +61,6 @@ public:
   virtual float           offset_ppb()          const { return iq_info_.offset_ppb(); }
   virtual float           offset_ppb_rms()      const { return iq_info_.offset_ppb_rms(); }
   
-  virtual ptime update_ptime(time_duration dt) { return sp_->update_ptime(dt); }
 protected:
 private:
   service_net_iq(processor::service_base::sptr sp,
