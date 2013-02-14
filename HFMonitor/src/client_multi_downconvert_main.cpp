@@ -78,7 +78,7 @@ private:
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "multi_downconvert");
+  LOGGER_INIT("./Log", "multi_downconvert_");
   try {
     const boost::program_options::variables_map
       vm(process_options("config/multi_downconvert.xml", argc, argv));

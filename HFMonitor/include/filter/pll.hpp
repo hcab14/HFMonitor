@@ -40,7 +40,9 @@ namespace filter {
       : loop_filter_(loop_filter)
       , integrator_(integrator)
       , fc_(fc)
-      , ts_(1./fs) {}
+      , ts_(1./fs) {
+      reset();
+    }
     
     void reset() {
       f1_= 2*M_PI*fc_;
