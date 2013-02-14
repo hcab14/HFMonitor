@@ -6,9 +6,9 @@
   <Broadcaster>
     <Data maxQueueSize_MB="2"
           maxQueueDelay_Minutes="5"
-          port="19001">
+          port="19003">
     </Data>
-    <Ctrl port="19002"></Ctrl>
+    <Ctrl port="19004"></Ctrl>
   </Broadcaster>
   <Repack bufferLength_sec="1"
           overlap_percent="0">
@@ -16,10 +16,14 @@
   <server host="nz23-18.ifj.edu.pl"
           port="18001">
   </server>
+  <Calibration algorithm="WeightedMean">
+    <Key>TGF_DCF77</Key>
+    <Key>TGF_MSF</Key>
+  </Calibration>
   <Processors>
-    <TrackingGoertzel name="TGF_DCF77"
-                      input="DC_077500_DCF"
-                      f0_Hz="77.5e3"
+    <TrackingGoertzel name="TGF_MSF"
+                      input="DC_060000_MSF"
+                      f0_Hz="60.0e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
                       maxHistorySize="300">

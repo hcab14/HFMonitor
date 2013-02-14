@@ -24,10 +24,10 @@ public:
 
     virtual ~result() {}
     static sptr make(std::string name,
-                     ptime t,
-                     double f0_Hz,
+                     ptime       t,
+                     double      f0_Hz,
                      std::string state,
-                     double period_sec,
+                     double      period_sec,
                      const detail::value_and_error& f_Hz,
                      const detail::value_and_error& df) {
       return sptr(new result(name, t, f0_Hz, state, period_sec, f_Hz, df));
@@ -77,6 +77,7 @@ public:
 
   tracking_goertzel_processor(const boost::property_tree::ptree& config)
     : base_iq(config)
+    , name_(config.get<std::string>("<xmlattr>.name"))
     , f0_Hz_(config.get<double>("<xmlattr>.f0_Hz"))
     , df_Hz_(config.get<double>("<xmlattr>.df_Hz"))
     , min_df_Hz_(config.get<double>("<xmlattr>.minDf_Hz"))
@@ -103,10 +104,11 @@ public:
     for (const_iterator i(i0); i!=i1; ++i) {
       filter_->update(*i);
       if (filter_->state_updated()) {
-        const time_duration dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-        sp->put_result(result::make(sp->stream_name(),
+        const time_duration 
+          dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+        sp->put_result(result::make(name_,
                                     sp->approx_ptime()+dt,
-                                    f0_Hz,
+                                    f0_Hz_,
                                     tracking_goertzel_filter::state2str(filter_->last_state()),
                                     double(filter_->period())/double(sp->sample_rate_Hz()),
                                     filter_->estimated_f_Hz(),
@@ -117,10 +119,11 @@ public:
 
 protected:
 private:
-  const double f0_Hz_;             // initial middle frequency
-  const double df_Hz_;             // initial df: [f0+-df]
-  const double min_df_Hz_;         // maximal frequency resolution
-  const size_t max_history_size_;  // maximal phase history size in seconds
+  const std::string name_;
+  const double      f0_Hz_;             // initial middle frequency
+  const double      df_Hz_;             // initial df: [f0+-df]
+  const double      min_df_Hz_;         // maximal frequency resolution
+  const size_t      max_history_size_;  // maximal phase history size in seconds
   tracking_goertzel_filter::sptr filter_;
 } ;
 

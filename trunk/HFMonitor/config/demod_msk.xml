@@ -1,0 +1,8 @@
+<!---*- xml -*--->
+<!-- $Id$ -->
+<?xml version="1.0" encoding="utf-8"?>
+<DemodMSK name="Hello"
+          fc_Hz="0.0"
+          fm_Hz="100.0"
+          dwl="2">
+</DemodMSK>

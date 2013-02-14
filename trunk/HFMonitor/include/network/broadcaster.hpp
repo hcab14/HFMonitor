@@ -29,7 +29,6 @@
 //   <Data port="xxxx"
 //         maxQueueSize_MB="xxxx"
 //         maxQueueDelay_Minutes="xxxx"></Data>
-//   <Ctrl port="xxxx"></Ctrl>
 
 class broadcaster : private boost::noncopyable {
 public:
@@ -110,9 +109,6 @@ private:
     acceptor_map_["Data"] = acceptor_ptr
       (new tcp::acceptor(network::get_io_service(),
                          tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
-    acceptor_map_["Ctrl"] = acceptor_ptr
-      (new tcp::acceptor(network::get_io_service(),
-                         tcp::endpoint(tcp::v4(), config.get<size_t>("Ctrl.<xmlattr>.port"))));
   }
 
   static
@@ -160,8 +156,6 @@ private:
         // asynchronously accept next data connection
         async_accept(a);
 
-      } else if (a.first == "Ctrl") {
-        // do nothing for now
       } else {
         LOG_ERROR(str(boost::format("unknown type='%s'") % a.first));
       }

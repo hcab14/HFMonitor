@@ -64,10 +64,10 @@ namespace wave {
     public:
       virtual ~service_wave_iq() {}
       typedef boost::shared_ptr<service_wave_iq> sptr;
-      sptr make(ptime approx_ptime,
-                std::string stream_name,
-                double center_frequency_Hz,
-                const chunk::format& format) {
+      static sptr make(ptime approx_ptime,
+                       std::string stream_name,
+                       double center_frequency_Hz,
+                       const chunk::format& format) {
         return sptr(new service_wave_iq(approx_ptime, stream_name,
                                         center_frequency_Hz, format));
       }
@@ -103,15 +103,14 @@ namespace wave {
   public:
     typedef boost::shared_ptr<reader_iq_base> sptr;
 
-    reader_iq_base(PROCESSOR& p,
-                   double buffer_length_sec,
-                   double overlap)
-      : p_(p)
+    reader_iq_base(const boost::property_tree::ptree& config)
+      : base_iq(config)
+      , p_(config)
       , read_riff_(false)
       , read_format_(false)
       , read_data_(false)
-      , buffer_length_sec_(buffer_length_sec)
-      , overlap_(overlap)
+      , buffer_length_sec_(config.get<double>("<xmlattr>.buffer_length_sec", 1.0))
+      , overlap_(config.get<double>("<xmlattr>.overlap", 0.0))
       , iq_buffer_(0, 0.)
       , sample_number_(0) {}
     virtual ~reader_iq_base() {}
@@ -127,18 +126,20 @@ namespace wave {
     }
 
     // complex_vector_type samples() const { return iq_buffer_.samples(); }
-
-    // called from IQBuffer::insert
-    void process_iq(service::sptr service,
-                    const_iterator i0, 
-                    const_iterator i1) {
+    
+    void procIQ(const_iterator i0,
+                const_iterator i1) {
       using namespace boost::posix_time;
       p_.process_iq(get_service(std::distance(i0, i1)), i0, i1);
       start_time_ += time_duration(0, 0, 0,
-                                    double(std::distance(i0, i1))
-                                   /double(format_.sampleRate())
-                                   *time_duration::ticks_per_second());
+                                   boost::int64_t(double(std::distance(i0, i1))
+                                                  /double(format_.sampleRate())
+                                                  *time_duration::ticks_per_second()+0.5));
     }
+
+    void process_iq(service::sptr service,
+                    const_iterator i0, 
+                    const_iterator i1) { }
 
   protected:
     const chunk::format& format() const { return format_; }
@@ -166,7 +167,7 @@ namespace wave {
           format_      = detail::readT<chunk::format>(is);
           read_format_ = true;
           std::cout << format_ << std::endl;
-          iq_buffer_.update(format_.sampleRate() * buffer_length_sec_, overlap_);
+          iq_buffer_.update(size_t(format_.sampleRate()*buffer_length_sec_+0.5), overlap_);
         } else if (h.id() == "data") {
           data_      = detail::readT<chunk::data>(is);
           read_data_ = true;
@@ -203,7 +204,7 @@ namespace wave {
     }
 
   private:
-    PROCESSOR& p_;
+    PROCESSOR p_;
     bool read_riff_;
     bool read_format_;
     bool read_data_;
@@ -223,16 +224,11 @@ namespace wave {
   template<typename PROCESSOR>
   class reader_iq : public reader_iq_base<PROCESSOR> {
   public:
-    reader_iq(PROCESSOR& p,
-              double center_freq_hz,
-              boost::posix_time::ptime start_time,
-              double buffer_length_sec, 
-              double overlap)
-      : reader_iq_base<PROCESSOR>(p, buffer_length_sec, overlap)
-      , center_freq_hz_(center_freq_hz) {
-      update_start_time(start_time);
-    }
-
+    reader_iq(const boost::property_tree::ptree& config)
+      : reader_iq_base<PROCESSOR>(config)
+      , center_freq_hz_(config.get<double>("<xmlattr>.center_freq_Hz", 0.0)) {
+      update_start_time(boost::posix_time::microsec_clock::universal_time());
+    }    
     virtual ~reader_iq() {}
 
     typedef typename reader_iq_base<PROCESSOR>::service service;

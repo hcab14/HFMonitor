@@ -2,10 +2,10 @@
 <!-- $Id$ -->
 <MultiClient>
   <server host="nz23-18.ifj.edu.pl"
-	  port="19001">
+	  port="19003">
   </server>
   <Streams>
-    <Stream pattern="Test.*">Writer2</Stream>
+    <Stream pattern="DC_023400_DH0">Writer2</Stream>
     <!-- <Stream pattern="L0.*">Writer0</Stream>
          <Stream pattern="L2.*">Writer1</Stream> -->
   </Streams>
@@ -21,7 +21,6 @@
     <Writer2 type="WriterIQ"
              filePath="DataBC"
              filePeriod="5m"
-             fileTag="AAA"
              bitsPerSample="24">
     </Writer2>
   </Clients>

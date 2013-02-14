@@ -21,6 +21,7 @@
 #include "logging.hpp"
 #include "processor.hpp"
 #include "processor/registry.hpp"
+#include "tracking_goertzel_processor.hpp"
 
 template<typename FFTFloat>
 class multi_downconvert_processor : public processor::base_iq {
@@ -96,7 +97,8 @@ protected:
                      std::string     stream_name,
                      boost::uint32_t sample_rate_Hz,
                      double          center_frequency_Hz) {
-      return sptr(new service_dc(pp, sp, stream_name, sample_rate_Hz, center_frequency_Hz));
+      return sptr(new service_dc(pp, sp, stream_name,
+                                 sample_rate_Hz, center_frequency_Hz));
     }
     virtual ~service_dc() {}
 
@@ -106,8 +108,8 @@ protected:
     virtual std::string     stream_name()         const { return stream_name_; }
     virtual boost::uint32_t sample_rate_Hz()      const { return sample_rate_Hz_; }
     virtual double          center_frequency_Hz() const { return center_frequency_Hz_; }
-    virtual float           offset_ppb()          const { return sp_->offset_ppb(); }
-    virtual float           offset_ppb_rms()      const { return sp_->offset_ppb_rms(); }
+    virtual float           offset_ppb()          const { return offset_ppb_.first; }
+    virtual float           offset_ppb_rms()      const { return offset_ppb_.second; }
 
     virtual void put_result(processor::result_base::sptr rp) {
       pp_->put_result(rp);
@@ -127,13 +129,19 @@ protected:
       , sp_(sp)
       , stream_name_(stream_name)
       , sample_rate_Hz_(sample_rate_Hz)
-      , center_frequency_Hz_(center_frequency_Hz) {}
+      , center_frequency_Hz_(center_frequency_Hz)
+      , offset_ppb_(pp->calibration_offset_ppb()) {
+      LOG_INFO(str(boost::format("service_dc: calibration_offset_ppb: %.3f +- %.3f")
+                   % offset_ppb_.first
+                   % offset_ppb_.second));
+    }
 
     multi_downconvert_processor<FFTFloat>* pp_;
     const service::sptr   sp_;
     const std::string     stream_name_;
     const boost::uint32_t sample_rate_Hz_;
     const double          center_frequency_Hz_;
+    const std::pair<double,double> offset_ppb_;
   } ;
 
   // list of filter parameters
@@ -142,11 +150,15 @@ protected:
   // filter name -> associated iq processor sptr
   typedef std::map<std::string, processor::base_iq::sptr> processor_map;
 
+  // 
+  typedef std::map<std::string, processor::result_base::sptr> result_map;
+
+  // 
+  typedef std::vector<std::string> calibration_keys;
+
 public: 
   typedef boost::shared_ptr< multi_downconvert_processor<FFTFloat> > sptr;
   typedef typename filter::fir::overlap_save<FFTFloat> overlap_save_type;
-
-  typedef std::map<std::string, processor::result_base::sptr> result_map;
 
   multi_downconvert_processor(const ptree& config)
     : base_iq(config)
@@ -178,6 +190,19 @@ public:
       }
       LOG_INFO(str(boost::format("making processor '%s' type='%s' input='%s'") % name % p.first % input));
       processor_map_[input] = pp;
+    }
+    // Calibration
+    const std::string cal_algo(config.get_child("Calibration").get<std::string>("<xmlattr>.algorithm"));
+    if (cal_algo != "WeightedMean")
+      LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
+    BOOST_FOREACH(const ptree::value_type& p, config.get_child("Calibration")) { 
+      if (p.first != "Key") {
+        LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
+        continue;
+      }
+      const std::string cal_key(p.second.get<std::string>(""));
+      LOG_INFO(str(boost::format("adding calibration key '%s'") % cal_key));
+      calibration_keys_.push_back(cal_key);
     }
   }
 
@@ -246,10 +271,34 @@ private:
     return (i != result_map_.end()) ? i->second : processor::result_base::sptr();
   }
 
+  //        (ppb, ppb_rms)
+  std::pair<double, double> calibration_offset_ppb() const {
+    double sum_wx(0), sum_w(0);
+    BOOST_FOREACH(const std::string& key, calibration_keys_) {
+      tracking_goertzel_processor::result::sptr
+        rp(boost::dynamic_pointer_cast<tracking_goertzel_processor::result>(get_result(key)));
+      if (not rp) {
+        LOG_ERROR(str(boost::format("calibration_offset_ppb: key '%s' not found") % rp));
+        continue;
+      }
+      if (not rp->f_Hz().valid()) continue;
+
+      const double rms(1e9*rp->f_Hz().rms_value()/rp->f0_Hz());
+      // w_i = 1/sigma_i^2
+      const double weight((rms != 0. ? 1./(rms*rms) : 0.));
+      sum_w  += weight;
+      sum_wx += weight * 1e9*rp->f_Hz().value()/rp->f0_Hz();
+    }
+    return (sum_w != 0.)
+      ? std::make_pair(sum_wx/sum_w, 1./sqrt(sum_w))
+      : std::make_pair(0., 0.);
+  }
+
   overlap_save_type overlap_save_;
   filter_params     filter_params_;
   processor_map     processor_map_;
   result_map        result_map_;
+  calibration_keys  calibration_keys_;
 } ;
 
 #endif // _MULTI_DOWNCONVERT_PROCESSOR_HPP_cm130115_

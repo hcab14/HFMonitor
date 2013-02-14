@@ -61,6 +61,7 @@ namespace wave {
 
       wave_header& change_sample_rate(boost::uint32_t new_sample_rate) {
         format_.changeSampleRate(new_sample_rate);
+        data_.size() = 0;
         return *this;
       }
       wave_header& add_samples(size_t number_of_samples) {
