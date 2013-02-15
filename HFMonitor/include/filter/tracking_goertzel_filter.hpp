@@ -210,7 +210,7 @@ private:
 			   size_t max_hist_size) // maximal size of history in seconds
 
     : fs_(fs)
-    , period_(size_t(0.5+fs/df+0.5))
+    , period_(size_t(0.5+fs/df))
     , min_period_(period_)
     , max_period_(size_t(0.5+fs/min_df))
     , left_((f0-df)/fs)

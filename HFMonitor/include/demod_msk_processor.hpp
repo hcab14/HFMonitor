@@ -25,7 +25,8 @@ public:
     , name_(config.get<std::string>("<xmlattr>.name"))
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
     , fm_Hz_(config.get<double>("<xmlattr>.fm_Hz"))
-    , dwl_(config.get<double>("<xmlattr>.dwl")) {}
+    , dwl_Hz_(config.get<double>("<xmlattr>.dwl_Hz"))
+    , period_Sec_(config.get<double>("<xmlattr>.period_Sec")) {}
   
   ~demod_msk_processor() {}
 
@@ -40,26 +41,26 @@ public:
               << std::endl;
     // set up a new filter
     if (not demod_msk_)
-      demod_msk_ = demod::msk::make(sp->sample_rate_Hz(), fm_Hz_, dwl_);
+      demod_msk_ = demod::msk::make(sp->sample_rate_Hz(), fm_Hz_, dwl_Hz_, period_Sec_);
 
     for (const_iterator i(i0); i!=i1; ++i) {
       demod_msk_->process(*i);
-      const double_t carrier_phase(.5*(demod_msk_->pll_plus().theta() +
-                                       demod_msk_->pll_minus().theta()));
-      const demod::msk::complex_type x(*i * std::exp(demod::msk::complex_type(0., carrier_phase)));
-      const double ct(cos(0.5*(demod_msk_->pll_plus().theta() -
-                               demod_msk_->pll_minus().theta())));
-      const double st(cos(0.5*(demod_msk_->pll_plus().theta() -
-                               demod_msk_->pll_minus().theta())));
-      std::cout << "MSK_DEMOD: " << demod_msk_->pll_plus().theta()
-                << " " << demod_msk_->pll_minus().theta()
-                << " " << demod_msk_->pll_plus().f1()
-                << " " << demod_msk_->pll_minus().f1()
-                << " " << std::arg(*i)
-                << " " << std::arg(x)
-                << " " << x.real()
-                << " " << x.imag()
-                << std::endl;
+//       const double_t carrier_phase(.5*(demod_msk_->pll_plus().theta() +
+//                                        demod_msk_->pll_minus().theta()));
+//       const demod::msk::complex_type x(*i * std::exp(demod::msk::complex_type(0., carrier_phase)));
+//       const double ct(cos(0.5*(demod_msk_->pll_plus().theta() -
+//                                demod_msk_->pll_minus().theta())));
+//       const double st(cos(0.5*(demod_msk_->pll_plus().theta() -
+//                                demod_msk_->pll_minus().theta())));
+//       std::cout << "MSK_DEMOD: " << demod_msk_->pll_plus().theta()
+//                 << " " << demod_msk_->pll_minus().theta()
+//                 << " " << demod_msk_->pll_plus().f1()
+//                 << " " << demod_msk_->pll_minus().f1()
+//                 << " " << std::arg(*i)
+//                 << " " << std::arg(x)
+//                 << " " << x.real()
+//                 << " " << x.imag()
+//                 << std::endl;
     }
   }
 
@@ -68,7 +69,8 @@ private:
   const std::string name_;
   const double      fc_Hz_;     // center frequency
   const double      fm_Hz_;     // modulation frequency
-  const double      dwl_;
+  const double      dwl_Hz_;
+  const double      period_Sec_;
   demod::msk::sptr  demod_msk_;
 } ;
 
