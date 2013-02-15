@@ -4,5 +4,6 @@
 <DemodMSK name="Hello"
           fc_Hz="0.0"
           fm_Hz="100.0"
-          dwl="2">
+          dwl_Hz=".1"
+          period_Sec="1.">
 </DemodMSK>

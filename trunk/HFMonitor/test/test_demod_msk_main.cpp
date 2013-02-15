@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
     wave::reader_iq<demod_msk_processor> r(config.get_child("DemodMSK"));
 
-    r.process_file("DataBC/DC_023400_DH0/y2013-m02-d14_H12M45.wav");
+    r.process_file("DataBC/DC_023400_DH0/y2013-m02-d14_H12M50.wav");
     r.finish();
 
   } catch (const std::exception &e) {
