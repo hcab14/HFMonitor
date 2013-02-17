@@ -18,7 +18,6 @@
   </server>
   <Calibration algorithm="WeightedMean">
     <Key>TGF_DCF77</Key>
-    <Key>TGF_MSF</Key>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_MSF"
@@ -37,17 +36,11 @@
     </TrackingGoertzel>
   </Processors>
   <Filters>
-    <FIR name="DC_023400_DH0" type="lowpass" cutoff="0.005" centerFrequency_Hz="23.4e3" decim="100"></FIR>
+    <FIR name="DC_022100_GQD" type="lowpass" cutoff="0.005" centerFrequency_Hz="22.1e3" decim="100"></FIR>
+    <FIR name="DC_023400_DHO" type="lowpass" cutoff="0.005" centerFrequency_Hz="23.4e3" decim="100"></FIR>
     <FIR name="DC_024000_NAA" type="lowpass" cutoff="0.005" centerFrequency_Hz="24.0e3" decim="100"></FIR>
     <FIR name="DC_060000_MSF" type="lowpass" cutoff="0.005" centerFrequency_Hz="60.0e3" decim="100"></FIR>
     <FIR name="DC_077500_DCF" type="lowpass" cutoff="0.005" centerFrequency_Hz="77.5e3" decim="100"></FIR>
-    <FIR name="DC_153000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="153.0e3" decim="50"></FIR>
-    <FIR name="DC_162000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="162.0e3" decim="50"></FIR>
-    <FIR name="DC_171000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="171.0e3" decim="50"></FIR>
-    <FIR name="DC_177000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="177.0e3" decim="50"></FIR>
-    <FIR name="DC_189000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="189.0e3" decim="50"></FIR>
-    <FIR name="DC_207000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="207.0e3" decim="50"></FIR>
-    <FIR name="DC_216000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="216.0e3" decim="50"></FIR>
     <FIR name="DC_225000__AM" type="lowpass" cutoff="0.010" centerFrequency_Hz="225.0e3" decim="50"></FIR>
   </Filters>  
 </MultiDownConverter>

@@ -113,7 +113,7 @@ namespace filter {
       if (a_.size() != a.size() && b_.size() != b.size()) throw 1; // TODO
       std::copy(a.begin(), a.end(), a_.begin());
       std::copy(b.begin(), b.end(), b_.begin());
-      reset();
+//       reset();
       return *this;
     }
     
@@ -153,11 +153,20 @@ namespace filter {
     loop_filter_2nd(double xi,
                     double dwl,
                     double fc,
-                    double fs) {
+                    double fs)
+      : xi_(xi)
+      , dwl_(dwl)
+      , fc_(fc)
+      , fs_(fs) {
       init(xi, dwl, fc, fs);
+      reset();
     }
     // virtual ~loop_filter_2nd() {}
-    
+
+    void update_ppb(double ppb) {
+      init(xi_, dwl_, fc_*(1.+1e-9*ppb), fs_*(1.+1e-9*ppb));
+    }
+
     void init(double xi,
               double dwl,
               double fc,
@@ -178,7 +187,6 @@ namespace filter {
       b[0] = ts2/tau1*(1.+1./std::tan(ts2/tau2));
       b[1] = ts2/tau1*(1.-1./std::tan(ts2/tau2));
       iir_.init(a, b);
-      iir_.reset(0);
     }
     void reset(STATE s=0) { iir_.reset(s); }
     STATE process(STATE s) { return iir_.process(s); }
@@ -186,6 +194,10 @@ namespace filter {
   protected:
   private:
     iir_type iir_;
+    double xi_;
+    double dwl_;
+    double fc_;
+    double fs_;
   } ;
 
   template<typename STATE,

@@ -167,42 +167,42 @@ protected:
     double_t  sum_1(0),  sum_x(0),  sum_xx(0);
     double_t dsum_1(0), dsum_x(0), dsum_xx(0);
     double_t last_df(0);
-    phase_vector_t::const_iterator end(phases_.end()-1);
-    for (phase_vector_t::const_iterator i(phases_.begin()); i!=end; ++i) {
+
+    const phase_vector_t uphases(unwrap(phases_));
+    phase_vector_t::const_iterator end(uphases.end()-1);
+    for (phase_vector_t::const_iterator i(uphases.begin()); i!=end; ++i) {
       phase_vector_t::const_iterator j(i+1);
-      const double phase_diff(mod_2pi(j->second - i->second));
-      std::cout << "a---- " <<  phase_diff << " " << j->second  - i->second << std::endl;
+      const double phase_diff(j->second - i->second);
+      std::cout << "a---- " <<  phase_diff << " " << j->second  - i->second << " TEST: " << j->first << std::endl;
       const double df(fs_*phase_diff / (2*M_PI*j->first));
       sum_1  += 1.;
       sum_x  += df;
       sum_xx += df*df;
 
-      if (i != phases_.begin()) {
+      if (i != uphases.begin()) {
 	const double ddf(2*(df-last_df)/(i->first + j->first));
-	dsum_1  += 1;
+	dsum_1  += 1.;
 	dsum_x  += ddf;
 	dsum_xx += ddf*ddf;
       }
       last_df= df;
     }
+    assert(sum_1 != 0.0);
     const double df(sum_x/sum_1);
-    const double rms_df(sqrt(sum_xx/sum_1-df*df));
+    const double rms_df(sum_1 > 1. ? sqrt(sum_xx/sum_1-df*df) : 0.0);
     estimated_f_ = detail::value_and_error(fs_*center_.kN()+df, rms_df);
 
     if (0.0 != dsum_1) {
       const double ddf(dsum_x/dsum_1);
-      const double rms_ddf(sqrt(dsum_xx/dsum_1-ddf*ddf));
+      const double rms_ddf(dsum_1 > 1.0 ? sqrt(dsum_xx/dsum_1-ddf*ddf) : 0.0);
       estimated_df_ = detail::value_and_error(ddf, rms_ddf);
     }
-    std::cout << "\n## f,df: " << estimated_f_ << " " << estimated_df_ << std::endl;
+    std::cout << "\n## f,df: " << estimated_f_ << " " << estimated_df_ 
+	      << " sum_1,x,xx= " << sum_1 << " "<< sum_x << " " << sum_xx
+	      << " TEST: " << sum_xx/sum_1 << " " << df*df  << " " <<  (sum_xx/sum_1-df*df) << std::endl;
   }
 
 private:
-  static double mod_2pi(double x) {
-    while (x <= -M_PI) x += 2*M_PI;
-    while (x >   M_PI) x -= 2*M_PI;
-    return x;
-  }
   tracking_goertzel_filter(double fs,            // sampling frequency (Hz)
 			   double f0,            // center frequency (Hz)
 			   double df,            // initial resolution (Hz): +- df
@@ -222,6 +222,25 @@ private:
 
   typedef goertzel<complex_t> goertzel_t;
   typedef std::deque<std::pair<size_t, double> > phase_vector_t;
+
+  static phase_vector_t unwrap(const phase_vector_t& b) {
+    phase_vector_t bu;
+    if (b.size() == 0) return bu;
+    bu.push_back(b[0]);
+    if (b.size() == 1) return bu;
+    double offset(0);
+    for (size_t i=1;i<b.size(); ++i) {
+      if (b[i].second-b[i-1].second >  M_PI) offset -= 2*M_PI;
+      if (b[i].second-b[i-1].second < -M_PI) offset += 2*M_PI;
+      bu.push_back(std::make_pair(b[i].first, b[i].second+offset));
+    }
+    return bu;
+  }
+  static double mod_2pi(double x) {
+    while (x <= -M_PI) x += 2*M_PI;
+    while (x >   M_PI) x -= 2*M_PI;
+    return x;
+  }
 
   double          fs_;
   size_t          period_;
