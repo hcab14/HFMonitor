@@ -6,6 +6,7 @@
 
 #include "FFTProcessorToBC.hpp"
 #include "FFTProcessorToFile.hpp"
+#include "demod_msk_processor.hpp"
 #include "network.hpp"
 #include "network/iq_adapter.hpp"
 #include "network/multi_client.hpp"
@@ -46,10 +47,11 @@ int main(int argc, char* argv[])
       spcm[pattern] = std::make_pair(type, config_key);
     }
 
-    processor::registry::add<writer_txt                  >("WriterTXT");
-    processor::registry::add<iq_adapter<wave::writer_iq> >("WriterIQ");
-    processor::registry::add<FFTProcessorToBC<float>     >("FFTProcToBC_FLOAT");
-    processor::registry::add<FFTProcessorToBC<double>    >("FFTProcToBC_DOUBLE");
+    processor::registry::add<writer_txt                      >("WriterTXT");
+    processor::registry::add<iq_adapter<wave::writer_iq>     >("WriterIQ");
+    processor::registry::add<FFTProcessorToBC<float>         >("FFTProcToBC_FLOAT");
+    processor::registry::add<FFTProcessorToBC<double>        >("FFTProcToBC_DOUBLE");
+    processor::registry::add<iq_adapter<demod_msk_processor> >("DemodMSK");
 
     multi_client c(config_multi_client);
 

@@ -55,9 +55,9 @@ protected:
       wave::detail::write_real_sample(oss, 8*bytes_per_sample, i->real());
       wave::detail::write_real_sample(oss, 8*bytes_per_sample, i->imag());
     }
-    iq_info h_iq(sp->sample_rate_Hz()/fp.decim(), 
-                 sp->center_frequency_Hz()+fp.center_freq_Hz(),
-                 'I', bytes_per_sample, 0, 0);
+    iq_info h_iq(sp->sample_rate_Hz(),
+                 sp->center_frequency_Hz(),
+                 'I', bytes_per_sample, sp->offset_ppb(), sp->offset_ppb_rms());
     std::string data;
     std::copy(h_iq.begin(), h_iq.end(), std::back_inserter(data));
     data += oss.str();

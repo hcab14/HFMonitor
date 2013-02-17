@@ -40,23 +40,32 @@ namespace filter {
       : loop_filter_(loop_filter)
       , integrator_(integrator)
       , fc_(fc)
-      , ts_(1./fs) {
+      , ts_(1./fs)
+      , ppb_(0) {
       reset();
     }
-    
+
+    void update_ppb(double ppb) {
+      ppb_ = ppb;
+      loop_filter_.update_ppb(ppb);
+    }
+
     void reset() {
-      f1_= 2*M_PI*fc_;
+      f1_= 2*M_PI*fc();
       loop_filter_.reset();
       integrator_.reset();
     }
     
     double process(complex_type s) {
       // update
-      const complex_type i_phase(float_type(0), integrator_.process(f1_*ts_));
-      f1_ = 2*M_PI*fc_ + loop_filter_.process(std::arg(s * std::exp(-i_phase)));
+      const complex_type i_phase(float_type(0), integrator_.process(f1_*ts()));
+      f1_ = 2*M_PI*fc() + loop_filter_.process(std::arg(s * std::exp(-i_phase)));
       return theta();
     }
     
+    double fc() const { return fc_*(1+ppb_*1e-9); }
+    double ts() const { return ts_*(1-ppb_*1e-9); }
+
     float_type theta() const { return integrator_.get(); }
     float_type uf() const { return loop_filter_.get(); }
     float_type f1() const { return f1_; }
@@ -68,8 +77,9 @@ namespace filter {
     LOOP_FILTER loop_filter_;
     INTEGRATOR  integrator_;
     double f1_;               // current nco frequency
-    const double fc_;
-    const double ts_;
+    double fc_;
+    double ts_;
+    double ppb_;
   } ;
 } // namespace filter
 #endif // _PLL_HPP_cm110527_

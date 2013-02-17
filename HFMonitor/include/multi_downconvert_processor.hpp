@@ -232,16 +232,17 @@ public:
 
     // (3) dump the output of all filters
     BOOST_FOREACH(const filter_param& fp, filter_params_) {
-      dump(sp, fp, overlap_save_.get_filter(fp.handle())->result());
+      service::sptr
+        sp_dc(service_dc::make(this,
+                               sp,
+                               fp.name(),
+                               sp->sample_rate_Hz()/fp.decim(),
+                               fp.center_freq_Hz()));
+      dump(sp_dc, fp, overlap_save_.get_filter(fp.handle())->result());
       processor_map::iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
-        proc(service_dc::make(this,
-                              sp,
-                              fp.name(),
-                              sp->sample_rate_Hz()/fp.decim(),
-                              fp.center_freq_Hz()),
-             i->second, overlap_save_.get_filter(fp.handle())->result());
+        proc(sp_dc, i->second, overlap_save_.get_filter(fp.handle())->result());
       }
     }
   }
@@ -253,7 +254,10 @@ protected:
                     const typename overlap_save_type::complex_vector_type& out) {
     std::cout << "out: " << fp.name() << " " << out.size() << std::endl;
   }
-
+  virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
+    std::cout << "dump: " << rp->to_string() << std::endl;
+    return rp;
+  }
   virtual void proc(service::sptr sp,
                     processor::base_iq::sptr pp,
                     const typename overlap_save_type::complex_vector_type& out) {
@@ -264,7 +268,7 @@ private:
   // results
   void put_result(processor::result_base::sptr rp) {
     LOG_INFO(str(boost::format("multi_downconvert_processor::put_result %s") % rp->to_string()));
-    result_map_[rp->name()] = rp;
+    result_map_[rp->name()] = dump(rp);
   }
   processor::result_base::sptr get_result(std::string name) const {
     result_map::const_iterator i(result_map_.find(name));
@@ -282,6 +286,7 @@ private:
         continue;
       }
       if (not rp->f_Hz().valid()) continue;
+      if (rp->f0_Hz() == 0.0) continue; // being pedantic
 
       const double rms(1e9*rp->f_Hz().rms_value()/rp->f0_Hz());
       // w_i = 1/sigma_i^2
@@ -289,7 +294,7 @@ private:
       sum_w  += weight;
       sum_wx += weight * 1e9*rp->f_Hz().value()/rp->f0_Hz();
     }
-    return (sum_w != 0.)
+    return (sum_w > 0.)
       ? std::make_pair(sum_wx/sum_w, 1./sqrt(sum_w))
       : std::make_pair(0., 0.);
   }

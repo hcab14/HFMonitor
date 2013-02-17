@@ -24,35 +24,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "processor/result.hpp"
+
 namespace processor {
-  // base class for processor results which can be given to the service object
-  class result_base : private boost::noncopyable {
-  public:
-    typedef boost::posix_time::ptime ptime;
-
-    typedef boost::shared_ptr<result_base> sptr;
-    virtual ~result_base() {}
-
-    virtual std::string name() const { return name_; }
-    virtual ptime approx_ptime() const { return t_; }
-
-    virtual std::string to_string() const { return name(); }    
-
-    virtual std::ostream& dump_header(std::ostream& os) const {  return os;  }
-    virtual std::ostream& dump_data(std::ostream& os)   const { return os; }
-
-    friend std::ostream& operator<<(std::ostream& os, const result_base& r) {
-      return os << r.to_string();
-    }
-  protected:
-    result_base(std::string name, ptime t)
-      : name_(name)
-      , t_(t) {}
-
-  private:    
-    const std::string name_;
-    const ptime       t_;
-  } ;
   
   class service_base : private boost::noncopyable {
   public:
