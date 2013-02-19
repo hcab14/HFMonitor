@@ -1,7 +1,7 @@
-// -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
-// $Id$
+#!/bin/bash
+# $Id$
 //
-// Copyright 2010-2013 Christoph Mayer
+// Copyright 2013 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,17 +16,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef _NETWORK_HPP_cm121227_
-#define _NETWORK_HPP_cm121227_
 
-#include <boost/asio/io_service.hpp>
+function emit_plot_cmd {
+    cat <<EOF
+plot "<awk '/GQD/{a=0} /DHO/{a=1} /NAA/{a=2} /NRK/{a=3} /ICV/{a=4} /GQ2/{a=5} /^XXX/ {if (a>=0) {print \$10}}' mc.log" w d
+EOF
+}
 
-namespace network {  
-  // provides a (reference to a) single unique instance of boost::asio::io_service
-  boost::asio::io_service& get_io_service() {
-    static boost::asio::io_service service;
-    return service;
-  }
-
-} // namespace network
-#endif // _NETWORK_HPP_cm121227_
+(
+    cat <<EOF
+set grid;
+pi=atan(1)*4
+set yrange [-.1:.1]
+EOF
+    while [ 1 ]; do
+	emit_plot_cmd; sleep 4; echo "." > /dev/stderr;
+    done
+) | gnuplot

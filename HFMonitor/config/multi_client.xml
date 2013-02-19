@@ -1,47 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <MultiClient>
-  <server host="nz23-18.ifj.edu.pl"
+  <server host="127.0.0.1"
 	  port="19003">
   </server>
   <Streams>
     <Stream pattern="DC_022100_GQD">Writer2</Stream>
     <Stream pattern="DC_023400_DHO">Writer2</Stream>
+
+    <Stream pattern="DC_019600_GQD">DemodMSK4</Stream>
+    <Stream pattern="DC_020270_ICV">DemodMSK5</Stream> 
+
     <Stream pattern="DC_022100_GQD">DemodMSK1</Stream>
     <Stream pattern="DC_023400_DHO">DemodMSK2</Stream>
     <Stream pattern="DC_024000_NAA">DemodMSK3</Stream>
-    <!-- <Stream pattern="L0.*">Writer0</Stream>
+
+    <Stream pattern="DC_037500_NRK">DemodMSK6</Stream>
+   <!-- <Stream pattern="L0.*">Writer0</Stream>
          <Stream pattern="L2.*">Writer1</Stream> -->
-  </Streams>
+  </Streams>1
   <Clients>
     <Writer2 type="WriterIQ"
              filePath="DataBC__"
              filePeriod="5m"
              bitsPerSample="24">
     </Writer2>
-    <DemodMSK1 type="DemodMSK"
-               name="MSK_GQD"
-               fc_Hz="22.1e3"
-               fm_Hz="100.0"
-               dwl_Hz=".1"
-               period_Sec="1"
-               min_SN_db="5">
-    </DemodMSK1>
-    <DemodMSK2 type="DemodMSK"
-               name="MSK_DHO"
-               fc_Hz="23.4e3"
-               fm_Hz="200.0"
-               dwl_Hz=".1"
-               period_Sec="1"
-               min_SN_db="5">
-    </DemodMSK2>
-    <DemodMSK3 type="DemodMSK"
-               name="MSK_NAA"
-               fc_Hz="24.0e3"
-               fm_Hz="200.0"
-               dwl_Hz=".1"
-               period_Sec="1"
-               min_SN_db="5">
-    </DemodMSK3>
+    <DemodMSK1 type="DemodMSK" name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK1>
+    <DemodMSK2 type="DemodMSK" name="MSK_DHO" fc_Hz="23.40e3" fm_Hz="200.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK2>
+    <DemodMSK3 type="DemodMSK" name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK3>
+    <DemodMSK4 type="DemodMSK" name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK4>
+    <DemodMSK5 type="DemodMSK" name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="200.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK5>
+    <DemodMSK6 type="DemodMSK" name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0" dwl_Hz=".1" period_Sec="1" min_SN_db="5"></DemodMSK6>
   </Clients>
 </MultiClient>
