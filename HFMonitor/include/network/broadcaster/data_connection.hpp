@@ -355,7 +355,6 @@ private:
   std::set<boost::regex>   stream_names_;
   status_type              status_;
   bool                     start_async_write_;
-  boost::mutex             mutex_
 ;
 } ;
 
