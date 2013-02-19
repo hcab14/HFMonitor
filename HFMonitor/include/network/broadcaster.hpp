@@ -94,9 +94,9 @@ public:
     }
   }
 
-protected:
-  // returns a reference to the strand object
   boost::asio::strand& get_strand() { return strand_; }
+
+protected:
 
 private:
   broadcaster(const boost::property_tree::ptree& config)
