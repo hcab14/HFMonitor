@@ -91,7 +91,7 @@ namespace FiFiSDR {
                        % index % pe));
         } else {
           set_presel_entry(index, pentry);
-          LOG_INFO(str(boost::format("preselector entry(%02d) old=%s changed to %s") 
+          LOG_INFO(str(boost::format("preselector entry(%02d) old=%s changed to %s")
                        % index % pe % pentry));
           counter = index;
         }
@@ -100,8 +100,7 @@ namespace FiFiSDR {
       if (counter >= 0 && counter != 15) {
         const receiver_control::presel_entry pentry(0.0, 500.0, 0);
         set_presel_entry(15, pentry);
-        LOG_INFO(str(boost::format("preselector entry(%02d) changed to %s") 
-                     % index % pentry));
+        LOG_INFO(str(boost::format("preselector entry(15) changed to %s") % pentry));
       }      
     }
     

@@ -111,8 +111,6 @@ private:
                          tcp::endpoint(tcp::v4(), config.get<size_t>("Data.<xmlattr>.port"))));
   }
 
-  static
-
   typedef data_connection::time_duration time_duration;
   typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
   typedef std::set<data_connection::sptr> data_connections;
