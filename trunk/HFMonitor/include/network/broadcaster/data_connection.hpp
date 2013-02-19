@@ -93,6 +93,9 @@ public:
     return sptr(new data_connection(io_service, strand, p, directory, max_total_size, max_queue_delay));
   }
   
+  // close() must ONLY be called in the destructor
+  // for all other purposes set status_= status_error 
+  // then the object connection will be deleted in the next call to broadcaster::push_back
   void close() {
     if (is_open()) {
       boost::system::error_code ec;      
@@ -103,7 +106,7 @@ public:
       tcp_socket_ptr_->close();
     }
   }
-  bool is_open() const { return tcp_socket_ptr_->is_open(); }
+  bool is_open() const { return tcp_socket_ptr_ ? tcp_socket_ptr_->is_open() : false; }
 
   void pop_front() { list_of_packets_.pop_front(); }
   void pop_back()  { list_of_packets_.pop_back(); }
@@ -146,7 +149,7 @@ public:
     return false;
   }
   
-  bool push_back(ptime t, std::string path, const data_ptr& dp, data_type preamble) {
+  bool push_back(ptime t, std::string path, data_ptr dp, data_type preamble) {
     if (status_ == status_init)  return true;
     if (status_ == status_error) return false;
     // path="" is always broadcasted
@@ -161,8 +164,8 @@ public:
     // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
     if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-    for (; size()>1; ++n_omit)      
-      list_of_packets_.pop_back();
+      for (; size()>1; ++n_omit)      
+        list_of_packets_.pop_back();
     }
     if (n_omit != 0)
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
@@ -171,8 +174,8 @@ public:
       list_of_packets_.push_back(std::make_pair(t, dp));
       preamble_= preamble;
       if (listOfPacketsWasEmpty || start_async_write_) {
-        async_write_data();
         start_async_write_= false;
+        async_write_data();
       }
       return true;
     }
@@ -352,6 +355,8 @@ private:
   std::set<boost::regex>   stream_names_;
   status_type              status_;
   bool                     start_async_write_;
+  boost::mutex             mutex_
+;
 } ;
 
 #endif //  _DATA_CONNECTION_HPP_cm111219_

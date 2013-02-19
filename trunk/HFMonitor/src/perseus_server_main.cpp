@@ -48,7 +48,7 @@ public:
          Perseus::receiver_control::sptr receiver)
     : buffer_(buffer)
     , broadcaster_(broadcaster)
-    , strand_(network::get_io_service())
+    , strand_(broadcaster->get_strand())
     , receiver_(receiver)
     , do_run_(true)
     , mutex_(new boost::mutex)
@@ -93,7 +93,7 @@ protected:
 private:
   buffer<std::string>::sptr       buffer_;
   broadcaster::sptr               broadcaster_;
-  boost::asio::strand             strand_;
+  boost::asio::strand&            strand_;
   Perseus::receiver_control::sptr receiver_;
   bool                            do_run_;
   buffer<std::string>::ptime_data_pair data_;   // current to be broadcaster data
