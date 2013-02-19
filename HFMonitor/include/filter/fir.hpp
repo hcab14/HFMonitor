@@ -19,6 +19,7 @@
 #ifndef _FIR_HPP_cm110527_
 #define _FIR_HPP_cm110527_
 
+#include <algorithm>
 #include <vector>
 #include <complex>
 #include <stdexcept>
