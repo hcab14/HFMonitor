@@ -98,11 +98,9 @@ public:
       boost::system::error_code ec;      
       LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
       LOG_INFO("close and shutdown socket");
-      if (tcp_socket_ptr_->is_open()) {
-        tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-        if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
-        tcp_socket_ptr_->close();
-      }
+      tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+      if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+      tcp_socket_ptr_->close();
     }
   }
   bool is_open() const { return tcp_socket_ptr_->is_open(); }
@@ -149,8 +147,8 @@ public:
   }
   
   bool push_back(ptime t, std::string path, const data_ptr& dp, data_type preamble) {
-    if (status_ == status_init)  return true; 
-    if (status_ == status_error) return false; 
+    if (status_ == status_init)  return true;
+    if (status_ == status_error) return false;
     // path="" is always broadcasted
     if (path != "" && !match_path(path))
       return true;
@@ -202,7 +200,7 @@ public:
                          std::size_t bytes_transferred) {
     if (ec) {
       LOG_WARNING(str(boost::format("handle_write_data ec=%s %d") % ec.message() % bytes_transferred));
-      close();
+      status_= status_error; // -> close();
     } else if (is_open()) {
       pop_front();
       async_write_data();
@@ -229,8 +227,7 @@ public:
   void handle_receive_command(const boost::system::error_code& ec) {
     if (ec) {
       LOG_INFO(str(boost::format("handle_receive_command ec=%s") % ec));
-      status_= status_error;
-      close();
+      status_= status_error; // -> close();
       return;
     }
     std::istream response_stream(&response_);
@@ -329,8 +326,7 @@ public:
                            status_type new_status) {
     if (ec) {
       LOG_INFO(str(boost::format("handle_receive_tick ec=%s") % ec));
-      status_= status_error;
-      close();
+      status_= status_error; // -> close();
     } else {
       status_= new_status;
       last_tick_time_ = boost::posix_time::microsec_clock::universal_time();
