@@ -9,7 +9,7 @@
 </Broadcaster>
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="1">
-  <server host="127.0.0.1"
+  <server host="129.247.238.73"
 	  port="18001">
   </server>
   <Broadcaster>
