@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <MultiClient>
-  <server host="129.247.238.232"
-	  port="19001">
+  <server host="nz23-18.ifj.edu.pl"
+	  port="8080">
   </server>
   <Streams>
     <Stream pattern="L2.*">Writer</Stream>

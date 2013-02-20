@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
-<Broadcaster>
- <Data maxQueueSize_MB="2"
-       maxQueueDelay_Minutes="5"
-       port="19001">
- </Data>
- <Ctrl port="19002"></Ctrl>
-</Broadcaster>
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="1">
   <server host="129.247.238.73"
@@ -17,7 +10,6 @@
 	  maxQueueSize_MB="1"
 	  maxQueueDelay_Minutes="2">
     </Data>
-    <Ctrl port="19002"></Ctrl>
   </Broadcaster>
   <Repack bufferLength_sec="1"
 	  overlap_percent="0">
