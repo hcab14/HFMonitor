@@ -19,6 +19,8 @@
 #ifndef _WRITER_TXT_HPP_cm130110_
 #define _WRITER_TXT_HPP_cm130110_
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "gen_filename.hpp"
 #include "processor.hpp"
 
@@ -30,9 +32,8 @@ public:
     : base(config)
     , base_path_(config.get<std::string>("<xmlattr>.filePath"))
     , file_period_(gen_filename::str2period(config.get<std::string>("<xmlattr>.filePeriod")))
-    , pos_(0) {
-    std::cout << "writer_txt::writer_txt" << std::endl;
-  }
+    , time_format_(config.get<std::string>("<xmlattr>.timeFormat", "%Y-%m-%d %H:%M:%s"))
+    , pos_(0) {}
 
   virtual ~writer_txt() {}
 
@@ -40,36 +41,41 @@ public:
   virtual file_period filePeriod()    const { return file_period_; }
   virtual std::string fileExtension() const { return "txt"; }
 
-  virtual void process(processor::base::service::sptr service,
-		       processor::base::const_iterator i0,
-		       processor::base::const_iterator i1) {
-    std::cout << "writer_txt::process " << service->approx_ptime() << " "
-	      << std::distance(i0, i1) << std::endl;
+  virtual void process(service::sptr sp,
+		       const_iterator i0,
+		       const_iterator i1) {
     const boost::filesystem::path
-      filepath(gen_file_path(base_path_, service->stream_name(), service->approx_ptime()));
+      filepath(gen_file_path(base_path_, sp->stream_name(), sp->approx_ptime()));
 
     if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
-      std::cerr << "file '" << filepath << "' exists and will be overwritten" << std::endl;
+      LOG_ERROR(str(boost::format("file '%s' exists and will be overwritten") % filepath));
       boost::filesystem::remove(filepath);
     }
     if (not boost::filesystem::exists(filepath)) {
-      std::cerr << "new file " << filepath << std::endl;
+      LOG_INFO(str(boost::format("creating new file '%s'") % filepath));
       std::ofstream ofs(filepath.c_str(), std::ios::binary);
-      // writeT(ofs, header_.change_sample_rate(service->sample_rate_hz()));
       pos_ = ofs.tellp();
     }
     // write data
     std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
     ofs.seekp(pos_);
+    ofs << make_time_label(sp->approx_ptime()) << " ";
     std::copy(i0, i1, std::ostream_iterator<char>(ofs));
     ofs << "\n";
     pos_ = ofs.tellp();
   }
 
 protected:
+  std::string make_time_label(ptime t) const {
+    std::stringstream oss;
+    oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet(time_format_.c_str())));
+    oss << t;
+    return oss.str();
+  }
 private:
-  std::string    base_path_;
-  gen_filename::file_period file_period_;
+  const std::string               base_path_;
+  const gen_filename::file_period file_period_;
+  const std::string               time_format_;
   std::streampos pos_;
 } ;
 
