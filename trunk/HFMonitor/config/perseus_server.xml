@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <Perseus sn="2669"
-	 fs="500000"
-	 fc="220e3"
+	 fs="250000"
+	 fc="110e3"
 	 use_preselector="true"
 	 attenuator="0"
 	 firmware="config/perseus/perseus.hex">
@@ -13,8 +13,9 @@
   <rbs fs="2000000">config/perseus/perseus2000k.rbs</rbs>
 </Perseus>
 <Broadcaster>
-  <Data maxQueueSize_MB="1"
+  <Data maxQueueSize_MB="10"
 	maxQueueDelay_Minutes="1"
-	port="18001"></Data>
+	port="18001"
+        threadPoolSize="2"></Data>
   <Ctrl port="18002"></Ctrl>
 </Broadcaster>

@@ -149,12 +149,9 @@ int main(int argc, char* argv[])
       broadcaster::sptr bc;
       buffer<std::string>::sptr buf;
       Perseus::receiver_control::sptr rec;
-      { // wait until a signal is sent/service is stopped
-       wait_for_signal w(network::get_io_service());
-        w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
-
-        bc = broadcaster::make(config.get_child("Broadcaster"));
-
+      {
+        const boost::property_tree::ptree& config_broadcaster(config.get_child("Broadcaster"));
+        bc = broadcaster::make(config_broadcaster);
 
         bc->start();
         
@@ -166,8 +163,8 @@ int main(int argc, char* argv[])
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
         
-        const size_t thread_pool_size_(2);
-        for (std::size_t i(0); i<thread_pool_size_; ++i) {
+        const size_t thread_pool_size(config_broadcaster.get<size_t>("threadPoolSize", 1));
+        for (std::size_t i(0); i<thread_pool_size; ++i) {
           boost::shared_ptr<boost::thread> thread
             (new boost::thread(boost::bind(&boost::asio::io_service::run, &network::get_io_service())));
           threads.push_back(thread);
@@ -180,6 +177,10 @@ int main(int argc, char* argv[])
           threads.push_back(bridge_thread);
         }
         
+        // wait until a signal is sent/service is stopped
+        wait_for_signal w(network::get_io_service());
+        w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);        
+
         // start receiver callback
         rec->start_async_input(cb);
         
@@ -189,6 +190,7 @@ int main(int argc, char* argv[])
       rec->stop_async_input();
       buf->stop();
       bc->stop();
+      usleep(1000*1000);
       network::get_io_service().stop();
 
       // Wait for all threads in the pool to exit.
