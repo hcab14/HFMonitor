@@ -145,6 +145,7 @@ namespace Result {
 
     virtual std::ostream& dumpHeader(std::ostream& os) const {
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n";
+      Base::dumpHeader(os);
       return os << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
     }
     virtual std::ostream& dumpData(std::ostream& os) const {

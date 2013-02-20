@@ -44,6 +44,12 @@ public:
   virtual void process(service::sptr sp,
 		       const_iterator i0,
 		       const_iterator i1) {
+    if ( i0 == i1) return;
+    if (*i0 == '#') { // save header line(s)
+      header_.clear();
+      std::copy(i0, i1, std::back_inserter(header_));
+      return;
+    }
     const boost::filesystem::path
       filepath(gen_file_path(base_path_, sp->stream_name(), sp->approx_ptime()));
 
@@ -54,6 +60,7 @@ public:
     if (not boost::filesystem::exists(filepath)) {
       LOG_INFO(str(boost::format("creating new file '%s'") % filepath));
       std::ofstream ofs(filepath.c_str(), std::ios::binary);
+      ofs << header_ << "\n";
       pos_ = ofs.tellp();
     }
     // write data
@@ -77,6 +84,7 @@ private:
   const gen_filename::file_period file_period_;
   const std::string               time_format_;
   std::streampos pos_;
+  std::string    header_;
 } ;
 
 #endif // _WRITER_TXT_HPP_cm130110_
