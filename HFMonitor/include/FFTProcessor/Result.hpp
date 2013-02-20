@@ -87,22 +87,28 @@ namespace Result {
                         std::string tag,
                         boost::shared_ptr<BROADCASTER> bc,
                         Base* h) {
+      std::ostringstream sHeader;
+      h->dumpHeader(sHeader);
+      std::string sh(sHeader.str());
+
       std::ostringstream sData;
       h->dumpData(sData);
-//       std::cout << "dumpToBCSingle: " << path << " " << tag << " '" << sData.str() << "'" << std::endl;
-//       std::ostringstream sHeader;
-//       h->dumpData(sHeader);
       std::string sd(sData.str());
+
       const boost::uint32_t stream_number(bc->register_stream(tag));
-      const header header(h->format(), h->time(), stream_number, sData.str().size());
-      std::string d;
-      std::copy(header.begin(), header.end(), std::back_inserter(d));
-      std::copy(sd.begin(),     sd.end(),     std::back_inserter(d));
-//       std::cout << "dumpToBCSingle: " << path << " " << tag << " '" << sData.str()
-//                 << "' s=" << d.size() - sizeof(header)
-//                 << " sData.size=" << sData.str().size()        
-//                 << std::endl;
-      bc->bc_data(this->time(), tag, d);//, sHeader.str());
+      std::string data;
+      {
+        const header header(h->format(), h->time(), stream_number, sd.size());
+        std::copy(header.begin(), header.end(), std::back_inserter(data));
+        std::copy(sd.begin(),     sd.end(),     std::back_inserter(data));
+      }
+      std::string preamble;
+      {
+        const header header(h->format(), h->time(), stream_number, sh.size());
+        std::copy(header.begin(), header.end(), std::back_inserter(preamble));
+        std::copy(sh.begin(),     sh.end(),     std::back_inserter(preamble));
+      }      
+      bc->bc_data(this->time(), tag, data, preamble);
     }
 
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 
@@ -130,7 +136,7 @@ namespace Result {
 
     // virtual string context dump header and data
     virtual std::ostream& dumpHeader(std::ostream& os) const {
-      return os;
+      return os << "# Time_UTC ";
     }
     virtual std::ostream& dumpData(std::ostream& os) const {
       return os;
@@ -142,7 +148,6 @@ namespace Result {
       os << "# StartTime = " << timeLabel << " [UTC]" << lineBreak();
       posEndTime_   = os.tellg() + std::streamoff(14);          
       os << "# EndTime   = " << timeLabel << " [UTC]" << lineBreak();
-      os << "# Time_UTC ";
       std::ostringstream oss; dumpHeader(oss);
       os << oss.str();
       return os;
@@ -170,7 +175,7 @@ namespace Result {
   private:
     std::string makeTimeLabel() const {
       std::stringstream oss;
-      oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
+      oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f")));
       oss << time();
       return oss.str();
     }

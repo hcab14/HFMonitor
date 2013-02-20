@@ -99,10 +99,10 @@ namespace Result {
     }
 
     virtual std::ostream& dumpHeader(std::ostream& os) const {      
-      return os
-        << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
-        << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n"
-        << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
+      os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
+         << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n";
+      Base::dumpHeader(os);
+      return os << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
     }
     virtual std::ostream& dumpData(std::ostream& os) const {
       return os

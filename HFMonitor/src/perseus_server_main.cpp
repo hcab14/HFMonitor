@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
         
-        const size_t thread_pool_size(config_broadcaster.get<size_t>("threadPoolSize", 1));
+        const size_t thread_pool_size(config_broadcaster.get<size_t>("<xmlattr>.threadPoolSize"));
         for (std::size_t i(0); i<thread_pool_size; ++i) {
           boost::shared_ptr<boost::thread> thread
             (new boost::thread(boost::bind(&boost::asio::io_service::run, &network::get_io_service())));

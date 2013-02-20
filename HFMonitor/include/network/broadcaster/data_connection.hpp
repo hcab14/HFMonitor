@@ -187,8 +187,13 @@ public:
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
+      std::string preamble_without_header(data_type(preamble.begin()+sizeof(header), preamble.end()));
+      if (preamble_without_header_ != preamble_without_header) {
+        preamble_without_header_= preamble_without_header;
+        data_ptr pdp(new data_type(preamble));
+        list_of_packets_.push_back(std::make_pair(t, pdp));
+      }
       list_of_packets_.push_back(std::make_pair(t, dp));
-      preamble_= preamble;
       if (listOfPacketsWasEmpty || start_async_write_) {
         start_async_write_= false;
         async_write_data();
@@ -320,7 +325,7 @@ public:
       if (new_status == status_configured) {
         // make sure that first the current directory is broadcasted
         const ptime now(boost::posix_time::microsec_clock::universal_time());
-        data_ptr dp(new std::string(directory_.serialize(now)));
+        data_ptr dp(new data_type(directory_.serialize(now)));
         list_of_packets_.push_back(std::make_pair(now, dp));
         start_async_write_ = true; // this makes push_back start async_write with non-empty queue
         async_receive_tick(new_status);
@@ -365,7 +370,7 @@ private:
   const time_duration      max_queue_delay_;
   time_duration            max_delay_;
   list_of_packets          list_of_packets_;
-  data_type                preamble_;
+  data_type                preamble_without_header_;
   char                     dummy_data_;
   ptime                    last_tick_time_;
   std::set<boost::regex>   stream_names_;

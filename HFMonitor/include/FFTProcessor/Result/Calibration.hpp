@@ -118,6 +118,7 @@ namespace Result {
     }
     
     virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      Base::dumpHeader(os);
       return os << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
     }
     virtual std::ostream& dumpData(std::ostream& os) const {

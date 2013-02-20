@@ -63,11 +63,13 @@ namespace Result {
       return ss.str();
     }
     virtual std::ostream& dumpHeader(std::ostream& os) const {      
+      Base::dumpHeader(os);
       return os
         << "fReference_Hz fShift_Hz fMeasuredRef_Hz fMeasuredShift_Hz "
         << "strength_dBm strengthRef_dBm strengthShift_dBm S/N_dB ";
     }
     virtual std::ostream& dumpData(std::ostream& os) const {
+      Base::dumpData(os);
       return os
         << boost::format("%12.3f") % peakRef_->fReference() << " "
         << boost::format("%12.3f") % peakShift_->fReference() << " "
