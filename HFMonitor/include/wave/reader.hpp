@@ -31,7 +31,6 @@
 #include "processor.hpp"
 #include "processor/IQBuffer.hpp"
 #include "network/protocol.hpp"
-//#include "service/perseus.hpp"
 #include "wave/definitions.hpp"
 
 namespace wave {

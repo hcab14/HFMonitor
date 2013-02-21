@@ -31,7 +31,6 @@
 #include "gen_filename.hpp"
 #include "processor.hpp"
 #include "network/protocol.hpp"
-//#include "service/perseus.hpp"
 #include "wave/definitions.hpp"
 
 namespace wave {

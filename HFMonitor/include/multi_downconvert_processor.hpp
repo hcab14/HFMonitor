@@ -74,13 +74,10 @@ protected:
       return *this;
     }
     //                                           (handle, offset)
-    filter_param& set_initialized(const std::pair<size_t,double>& r,
-                                  boost::uint32_t sample_rate_Hz) {
-      std::cout << "set_initialized: offset=" <<std::setprecision(15) << r.second
-                << " " << sample_rate_Hz*offset()
-                << " " << center_freq_input_Hz() 
-                << " " << center_freq_input_Hz() - sample_rate_Hz*offset()
-                << std::endl;
+    filter_param& set_initialized(const std::pair<size_t,double>& r, boost::uint32_t sample_rate_Hz) {
+      LOG_INFO(str(boost::format("set_initialized: offset= %15.6f Hz center_freq= %15.6f Hz")
+                   % (sample_rate_Hz*offset())
+                   % center_freq_input_Hz()));
       offset_         = r.second;
       center_freq_Hz_ = center_freq_input_Hz() - sample_rate_Hz*offset();
       handle_         = r.first;

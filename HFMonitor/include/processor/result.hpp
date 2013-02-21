@@ -38,8 +38,13 @@ namespace processor {
 
     virtual std::string name() const { return name_; }
     virtual ptime approx_ptime() const { return t_; }
+    virtual std::string format() const { return "TXT_0000"; }
 
-    virtual std::string to_string() const { return name(); }    
+    virtual std::string to_string() const {
+      std::ostringstream oss;      
+      dump_data(dump_header(oss));
+      return oss.str();
+    }
 
     virtual std::ostream& dump_header(std::ostream& os) const { return os;  }
     virtual std::ostream& dump_data(std::ostream& os)   const { return os; }
