@@ -74,11 +74,17 @@ function last_status {
     fi
 }
 
-if [ `check_for_locks` == FREE ]; then
-    result=`check_running`
-    echo result=$result last_status=`last_status`
-    
-    if [[ `last_status` != OK ]] || [[ $result != OK ]]; then
-	echo `date +%Y-%m-%dT%H:%M:%S` $result >> ${LOG_STATUS}
+LOCK_FILE=/tmp/HFMonitor_new.check_running.lockfile
+(   
+    flock -n -e 200 || { echo "This script is currently being run"; exit 1; } >&2
+    if [ `check_for_locks` == FREE ]; then
+	result=`check_running`
+	echo result=$result last_status=`last_status`
+	
+	if [[ `last_status` != OK ]] || [[ $result != OK ]]; then
+	    echo `date +%Y-%m-%dT%H:%M:%S` $result >> ${LOG_STATUS}
+	fi
     fi
-fi
+) 200>${LOCK_FILE}
+
+
