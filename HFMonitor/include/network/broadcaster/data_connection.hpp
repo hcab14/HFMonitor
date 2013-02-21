@@ -79,6 +79,7 @@ public:
     , max_total_size_(max_total_size)
     , max_queue_delay_(max_queue_delay)
     , max_delay_(boost::posix_time::seconds(0))
+    , preamble_without_header_("")
     , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
     , status_(status_init)
     , start_async_write_(false) {
@@ -173,9 +174,14 @@ public:
       return true;
 
     // pedantic check
-    const header* hp(reinterpret_cast<const header*>(&(*dp)[0]));
-    assert(sizeof(header)+hp->length() == dp->size());
-    
+    {
+      const header* hp(reinterpret_cast<const header*>(&(*dp)[0]));
+      assert(sizeof(header)+hp->length() == dp->size());
+    }
+    if (preamble != "") {
+      const header* hp(reinterpret_cast<const header*>(&preamble[0]));
+      assert(sizeof(header)+hp->length() == preamble.size());
+    }
     max_delay_ = std::max(max_delay_, delay(t));
     // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
@@ -187,11 +193,13 @@ public:
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
     if (is_open()) {
       const bool listOfPacketsWasEmpty(empty());
-      std::string preamble_without_header(data_type(preamble.begin()+sizeof(header), preamble.end()));
-      if (preamble_without_header_ != preamble_without_header) {
-        preamble_without_header_= preamble_without_header;
-        data_ptr pdp(new data_type(preamble));
-        list_of_packets_.push_back(std::make_pair(t, pdp));
+      if (preamble != "") {
+        std::string preamble_without_header(data_type(preamble.begin()+sizeof(header), preamble.end()));
+        if (preamble_without_header_ != preamble_without_header) {
+          preamble_without_header_= preamble_without_header;
+          data_ptr pdp(new data_type(preamble));
+          list_of_packets_.push_back(std::make_pair(t, pdp));
+        }
       }
       list_of_packets_.push_back(std::make_pair(t, dp));
       if (listOfPacketsWasEmpty || start_async_write_) {
@@ -376,7 +384,6 @@ private:
   std::set<boost::regex>   stream_names_;
   status_type              status_;
   bool                     start_async_write_;
-;
 } ;
 
 #endif //  _DATA_CONNECTION_HPP_cm111219_

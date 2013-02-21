@@ -150,6 +150,10 @@ int main(int argc, char* argv[])
       buffer<std::string>::sptr buf;
       Perseus::receiver_control::sptr rec;
       {
+        // wait until a signal is sent/service is stopped
+        wait_for_signal w(network::get_io_service());
+        w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);        
+        
         const boost::property_tree::ptree& config_broadcaster(config.get_child("Broadcaster"));
         bc = broadcaster::make(config_broadcaster);
 
@@ -177,10 +181,6 @@ int main(int argc, char* argv[])
           threads.push_back(bridge_thread);
         }
         
-        // wait until a signal is sent/service is stopped
-        wait_for_signal w(network::get_io_service());
-        w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);        
-
         // start receiver callback
         rec->start_async_input(cb);
         
