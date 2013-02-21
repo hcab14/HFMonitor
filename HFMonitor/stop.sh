@@ -6,16 +6,9 @@ function check_run {
     echo $(( $pid ))
 }
 
-lock_file=.lock_stop_$$
-touch ${lock_file} && trap "rm -f ${lock_file}" EXIT || ( echo LOCK_FAILED > /dev/stderr; exit 1 )
-
-if [ $# == 0 ]; then
-    $0 client
-    $0 server
-else
-
-    what=$1
-    pid_file=.pid_$what
+function stop {
+    local what=$1
+    local pid_file=.pid_$what
     
     if [ -f $pid_file ]; then
 	pid=`cat $pid_file`
@@ -36,4 +29,16 @@ else
     else
 	echo "$pid_file does not exist"
     fi    
-fi
+}
+
+LOCK_FILE=/tmp/HFMonitor_new.lockfile
+(   
+    flock -n -e 200 || { echo "This script is currently being run"; exit 1; } >&2
+    if [ $# == 0 ]; then
+	stop client
+	stop server
+    else
+	stop $1
+    fi
+    
+) 200>${LOCK_FILE}
