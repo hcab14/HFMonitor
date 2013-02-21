@@ -14,7 +14,7 @@
   <Repack bufferLength_sec="1"
 	  overlap_percent="0">
   </Repack>
-  <FileSink path="Data">
+  <FileSink path="DataNTZ">
   </FileSink>
   <Actions calibrationKey="L1.CAL">
     <L0>

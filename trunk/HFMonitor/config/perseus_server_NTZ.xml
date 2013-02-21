@@ -12,7 +12,7 @@
   <rbs fs="1000000">config/perseus/perseus1000k.rbs</rbs>
   <rbs fs="2000000">config/perseus/perseus2000k.rbs</rbs>
 </Perseus>
-<Broadcaster>
+<Broadcaster threadPoolSize="2">
   <Data maxQueueSize_MB="10"
 	maxQueueDelay_Minutes="1"
 	port="18001"></Data>
