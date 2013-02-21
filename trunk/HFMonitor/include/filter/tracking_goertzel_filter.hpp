@@ -26,7 +26,9 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
+
 #include "filter/goertzel.hpp"
+#include "logging.hpp"
 
 namespace detail {
   class value_and_error {
@@ -104,25 +106,22 @@ public:
       const double a(abs(left_.x()));
       const double b(abs(center_.x()));
       const double c(abs(right_.x()));
-      std::cout << fs_/period_ << " "
-		<< fs_*left_.kN() << " [" << abs(left_.x()) << " " << arg(left_.x()) << "], ";
-      std::cout << fs_*center_.kN() << " [" << abs(center_.x()) << " " << arg(center_.x()) << "], ";
-      std::cout << fs_*right_.kN() << " [" << abs(right_.x()) << " " << arg(right_.x()) << "], ";
 
       if (b>a && b>c) { // peak
-	std::cout << "peak " << std::max(b/a, b/c);
-	phases_.push_back(std::make_pair(period_, std::arg(center_.x())));
-	compute_exact_frequency();
-	if (std::max(b/a, b/c) > 1.1 && period_ < max_period_ && history_size() > 5*period_) {
-	  period_ *= 2;
-	  left_  = goertzel_t(left_.kN()  + 1./period_);
-	  right_ = goertzel_t(right_.kN() - 1./period_);
-	}
-	last_state_ = state::PEAK;
+        const double sn(std::max(b/a, b/c));
+        LOG_INFO(str(boost::format("Peak S/N=%f") % sn));
+        phases_.push_back(std::make_pair(period_, std::arg(center_.x())));
+        compute_exact_frequency();
+        if (sn > 1.1 && period_ < max_period_ && history_size() > 5*period_) {
+          period_ *= 2;
+          left_  = goertzel_t(left_.kN()  + 1./period_);
+          right_ = goertzel_t(right_.kN() - 1./period_);
+        }
+        last_state_ = state::PEAK;
       } else {
-	phases_.clear();
+        phases_.clear();
 	if (a>b && b>c) {
-	  std::cout << "move left";
+	  LOG_INFO("Move left");
 	  if (period_ > min_period_ && last_state_ == state::MOVE_LEFT)
 	    period_ /= 2;
 	  left_   = goertzel_t(left_.kN()   - 1./period_);
@@ -130,7 +129,7 @@ public:
 	  right_  = goertzel_t(right_.kN()  - 1./period_);
 	  last_state_ = state::MOVE_LEFT;
 	} else if (c>b && b>a) {
-	  std::cout << "move right";
+	  LOG_INFO("Move left");
 	  if (period_ > min_period_ && last_state_ == state::MOVE_RIGHT)
 	    period_ /= 2;
 	  left_   = goertzel_t(left_.kN()   + 1./period_);
@@ -138,7 +137,7 @@ public:
 	  right_  = goertzel_t(right_.kN()  + 1./period_);
 	  last_state_ = state::MOVE_RIGHT;
 	} else { // undefined
-	  std::cout << "rest";
+	  LOG_INFO("Rest");
 	  if (period_ > min_period_ && last_state_ == state::REST)
 	    period_ /= 2;
 	  left_  = goertzel_t(center_.kN() - 1./period_);
@@ -149,7 +148,6 @@ public:
       left_.reset();
       center_.reset();
       right_.reset();
-      std::cout << std::endl;
     }
     left_.update(sample);
     center_.update(sample);
@@ -175,7 +173,7 @@ protected:
       phases_.pop_front();
     
     if (phases_.size() == 1) {
-      estimated_f_ = detail::value_and_error(fs_*center_.kN(), 1e10);
+      estimated_f_ = detail::value_and_error(fs_*center_.kN(), 0.);
       return;
     }
 
@@ -188,7 +186,7 @@ protected:
     for (phase_vector_t::const_iterator i(uphases.begin()); i!=end; ++i) {
       phase_vector_t::const_iterator j(i+1);
       const double phase_diff(j->second - i->second);
-      std::cout << "a---- " <<  phase_diff << " " << j->second  - i->second << " TEST: " << j->first << std::endl;
+      LOG_INFO(str(boost::format("compute_exact_frequency: phase_diff= %8.3f") % phase_diff));
       const double df(fs_*phase_diff / (2*M_PI*j->first));
       sum_1  += 1.;
       sum_x  += df;
@@ -212,9 +210,6 @@ protected:
       const double rms_ddf(dsum_1 > 1.0 ? sqrt(dsum_xx/dsum_1-ddf*ddf) : 0.0);
       estimated_df_ = detail::value_and_error(ddf, rms_ddf);
     }
-    std::cout << "\n## f,df: " << estimated_f_ << " " << estimated_df_ 
-	      << " sum_1,x,xx= " << sum_1 << " "<< sum_x << " " << sum_xx
-	      << " TEST: " << sum_xx/sum_1 << " " << df*df  << " " <<  (sum_xx/sum_1-df*df) << std::endl;
   }
 
 private:

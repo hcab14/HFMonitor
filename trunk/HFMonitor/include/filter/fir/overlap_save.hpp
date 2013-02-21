@@ -74,15 +74,10 @@ namespace filter {
           }
           for (size_t i(0); i<n()/d_; ++i)
             ifft_.in(i) = 0;
-          std::cout << "shift= " << shift 
-                    << " n=" << n_ << std::endl;
-          std::cout << "shift_= " << shift_ << std::endl;
           shift_ = (shift_/size_t(v()+.5))*size_t(v()+0.5);
-          std::cout << "shift_= " << shift_ << std::endl;
-          std::cout << "v= " << v() << std::endl;
         }
         ~filt() {}
-
+        
         size_t l() const { return l_; }                  // Number of new input samples consumed per data block
         size_t p() const { return p_; }                  // Length of h(n)
         size_t d() const { return d_; }                  // downsampling factor

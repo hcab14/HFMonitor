@@ -55,15 +55,19 @@ public:
     const detail::value_and_error& f_Hz() const { return f_Hz_; }
     const detail::value_and_error& df()   const { return df_; }
 
-    virtual std::string to_string() const {
-      std::stringstream ss; 
-      ss << result_base::to_string() 
-         << " f0[Hz]="    << f0_Hz()
-         << " state="     << state()
-         << " period[s]=" << period_sec()
-         << " f[Hz]="     << f_Hz()
-         << " df="        << df();
-      return ss.str();
+    virtual std::ostream& dump_header(std::ostream& os) const {
+      return os
+        << "# f0[Hz] = " << boost::format("%15.6f") % f0_Hz() << "\n"
+        << "# Time_UTC DeltaF[Hz] RMS(DeltaF)[Hz] DeltaFDot RMS(DeltaFDot) period[s] state ";
+    }
+    virtual std::ostream& dump_data(std::ostream& os) const {
+      return os
+        << boost::format("%10.6f") % f_Hz().value()     << " "
+        << boost::format("%10.6f") % f_Hz().rms_value() << " "
+        << boost::format("%9.2e")  % df().value()       << " "
+        << boost::format("%9.2e")  % df().rms_value()   << " "
+        << boost::format("%8.3f")  % period_sec()       << " "
+        << state();
     }
 
   protected:
@@ -104,11 +108,6 @@ public:
   void process_iq(service::sptr sp,
                   const_iterator i0,
                   const_iterator i1) {
-    std::cout << "tracking_goertzel_processor::process_iq " << sp->stream_name()
-              << " sample_rate_Hz=" <<   sp->sample_rate_Hz()
-              << " center_frequency_Hz=" << sp->center_frequency_Hz()
-              << " f0_Hz=" << f0_Hz_
-              << std::endl;
     // set up a new filter
     const bool update_filter(filter_ ? (filter_->fs_Hz() != sp->sample_rate_Hz()) : true);
     if (update_filter)

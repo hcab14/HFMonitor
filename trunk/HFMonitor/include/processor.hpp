@@ -45,9 +45,7 @@ namespace processor {
     typedef boost::property_tree::ptree ptree;
     typedef boost::posix_time::ptime ptime;
 
-    base(const ptree& c) { std::cout << "processor::base::base(): "
-                                     << c.get<std::string>("") << std::endl;
-    }
+    base(const ptree& c) {}
     virtual ~base() {};
 
     virtual void process(service::sptr, const_iterator, const_iterator) {
