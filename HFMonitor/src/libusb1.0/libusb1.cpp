@@ -26,8 +26,12 @@ namespace libusb {
   // Implementation ------------------------------------------------------------
   class session_impl: public session {
   public:
-    session_impl() { std::cerr << "session_impl" << std::endl; ASSERT_THROW(libusb_init(&_context) == 0); }
-    ~session_impl() { std::cerr << "~session_impl" << std::endl; libusb_exit(_context); }
+    session_impl() {
+      ASSERT_THROW(libusb_init(&_context) == 0);
+    }
+    ~session_impl() {
+      libusb_exit(_context);
+    }
     virtual libusb_context* get_context() const { return _context; }
     virtual void set_debug(int level) { libusb_set_debug(_context, level); }
   private:
@@ -199,7 +203,7 @@ namespace libusb {
         handles[dev->get()] = new_handle;
         return new_handle;
     } catch (const std::exception &e) {
-      std::cerr << "USB open failed: see the application notes for your device." << std::endl;
+      LOG_ERROR("USB open failed: see the application notes for your device.");
       throw std::runtime_error(e.what());
     }
   }

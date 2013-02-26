@@ -44,9 +44,7 @@ public:
 
   iq_adapter(const boost::property_tree::ptree& config)
     : base(config)
-    , p_(config) {
-    std::cout << "iq_adapter" << std::endl;
-  }
+    , p_(config) {}
   
   virtual ~iq_adapter() {}
   

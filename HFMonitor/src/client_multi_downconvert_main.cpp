@@ -77,38 +77,19 @@ protected:
     std::copy(h_iq.begin(), h_iq.end(), std::back_inserter(data));
     data += oss.str();
 
-    // header
-    const boost::uint32_t stream_number(broadcaster_->register_stream(fp.name()));
-    header h("WAV_0000", sp->approx_ptime(), stream_number, data.size());
-    std::string bytes;
-    std::copy(h.begin(), h.end(), std::back_inserter(bytes));
-    bytes += data;
-    broadcaster_->bc_data(sp->approx_ptime(), fp.name(), bytes);
+    broadcaster_->bc_data(sp->approx_ptime(), fp.name(), "WAV_0000", data);
   }
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     std::ostringstream oss_header;
     rp->dump_header(oss_header);
     std::string header_str(oss_header.str());
-
+    
     std::ostringstream oss_data;
     rp->dump_data(oss_data);
     std::string data_str(oss_data.str());
-
-    const boost::uint32_t stream_number(broadcaster_->register_stream(rp->name()));
-    std::string bytes_preamble;
-    {
-      const header h(rp->format(), rp->approx_ptime(), stream_number, header_str.size());
-      std::copy(h.begin(), h.end(), std::back_inserter(bytes_preamble));
-      bytes_preamble += header_str;
-    }
-    std::string bytes_data;
-    {
-      const header h(rp->format(), rp->approx_ptime(), stream_number, data_str.size());
-      std::copy(h.begin(), h.end(), std::back_inserter(bytes_data));
-      bytes_data += data_str;
-    }
-    broadcaster_->bc_data(rp->approx_ptime(), rp->name(), bytes_data, bytes_preamble);
+    
+    broadcaster_->bc_data(rp->approx_ptime(), rp->name(), rp->format(), data_str, header_str);
     return rp;
   }
 

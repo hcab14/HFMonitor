@@ -60,15 +60,13 @@ public:
     directory_.insert(std::make_pair(name, unique_stream_number));
   }
 
+  std::string id() const { return "DIR_0000"; }
+
   std::string serialize(ptime t) const {
     std::string bytes_dir;
     for (const_iterator i(begin()); i!=end(); ++i)
       bytes_dir += directory_entry::serialize(i->second, i->first);
-    const header h("DIR_0000", t, 0, bytes_dir.size());
-    std::string bytes;
-    std::copy(h.begin(), h.end(), std::back_inserter(bytes));
-    bytes += bytes_dir;
-    return bytes;
+    return bytes_dir;
   }
 
   void update(size_t n, const char* bytes) {

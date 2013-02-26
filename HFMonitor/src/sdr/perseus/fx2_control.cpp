@@ -97,11 +97,12 @@ namespace Perseus {
         _usb_control->clear_halt(EndPoint::data_in);
         
         _perseus_eeprom_pid = read_eeprom<Perseus::product_id>(EEPROM::ADDR::product_id);
-        std::cout << "device is already configured " << _perseus_eeprom_pid.to_str() << std::endl;
+        LOG_INFO(str(boost::format("device '%s' is already configured")
+                     % _perseus_eeprom_pid.to_str()));
         _is_configured = true;
       } catch (const std::runtime_error& e) {
-        std::cerr << e.what() << std::endl;
-        // no action
+        LOG_ERROR(str(boost::format("fx2_control_impl::fx2_control_impl exception:") % e.what()));
+        // no further action
       }
     }
 
@@ -110,7 +111,7 @@ namespace Perseus {
         try {
           this->shutdown();
         } catch (...) {
-          std::cerr << "ERR ~fx2_control" << std::endl;
+          LOG_ERROR("fx2_control_impl::~fx2_control_impl: ERROR");
         }
       }
     }
@@ -137,9 +138,9 @@ namespace Perseus {
       _is_configured = true;
       _usb_control.reset();
       _usb_device_handle.reset();
-      std::cerr << "USB renumeration...";
+      LOG_INFO("USB renumeration...");
       sleep(4); // USB renumeration
-      std::cerr << " finished" << std::endl;
+      LOG_INFO("... finished");
 
       const std::vector<usb_device_handle::sptr>
         v(usb_device_handle::get_device_list(_vendor_id, _product_id));
@@ -181,10 +182,11 @@ namespace Perseus {
                                              (unsigned char *)&cmd_response, sizeof(cmd_response),
                                              &transferred, FX2::usb_timeout) == 0);      
       ASSERT_THROW(transferred == sizeof(cmd_response));
-      std::cerr << "sio: " << sio_cmd.freg << " " 
-                << int(cmd_response.cmd) << " " 
-                << int(cmd_response.data.ctl) << " "
-                << cmd_response.data.freg << std::endl;
+      LOG_INFO(str(boost::format("sio: freg=%d response.cmd=%d response.data.ctl=%d response.data.freg=%d")
+                   % int(sio_cmd.freg)
+                   % int(cmd_response.cmd)
+                   % int(cmd_response.data.ctl)
+                   % int(cmd_response.data.freg)));
       return cmd_response.data;
     }
 
@@ -255,10 +257,10 @@ namespace Perseus {
                                              &transferred, FX2::usb_timeout) == 0);
       ASSERT_THROW(transferred == sizeof(cmdcheck_status));
       if (cmdcheck_status[1] != true) {
-        std::cerr << str(boost::format("fpga_check error[%d,%d]")
-                         % int(cmdcheck_status[0])
-                         % int(cmdcheck_status[1])) << std::endl;
-        ASSERT_THROW(cmdcheck_status[1] == true);
+        LOG_ERROR(str(boost::format("fpga_check error[%d,%d]")
+                      % int(cmdcheck_status[0])
+                      % int(cmdcheck_status[1])));
+          ASSERT_THROW(cmdcheck_status[1] == true);
       }
       return true;
     }

@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,?",                                                       "produce help message")
+    ("version,v",                                                    "display version")
     ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
     ("port,p", po::value<std::string>()->default_value("18001"),     "server port");
 
@@ -40,6 +41,10 @@ int main(int argc, char* argv[])
     
     if (vm.count("help")) {
       std::cout << desc << std::endl;
+      return 1;
+    }
+    if (vm.count("version")) {
+      std::cout << SVN_VERSION_STRING << std::endl;
       return 1;
     }
   } catch (const std::exception &e) {

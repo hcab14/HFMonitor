@@ -83,7 +83,6 @@ public:
     , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
     , status_(status_init)
     , start_async_write_(false) {
-    std::cout << "dir: " << directory_ << std::endl;
     async_receive_command();
   }
   
@@ -166,23 +165,32 @@ public:
     return false;
   }
   
-  bool push_back(ptime t, std::string path, data_ptr dp, data_type preamble) {
+  bool check_format(data_ptr d) const {
+    if (not d) return true;
+    const header* hp(reinterpret_cast<const header*>(&(*d)[0]));
+    return (sizeof(header)+hp->length() == d->size());
+  }
+  data_type strip_header(data_ptr d) const {
+    assert(d->size() >= sizeof(header));
+    return data_type(d->begin()+sizeof(header), d->end());
+  }
+
+  bool push_back(ptime t,
+                 std::string path,
+                 data_ptr data,
+                 data_ptr preamble) {
     if (status_ == status_init)  return true;
     if (status_ == status_error) return false;
     // path="" is always broadcasted
     if (path != "" && !match_path(path))
       return true;
 
-    // pedantic check
-    {
-      const header* hp(reinterpret_cast<const header*>(&(*dp)[0]));
-      assert(sizeof(header)+hp->length() == dp->size());
-    }
-    if (preamble != "") {
-      const header* hp(reinterpret_cast<const header*>(&preamble[0]));
-      assert(sizeof(header)+hp->length() == preamble.size());
-    }
+    // pedantic checks
+    assert(check_format(data) == true);
+    assert(check_format(preamble) == true);
+
     max_delay_ = std::max(max_delay_, delay(t));
+
     // if the buffer is full forget all data except first packets which may be being sent
     size_t n_omit(0);
     if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
@@ -191,18 +199,18 @@ public:
     }
     if (n_omit != 0)
       LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
+
     if (is_open()) {
-      const bool listOfPacketsWasEmpty(empty());
-      if (preamble != "") {
-        std::string preamble_without_header(data_type(preamble.begin()+sizeof(header), preamble.end()));
+      const bool list_was_empty(empty());
+      if (preamble) {
+        const data_type preamble_without_header(strip_header(preamble));
         if (preamble_without_header_ != preamble_without_header) {
           preamble_without_header_= preamble_without_header;
-          data_ptr pdp(new data_type(preamble));
-          list_of_packets_.push_back(std::make_pair(t, pdp));
+          list_of_packets_.push_back(std::make_pair(t, preamble));
         }
       }
-      list_of_packets_.push_back(std::make_pair(t, dp));
-      if (listOfPacketsWasEmpty || start_async_write_) {
+      list_of_packets_.push_back(std::make_pair(t, data));
+      if (list_was_empty || start_async_write_) {
         start_async_write_= false;
         async_write_data();
       }
@@ -210,14 +218,13 @@ public:
     }
     return false;
   }
-  
+
   void async_write_data() {
     if (!empty() && is_open()) {
       data_ptr dataPtr(front().second);
-      const header* hp = (const header*)dataPtr->data();
+      const header* hp((const header*)dataPtr->data());
       if (hp->length() != dataPtr->size() - sizeof(header)) {
-        std::cout << "async_write_data: " << hp->length()  << " " << dataPtr->size() - sizeof(header)
-                  << " " << *hp << std::endl;
+        LOG_ERROR(str(boost::format("ERROR: %d!=%d (%s)") % hp->length() % (dataPtr->size() - sizeof(header)) % (*hp)));
       }
       boost::asio::async_write(*tcp_socket_ptr_,
                                boost::asio::buffer(dataPtr->data(), dataPtr->size()),
@@ -227,7 +234,7 @@ public:
                                                         boost::asio::placeholders::bytes_transferred)));
     }
   }
-  
+
   void handle_write_data(const boost::system::error_code& ec,
                          std::size_t bytes_transferred) {
     if (ec) {

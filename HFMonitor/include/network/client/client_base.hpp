@@ -22,8 +22,11 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/format.hpp>
 
 #include "logging.hpp"
 #include "network/broadcaster/directory.hpp"
@@ -88,11 +91,11 @@ public:
     std::istringstream iss(send_request(str(boost::format("GET %s") % names)));
     std::string f;
     if (iss >> f) {
-      std::cout << "f='" << f << "'" << std::endl;
+      LOG_INFO(str(boost::format("clien_base::connect_to '%s'") % f));
       if (f == "OK") {
         return true;
       } else {
-        std::cerr << "response= " << f << " " << names << std::endl;
+        LOG_INFO(str(boost::format("clien_base::connect_to response: '%s' '%s'") % f % names));
         return false;
       }
     } else {
@@ -212,7 +215,7 @@ private:
 
   // blocking send request, returns the response
   std::string send_request(std::string request) {
-    std::cout << "send_request: " << request << std::endl;
+    LOG_INFO(str(boost::format("send_request: '%s'") % request));
     request += "\r\n";
     boost::asio::streambuf request_streambuf;
     std::ostream request_stream(&request_streambuf);
@@ -227,7 +230,7 @@ private:
     std::istream buffer(&response_streambuf);
     std::stringstream string_buffer;    
     buffer >> string_buffer.rdbuf();
-    std::cout << "response: " << string_buffer.str() << std::endl;
+    LOG_INFO(str(boost::format("response: '%s'") % string_buffer.str()));
     return string_buffer.str();
   }
 
@@ -243,7 +246,7 @@ private:
     while (error && endpoint_iterator != end) {
       socket_.close();
       socket_.connect(*endpoint_iterator++, error);
-      std::cout << "error(connect)= " << error << std::endl;
+      LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
     }
     return (!error) || (endpoint_iterator != end);
   }
