@@ -94,15 +94,12 @@ protected:
     const iq_info header_iq(receiver_->get_sample_rate(),
                             receiver_->get_center_frequency_hz(),
                             'I', 3, 0);
-    const std::string     stream_name("DataIQ");
-    const boost::uint32_t stream_number(broadcaster_->register_stream(stream_name));
-    const header header("IQ__0000", data_.first, stream_number,
-                        sizeof(iq_info)+data_.second.size());
+    const std::string stream_name("DataIQ");
+
     std::string d;
-    std::copy(header.begin(),       header.end(),       std::back_inserter(d));
     std::copy(header_iq.begin(),    header_iq.end(),    std::back_inserter(d));
     std::copy(data_.second.begin(), data_.second.end(), std::back_inserter(d));
-    broadcaster_->bc_data(data_.first, stream_name, d);
+    broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", d);
     cond_->notify_one();
   }
 

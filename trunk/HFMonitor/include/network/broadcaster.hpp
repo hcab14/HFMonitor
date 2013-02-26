@@ -77,6 +77,7 @@ public:
 
   // returns the unique stream number corresponding to id
   boost::uint32_t register_stream(std::string path) {
+    if (path == "") return 0;
     const std::pair<boost::uint32_t, bool> r(directory_.insert(path));
     // if the directory has changed, broadcast the new directory to all clients
     if (r.second)
@@ -86,24 +87,30 @@ public:
 
   void bc_directory() {
     const ptime now(boost::posix_time::microsec_clock::universal_time());
-    bc_data(now, "", directory_.serialize(now));
+    bc_data(now, "", directory_.id(), directory_.serialize(now));
   }
+
+  typedef boost::shared_ptr<data_type> data_ptr_type;
 
   // broadcast data
   void bc_data(ptime t,
                std::string path,
-               data_type d,
+               data_type id,
+               data_type data,
                data_type preamble="") {
     // status of broadcaster -> log file
     log_status(t);
 
     // create a shared pointer of the to-be-broadcasted data
-    boost::shared_ptr<data_type> dp(new data_type(d));
+    data_ptr_type bytes_data(add_header(t, path, id ,data));
+    data_ptr_type bytes_preamble(preamble != ""
+                                 ? add_header(t, path, id, preamble)
+                                 : data_ptr_type());
     
     // insert to all data connections, checking if they are still alive
     for (std::set<data_connection::sptr>::iterator k(data_connections_.begin());
          k!=data_connections_.end(); ) {
-      if ((*k)->push_back(t, path, dp, preamble))
+      if ((*k)->push_back(t, path, bytes_data, bytes_preamble))
         ++k;
       else
         data_connections_.erase(k++);
@@ -113,7 +120,16 @@ public:
   boost::asio::strand& get_strand() { return strand_; }
 
 protected:
-
+  data_ptr_type add_header(ptime t,
+                           std::string path,
+                           data_type id,
+                           data_type data) {
+    const header h(id, t, register_stream(path), data.size());
+    data_ptr_type bytes(new std::string);
+    std::copy(h.begin(),    h.end(),    std::back_inserter(*bytes));
+    std::copy(data.begin(), data.end(), std::back_inserter(*bytes));
+    return bytes;
+  }
 private:
   broadcaster(const boost::property_tree::ptree& config)
     : strand_(network::get_io_service())

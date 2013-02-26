@@ -52,12 +52,12 @@ namespace Perseus {
       }
     }
     virtual ~receiver_control_impl() {
-      std::cerr << "~receiver_control_impl refcount=" << _poll_libusb_refcount << std::endl;
+      LOG_INFO(str(boost::format("~receiver_control_impl refcount=%d") % _poll_libusb_refcount));
       _input_queue.reset();
       if (--_poll_libusb_refcount == 0) {
-        std::cerr << "receiver_control_impl join ..." << std::endl;
+        LOG_INFO("receiver_control_impl join ...");
         pthread_join(_poll_libusb_thread, NULL);
-        std::cerr << "receiver_control_impl joined" << std::endl;
+        LOG_INFO("receiver_control_impl joined");
         _poll_libusb_thread = 0;
       }
     }
@@ -72,8 +72,6 @@ namespace Perseus {
       }
       set_sample_rate(config.get<int>("<xmlattr>.fs"));
       set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
-      const bool b=config.get<bool>("<xmlattr>.use_preselector");
-      std::cout << "----- use_preselector" << (b ? "true" : "false") << " -------" << std::endl;
       use_preselector(config.get<bool>("<xmlattr>.use_preselector"));
       set_attenuator(config.get<int>("<xmlattr>.attenuator"));
     }
@@ -161,9 +159,9 @@ namespace Perseus {
       if ((maxpri = sched_get_priority_max(SCHED_FIFO))>=0) {
         struct sched_param sparam;
         sparam.sched_priority = maxpri;
-        std::cerr << "setting thread priority to " << maxpri << std::endl;
+        LOG_INFO(str(boost::format("setting thread priority to %d") % maxpri));
         if (pthread_setschedparam(_poll_libusb_thread, SCHED_FIFO, &sparam) < 0)
-          std::cerr << "pthread_setschedparam" << std::endl;
+          LOG_ERROR("pthread_setschedparam");
       }
 #endif
       // handle libusb events until perseus_exit is called
@@ -171,7 +169,7 @@ namespace Perseus {
         static struct timeval tv = { 1, 0 };
         libusb_handle_events_timeout(libusb::session::get_global_session()->get_context(), &tv);
       }
-      std::cerr << "poll_libusb_thread_fn: exit" << std::endl;
+      LOG_INFO("poll_libusb_thread_fn: exit");
       return 0;
     }
 

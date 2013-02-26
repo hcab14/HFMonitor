@@ -116,16 +116,18 @@ namespace Perseus {
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
         libusb_cancel_transfer(td->t);
       // wait up to 5 seconds until everything is cancelled
-      std::cerr << "wait_cancel: ";
-      for (size_t i=0; i<50 && not is_completed(); ++i) {
-        std::cerr << "." << std::flush;
+      LOG_INFO("wait_cancel: ");
+      for (size_t i=0; i<50 && not is_completed(); ++i)
         usleep(100*1000);
+      LOG_INFO("... cancelled");
+      // !!! TO BE CHECKED !!!
+      while (not is_completed()) {
+        LOG_INFO("EXTRA WAITING");
+        usleep(100*1000); 
       }
-      std::cerr << " cancelled" << std::endl;
-      while (not is_completed()) ;
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
         libusb_free_transfer(td->t);
-      std::cerr << "~input_queue end" << std::endl;
+      LOG_INFO("~input_queue end");
     }
 
     static sptr make(callback::sptr cb,

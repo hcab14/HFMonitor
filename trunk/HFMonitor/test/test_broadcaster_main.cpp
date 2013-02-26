@@ -62,9 +62,9 @@ public:
     std::copy(h3.begin(), h3.end(), std::back_inserter(data3));
     std::copy(message3.begin(), message3.end(), std::back_inserter(data3));
 
-    bc_->bc_data(last_callback_time_, "data_00001", data1);
-    bc_->bc_data(last_callback_time_, "data_00002", data2);
-    bc_->bc_data(last_callback_time_, "data_00003", data3);
+    bc_->bc_data(last_callback_time_, "data_00001", "TEST0001", message1);
+    bc_->bc_data(last_callback_time_, "data_00002", "TEST0002", message2);
+    bc_->bc_data(last_callback_time_, "data_00003", "TEST0003", message3);
   }
 
 protected:

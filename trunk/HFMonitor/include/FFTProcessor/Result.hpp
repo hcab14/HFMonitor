@@ -89,26 +89,13 @@ namespace Result {
                         Base* h) {
       std::ostringstream sHeader;
       h->dumpHeader(sHeader);
-      std::string sh(sHeader.str());
+      const std::string sh(sHeader.str());
 
       std::ostringstream sData;
       h->dumpData(sData);
-      std::string sd(sData.str());
+      const std::string sd(sData.str());
 
-      const boost::uint32_t stream_number(bc->register_stream(tag));
-      std::string data;
-      {
-        const header header(h->format(), h->time(), stream_number, sd.size());
-        std::copy(header.begin(), header.end(), std::back_inserter(data));
-        std::copy(sd.begin(),     sd.end(),     std::back_inserter(data));
-      }
-      std::string preamble;
-      {
-        const header header(h->format(), h->time(), stream_number, sh.size());
-        std::copy(header.begin(), header.end(), std::back_inserter(preamble));
-        std::copy(sh.begin(),     sh.end(),     std::back_inserter(preamble));
-      }      
-      bc->bc_data(this->time(), tag, data, preamble);
+      bc->bc_data(h->time(), tag, h->format(), sd, sh);
     }
 
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 

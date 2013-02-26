@@ -39,6 +39,7 @@ process_options(std::string default_config_file,
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,?", "produce help message")
+    ("version,v", "display version")
     ("config,c", po::value<std::string>()->default_value(default_config_file), "path to XML configuration file");
   
   po::variables_map vm;
@@ -50,10 +51,16 @@ process_options(std::string default_config_file,
       oss << desc;
       throw std::runtime_error(oss.str());
     }
+    if (vm.count("version")) {
+      std::ostringstream oss;
+      oss << SVN_VERSION_STRING;
+      throw std::runtime_error(oss.str());
+    }
   } catch (const std::exception &e) {
     std::ostringstream oss;
     oss << e.what() << std::endl;
-    if (not vm.count("help"))
+    if (not (vm.count("help") ||
+             vm.count("version")))
       oss << desc;
     throw std::runtime_error(oss.str());
   }

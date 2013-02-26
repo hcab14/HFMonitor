@@ -1,0 +1,5 @@
+#!/bin/bash
+# $Id$
+
+NAME="server"
+CMD="sudo ./bin/perseus_server -c config/perseus_server_NTZ.xml"
