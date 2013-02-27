@@ -342,9 +342,12 @@ public:
         const ptime now(boost::posix_time::microsec_clock::universal_time());
         const data_type data(directory_.serialize(now));
         const header h(broadcaster_directory::id(), now, 0, data.size());
-        data_ptr bytes(new std::string);
-        std::copy(h.begin(),    h.end(),    std::back_inserter(*bytes));
-        std::copy(data.begin(), data.end(), std::back_inserter(*bytes));
+//         data_ptr bytes(new std::string);
+//         std::copy(h.begin(),    h.end(),    std::back_inserter(*bytes));
+//         std::copy(data.begin(), data.end(), std::back_inserter(*bytes));
+        data_ptr bytes(new std::string(sizeof(header)+data.size(), 0));
+        std::copy(h.begin(),    h.end(),    bytes->begin());
+        std::copy(data.begin(), data.end(), bytes->begin()+sizeof(header));
         list_of_packets_.push_back(std::make_pair(now, bytes));
         start_async_write_ = true; // this makes push_back start async_write with non-empty queue
         async_receive_tick(new_status);
