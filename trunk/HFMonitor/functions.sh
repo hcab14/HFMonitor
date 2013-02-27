@@ -25,7 +25,7 @@ function check_running {
     local name=$1
     local pid_file=.pid_$name
     [ ! -f $pid_file ] && { echo STOPPED; return; }
-    local pid=`cat $pid_file | tail -1`
+    local pid=$((`cat $pid_file | tail -1`))
     [ X$pid == X ]     && { echo STOPPED; return; }
     [ X$pid == X$((`ps -p $pid -opid --no-heading`)) ] && echo $pid || echo STOPPED;
 }

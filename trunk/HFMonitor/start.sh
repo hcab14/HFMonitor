@@ -3,7 +3,6 @@
 
 source functions.sh
 
-(  trap "rm -f ${LOCK_FILE}; exit" EXIT
-   flock -n -e 200 || { echo "This script $0 is currently being run"; exit 1; } >&2
+(   flock -n -e 200 || { echo "This script $0 is currently locked"; exit 1; } >&2
     start_all
 ) 200>${LOCK_FILE}
