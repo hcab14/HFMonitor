@@ -125,9 +125,15 @@ protected:
                        data_type id,
                        data_type data) {
     const header h(id, t, register_stream(path), data.size());
+#if 1
     data_type bytes(sizeof(header)+data.size(), 0);
     std::copy(h.begin(),    h.end(),    bytes.begin());
     std::copy(data.begin(), data.end(), bytes.begin()+sizeof(header));
+#else
+    data_type bytes;
+    std::copy(h.begin(),    h.end(),    std::back_inserter(bytes));
+    std::copy(data.begin(), data.end(), std::back_inserter(bytes));
+#endif
     return bytes;
   }
 private:
