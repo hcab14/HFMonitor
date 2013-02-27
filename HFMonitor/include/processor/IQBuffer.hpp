@@ -92,9 +92,11 @@ public:
 
   // returns the remaining unprocessed samples
   Samples samples() const {
-    Samples s;
-    std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), 
-              std::back_inserter(s));
+    Samples s(lastI1()-lastI0(), 0);
+    std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), s.begin());
+//     Samples s;
+//     std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), 
+//               std::back_inserter(s));
     return s;
   }
 

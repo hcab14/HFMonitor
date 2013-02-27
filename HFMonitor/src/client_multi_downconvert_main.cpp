@@ -73,10 +73,10 @@ protected:
     iq_info h_iq(sp->sample_rate_Hz(),
                  sp->center_frequency_Hz(),
                  'I', bytes_per_sample, sp->offset_ppb(), sp->offset_ppb_rms());
-    std::string data;
-    std::copy(h_iq.begin(), h_iq.end(), std::back_inserter(data));
-    data += oss.str();
-
+    std::string data(sizeof(iq_info)+oss.str().size(), 0);
+    std::copy(h_iq.begin(), h_iq.end(), data.begin());
+    const std::string& s(oss.str());
+    std::copy(s.begin(), s.end(), data.begin()+sizeof(iq_info));
     broadcaster_->bc_data(sp->approx_ptime(), fp.name(), "WAV_0000", data);
   }
 

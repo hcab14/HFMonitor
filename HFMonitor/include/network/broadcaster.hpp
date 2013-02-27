@@ -102,9 +102,9 @@ public:
     log_status(t);
 
     // create a shared pointer of the to-be-broadcasted data
-    data_ptr_type bytes_data(add_header(t, path, id ,data));
+    data_ptr_type bytes_data(data_ptr_type(new data_type(add_header(t, path, id ,data))));
     data_ptr_type bytes_preamble(preamble != ""
-                                 ? add_header(t, path, id, preamble)
+                                 ? data_ptr_type(new data_type(add_header(t, path, id, preamble)))
                                  : data_ptr_type());
     
     // insert to all data connections, checking if they are still alive
@@ -120,14 +120,14 @@ public:
   boost::asio::strand& get_strand() { return strand_; }
 
 protected:
-  data_ptr_type add_header(ptime t,
-                           std::string path,
-                           data_type id,
-                           data_type data) {
+  data_type add_header(ptime t,
+                       std::string path,
+                       data_type id,
+                       data_type data) {
     const header h(id, t, register_stream(path), data.size());
-    data_ptr_type bytes(new std::string);
-    std::copy(h.begin(),    h.end(),    std::back_inserter(*bytes));
-    std::copy(data.begin(), data.end(), std::back_inserter(*bytes));
+    data_type bytes(sizeof(header)+data.size(), 0);
+    std::copy(h.begin(),    h.end(),    bytes.begin());
+    std::copy(data.begin(), data.end(), bytes.begin()+sizeof(header));
     return bytes;
   }
 private:

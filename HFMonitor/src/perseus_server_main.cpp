@@ -97,10 +97,9 @@ protected:
                             receiver_->get_center_frequency_hz(),
                             'I', 3, 0);
     const std::string stream_name("DataIQ");
-
-    std::string d;
-    std::copy(header_iq.begin(),    header_iq.end(),    std::back_inserter(d));
-    std::copy(data_.second.begin(), data_.second.end(), std::back_inserter(d));
+    std::string d(sizeof(header_iq)+data_.second.size(), 0);
+    std::copy(header_iq.begin(),    header_iq.end(),    d.begin());
+    std::copy(data_.second.begin(), data_.second.end(), d.begin()+sizeof(header));
     broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", d);
 //     cond_->notify_one();
   }
