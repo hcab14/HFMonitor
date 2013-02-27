@@ -99,7 +99,7 @@ protected:
     const std::string stream_name("DataIQ");
     std::string d(sizeof(header_iq)+data_.second.size(), 0);
     std::copy(header_iq.begin(),    header_iq.end(),    d.begin());
-    std::copy(data_.second.begin(), data_.second.end(), d.begin()+sizeof(header));
+    std::copy(data_.second.begin(), data_.second.end(), d.begin()+sizeof(header_iq));
     broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", d);
 //     cond_->notify_one();
   }
