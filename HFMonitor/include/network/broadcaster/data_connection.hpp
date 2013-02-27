@@ -340,8 +340,12 @@ public:
       if (new_status == status_configured) {
         // make sure that first the current directory is broadcasted
         const ptime now(boost::posix_time::microsec_clock::universal_time());
-        data_ptr dp(new data_type(directory_.serialize(now)));
-        list_of_packets_.push_back(std::make_pair(now, dp));
+        const data_type data(directory_.serialize(now));
+        const header h(broadcaster_directory::id(), now, 0, data.size());
+        data_ptr bytes(new std::string);
+        std::copy(h.begin(),    h.end(),    std::back_inserter(*bytes));
+        std::copy(data.begin(), data.end(), std::back_inserter(*bytes));
+        list_of_packets_.push_back(std::make_pair(now, bytes));
         start_async_write_ = true; // this makes push_back start async_write with non-empty queue
         async_receive_tick(new_status);
       }

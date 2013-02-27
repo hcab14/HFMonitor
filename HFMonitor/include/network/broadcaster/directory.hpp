@@ -60,7 +60,7 @@ public:
     directory_.insert(std::make_pair(name, unique_stream_number));
   }
 
-  std::string id() const { return "DIR_0000"; }
+  static std::string id() { return "DIR_0000"; }
 
   std::string serialize(ptime t) const {
     std::string bytes_dir;

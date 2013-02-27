@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="client_FFTtoBC"
-CMD="./bin/client_FFTtoBC -c config/FFTProcessor_KRK.xml"
+CMD="LD_LIBRARY_PATH=/opt/local/lib ./bin/client_FFTtoBC -c config/FFTProcessor_KRK.xml"
