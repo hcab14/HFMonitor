@@ -34,11 +34,11 @@ function stop {
     local name=$1
     local pid=`check_running $name`
     [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
-    kill $pid
+    sudo kill $pid
     sleep 10s
     pid=`check_running $name`
     [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
-    kill -9 $pid
+    sudo kill -9 $pid
     sleep 5s
     pid=`check_running $name`
     [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
@@ -70,10 +70,21 @@ function stop_all {
 
 function check_running_all {
     local result=""
+    local result_stopped=""
     for i in `config_data`; do
 	source $i
-	[ ! -f .pid_$name ] && continue;
-	[ `check_running $NAME` == STOPPED ] && { start $NAME $CMD; sleep 5s; result="${result}_$name"; }
+        # when there is no .pid file we consider the process to be stopped and do not restart it
+	[ ! -f .pid_$NAME ] && { result_stopped="${result_stopped},$NAME"; continue; }
+	[ `check_running $NAME` == STOPPED ] && { start $NAME $CMD; sleep 5s; result="${result},$NAME"; }
     done
-    [ X$result == X ] && echo OK || echo FAIL$result
+
+    if [ X$result == X ] && [ X$result_stopped == X ]; then
+	echo OK;
+    else 
+	local prefix_fail=""
+	local prefix_stopped=""
+	[ X$result != X ]         && prefix_fail=FAIL:
+	[ X$result_stopped != X ] && prefix_stopped=STOPPED:
+	echo ${prefix_fail}${result:1}${prefix_stopped}${result_stopped:1}
+    fi
 }

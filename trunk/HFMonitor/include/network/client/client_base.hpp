@@ -196,7 +196,7 @@ private:
       break;
     case received_data:
       assert(bytes_transferred == header_.length());
-      if (header_.id() == "DIR_0000") {
+      if (header_.id() == broadcaster_directory::id()) {
         broadcaster_directory new_directory;
         new_directory.update(header_.length(), data_buffer_.data());
         directory_update(new_directory);

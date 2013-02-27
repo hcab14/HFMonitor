@@ -42,7 +42,7 @@ public:
   test_cb() {}
   test_cb(buffer<std::string>::sptr buf)
     : buffer_(buf) {}
-  virtual ~test_cb() { std::cout << "~test_cb" << std::endl; }
+  virtual ~test_cb() { }
   void operator()(unsigned char* data, size_t length) {
     using namespace boost::posix_time;
     std::string s((char*)(data), length);

@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     const std::set<std::string> streams(c.ls());
     BOOST_FOREACH (std::string s, streams) {
-      std::cout << s;
+      std::cout << s << std::endl;
     }
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 

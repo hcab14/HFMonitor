@@ -63,6 +63,7 @@ public:
               << " stream_number=" << h.stream_number()
               << " len=" << h.length();
   }
+
 protected:
 private:
   char            id_[8];         // 8-byte identifier         | 8b
