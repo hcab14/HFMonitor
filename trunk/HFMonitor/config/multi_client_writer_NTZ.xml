@@ -9,8 +9,8 @@
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
-            filePath="DataNTZ"
-            filePeriod="5m">
+            filePath="DataKRK"
+            filePeriod="1d">
     </Writer>
   </Clients>
 </MultiClient>
