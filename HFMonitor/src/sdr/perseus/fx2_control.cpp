@@ -101,7 +101,7 @@ namespace Perseus {
                      % _perseus_eeprom_pid.to_str()));
         _is_configured = true;
       } catch (const std::runtime_error& e) {
-        LOG_ERROR(str(boost::format("fx2_control_impl::fx2_control_impl exception:") % e.what()));
+        LOG_ERROR(str(boost::format("fx2_control_impl::fx2_control_impl exception: '%s'") % e.what()));
         // no further action
       }
     }
