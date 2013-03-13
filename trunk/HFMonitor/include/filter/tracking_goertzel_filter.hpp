@@ -58,6 +58,28 @@ namespace detail {
     double value_;
     double rms_value_;
   } ;
+
+  class GoertzelFilterWithPhaseHistory : public boost::noncopyable {
+  public:
+    typedef boost::shared_ptr<GoertzelFilterWithPhaseHistory> sptr;
+    typedef std::complex<double> complex_t;
+    typedef goertzel<complex_t> goertzel_type;
+    typedef std::vector<double> phase_vector_type;
+
+    virtual ~GoertzelFilterWithPhaseHistory() {}
+
+    static sptr make() {
+      return sptr(new GoertzelFilterWithPhaseHistory());
+    }
+
+  protected:
+  private:
+    GoertzelFilterWithPhaseHistory() {}
+
+    goertzel_type     filter_;
+    phase_vector_type phase_vector_;    
+  } ;
+
 } // namespace detail
 
 class tracking_goertzel_filter : private boost::noncopyable {
@@ -92,9 +114,7 @@ public:
 
   double         fs_Hz()         const { return fs_; }
   state::state_t last_state()    const { return last_state_; }
-  bool           state_updated() const {
-    return sample_counter_ == 0 && last_state() != state::UNDEFINED;
-  }
+  bool           state_updated() const { return sample_counter_ == 0 && last_state() != state::UNDEFINED;  }
   size_t         period()        const { return period_; }
   const detail::value_and_error& estimated_f_Hz() const { return estimated_f_; }
   const detail::value_and_error& estimated_df()   const { return estimated_df_; }  

@@ -100,9 +100,11 @@ public:
     : fmin_(fmin), fmax_(fmax) {}
   
   frequency_vector(freq_type fmin, freq_type fmax, size_t size, const T& value)
-    : fmin_(fmin), fmax_(fmax) {
+    : fmin_(fmin),
+      fmax_(fmax),
+      v_(size) {
     for (unsigned u(0); u<size; ++u)
-      v_.push_back(std::make_pair(fmin+(fmax-fmin)/(size-1)*u, value));
+      v_[u]= std::make_pair(fmin+(fmax-fmin)/(size-1)*u, value);
   }
   
   template<typename FUNCTION>
@@ -114,10 +116,12 @@ public:
     : fmin_(f.fmin_), fmax_(f.fmax_), v_(f.v_) {} 
 
   frequency_vector& operator=(const frequency_vector& f) {
-    frequency_vector tmp(f);
-    std::swap(fmin_, tmp.fmin_);
-    std::swap(fmax_, tmp.fmax_);
-    std::swap(v_,    tmp.v_);
+    if (&f != this) {
+      frequency_vector tmp(f);
+      std::swap(fmin_, tmp.fmin_);
+      std::swap(fmax_, tmp.fmax_);
+      std::swap(v_,    tmp.v_);
+    }
     return *this;
   }
  
@@ -127,13 +131,14 @@ public:
 
   template<typename FUNCTION>
   frequency_vector<T> fill(const SpectrumBase& s, const FUNCTION& func) {
-    v_.clear();
     const size_t i0(s.freq2index(fmin()));
     const size_t i1(s.freq2index(fmax()));
+    const size_t n(1+i1-i0);
+    if (v_.size() != n) v_.resize(n);
     fmin_ = s.index2freq(i0);
     fmax_ = s.index2freq(i1);
     for (size_t u=i0; u<=i1; ++u) 
-      v_.push_back(value_type(s.index2freq(u), func(s[u])));
+      v_[u-i0]= std::make_pair(s.index2freq(u), func(s[u]));
     return *this;
   }
   template<typename FUNCTION>
