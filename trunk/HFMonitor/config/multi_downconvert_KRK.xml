@@ -6,7 +6,7 @@
   <Broadcaster>
     <Data maxQueueSize_MB="2"
           maxQueueDelay_Minutes="5"
-          port="8080">
+          port="19100">
     </Data>
   </Broadcaster>
   <Repack bufferLength_sec="1"

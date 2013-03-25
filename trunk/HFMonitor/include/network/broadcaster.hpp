@@ -207,7 +207,7 @@ private:
         boost::system::error_code ecl_ignore, ecr_ignore;
         LOG_STATUS_T(t, str(boost::format("  %s - %s : delay[ms] = %.2f (%s)")
                             % dc->local_endpoint(ecl_ignore) 
-                            % dc->local_endpoint(ecr_ignore) 
+                            % dc->remote_endpoint(ecr_ignore) 
                             % dc->max_delay_msec()
                             % dc->stream_name()));
         dc->reset_max_delay();
