@@ -35,20 +35,22 @@ public:
   void set_parameter(double kN) {
     kN_    = kN;
     const_ = 2*cos(2*M_PI*kN_);
-    phase_ = std::exp(T(0, 2*M_PI*kN_));
+    phase_     = std::exp(T(0, -2*M_PI*kN_));
+    phase_inv_ = std::exp(T(0,  2*M_PI*kN_));
   }
   void update(T sample) {
     const T q0(sample + const_*q1_ - q2_);
     q2_ = q1_;
     q1_ = q0;
   }
-  T x() const { return q1_*phase_ - q2_; }
+  T x() const { return q1_*phase_inv_ - q2_; }
 
 protected:
 private:
-  value_type kN_;       // normalized frequency 0..1
+  value_type kN_;        // normalized frequency 0..1
   value_type const_; 
   T          phase_;
+  T          phase_inv_;
   T          q1_, q2_;   // filter state
 } ;
 
