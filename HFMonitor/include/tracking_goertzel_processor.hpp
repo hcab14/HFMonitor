@@ -120,7 +120,7 @@ public:
       filter_->update(*i);
       if (filter_->state_updated()) {
         const time_duration 
-          dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+          dt(0,0,0, int64_t(time_duration::ticks_per_second()*(std::distance(i0, i)/sp->sample_rate_Hz() + filter_->delta_time_sec())));
         sp->put_result(result::make(name_,
                                     sp->approx_ptime()+dt,
                                     f0_Hz_,
