@@ -47,9 +47,9 @@ namespace demod {
       return sptr(new msk(fs_Hz, fc_Hz, fm_Hz, dwl_Hz, period_Sec, xi));
     }
 
-    void update_ppb(const double ppb) {
-      pll_plus_.update_ppb(ppb);
-      pll_minus_.update_ppb(ppb);
+    void update_ppb(double ppb, double fc, double fm) {
+      pll_plus_.update_ppb(ppb,  2*fc+fm);
+      pll_minus_.update_ppb(ppb, 2*fc-fm);
     }
 
     bool   updated()         const { return sample_counter_ == 0; }
@@ -91,7 +91,7 @@ namespace demod {
                              double fc_Hz,
                              double dwl_Hz,
                              double xi) {
-      loop_filter l(xi, dwl_Hz, fc_Hz, fs_Hz);
+      loop_filter l(xi, dwl_Hz, fs_Hz);
       integrator  i(8*M_PI);
       return pll_type(fc_Hz, fs_Hz, l, i);
     }
@@ -104,11 +104,11 @@ namespace demod {
         double xi)
       : fs_Hz_(fs_Hz)
       , period_(size_t(period_Sec*fs_Hz+0.5))
-      , pll_plus_ (make_pll(fs_Hz, fc_Hz+fm_Hz, dwl_Hz, xi))
-      , pll_minus_(make_pll(fs_Hz, fc_Hz-fm_Hz, dwl_Hz, xi))
-      , gf_plus_  ((fc_Hz+fm_Hz)/fs_Hz)
-      , gf_center_( fc_Hz       /fs_Hz)
-      , gf_minus_ ((fc_Hz-fm_Hz)/fs_Hz)
+      , pll_plus_ (make_pll(fs_Hz, 2*fc_Hz+fm_Hz, dwl_Hz, xi))
+      , pll_minus_(make_pll(fs_Hz, 2*fc_Hz-fm_Hz, dwl_Hz, xi))
+      , gf_plus_  ((2*fc_Hz+fm_Hz)/fs_Hz)
+      , gf_center_( 2*fc_Hz       /fs_Hz)
+      , gf_minus_ ((2*fc_Hz-fm_Hz)/fs_Hz)
       , last_phase_(0)
       , delta_phase_(0)
       , sample_counter_(0) {}

@@ -45,8 +45,9 @@ namespace filter {
       reset();
     }
 
-    void update_ppb(double ppb) {
+    void update_ppb(double ppb, double fc) {
       ppb_ = ppb;
+      fc_  = fc;
       loop_filter_.update_ppb(ppb);
     }
 
@@ -63,8 +64,8 @@ namespace filter {
       return theta();
     }
     
-    double fc() const { return fc_*(1+ppb_*1e-9); }
-    double ts() const { return ts_*(1-ppb_*1e-9); }
+    double fc() const { return fc_; }
+    double ts() const { return ts_*(1+ppb_*1e-9); }
 
     float_type theta() const { return integrator_.get(); }
     float_type uf() const { return loop_filter_.get(); }
