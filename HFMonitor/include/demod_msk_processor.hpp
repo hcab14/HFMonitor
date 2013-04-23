@@ -90,7 +90,7 @@ public:
     
     virtual ~result() {}
     static sptr make(std::string name,
-                     ptime       t,
+                     ptime  t,
                      double amplitude,
                      double sn_db,
                      double phase_rad) {
@@ -136,6 +136,8 @@ public:
     , period_Sec_(config.get<double>("<xmlattr>.period_Sec"))
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
     , filter_(201, 0.1)
+    , filter_amp_pm_(10., period_Sec_) // 10 sec. low pass filter 
+    , filter_amp_center_(10., period_Sec_)
     , phase_(0) {}
   
   ~demod_msk_processor() {}
@@ -157,15 +159,17 @@ public:
     // set up a new filter
     bool is_first_call(false);
     if (not demod_msk_) {
-      demod_msk_ = demod::msk::make(sp->sample_rate_Hz()*(1.-offset_ppb*1e-9),
-                                    (fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
-                                    0.5*fm_Hz_*(1.-offset_ppb*1e-9),
+      demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
+                                    fc_Hz_ - sp->center_frequency_Hz() + offset_Hz,
+                                    0.5*fm_Hz_,
                                     dwl_Hz_, period_Sec_);
-      filter_.shift((fc_Hz_ - sp->center_frequency_Hz())/sp->sample_rate_Hz());
+//       filter_.shift((fc_Hz_ - sp->center_frequency_Hz())/sp->sample_rate_Hz());
+      filter_amp_pm_.reset(-1);
+      filter_amp_center_.reset(-1);
       is_first_call= true;
     }
 
-    demod_msk_->update_ppb(sp->offset_ppb());
+    demod_msk_->update_ppb(sp->offset_ppb(), fc_Hz_ - sp->center_frequency_Hz() + offset_Hz, 0.5*fm_Hz_);
 
     for (const_iterator i(i0); i!=i1; ++i) {
       demod_msk_->process(filter_.process(*i));
@@ -174,12 +178,18 @@ public:
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
         const double amplitude_center(10*std::log10(std::abs(demod_msk_->gf_center().x())));
 
-        const double amplitude(0.5*(amplitude_plus+amplitude_minus));
-        const double sn_db(amplitude-amplitude_center);
+        if (filter_amp_pm_.get() < 0) {
+          filter_amp_pm_.reset(0.5*(amplitude_plus+amplitude_minus));
+          filter_amp_center_.reset(amplitude_center);
+        } else {
+          filter_amp_pm_.process(0.5*(amplitude_plus+amplitude_minus));
+          filter_amp_center_.process(amplitude_center);
+        }
+        const double amplitude(filter_amp_pm_.get());
+        const double sn_db(amplitude - filter_amp_center_.get());
 
-        const double delta_phase_rad(demod_msk_->delta_phase_rad() 
-                                     - offset_Hz*2*M_PI*demod_msk_->period_sec()
-                                     + 2*M_PI*demod_msk_->period_sec()*(fc_Hz_ - sp->center_frequency_Hz()));
+        const double delta_phase_rad(demod_msk_->delta_phase_rad()
+                                     + 2*M_PI*demod_msk_->period_sec() * (fc_Hz_ - sp->center_frequency_Hz() - offset_Hz));
         phase_ += delta_phase_rad;
         phase_ -= (phase_ >= M_PI)*2*M_PI;
         phase_ += (phase_ < -M_PI)*2*M_PI;
@@ -207,6 +217,8 @@ private:
   const double      min_SN_db_;
   demod::msk::sptr  demod_msk_;
   fir_filter        filter_;
+  filter::iir_lowpass_1pole<double, double> filter_amp_pm_;
+  filter::iir_lowpass_1pole<double, double> filter_amp_center_;
   double            phase_;
 } ;
 

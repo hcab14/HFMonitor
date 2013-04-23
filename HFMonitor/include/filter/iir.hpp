@@ -152,24 +152,21 @@ namespace filter {
     
     loop_filter_2nd(double xi,
                     double dwl,
-                    double fc,
                     double fs)
       : xi_(xi)
       , dwl_(dwl)
-      , fc_(fc)
       , fs_(fs) {
-      init(xi, dwl, fc, fs);
+      init(xi, dwl, fs);
       reset();
     }
     // virtual ~loop_filter_2nd() {}
 
     void update_ppb(double ppb) {
-      init(xi_, dwl_, fc_*(1.+1e-9*ppb), fs_*(1.+1e-9*ppb));
+      init(xi_, dwl_, fs_*(1.-1e-9*ppb));
     }
 
     void init(double xi,
               double dwl,
-              double fc,
               double fs) {
       const double wl = dwl*2*M_PI;
       const double wn = wl/2/xi;
@@ -196,7 +193,6 @@ namespace filter {
     iir_type iir_;
     double xi_;
     double dwl_;
-    double fc_;
     double fs_;
   } ;
 
