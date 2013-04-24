@@ -30,9 +30,26 @@
 #include "wave/writer.hpp"
 #include "writer.hpp"
 
+class multi_client_tofile : public multi_client, public writer_txt_base {
+public:
+  typedef boost::property_tree::ptree ptree;
+  multi_client_tofile(const ptree& config)
+    : multi_client(config)
+    , writer_txt_base(config.get_child("FileSink")) {}
+
+  virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
+    // result -> file
+    std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
+    return dump_result(rp);
+  }
+
+protected:
+private:
+} ;
+
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "multi_client");
+  LOGGER_INIT("./Log", "multi_client_tofile");
   try {
     const boost::program_options::variables_map vm(process_options("config/multi_client.xml", argc, argv));
     typedef boost::property_tree::ptree ptree;
@@ -42,7 +59,7 @@ int main(int argc, char* argv[])
     const ptree& config_clients(config.get_child("MultiClient.Clients"));
 
     // fill spm
-    multi_client::stream_processor_config_map spcm;
+    multi_client_tofile::stream_processor_config_map spcm;
     BOOST_FOREACH(const ptree::value_type& s,
                   config_multi_client.get_child("Streams")) {
       if (s.first != "Stream") {
@@ -68,7 +85,7 @@ int main(int argc, char* argv[])
     processor::registry::add<FFTProcessorToBC<double>        >("FFTProcToBC_DOUBLE");
     processor::registry::add<iq_adapter<demod_msk_processor> >("DemodMSK");
 
-    multi_client c(config_multi_client);
+    multi_client_tofile c(config_multi_client);
 
     const std::set<std::string> streams(c.ls());
     BOOST_FOREACH(std::string stream, streams)

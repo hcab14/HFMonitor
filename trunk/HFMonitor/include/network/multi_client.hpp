@@ -48,6 +48,42 @@ public:
   // stream_name -> (processor_type, config_id)
   typedef std::map<stream_name, std::pair<processor_type, std::string> > stream_processor_config_map;
 
+  // map of results
+  typedef std::map<std::string, processor::result_base::sptr> result_map;
+
+  // service_mc
+  class service_mc : public processor::service_base {
+  public:
+    typedef boost::shared_ptr<service_mc> sptr;
+    static sptr make(multi_client* pp,
+                     processor::service_base::sptr sp) {
+      return sptr(new service_mc(pp, sp));
+    }
+    virtual ~service_mc() {}
+
+    virtual std::string     id()                  const { return sp_->id(); }
+    virtual ptime           approx_ptime()        const { return sp_->approx_ptime(); }
+    virtual boost::uint16_t stream_number()       const { return sp_->stream_number(); }
+    virtual std::string     stream_name()         const { return sp_->stream_name(); }
+
+    virtual void put_result(processor::result_base::sptr rp) {
+      pp_->put_result(rp);
+    }
+    virtual processor::result_base::sptr get_result(std::string name) const {
+      return pp_->get_result(name);
+    }
+
+  protected:
+  private:
+    service_mc(multi_client* pp,
+               processor::service_base::sptr sp)
+      : pp_(pp)
+      , sp_(sp) {}
+
+    multi_client* pp_;
+    const processor::service_base::sptr sp_;
+  } ;
+
   //
   multi_client(const boost::property_tree::ptree& config)
     : client_base(network::get_io_service(), config)
@@ -94,8 +130,23 @@ public:
     }
 
     // make up service object
-    processor::service_base::sptr sp(service_net::make(get_header(), get_directory()));
+    processor::service_base::sptr sp(service_mc::make(this, service_net::make(get_header(), get_directory())));
     i->second->process(sp, begin, end);
+  }
+
+  virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
+    // to be overwritten in a derived class
+    LOG_INFO(str(boost::format("dump: %s %s") % rp->name() % rp->to_string()));
+    return rp;
+  }
+
+  virtual void put_result(processor::result_base::sptr rp) {
+    LOG_INFO(str(boost::format("put_result: %s %s") % rp->name() % rp->to_string()));
+    result_map_[rp->name()] = dump(rp);
+  }
+  virtual processor::result_base::sptr get_result(std::string name) const {
+    result_map::const_iterator i(result_map_.find(name));
+    return (i != result_map_.end()) ? i->second : processor::result_base::sptr();
   }
 
 protected:
@@ -151,6 +202,7 @@ private:
 
   processor_id_map   processor_id_map_;
   processor_type_map processor_type_map_;
+  result_map         result_map_;
 } ;
 
 #endif // _MULTI_CLIENT_HPP_cm121228_

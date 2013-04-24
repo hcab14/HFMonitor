@@ -52,6 +52,11 @@ namespace demod {
       pll_minus_.update_ppb(ppb, 2*fc-fm);
     }
 
+    void reset() {
+      pll_plus_.reset();
+      pll_minus_.reset();
+    }
+
     bool   updated()         const { return sample_counter_ == 0; }
     double period_sec()      const { return period_/fs_Hz_; }
     double delta_phase_rad() const { return delta_phase_; }

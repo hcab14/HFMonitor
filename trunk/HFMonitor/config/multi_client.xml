@@ -4,6 +4,9 @@
   <server host="127.0.0.1"
 	  port="19100">
   </server>
+  <FileSink filePath="DataTest"
+            filePeriod="1d">
+  </FileSink>
   <Streams>
     <Stream pattern="DC_022100_GQD">Writer2</Stream>
     <Stream pattern="DC_023400_DHO">Writer2</Stream>
@@ -19,20 +22,34 @@
 
   </Streams>
   <Clients>
-    <Writer1 type="WriterTXT"
-            filePath="DataKRK"
-            filePeriod="1d">
-    </Writer1>
     <Writer2 type="WriterIQ"
              filePath="DataBC__"
              filePeriod="5m"
              bitsPerSample="24">
     </Writer2>
-    <DemodMSK1 type="DemodMSK" name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK1>
-    <DemodMSK2 type="DemodMSK" name="MSK_DHO" fc_Hz="23.40e3" fm_Hz="200.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK2>
-    <DemodMSK3 type="DemodMSK" name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK3>
-    <DemodMSK4 type="DemodMSK" name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK4>
-    <DemodMSK5 type="DemodMSK" name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="100.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK5>
-    <DemodMSK6 type="DemodMSK" name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0" dwl_Hz=".05" period_Sec="1" min_SN_db="5"></DemodMSK6>
+    <DemodMSK1 type="DemodMSK"
+               name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK1>
+    <DemodMSK2 type="DemodMSK"
+               name="MSK_DHO" fc_Hz="23.400000065e3" fm_Hz="200.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK2>
+    <DemodMSK3 type="DemodMSK"
+               name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK3>
+    <DemodMSK4 type="DemodMSK"
+               name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK4>
+    <DemodMSK5 type="DemodMSK"
+               name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="100.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK5>
+    <DemodMSK6 type="DemodMSK"
+               name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
+               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK6>
   </Clients>
 </MultiClient>

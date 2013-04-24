@@ -24,34 +24,31 @@
 #include "gen_filename.hpp"
 #include "processor.hpp"
 
-class writer_txt : public processor::base, public gen_filename {
+class writer_txt_base : public gen_filename {
 public:
-  typedef boost::shared_ptr<writer_txt> sptr;
+  typedef boost::shared_ptr<writer_txt_base> sptr;
+  typedef boost::posix_time::ptime ptime;
 
-  writer_txt(const boost::property_tree::ptree& config)
-    : base(config)
-    , base_path_(config.get<std::string>("<xmlattr>.filePath"))
+  writer_txt_base(const boost::property_tree::ptree& config)
+    : base_path_(config.get<std::string>("<xmlattr>.filePath"))
     , file_period_(gen_filename::str2period(config.get<std::string>("<xmlattr>.filePeriod")))
     , time_format_(config.get<std::string>("<xmlattr>.timeFormat", "%Y-%m-%d %H:%M:%s"))
     , pos_(0) {}
 
-  virtual ~writer_txt() {}
+  virtual ~writer_txt_base() {}
 
   // gen_filename methods
   virtual file_period filePeriod()    const { return file_period_; }
   virtual std::string fileExtension() const { return "txt"; }
 
-  virtual void process(service::sptr sp,
-		       const_iterator i0,
-		       const_iterator i1) {
-    if ( i0 == i1) return;
-    if (*i0 == '#') { // save header line(s)
-      header_.clear();
-      std::copy(i0, i1, std::back_inserter(header_));
-      return;
-    }
+  processor::result_base::sptr dump_result(processor::result_base::sptr rp) {
+    if (!rp)
+      return rp;
+    if (rp->format() != "TXT_0000")
+      return rp;
+
     const boost::filesystem::path
-      filepath(gen_file_path(base_path_, sp->stream_name(), sp->approx_ptime()));
+      filepath(gen_file_path(base_path_, rp->name(), rp->approx_ptime()));
 
     if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
       LOG_ERROR(str(boost::format("file '%s' exists and will be overwritten") % filepath));
@@ -60,16 +57,20 @@ public:
     if (not boost::filesystem::exists(filepath)) {
       LOG_INFO(str(boost::format("creating new file '%s'") % filepath));
       std::ofstream ofs(filepath.c_str(), std::ios::binary);
-      ofs << header_ << "\n";
+      rp->dump_header(ofs) << "\n";
       pos_ = ofs.tellp();
+    } else {
+      std::ifstream ifs(filepath.c_str(), std::ios::binary);
+      ifs.seekg(0, ifs.end);
+      pos_ = ifs.tellg();      
     }
     // write data
     std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
     ofs.seekp(pos_);
-    ofs << make_time_label(sp->approx_ptime()) << " ";
-    std::copy(i0, i1, std::ostream_iterator<char>(ofs));
-    ofs << "\n";
+    ofs << make_time_label(rp->approx_ptime()) << " ";
+    rp->dump_data(ofs) << "\n";
     pos_ = ofs.tellp();
+    return rp;
   }
 
 protected:
@@ -84,6 +85,64 @@ private:
   const gen_filename::file_period file_period_;
   const std::string               time_format_;
   std::streampos pos_;
+} ;
+
+class writer_txt : public processor::base, public writer_txt_base {
+public:
+  typedef boost::shared_ptr<writer_txt> sptr;
+
+  class result : public processor::result_base {
+  public:
+    typedef boost::shared_ptr<result> sptr;
+
+    virtual ~result() {}
+
+    static sptr make(std::string name,
+                     ptime t,
+                     std::string header,
+                     std::string data) {
+      return sptr(new result(name, t, header, data));
+    }
+    virtual std::ostream& dump_header(std::ostream& os) const { return os << header_;  }
+    virtual std::ostream& dump_data(std::ostream& os)   const { return os << data_; }
+
+  protected:    
+  private:
+    result(std::string name,
+           ptime t,
+           std::string header,
+           std::string data)
+      : result_base(name, t)
+      , header_(header)
+      , data_(data) {}
+
+    const std::string header_;
+    const std::string data_;
+  } ;
+
+  writer_txt(const boost::property_tree::ptree& config)
+    : base(config)
+    , writer_txt_base(config) {}
+
+  virtual ~writer_txt() {}
+
+  virtual void process(service::sptr sp,
+		       const_iterator i0,
+		       const_iterator i1) {
+    if ( i0 == i1) return;
+    if (*i0 == '#') { // save header line(s)
+      header_.clear();
+      header_.resize(std::distance(i0, i1));
+      std::copy(i0, i1, header_.begin());
+      return;
+    }
+    std::string data(std::distance(i0, i1), ' ');
+    std::copy(i0, i1, data.begin());
+    dump_result(result::make(sp->stream_name(), sp->approx_ptime(), header_, data));
+  }
+
+protected:
+private:
   std::string    header_;
 } ;
 
