@@ -46,6 +46,9 @@ public:
   virtual boost::uint16_t stream_number() const { return header_.stream_number(); }
   virtual std::string     stream_name()   const { return directory_.stream_name_of(stream_number()); }
 
+  virtual void put_result(processor::result_base::sptr rp) {}
+  virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
+
 protected:
 private:
   service_net(const header& h,
@@ -77,6 +80,13 @@ public:
   virtual float           offset_ppb()          const { return iq_info_.offset_ppb(); }
   virtual float           offset_ppb_rms()      const { return iq_info_.offset_ppb_rms(); }
   
+  virtual void put_result(processor::result_base::sptr rp) {
+    sp_->put_result(rp);
+  }
+  virtual processor::result_base::sptr get_result(std::string name) const {
+    return sp_->get_result(name);
+  }
+
 protected:
 private:
   service_net_iq(processor::service_base::sptr sp,

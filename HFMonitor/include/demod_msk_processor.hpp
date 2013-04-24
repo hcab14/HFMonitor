@@ -91,35 +91,51 @@ public:
     virtual ~result() {}
     static sptr make(std::string name,
                      ptime  t,
+                     double fc_Hz,
+                     double fm_Hz,
                      double amplitude,
                      double sn_db,
                      double phase_rad) {
-      return sptr(new result(name, t, amplitude, sn_db, phase_rad));
+      return sptr(new result(name, t, fc_Hz, fm_Hz, amplitude, sn_db, phase_rad));
     }
 
+    double fc_Hz()     const { return fc_Hz_; }
+    double fm_Hz()     const { return fm_Hz_; }
     double amplitude() const { return amplitude_; }
     double sn_db()     const { return sn_db_; }
     double phase_rad() const { return phase_rad_; }
 
-    virtual std::string to_string() const {
-      std::stringstream ss; 
-      ss << result_base::to_string();
-      ss << " " << amplitude() << " " << sn_db() << " " << phase_rad();
-      return ss.str();
+    virtual std::ostream& dump_header(std::ostream& os) const {
+      return os
+        << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
+        << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"
+        << "# Time_UTC Amplitude[dB] S/N[db] Phase[rad] ";
+    }
+    virtual std::ostream& dump_data(std::ostream& os) const {
+      return os
+        << boost::format("%7.2f") % amplitude() << " "
+        << boost::format("%7.2f") % sn_db()     << " "
+        << boost::format("%6.3f") % phase_rad();
     }
     
   protected:
   private:
     result(std::string name,
-           ptime t,
+           ptime  t,
+           double fc_Hz,
+           double fm_Hz,
            double amplitude,
            double sn_db,
            double phase_rad)
       : result_base(name, t)
+      , fc_Hz_(fc_Hz)
+      , fm_Hz_(fm_Hz)
       , amplitude_(amplitude)
       , sn_db_(sn_db)
       , phase_rad_(phase_rad) {}
     
+    const double fc_Hz_;
+    const double fm_Hz_;
     const double amplitude_;
     const double sn_db_;
     const double phase_rad_;
@@ -135,9 +151,10 @@ public:
     , dwl_Hz_(config.get<double>("<xmlattr>.dwl_Hz"))
     , period_Sec_(config.get<double>("<xmlattr>.period_Sec"))
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
+    , max_offset_ppb_rms_(config.get<double>("<xmlattr>.max_offset_ppb_rms"))
     , filter_(201, 0.1)
-    , filter_amp_pm_(10., period_Sec_) // 10 sec. low pass filter 
-    , filter_amp_center_(10., period_Sec_)
+    , filter_amp_pm_    (config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
+    , filter_amp_center_(config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , phase_(0) {}
   
   ~demod_msk_processor() {}
@@ -152,9 +169,15 @@ public:
               << " offset_ppb_rms= " << sp->offset_ppb_rms()
               << " fc_Hz=" << fc_Hz_
               << " fm_Hz=" << fm_Hz_
+              << " max_offset_ppb_rms=" << max_offset_ppb_rms_
               << std::endl;
     const double offset_ppb(sp->offset_ppb());
     const double offset_Hz(fc_Hz_*offset_ppb*1e-9);
+
+    if (sp->offset_ppb_rms() > max_offset_ppb_rms_) {
+      LOG_INFO(str(boost::format("offset_ppb = %.2f > %.2f is too big") % sp->offset_ppb_rms() % max_offset_ppb_rms_));
+      return;
+    }
 
     // set up a new filter
     bool is_first_call(false);
@@ -169,14 +192,16 @@ public:
       is_first_call= true;
     }
 
-    demod_msk_->update_ppb(sp->offset_ppb(), fc_Hz_ - sp->center_frequency_Hz() + offset_Hz, 0.5*fm_Hz_);
+    demod_msk_->update_ppb(sp->offset_ppb(),
+                           fc_Hz_ - sp->center_frequency_Hz() + offset_Hz,
+                           0.5*fm_Hz_);
 
     for (const_iterator i(i0); i!=i1; ++i) {
       demod_msk_->process(filter_.process(*i));
       if (not is_first_call && demod_msk_->updated()) {
-        const double amplitude_plus  (10*std::log10(std::abs(demod_msk_->gf_plus().x())));
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
         const double amplitude_center(10*std::log10(std::abs(demod_msk_->gf_center().x())));
+        const double amplitude_plus  (10*std::log10(std::abs(demod_msk_->gf_plus().x())));
 
         if (filter_amp_pm_.get() < 0) {
           filter_amp_pm_.reset(0.5*(amplitude_plus+amplitude_minus));
@@ -188,12 +213,17 @@ public:
         const double amplitude(filter_amp_pm_.get());
         const double sn_db(amplitude - filter_amp_center_.get());
 
+        if (sn_db < min_SN_db_) {
+          continue;
+          // demod_msk_->reset();
+        }
+
         const double delta_phase_rad(demod_msk_->delta_phase_rad()
                                      + 2*M_PI*demod_msk_->period_sec() * (fc_Hz_ - sp->center_frequency_Hz() - offset_Hz));
         phase_ += delta_phase_rad;
-        phase_ -= (phase_ >= M_PI)*2*M_PI;
-        phase_ += (phase_ < -M_PI)*2*M_PI;
-        std::cout << "XXX A+-0: " << amplitude_plus << " " << amplitude_minus << " " << amplitude_center
+        while (phase_ >= M_PI) phase_ -= 2*M_PI;
+        while (phase_ < -M_PI) phase_ += 2*M_PI;
+        std::cout << "XXX A+-0: " << amplitude << " " << sn_db << " " << sn_db+amplitude
                   << " P: " << 0.5*(demod_msk_->pll_plus().theta() + demod_msk_->pll_minus().theta())
                   << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
                   << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
@@ -202,9 +232,14 @@ public:
                   << std::endl;
         const time_duration
           dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-        sp->put_result(result::make(name_, sp->approx_ptime()+dt, amplitude, sn_db, phase_));
+        sp->put_result(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
+//         dump(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
       }
     }
+  }
+
+  virtual void dump(result::sptr) {
+    // to be overwritten in a derived class
   }
 
 protected:
@@ -215,6 +250,7 @@ private:
   const double      dwl_Hz_;
   const double      period_Sec_;
   const double      min_SN_db_;
+  const double      max_offset_ppb_rms_;
   demod::msk::sptr  demod_msk_;
   fir_filter        filter_;
   filter::iir_lowpass_1pole<double, double> filter_amp_pm_;

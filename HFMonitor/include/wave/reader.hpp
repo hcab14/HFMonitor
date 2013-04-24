@@ -80,6 +80,9 @@ namespace wave {
       virtual float           offset_ppb()          const { return 0; }
       virtual float           offset_ppb_rms()      const { return 0; }
 
+      virtual void put_result(processor::result_base::sptr rp) {}
+      virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
+
     private:
       service_wave_iq(ptime approx_ptime,
                       std::string stream_name,

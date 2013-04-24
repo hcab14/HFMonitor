@@ -41,10 +41,8 @@ namespace processor {
     virtual boost::uint16_t stream_number() const = 0;
     virtual std::string     stream_name() const = 0;
 
-    virtual void              put_result(result_base::sptr ) {}
-    virtual result_base::sptr get_result(std::string name) const {
-      return result_base::sptr();
-    }
+    virtual void              put_result(result_base::sptr ) = 0;
+    virtual result_base::sptr get_result(std::string ) const = 0;
   protected:
   private:
   } ;

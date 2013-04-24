@@ -107,6 +107,9 @@ protected:
     virtual float           offset_ppb()          const { return sp_->offset_ppb(); }
     virtual float           offset_ppb_rms()      const { return sp_->offset_ppb_rms(); }
 
+    virtual void put_result(processor::result_base::sptr rp) {}
+    virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
+
   protected:
   private:
     service_repack(service::sptr sp, ptime t)
