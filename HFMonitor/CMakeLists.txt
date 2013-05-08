@@ -7,6 +7,10 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 # Set name of our project.
 PROJECT(HFMonitor)
 
+SET(CPACK_GENERATOR "RPM")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Christoph Mayer") #required
+INCLUDE(CPack)
+
 EXEC_PROGRAM("echo `svnversion ${CMAKE_HOME_DIRECTORY}` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
 
 MESSAGE("VERSION=${SVN_VERSION_STRING}")
@@ -64,3 +68,21 @@ INCLUDE_DIRECTORIES(
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)
+
+#SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VLF Spectrum Monitoring")
+#SET(CPACK_PACKAGE_VENDOR "Christoph Mayer")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")
+#SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Copyright.txt")
+#SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+#SET(CPACK_PACKAGE_VERSION_MINOR "3")
+#SET(CPACK_PACKAGE_VERSION_PATCH "2")
+#SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+#SET(CPACK_STRIP_FILES "bin/client_FFTtoBC")
+#SET(CPACK_SOURCE_STRIP_FILES "")
+#SET(CPACK_PACKAGE_EXECUTABLES 
+#  "client_FFTtoBC" "Executable Description"
+#  "client_FFTtoFile" "Executable Description"
+#  "client_multi_downconvert" "Executable Description"
+#  "multi_client perseus_server" "Executable Description"
+#  "server_ls" "Executable Description"
+#  )

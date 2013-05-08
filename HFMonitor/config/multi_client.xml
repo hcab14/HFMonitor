@@ -11,15 +11,21 @@
     <Stream pattern="DC_022100_GQD">Writer2</Stream>
     <Stream pattern="DC_023400_DHO">Writer2</Stream>
 
-    <Stream pattern="DC_019600_GQD">DemodMSK4</Stream>
-    <Stream pattern="DC_020270_ICV">DemodMSK5</Stream> 
-
-    <Stream pattern="DC_022100_GQD">DemodMSK1</Stream>
-    <Stream pattern="DC_023400_DHO">DemodMSK2</Stream>
-    <Stream pattern="DC_024000_NAA">DemodMSK3</Stream>
-
-    <Stream pattern="DC_037500_NRK">DemodMSK6</Stream>
-
+    <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
+    <Stream pattern="DC_019600_GQD">DemodMSK_GQ2</Stream>
+    <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
+    <Stream pattern="DC_020270_ICV">DemodMSK_ICV</Stream>
+    <Stream pattern="DC_021750_HWU">DemodMSK_HWU</Stream>
+    <Stream pattern="DC_022100_GQD">DemodMSK_GQD</Stream>
+    <Stream pattern="DC_023400_DHO">DemodMSK_DHO</Stream>
+    <Stream pattern="DC_024000_NAA">DemodMSK_NAA</Stream>
+    <Stream pattern="DC_026000_XXX">DemodMSK_XXX</Stream>
+    <Stream pattern="DC_026700_TBB">DemodMSK_TBB</Stream>
+    <Stream pattern="DC_037500_NRK">DemodMSK_NRK</Stream>
+    <Stream pattern="DC_045900_NSY">DemodMSK_NSY</Stream>
+    <Stream pattern="DC_057400_GXH">DemodMSK_GXH</Stream>
+    <Stream pattern="DC_063850_FTA">DemodMSK_FTA</Stream>
+    <Stream pattern="DC_081000_GYN">DemodMSK_GYN</Stream>
   </Streams>
   <Clients>
     <Writer2 type="WriterIQ"
@@ -27,29 +33,65 @@
              filePeriod="5m"
              bitsPerSample="24">
     </Writer2>
-    <DemodMSK1 type="DemodMSK"
-               name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
+    <DemodMSK_JXN type="DemodMSK"
+                  name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
+                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_JXN>
+    <DemodMSK_GQ2 type="DemodMSK"
+                  name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_GQ2>
+    <DemodMSK_NWC type="DemodMSK"
+                  name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NWC>
+    <DemodMSK_ICV type="DemodMSK"
+               name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="200.0"
                dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK1>
-    <DemodMSK2 type="DemodMSK"
-               name="MSK_DHO" fc_Hz="23.400000065e3" fm_Hz="200.0"
+    </DemodMSK_ICV>
+    <DemodMSK_HWU type="DemodMSK"
+               name="MSK_HWU" fc_Hz="21.75e3" fm_Hz="200.0"
                dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK2>
-    <DemodMSK3 type="DemodMSK"
-               name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK3>
-    <DemodMSK4 type="DemodMSK"
-               name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK4>
-    <DemodMSK5 type="DemodMSK"
-               name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="100.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK5>
-    <DemodMSK6 type="DemodMSK"
-               name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK6>
+    </DemodMSK_HWU>
+    <DemodMSK_GQD type="DemodMSK"
+                  name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_GQD>
+    <DemodMSK_DHO type="DemodMSK"
+                  name="MSK_DHO" fc_Hz="23.400000065e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_DHO>
+    <DemodMSK_NAA type="DemodMSK"
+                  name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NAA>
+    <DemodMSK_XXX type="DemodMSK"
+                  name="MSK_XXX" fc_Hz="25.999999294e3" fm_Hz="100.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_XXX>
+    <DemodMSK_TBB type="DemodMSK"
+                  name="MSK_TBB" fc_Hz="26.699993160" fm_Hz="100.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_TBB>
+    <DemodMSK_NRK type="DemodMSK"
+                  name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NRK>
+    <DemodMSK_NSY type="DemodMSK"
+                  name="MSK_NSY" fc_Hz="45.90e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NSY>
+    <DemodMSK_GXH type="DemodMSK"
+                  name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="100.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_GXH>
+    <DemodMSK_FTA type="DemodMSK"
+                  name="MSK_FTA" fc_Hz="63.85e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_FTA>
+    <DemodMSK_GYN type="DemodMSK"
+                  name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_GYN>
   </Clients>
 </MultiClient>

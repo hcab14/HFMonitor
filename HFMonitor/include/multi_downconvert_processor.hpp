@@ -302,6 +302,10 @@ private:
       if (rp->f0_Hz() == 0.0) continue; // being pedantic
 
       const double rms(1e9*rp->f_Hz().rms_value()/rp->f0_Hz());
+      if (rms > 20.) { // don't use obervations with more than 20 ppb error
+        LOG_INFO(str(boost::format("calibration_offset_ppb: obervation '%s' not used: rms=%.2f ppb > 20.00 ppb") % rp % rms));
+        continue;
+      }
       // w_i = 1/sigma_i^2
       const double weight((rms != 0. ? 1./(rms*rms) : 0.));
       sum_w  += weight;
