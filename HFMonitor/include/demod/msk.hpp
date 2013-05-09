@@ -98,7 +98,7 @@ namespace demod {
                              double xi) {
       loop_filter l(xi, dwl_Hz, fs_Hz);
       integrator  i(8*M_PI);
-      return pll_type(fc_Hz, fs_Hz, l, i);
+      return pll_type(fc_Hz, fs_Hz, dwl_Hz, l, i);
     }
 
     msk(double fs_Hz,
@@ -116,7 +116,9 @@ namespace demod {
       , gf_minus_ ((2*fc_Hz-fm_Hz)/fs_Hz)
       , last_phase_(0)
       , delta_phase_(0)
-      , sample_counter_(0) {}
+      , sample_counter_(0) {
+      std::cout << "msk: " << 2*fc_Hz+fm_Hz << " " << 2*fc_Hz << " "<< 2*fc_Hz-fm_Hz << std::endl;
+    }
 
     const double fs_Hz_;       //
     const size_t period_;      //

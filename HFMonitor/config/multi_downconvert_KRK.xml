@@ -25,14 +25,14 @@
                       f0_Hz="60.0e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
-                      maxHistorySize="200">
+                      maxHistorySize="300">
     </TrackingGoertzel>
     <TrackingGoertzel name="TGF_DCF77"
                       input="DC_077500_DCF"
                       f0_Hz="77.5e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
-                      maxHistorySize="200">
+                      maxHistorySize="300">
     </TrackingGoertzel>
   </Processors>
   <Filters>

@@ -28,8 +28,11 @@
 
 #include "demod/msk.hpp"
 #include "filter/fir.hpp"
+#include "FFT.hpp"
+#include "FFTProcessor/Filter.hpp"
 #include "logging.hpp"
 #include "processor.hpp"
+#include "Spectrum.hpp"
 
 class fir_filter {
 public:
@@ -83,6 +86,7 @@ private:
 class demod_msk_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<demod_msk_processor> sptr;
+  typedef std::complex<double> complex_type;
   
   class result : public processor::result_base {
   public:
@@ -145,6 +149,7 @@ public:
 
   demod_msk_processor(const boost::property_tree::ptree& config)
     : base_iq(config)
+    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , name_(config.get<std::string>("<xmlattr>.name"))
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
     , fm_Hz_(config.get<double>("<xmlattr>.fm_Hz"))
@@ -153,17 +158,24 @@ public:
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
     , max_offset_ppb_rms_(config.get<double>("<xmlattr>.max_offset_ppb_rms"))
     , filter_(201, 0.1)
-    , filter_amp_pm_    (config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
-    , filter_amp_center_(config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
-    , phase_(0) {}
+    , filter_amp_pm_    (  config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
+    , filter_amp_center_(5*config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
+    , phase_(0) {
+    filter_plus_.add (Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
+    filter_minus_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
+  }
   
   ~demod_msk_processor() {}
 
   void process_iq(service::sptr sp,
                   const_iterator i0,
                   const_iterator i1) {
+    const size_t length(std::distance(i0, i1));
+    if (length != fftw_.size())
+      fftw_.resize(length);
+
     std::cout << "demod_msk_processor::process_iq " << sp->stream_name()
-              << " sample_rate_Hz="      << sp->sample_rate_Hz()
+              << " sample_rate_Hz=" << sp->sample_rate_Hz()
               << " center_frequency_Hz=" << sp->center_frequency_Hz()
               << " offset_ppb= " << sp->offset_ppb()
               << " offset_ppb_rms= " << sp->offset_ppb_rms()
@@ -182,8 +194,9 @@ public:
     // set up a new filter
     bool is_first_call(false);
     if (not demod_msk_) {
+      std::cout << "msk: " << name_ << std::endl;
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
-                                    fc_Hz_ - sp->center_frequency_Hz() + offset_Hz,
+                                    -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
                                     0.5*fm_Hz_,
                                     dwl_Hz_, period_Sec_);
 //       filter_.shift((fc_Hz_ - sp->center_frequency_Hz())/sp->sample_rate_Hz());
@@ -193,11 +206,15 @@ public:
     }
 
     demod_msk_->update_ppb(sp->offset_ppb(),
-                           fc_Hz_ - sp->center_frequency_Hz() + offset_Hz,
+                           -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
                            0.5*fm_Hz_);
 
-    for (const_iterator i(i0); i!=i1; ++i) {
-      demod_msk_->process(filter_.process(*i));
+    std::vector<complex_type> samples2(length, complex_type(0));
+    std::vector<complex_type>::iterator j(samples2.begin());
+    for (const_iterator i(i0); i!=i1; ++i, ++j) {
+      const complex_type sample(filter_.process(*i));
+      *j = (sample*sample);
+      demod_msk_->process(sample);
       if (not is_first_call && demod_msk_->updated()) {
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
         const double amplitude_center(10*std::log10(std::abs(demod_msk_->gf_center().x())));
@@ -236,6 +253,74 @@ public:
 //         dump(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
       }
     }
+    fftw_.transformVector(samples2, FFT::WindowFunction::Blackman<double>());
+    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz_ - sp->center_frequency_Hz()));
+
+    double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
+
+    std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
+              << " minus " << (fc_Hz_ - sp->center_frequency_Hz()) << std::endl;
+    {
+      const frequency_vector<double> ps(-120., -40., s, std::abs<double>);
+      if (filter_minus_.x().empty())
+        filter_minus_.init(sp->approx_ptime(), ps);
+      else
+        filter_minus_.update(sp->approx_ptime(), ps);
+      
+      const frequency_vector<double>& psf(filter_minus_.x());
+      frequency_vector<double>::const_iterator i_max;
+      double max(-1);
+      double sum(0);
+      for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
+        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        sum += i->second;
+        if (i->second > max) {
+          max = i->second;
+          i_max = i;
+        }
+      }
+      double sum_w(0), sum_wx(0);
+      for (frequency_vector<double>::const_iterator i(i_max-2); i!=(i_max+3) && i!=psf.end(); ++i) {
+        sum_w += i->second;
+        sum_wx += i->first * i->second;
+      }
+      f_minus  = sum_wx/sum_w;
+      sn_minus = i_max->second/sum*psf.size();
+    }
+    {
+      const frequency_vector<double> ps(40., 120., s, std::abs<double>);
+      if (filter_plus_.x().empty())
+        filter_plus_.init(sp->approx_ptime(), ps);
+      else
+        filter_plus_.update(sp->approx_ptime(), ps);
+
+      const frequency_vector<double>& psf(filter_plus_.x());
+      frequency_vector<double>::const_iterator i_max;
+      double max(-1);
+      double sum(0);
+      for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
+        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        sum += i->second;
+        if (i->second > max) {
+          max = i->second;
+          i_max = i;
+        }
+      }
+      double sum_w(0), sum_wx(0);
+      for (frequency_vector<double>::const_iterator i(i_max-2); i!=(i_max+3) && i!=psf.end(); ++i) {
+        sum_w += i->second;
+        sum_wx += i->first * i->second;
+      }
+      f_plus  = sum_wx/sum_w;
+      sn_plus = i_max->second/sum*psf.size();
+    }
+    std::cout << "ps: " << name_
+              << boost::format(" f_minus,plus: %8.3f %8.3f sn_minus,plus: %5.2f %5.2f delta_f: %8.3f baud: %8.3f")
+      % f_minus % f_plus
+      % sn_minus % sn_plus
+      % (0.5*(f_minus+f_plus))
+      % (f_plus-f_minus)
+              << std::endl;
   }
 
   virtual void dump(result::sptr) {
@@ -244,6 +329,9 @@ public:
 
 protected:
 private:
+  FFT::FFTWTransform<double> fftw_;
+  Filter::Cascaded<frequency_vector<double> > filter_plus_;
+  Filter::Cascaded<frequency_vector<double> > filter_minus_;
   const std::string name_;
   const double      fc_Hz_;     // center frequency
   const double      fm_Hz_;     // modulation frequency
