@@ -35,12 +35,15 @@ namespace filter {
     
     pll(double fc,
         double fs,
+        double dwl, // band width
         const LOOP_FILTER& loop_filter,
         const INTEGRATOR& integrator)
       : loop_filter_(loop_filter)
       , integrator_(integrator)
+      , f1_(0)
       , fc_(fc)
       , ts_(1./fs)
+      , dwl_(dwl)
       , ppb_(0) {
       reset();
     }
@@ -51,16 +54,19 @@ namespace filter {
       loop_filter_.update_ppb(ppb);
     }
 
+    // filter reset
     void reset() {
       f1_= 2*M_PI*fc();
       loop_filter_.reset();
       integrator_.reset();
     }
     
+    // filter update
     double process(complex_type s) {
-      // update
       const complex_type i_phase(float_type(0), integrator_.process(f1_*ts()));
       f1_ = 2*M_PI*fc() + loop_filter_.process(std::arg(s * std::exp(-i_phase)));
+      if (f1_ > 2*M_PI*f1_upper_limit() || f1_ < 2*M_PI*f1_lower_limit())
+        reset();
       return theta();
     }
     
@@ -71,15 +77,20 @@ namespace filter {
     float_type uf() const { return loop_filter_.get(); }
     float_type f1() const { return f1_; }
     
+  protected:
     const LOOP_FILTER& loop_filter() const { return loop_filter_; }
     const INTEGRATOR& integrator() const { return integrator_; }
-  protected:
+
+    double f1_upper_limit() const { return fc()+10*dwl_; }
+    double f1_lower_limit() const { return fc()-10*dwl_; }
+
   private:
     LOOP_FILTER loop_filter_;
     INTEGRATOR  integrator_;
     double f1_;               // current nco frequency
     double fc_;
     double ts_;
+    double dwl_;
     double ppb_;
   } ;
 } // namespace filter

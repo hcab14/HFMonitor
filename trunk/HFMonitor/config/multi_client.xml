@@ -47,11 +47,11 @@
     </DemodMSK_NWC>
     <DemodMSK_ICV type="DemodMSK"
                name="MSK_ICV" fc_Hz="20.27e3" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_ICV>
     <DemodMSK_HWU type="DemodMSK"
                name="MSK_HWU" fc_Hz="21.75e3" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_HWU>
     <DemodMSK_GQD type="DemodMSK"
                   name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
@@ -66,11 +66,11 @@
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_NAA>
     <DemodMSK_XXX type="DemodMSK"
-                  name="MSK_XXX" fc_Hz="25.999999294e3" fm_Hz="100.0"
+                  name="MSK_XXX" fc_Hz="25.999999188e3" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_XXX>
     <DemodMSK_TBB type="DemodMSK"
-                  name="MSK_TBB" fc_Hz="26.699993160" fm_Hz="100.0"
+                  name="MSK_TBB" fc_Hz="26.699992463e3" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_TBB>
     <DemodMSK_NRK type="DemodMSK"
@@ -87,7 +87,7 @@
     </DemodMSK_GXH>
     <DemodMSK_FTA type="DemodMSK"
                   name="MSK_FTA" fc_Hz="63.85e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_FTA>
     <DemodMSK_GYN type="DemodMSK"
                   name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"
