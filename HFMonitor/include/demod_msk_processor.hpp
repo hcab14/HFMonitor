@@ -157,7 +157,7 @@ public:
     , period_Sec_(config.get<double>("<xmlattr>.period_Sec"))
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
     , max_offset_ppb_rms_(config.get<double>("<xmlattr>.max_offset_ppb_rms"))
-    , filter_(201, 0.1)
+    , filter_(401, 0.05*fm_Hz_/200.)
     , filter_amp_pm_    (  config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , filter_amp_center_(5*config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , phase_(0) {
