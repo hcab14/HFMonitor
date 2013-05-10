@@ -261,7 +261,7 @@ public:
     std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
               << " minus " << (fc_Hz_ - sp->center_frequency_Hz()) << std::endl;
     {
-      const frequency_vector<double> ps(-120., -40., s, std::abs<double>);
+      const frequency_vector<double> ps(-120., -45., s, std::abs<double>);
       if (filter_minus_.x().empty())
         filter_minus_.init(sp->approx_ptime(), ps);
       else
@@ -288,7 +288,7 @@ public:
       sn_minus = i_max->second/sum*psf.size();
     }
     {
-      const frequency_vector<double> ps(40., 120., s, std::abs<double>);
+      const frequency_vector<double> ps(45., 120., s, std::abs<double>);
       if (filter_plus_.x().empty())
         filter_plus_.init(sp->approx_ptime(), ps);
       else
