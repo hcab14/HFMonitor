@@ -66,11 +66,11 @@
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_NAA>
     <DemodMSK_XXX type="DemodMSK"
-                  name="MSK_XXX" fc_Hz="25.999999188e3" fm_Hz="100.0"
+                  name="MSK_XXX" fc_Hz="26.00e3" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_XXX>
     <DemodMSK_TBB type="DemodMSK"
-                  name="MSK_TBB" fc_Hz="26.699992463e3" fm_Hz="100.0"
+                  name="MSK_TBB" fc_Hz="26.699999222e3" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_TBB>
     <DemodMSK_NRK type="DemodMSK"
@@ -82,8 +82,8 @@
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_NSY>
     <DemodMSK_GXH type="DemodMSK"
-                  name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="100.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+                  name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="-10" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_GXH>
     <DemodMSK_FTA type="DemodMSK"
                   name="MSK_FTA" fc_Hz="63.85e3" fm_Hz="200.0"
