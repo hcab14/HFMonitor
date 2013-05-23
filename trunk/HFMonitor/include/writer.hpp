@@ -44,16 +44,18 @@ public:
   processor::result_base::sptr dump_result(processor::result_base::sptr rp) {
     if (!rp)
       return rp;
-    if (rp->format() != "TXT_0000")
+    if (rp->format() != "TXT_0000") {
+      LOG_ERROR(str(boost::format("writer_txt::dump_result: unknown format '%s'") % rp->format()));
       return rp;
+    }
 
     const boost::filesystem::path
       filepath(gen_file_path(base_path_, rp->name(), rp->approx_ptime()));
 
-    if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
-      LOG_ERROR(str(boost::format("file '%s' exists and will be overwritten") % filepath));
-      boost::filesystem::remove(filepath);
-    }
+//     if (boost::filesystem::exists(filepath) and (pos_ == std::streampos(0))) {
+//       LOG_ERROR(str(boost::format("file '%s' exists and will be overwritten") % filepath));
+//       boost::filesystem::remove(filepath);
+//     }
     if (not boost::filesystem::exists(filepath)) {
       LOG_INFO(str(boost::format("creating new file '%s'") % filepath));
       std::ofstream ofs(filepath.c_str(), std::ios::binary);
@@ -62,7 +64,7 @@ public:
     } else {
       std::ifstream ifs(filepath.c_str(), std::ios::binary);
       ifs.seekg(0, ifs.end);
-      pos_ = ifs.tellg();      
+      pos_ = ifs.tellg();
     }
     // write data
     std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);

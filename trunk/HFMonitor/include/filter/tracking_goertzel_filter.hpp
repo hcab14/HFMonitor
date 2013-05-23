@@ -73,6 +73,7 @@ namespace detail {
     typedef boost::shared_ptr<gf_with_phase_hist> sptr;
     typedef std::complex<double> complex_type;
     typedef goertzel<complex_type> goertzel_type;
+
     struct phase_data {
       phase_data(size_t dt=0,
                  double df=0,
@@ -85,9 +86,9 @@ namespace detail {
       double df() const { return df_; }
       double phase() const { return phase_; }
 
-      size_t dt_;
-      double df_;
-      double phase_;
+      size_t dt_;    // time interval
+      double df_;    // frequency offset
+      double phase_; // phase [rad]
     } ;
     typedef std::deque<phase_data> phase_vector_t;
 
@@ -102,10 +103,10 @@ namespace detail {
     // idx_exclude < 0: no value is excluded
     detail::value_and_error compute_f_est(const std::vector<double>& dfs, int idx_exclude) const {
       // compute mean and rms
-      double  sum_1(0),  sum_x(0),  sum_xx(0);
-      int idx(0);
-      BOOST_FOREACH(const double& df, dfs) {
-        if (idx++ == idx_exclude) continue;
+      double  sum_1(0), sum_x(0), sum_xx(0);
+      for (size_t idx(0); idx<dfs.size(); ++idx) {
+        if (int(idx) == idx_exclude) continue;
+        const double df(dfs[idx]);
         sum_1  += 1;
         sum_x  += df;
         sum_xx += df*df;
@@ -119,7 +120,7 @@ namespace detail {
     //  - detects single outliers
     detail::value_and_error compute_f_est(const std::vector<double>& dfs) const {
       std::vector<detail::value_and_error> rms(dfs.size());
-      size_t   min_idx(-1);
+      int min_idx(-1);
       // outlier detection only with >=5 measurements:
       if (dfs.size() > 4) {
         rms[0] = compute_f_est(dfs, 0);
@@ -134,20 +135,25 @@ namespace detail {
             min_idx = i;
           }
         }
+        std::cout << "RRR: min_idx= " << min_idx << " min_rms= " << min_val << std::endl;
+
         // test if deviation is significant: ...
         double sum_1 (0);
         double sum_x (0);
         double sum_xx(0);
         for (size_t i(0); i<dfs.size(); ++i) {
-          if (i == min_idx) continue;
+          if (int(i) == min_idx) continue;
+          const double x(rms[i].rms_value());
           sum_1  += 1;
-          sum_x  += rms[i].rms_value();
-          sum_xx += rms[i].rms_value()*rms[i].rms_value();
+          sum_x  += x;
+          sum_xx += x*x;
         }
         const double mean_of_rms(sum_x/sum_1);
-        const double rms_of_rms(sqrt(sum_xx/sum_1-mean_of_rms*mean_of_rms));
-        if (std::abs(rms[min_idx].rms_value()-mean_of_rms) < 2*rms_of_rms)
+        const double rms_of_rms(sqrt(sum_xx/sum_1 - mean_of_rms*mean_of_rms));
+        if (std::abs(min_val - mean_of_rms) < 3*rms_of_rms)
           min_idx = -1;
+        std::cout << "RRR: index= " << min_idx << " mean/rms(RMS)= " 
+                  << mean_of_rms << " " << rms_of_rms << std::endl;
       }
       return compute_f_est(dfs, min_idx);
     }
@@ -303,6 +309,11 @@ public:
     return stab[s];
   }
 
+  static size_t state_delay(state::state_t s) {
+    static size_t sdtab[] = { 0, 0, 2, 2, 1 }; // by these amounts state changes are delayed
+    return sdtab[s];
+  }
+
   typedef enum {
     GF_LEFT   = 0,
     GF_CENTER = 1,
@@ -379,10 +390,11 @@ public:
       last_state_ = state::PEAK;
     } else { 
       if (ampl[GF_LEFT]   > ampl[GF_CENTER] &&
-          ampl[GF_CENTER] > ampl[GF_RIGHT]) { // 3 2 1      
+          ampl[GF_CENTER] > ampl[GF_RIGHT]  &&
+          ampl[GF_LEFT] / ampl[GF_CENTER] > 1.1) { // 3 2 1
         LOG_INFO("Move left");
         std::cout << "*** Move left" << std::endl;
-        if (period_ > min_period_ && last_state_ == state::MOVE_LEFT) {
+        if (period_ > min_period_ && last_state() == state::MOVE_LEFT) {
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() - 1./period_);
           std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
@@ -396,10 +408,11 @@ public:
         }
         last_state_ = state::MOVE_LEFT;
       } else if (ampl[GF_LEFT]   < ampl[GF_CENTER] &&
-                 ampl[GF_CENTER] < ampl[GF_RIGHT]) { // 1 2 3
+                 ampl[GF_CENTER] < ampl[GF_RIGHT]  &&
+                 ampl[GF_RIGHT]/ampl[GF_CENTER] > 1.1) { // 1 2 3
         LOG_INFO("Move right");
         std::cout << "*** Move right" << std::endl;
-        if (period_ > min_period_ && last_state_ == state::MOVE_RIGHT) {
+        if (period_ > min_period_ && last_state() == state::MOVE_RIGHT) {
           std::cout << "\tA" << std::endl;
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() + 1./period_);
@@ -417,7 +430,7 @@ public:
       } else {
         LOG_INFO("Rest");
         std::cout << "*** Rest" << std::endl;
-        if (period_ > min_period_ && last_state_ == state::REST)
+        if (period_ > min_period_ && last_state() == state::REST)
           period_ /= 2;
         const double kN_center(gfs_[GF_CENTER]->kN());
         gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
@@ -463,6 +476,7 @@ private:
   detail::gf_with_phase_hist::sptr gfs_[NUM_GF];
   bool            filters_updated_;
   state::state_t  last_state_;
+  size_t          state_counter_;  // used to delay switching the state
   detail::value_and_error estimated_f_;
   detail::value_and_error estimated_df_;
   double          delta_time_sec_; // time offset of frequency measurement [sec]
