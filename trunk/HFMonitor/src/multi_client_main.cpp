@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     const boost::program_options::variables_map vm(process_options("config/multi_client.xml", argc, argv));
     typedef boost::property_tree::ptree ptree;
     ptree config;
-    read_xml(vm["config"].as<std::string>(), config);
+    read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
     const ptree& config_multi_client(config.get_child("MultiClient"));
     const ptree& config_clients(config.get_child("MultiClient.Clients"));
 

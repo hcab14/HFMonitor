@@ -4,11 +4,14 @@
   <server host="nz23-18.ifj.edu.pl"
 	  port="8080">
   </server>
+  <FileSink filePath="DataKRK"
+            filePeriod="1d">
+  </FileSink>
   <Streams>
     <Stream pattern="L2.*">Writer</Stream>
-<!--
-    <Stream pattern="TGF.*">Writer</Stream>
- -->
+    <!--
+       <Stream pattern="TGF.*">Writer</Stream>
+    -->
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
