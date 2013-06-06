@@ -1,0 +1,54 @@
+<!---*- xml -*--->
+<!-- $Id$ -->
+<?xml version="1.0" encoding="utf-8"?>
+<MultiDownConverter l="250000"
+                    m="70001">
+  <Broadcaster>
+    <Data maxQueueSize_MB="2"
+          maxQueueDelay_Minutes="5"
+          port="19003">
+    </Data>
+    <Ctrl port="19004"></Ctrl>
+  </Broadcaster>
+  <Repack bufferLength_sec="1"
+          overlap_percent="0">
+  </Repack>
+  <server host="129.247.238.73"
+	  port="18001">
+  </server>
+  <Calibration algorithm="WeightedMean">
+    <Key>TGF_DCF77</Key>
+  </Calibration>
+  <Processors>
+    <TrackingGoertzel name="TGF_MSF"
+                      input="DC_060000_MSF"
+                      f0_Hz="60.0e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="100">
+    </TrackingGoertzel>
+    <TrackingGoertzel name="TGF_DCF77"
+                      input="DC_077500_DCF"
+                      f0_Hz="77.5e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="100">
+    </TrackingGoertzel>
+  </Processors>
+  <Filters>
+    <FIR name="DC_019600_GQD" type="lowpass" cutoff="0.005" centerFrequency_Hz="19.60e3" decim="100"></FIR>
+    <FIR name="DC_020270_ICV" type="lowpass" cutoff="0.005" centerFrequency_Hz="20.27e3" decim="100"></FIR>
+    <FIR name="DC_022100_GQD" type="lowpass" cutoff="0.005" centerFrequency_Hz="22.10e3" decim="100"></FIR>
+    <FIR name="DC_023400_DHO" type="lowpass" cutoff="0.005" centerFrequency_Hz="23.40e3" decim="100"></FIR>
+    <FIR name="DC_024000_NAA" type="lowpass" cutoff="0.005" centerFrequency_Hz="24.00e3" decim="100"></FIR>
+    <FIR name="DC_037500_NRK" type="lowpass" cutoff="0.005" centerFrequency_Hz="37.50e3" decim="100"></FIR>
+<!--    
+    <FIR name="DC_020900_GQD" type="lowpass" cutoff="0.005" centerFrequency_Hz="20.90e3" decim="100"></FIR>
+    <FIR name="DC_021750_HWU" type="lowpass" cutoff="0.005" centerFrequency_Hz="21.75e3" decim="100"></FIR>
+    <FIR name="DC_044200_XXX" type="lowpass" cutoff="0.005" centerFrequency_Hz="44.20e3" decim="100"></FIR>
+    <FIR name="DC_045900_NSY" type="lowpass" cutoff="0.005" centerFrequency_Hz="45.90e3" decim="100"></FIR> 
+-->
+    <FIR name="DC_060000_MSF" type="lowpass" cutoff="0.005" centerFrequency_Hz="60.00e3" decim="100"></FIR>
+    <FIR name="DC_077500_DCF" type="lowpass" cutoff="0.005" centerFrequency_Hz="77.50e3" decim="100"></FIR>    
+  </Filters>
+</MultiDownConverter>
