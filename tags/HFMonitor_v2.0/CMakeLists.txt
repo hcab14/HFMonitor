@@ -36,11 +36,12 @@ FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
-#SET(BOOST_ROOT /opt/local)
+SET(BOOST_ROOT /opt/local)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)
 LIST(APPEND _libs ${Boost_LIBRARIES})
+LIST(APPEND _libs rt)
 
 # Setup libperseus-sdr
 #FIND_PACKAGE(PerseusSDR REQUIRED)
