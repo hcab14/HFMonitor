@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 
     wave::reader_iq<tracking_goertzel_processor> r(config.get_child("TrackingGoertzel"));
 
-    for (size_t i((argc == 1) ? 1 : 3); i<argc; ++i) {
+    for (int i((argc == 1) ? 1 : 3); i<argc; ++i) {
       std::cout << "processing " << argv[i] << std::endl;
       r.process_file(argv[i]);
     }
