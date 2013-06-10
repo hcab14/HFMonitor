@@ -46,8 +46,23 @@ function stop {
 }
 
 function where_am_I {
-    [ X`hostname` == X"nz23-18.ifj.edu.pl" ] && echo KRK || echo NTZ
+    local username=`whoami`
+    case $username in
+	gifds-hv)
+	    echo HTV
+	    ;;
+	gifds-nz)
+	    echo NTZ
+	    ;;
+	chm)
+	    echo KRK
+	    ;;
+	*)
+	    echo XXX
+	    ;;
+    esac
 }
+
 function config_data {
     find run/`where_am_I` -name "*.in" -print | sort
 }
@@ -58,6 +73,11 @@ function start_all {
     for i in `config_data`; do
 	source $i
 	[ `check_running $NAME` == STOPPED ] && { start $NAME $CMD; sleep 5s; }
+	if [ `check_running $NAME` == STOPPED ]; then
+	    echo "## start $NAME failed: check for error messages in ./Log and in log_$NAME.txt:"
+	    cat log_$NAME.txt
+	    break;
+	fi	
     done
 }
 

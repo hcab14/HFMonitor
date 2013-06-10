@@ -52,13 +52,13 @@ public:
 
   double shift(double f0) { 
     long int shift(lround(f0*n_));
-    std::cout << "shift= " << shift << std::endl;
+    // std::cout << "shift= " << shift << std::endl;
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
     f0 = double(shift)/double(n_);
     for (size_t i(0); i<n_; ++i) {
       phases_[i] = std::exp(complex_type(0., 2*M_PI*f0*i));
-      std::cout << i << " " << phases_[i] << " " << b_[i] << std::endl;
+      // std::cout << i << " " << phases_[i] << " " << b_[i] << std::endl;
     }
     return f0;
   }
@@ -174,15 +174,6 @@ public:
     if (length != fftw_.size())
       fftw_.resize(length);
 
-    std::cout << "demod_msk_processor::process_iq " << sp->stream_name()
-              << " sample_rate_Hz=" << sp->sample_rate_Hz()
-              << " center_frequency_Hz=" << sp->center_frequency_Hz()
-              << " offset_ppb= " << sp->offset_ppb()
-              << " offset_ppb_rms= " << sp->offset_ppb_rms()
-              << " fc_Hz=" << fc_Hz_
-              << " fm_Hz=" << fm_Hz_
-              << " max_offset_ppb_rms=" << max_offset_ppb_rms_
-              << std::endl;
     const double offset_ppb(sp->offset_ppb());
     const double offset_Hz(fc_Hz_*offset_ppb*1e-9);
 
@@ -194,7 +185,6 @@ public:
     // set up a new filter
     bool is_first_call(false);
     if (not demod_msk_) {
-      std::cout << "msk: " << name_ << std::endl;
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
                                     -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
                                     0.5*fm_Hz_,
@@ -240,13 +230,13 @@ public:
         phase_ += delta_phase_rad;
         while (phase_ >= M_PI) phase_ -= 2*M_PI;
         while (phase_ < -M_PI) phase_ += 2*M_PI;
-        std::cout << "XXX A+-0: " << amplitude << " " << sn_db << " " << sn_db+amplitude
-                  << " P: " << 0.5*(demod_msk_->pll_plus().theta() + demod_msk_->pll_minus().theta())
-                  << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
-                  << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
-                  << " " << phase_
-                  << " " << fc_Hz_ - sp->center_frequency_Hz()
-                  << std::endl;
+        // std::cout << "XXX A+-0: " << amplitude << " " << sn_db << " " << sn_db+amplitude
+        //           << " P: " << 0.5*(demod_msk_->pll_plus().theta() + demod_msk_->pll_minus().theta())
+        //           << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
+        //           << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
+        //           << " " << phase_
+        //           << " " << fc_Hz_ - sp->center_frequency_Hz()
+        //           << std::endl;
         const time_duration
           dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
         sp->put_result(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
@@ -258,8 +248,8 @@ public:
 
     double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
 
-    std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
-              << " minus " << (fc_Hz_ - sp->center_frequency_Hz()) << std::endl;
+    // std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
+    //           << " minus " << (fc_Hz_ - sp->center_frequency_Hz()) << std::endl;
     {
       const frequency_vector<double> ps(-120., -45., s, std::abs<double>);
       if (filter_minus_.x().empty())
@@ -272,7 +262,7 @@ public:
       double max(-1);
       double sum(0);
       for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
-        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
           max = i->second;
@@ -299,7 +289,7 @@ public:
       double max(-1);
       double sum(0);
       for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
-        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
           max = i->second;
@@ -314,13 +304,13 @@ public:
       f_plus  = sum_wx/sum_w;
       sn_plus = i_max->second/sum*psf.size();
     }
-    std::cout << "ps: " << name_
-              << boost::format(" f_minus,plus: %8.3f %8.3f sn_minus,plus: %5.2f %5.2f delta_f: %8.3f baud: %8.3f")
-      % f_minus % f_plus
-      % sn_minus % sn_plus
-      % (0.5*(f_minus+f_plus))
-      % (f_plus-f_minus)
-              << std::endl;
+    // std::cout << "ps: " << name_
+    //           << boost::format(" f_minus,plus: %8.3f %8.3f sn_minus,plus: %5.2f %5.2f delta_f: %8.3f baud: %8.3f")
+    //   % f_minus % f_plus
+    //   % sn_minus % sn_plus
+    //   % (0.5*(f_minus+f_plus))
+    //   % (f_plus-f_minus)
+    //           << std::endl;
   }
 
   virtual void dump(result::sptr) {

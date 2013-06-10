@@ -36,7 +36,8 @@ FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
-SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/)
+SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
+SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)

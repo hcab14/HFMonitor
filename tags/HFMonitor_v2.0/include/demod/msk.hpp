@@ -117,7 +117,7 @@ namespace demod {
       , last_phase_(0)
       , delta_phase_(0)
       , sample_counter_(0) {
-      std::cout << "msk: " << 2*fc_Hz+fm_Hz << " " << 2*fc_Hz << " "<< 2*fc_Hz-fm_Hz << std::endl;
+      // std::cout << "msk: " << 2*fc_Hz+fm_Hz << " " << 2*fc_Hz << " "<< 2*fc_Hz-fm_Hz << std::endl;
     }
 
     const double fs_Hz_;       //
