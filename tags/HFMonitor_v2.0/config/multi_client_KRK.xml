@@ -35,7 +35,7 @@
   </Streams>
   <Clients>
     <WriterText type="WriterTXT"
-                filePath="DataTest"
+                filePath="DataPhaseKRK"
                 filePeriod="1d">
     </WriterText>
     <WriterIQ type="WriterIQ"
