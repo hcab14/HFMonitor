@@ -76,8 +76,8 @@ public:
         const size_t bytes_per_sample(header_iq.bytes_per_sample());
         assert((std::distance(begin, end) % 2*bytes_per_sample) == 0);
         std::istringstream iss_iq;
-        std::cout << "is_wav bytes_per_sample= " << bytes_per_sample 
-                  << " n= " << std::distance(begin, end) << std::endl;
+        // std::cout << "is_wav bytes_per_sample= " << bytes_per_sample 
+        //           << " n= " << std::distance(begin, end) << std::endl;
         for (const_iterator i(begin); i!=end;) {
           const std::string str_iq(i, i+2*bytes_per_sample); i+=2*bytes_per_sample;
           iss_iq.str(str_iq);

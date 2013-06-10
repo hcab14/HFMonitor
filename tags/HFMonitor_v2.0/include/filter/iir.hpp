@@ -210,7 +210,6 @@ namespace filter {
     void init(double tc,   // time constant
               double fs) { // sampling rate
       alpha_ = std::max(COEFF(0), std::min(COEFF(1), COEFF(1./(tc*fs))));
-      std::cerr << "alpha= " << alpha_ << std::endl;
     }
     void reset(STATE s=0) { s_ = s; }
     STATE process(STATE s) { 
