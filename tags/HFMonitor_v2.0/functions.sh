@@ -82,7 +82,7 @@ function start_all {
 }
 
 function stop_all {
-    for i in `config_data | tac`; do
+    for i in `config_data`; do
 	source $i
 	[ ! `check_running $NAME` == STOPPED ] && { stop $NAME; sleep 5s; }
     done
