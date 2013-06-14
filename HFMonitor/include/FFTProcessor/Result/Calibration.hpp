@@ -49,14 +49,21 @@ namespace Result {
       , offsetMax_(offsetMax)
       , ppmMax_(ppmMax) {
       using namespace boost::numeric::ublas;
-      Matrix a(peaks.size(), n);
-      Vector y(peaks.size());
+      // add pseudo-observation (0,0) when single measurement
+      const bool single_measurement(peaks.size() == 1);
+      size_t n_meas(peaks.size() + single_measurement);
+      Matrix a(n_meas, n);
+      Vector y(n_meas);
       for (size_t u(0); u<peaks.size(); ++u) {
         y(u)   = peaks[u]->fMeasured();
         double t(1.0);
         for (size_t v(0); v<n; ++v) {
           a(u,v) = t; t *= peaks[u]->fReference();
         }
+      }
+      if (single_measurement) {
+        y(1)   = 0;
+        a(1,0) = 1;
       }
       // least squares inversion
       Matrix ata(prod(trans(a),a));

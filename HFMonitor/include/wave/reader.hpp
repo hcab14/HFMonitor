@@ -163,7 +163,7 @@ namespace wave {
       read_riff_ = true;
       std::cout << riff_ << std::endl;
       if (!riff_.ok()) return false;
-      while (is && is.tellg() < sizeof(chunk::header)+riff_.size()) {
+      while (is && is.tellg() < int(sizeof(chunk::header)+riff_.size())) {
         const chunk::header h(detail::read_header(is));
         if (h.id() == "fmt ") {
           format_      = detail::readT<chunk::format>(is);

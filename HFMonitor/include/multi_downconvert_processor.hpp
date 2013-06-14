@@ -265,10 +265,10 @@ protected:
   virtual void dump(service::sptr sp,
                     const filter_param& fp,
                     const typename overlap_save_type::complex_vector_type& out) {
-    std::cout << "out: " << fp.name() << " " << out.size() << std::endl;
+    // std::cout << "out: " << fp.name() << " " << out.size() << std::endl;
   }
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
-    std::cout << "dump: " << rp->to_string() << std::endl;
+    // std::cout << "dump: " << rp->to_string() << std::endl;
     return rp;
   }
   virtual void proc(service::sptr sp,
