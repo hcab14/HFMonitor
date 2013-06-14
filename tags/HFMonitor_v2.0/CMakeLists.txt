@@ -65,7 +65,7 @@ LIST(APPEND _libs ${portaudio_LIBRARY})
 
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
-  ${PerseusSDR_INCLUDE_DIR}
+  ${libusb-1.0_INCLUDE_DIR}
   ${FFTW3_INCLUDE_DIR}
   "./include"
   )
