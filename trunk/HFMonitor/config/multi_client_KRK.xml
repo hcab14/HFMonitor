@@ -4,17 +4,17 @@
   <server host="127.0.0.1"
 	  port="19100">
   </server>
-  <FileSink filePath="DataTest"
+  <FileSink filePath="DataPhaseKRK"
             filePeriod="1d">
   </FileSink>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
-
+<!--
     <Stream pattern="DC_022100_GQD">WriterIQ</Stream>
     <Stream pattern="DC_023400_DHO">WriterIQ</Stream>
     <Stream pattern="DC_060000_MSF">WriterIQ</Stream>
     <Stream pattern="DC_077500_DCF">WriterIQ</Stream>
-
+-->
     <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
     <Stream pattern="DC_019600_GQD">DemodMSK_GQ2</Stream>
     <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
@@ -35,7 +35,7 @@
   </Streams>
   <Clients>
     <WriterText type="WriterTXT"
-                filePath="DataTest"
+                filePath="DataPhaseKRK"
                 filePeriod="1d">
     </WriterText>
     <WriterIQ type="WriterIQ"

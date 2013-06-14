@@ -2,7 +2,7 @@
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="1">
-  <server host="129.247.238.73"
+  <server host="127.0.0.1"
 	  port="18001">
   </server>
   <Broadcaster>
@@ -135,6 +135,11 @@
 		      bandwidth_Hz="100">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
+      <AverageDensity name="022600_Navy_HWU"
+		      fRef_Hz="22.6e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <AverageDensity name="023400_Navy_DHO38"
 		      fRef_Hz="23.4e3"
 		      bandwidth_Hz="200">
@@ -165,7 +170,7 @@
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
-      <AverageDensity name="038000_Navy_unid"
+      <AverageDensity name="038000_Navy_Ruda"
 		      fRef_Hz="38e3"
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
@@ -182,6 +187,11 @@
       </AverageDensity>
       <AverageDensity name="044200_Navy_unid"
 		      fRef_Hz="44.2e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="042500_Navy_unid"
+		      fRef_Hz="42.5e3"
 		      bandwidth_Hz="200">
 	<Calibration key="L1.CAL"></Calibration>
       </AverageDensity>
@@ -252,6 +262,11 @@
 	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
 	<Calibration key="L1.CAL"></Calibration>
       </FindPeak>
+      <AverageDensity name="068000_Navy_GBY20"
+		      fRef_Hz="68.0e3"
+		      bandwidth_Hz="100">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
       <FindPeak name="068500_TS_BPC"
 		fMin_Hz="68.300e3"
 		fMax_Hz="68.700e3"

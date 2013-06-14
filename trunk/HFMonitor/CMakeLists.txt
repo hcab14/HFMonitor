@@ -36,11 +36,15 @@ FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
-#SET(BOOST_ROOT /opt/local)
+EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
+SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
+SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)
 LIST(APPEND _libs ${Boost_LIBRARIES})
+LIST(APPEND _libs rt)
+LIST(APPEND _libs pthread)
 
 # Setup libperseus-sdr
 #FIND_PACKAGE(PerseusSDR REQUIRED)
@@ -61,7 +65,7 @@ LIST(APPEND _libs ${portaudio_LIBRARY})
 
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
-  ${PerseusSDR_INCLUDE_DIR}
+  ${libusb-1.0_INCLUDE_DIR}
   ${FFTW3_INCLUDE_DIR}
   "./include"
   )

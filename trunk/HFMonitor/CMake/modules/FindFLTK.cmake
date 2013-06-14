@@ -23,7 +23,8 @@
 
 # use fltk-config
 set(FLTK_CONFIG_EXECUTABLE FLTK_CONFIG_EXECUTABLE-NOTFOUND)
-find_program(FLTK_CONFIG_EXECUTABLE NAME fltk-config PATHS)
+find_program(FLTK_CONFIG_EXECUTABLE NAME fltk-config 
+                                    PATHS /home/chm/C++/HFMonitor_v2.0/software/fltk/insted/bin )
 mark_as_advanced(FLTK_CONFIG_EXECUTABLE)
 
 if(FLTK_CONFIG_EXECUTABLE)
@@ -36,7 +37,7 @@ if(FLTK_CONFIG_EXECUTABLE)
   string(REGEX REPLACE "[\r\n]" " " FLTK_CXXFLAGS "${_fltk_config_cxxflags}")
 
   execute_process(
-    COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldflags
+    COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldstaticflags
     OUTPUT_VARIABLE _fltk_config_ldflags
     RESULT_VARIABLE _fltk_config_failed)
   string(REGEX REPLACE "[\r\n]" " " FLTK_LDFLAGS "${_fltk_config_ldflags}")

@@ -20,34 +20,52 @@ echo \$! > .pid_$name
 EOF
 }
 
-## returns "STOPPED" or the pid of the running process
+## returns 
+##  * "STOPPED": process was properly stopped
+##  * "DEAD":    process died
+##  * the pid of the running process
 function check_running {
     local name=$1
     local pid_file=.pid_$name
     [ ! -f $pid_file ] && { echo STOPPED; return; }
     local pid=$((`cat $pid_file | tail -1`))
-    [ X$pid == X0 ]     && { echo STOPPED; return; }
-    [ X$pid == X$((`ps -p $pid -opid --no-heading`)) ] && echo $pid || echo STOPPED;
+    [ X$pid == X0 ]     && { echo DEAD; return; }
+    [ X$pid == X$((`ps -p $pid -opid --no-heading`)) ] && echo $pid || echo DEAD;
 }
 
 function stop {
     local name=$1
     local pid=`check_running $name`
-    [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
+    [ $pid == DEAD ] && { rm -f .pid_$name; return; }
     sudo kill $pid
     sleep 10s
     pid=`check_running $name`
-    [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
+    [ $pid == DEAD ] && { rm -f .pid_$name; return; }
     sudo kill -9 $pid
     sleep 5s
     pid=`check_running $name`
-    [ $pid == STOPPED ] && { rm -f .pid_$name; return; }
+    [ $pid == DEAD ] && { rm -f .pid_$name; return; }
     echo UNABLE TO STOP $name > /dev/stderr
 }
 
 function where_am_I {
-    [ X`hostname` == X"nz23-18.ifj.edu.pl" ] && echo KRK || echo NTZ
+    local username=`whoami`
+    case $username in
+	gifds-hv)
+	    echo HTV
+	    ;;
+	gifds-nz)
+	    echo NTZ
+	    ;;
+	chm)
+	    echo KRK
+	    ;;
+	*)
+	    echo XXX
+	    ;;
+    esac
 }
+
 function config_data {
     find run/`where_am_I` -name "*.in" -print | sort
 }
@@ -57,14 +75,28 @@ function config_data {
 function start_all {
     for i in `config_data`; do
 	source $i
-	[ `check_running $NAME` == STOPPED ] && { start $NAME $CMD; sleep 5s; }
+	local status=`check_running $NAME`
+	if [ $status == STOPPED ] || [ $status == DEAD ]; then
+	    start $NAME $CMD
+	    sleep 5s
+	fi
+	status=`check_running $NAME`
+	if [ $status == STOPPED ] || [ $status == DEAD ]; then
+	    echo "## start $NAME failed: check for error messages in ./Log and in log_$NAME.txt:"
+	    cat log_$NAME.txt
+	    break;
+	fi
     done
 }
 
 function stop_all {
-    for i in `config_data | tac`; do
+    for i in `config_data`; do
 	source $i
-	[ ! `check_running $NAME` == STOPPED ] && { stop $NAME; sleep 5s; }
+	local status=`check_running $NAME`
+	if [ ! $status == STOPPED ]; then 
+	    stop $NAME
+	    [ ! $status == DEAD ] && sleep 5s
+	fi
     done
 }
 
@@ -73,9 +105,9 @@ function check_running_all {
     local result_stopped=""
     for i in `config_data`; do
 	source $i
-        # when there is no .pid file we consider the process to be stopped and do not restart it
-	[ ! -f .pid_$NAME ] && { result_stopped="${result_stopped},$NAME"; continue; }
-	[ `check_running $NAME` == STOPPED ] && { start $NAME $CMD; sleep 5s; result="${result},$NAME"; }
+	local status=`check_running $NAME`
+	[ $status == STOPPED ] && { result_stopped="${result_stopped},$NAME"; continue; }
+	[ $status == DEAD ]    && { start $NAME $CMD; sleep 5s; result="${result},$NAME"; }
     done
 
     if [ X$result == X ] && [ X$result_stopped == X ]; then

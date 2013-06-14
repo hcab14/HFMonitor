@@ -126,16 +126,16 @@ namespace detail {
         rms[0] = compute_f_est(dfs, 0);
         double min_val(rms[0].rms_value());
         min_idx = 0;
-        std::cout << "RRR: " << 0 << " " << rms[0] << std::endl;
+        // std::cout << "RRR: " << 0 << " " << rms[0] << std::endl;
         for (size_t i(1); i<dfs.size(); ++i) {
           rms[i] = compute_f_est(dfs, i);
-          std::cout << "RRR: " << i << " " << rms[i] << std::endl;
+          // std::cout << "RRR: " << i << " " << rms[i] << std::endl;
           if (rms[i].rms_value() < min_val) {
             min_val = rms[i].rms_value();
             min_idx = i;
           }
         }
-        std::cout << "RRR: min_idx= " << min_idx << " min_rms= " << min_val << std::endl;
+        // std::cout << "RRR: min_idx= " << min_idx << " min_rms= " << min_val << std::endl;
 
         // test if deviation is significant: ...
         double sum_1 (0);
@@ -152,15 +152,15 @@ namespace detail {
         const double rms_of_rms(sqrt(sum_xx/sum_1 - mean_of_rms*mean_of_rms));
         if (std::abs(min_val - mean_of_rms) < 3*rms_of_rms)
           min_idx = -1;
-        std::cout << "RRR: index= " << min_idx << " mean/rms(RMS)= " 
-                  << mean_of_rms << " " << rms_of_rms << std::endl;
+        // std::cout << "RRR: index= " << min_idx << " mean/rms(RMS)= " 
+        //           << mean_of_rms << " " << rms_of_rms << std::endl;
       }
       return compute_f_est(dfs, min_idx);
     }
 
     value_and_error compute_f_est() const {
       if (phase_vector_.empty()) {
-        std::cout << "f_est: " << phase_vector_.size() << std::endl;
+        // std::cout << "f_est: " << phase_vector_.size() << std::endl;
         return value_and_error(0,0);
       }
 
@@ -175,15 +175,15 @@ namespace detail {
         if (i->df() != j->df() && counter>0)
           dfs[counter-1] += (j->df() - i->df());
 
-        std::cout << str(boost::format("\t%4d %9.3f %15.10f (%.10f %.10f) %15.10f %15.10f\n")
-                         % j->dt()
-                         % j->phase()
-                         % filter_.kN()
-                         % i->df()
-                         % j->df()
-                         % (j->df() + dphase/dt/(2*M_PI))
-                         % (filter_.kN() +j->df() + dphase/dt/(2*M_PI))
-                         );
+      //   std::cout << str(boost::format("\t%4d %9.3f %15.10f (%.10f %.10f) %15.10f %15.10f\n")
+      //                    % j->dt()
+      //                    % j->phase()
+      //                    % filter_.kN()
+      //                    % i->df()
+      //                    % j->df()
+      //                    % (j->df() + dphase/dt/(2*M_PI))
+      //                    % (filter_.kN() +j->df() + dphase/dt/(2*M_PI))
+      //                    );
       }
       if (dfs.empty())
         return value_and_error(0,0);
@@ -193,12 +193,12 @@ namespace detail {
     }
 
     void dump(size_t ccounter) const {
-      std::cout << "updated[" << name_ << "]: " << last_phase_ << std::endl;
+      // std::cout << "updated[" << name_ << "]: " << last_phase_ << std::endl;
       if (phase_vector_.empty())
         return;
       
       const value_and_error f_est(compute_f_est());
-      std::cout << "f_est = " << ccounter << " " << f_est << std::endl;
+      // std::cout << "f_est = " << ccounter << " " << f_est << std::endl;
     }
 
     bool update(complex_type sample) {      
@@ -251,7 +251,7 @@ namespace detail {
     void update(double kN, size_t period) {
       period_ = period;
       if (filter_.kN() != kN) {
-        std::cout << "UPDATE: " << filter_.kN() << " " << kN << filter_.kN() -kN << std::endl;
+        // std::cout << "UPDATE: " << filter_.kN() << " " << kN << filter_.kN() -kN << std::endl;
         filter_ = goertzel_type(kN);
         phase_vector_.clear();
       }
@@ -354,12 +354,12 @@ public:
     if (!filters_updated_) return;
 
     double ampl[NUM_GF] = { 0 };
-    std::cout << "AMPL: ";    
+    // std::cout << "AMPL: ";    
     for (size_t i(0); i<NUM_GF; ++i) {
       ampl[i] = gfs_[i]->amplitude();
-      std::cout << "( " << ampl[i] << ", " << gfs_[i]->kN() << ", " << gfs_[i]->period() << " ) ";
+      // std::cout << "( " << ampl[i] << ", " << gfs_[i]->kN() << ", " << gfs_[i]->period() << " ) ";
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
     gfs_[GF_CENTER]->dump(ccounter);
 
     estimated_f_ = gfs_[GF_CENTER]->compute_f_est();
@@ -371,7 +371,7 @@ public:
 
     // conversion: normalized frequency -> absolute frequency
     estimated_f_ *= fs_;
-    std::cout << "F_est= " << ccounter-gfs_[GF_CENTER]->history_size()/2 << " " << estimated_f_ << std::endl;
+    // std::cout << "F_est= " << ccounter-gfs_[GF_CENTER]->history_size()/2 << " " << estimated_f_ << std::endl;
 
     // peak
     if (ampl[GF_CENTER] > ampl[GF_LEFT] &&
@@ -379,7 +379,7 @@ public:
       const double sn(std::max(ampl[GF_CENTER]/ampl[GF_LEFT],
                                ampl[GF_CENTER]/ampl[GF_RIGHT]));
       LOG_INFO(str(boost::format("Peak S/N=%f") % sn));
-      std::cout << str(boost::format("*** Peak S/N=%f") % sn) << std::endl;
+      // std::cout << str(boost::format("*** Peak S/N=%f") % sn) << std::endl;
       if (sn > 1.1 && period_ < max_period_ && gfs_[GF_CENTER]->history_size() > 5*period_) {
         period_ *= 2;
         const double kN_center(gfs_[GF_CENTER]->kN());
@@ -393,7 +393,7 @@ public:
           ampl[GF_CENTER] > ampl[GF_RIGHT]  &&
           ampl[GF_LEFT] / ampl[GF_CENTER] > 1.1) { // 3 2 1
         LOG_INFO("Move left");
-        std::cout << "*** Move left" << std::endl;
+        // std::cout << "*** Move left" << std::endl;
         if (period_ > min_period_ && last_state() == state::MOVE_LEFT) {
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() - 1./period_);
@@ -411,9 +411,9 @@ public:
                  ampl[GF_CENTER] < ampl[GF_RIGHT]  &&
                  ampl[GF_RIGHT]/ampl[GF_CENTER] > 1.1) { // 1 2 3
         LOG_INFO("Move right");
-        std::cout << "*** Move right" << std::endl;
+        // std::cout << "*** Move right" << std::endl;
         if (period_ > min_period_ && last_state() == state::MOVE_RIGHT) {
-          std::cout << "\tA" << std::endl;
+          // std::cout << "\tA" << std::endl;
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() + 1./period_);
           std::swap(gfs_[GF_LEFT], gfs_[GF_CENTER]);
@@ -421,7 +421,7 @@ public:
           gfs_[GF_CENTER]->update(kN_center,              period_);
           gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
         } else {
-          std::cout << "\tB" << std::endl;
+          // std::cout << "\tB" << std::endl;
           std::swap(gfs_[GF_LEFT],   gfs_[GF_CENTER]);
           std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
           gfs_[GF_RIGHT] = detail::gf_with_phase_hist::make(gf_id2str(GF_RIGHT), gfs_[GF_CENTER]->kN() + 1./period_, period_, max_history_size_);
@@ -429,7 +429,7 @@ public:
         last_state_ = state::MOVE_RIGHT;
       } else {
         LOG_INFO("Rest");
-        std::cout << "*** Rest" << std::endl;
+        // std::cout << "*** Rest" << std::endl;
         if (period_ > min_period_ && last_state() == state::REST)
           period_ /= 2;
         const double kN_center(gfs_[GF_CENTER]->kN());

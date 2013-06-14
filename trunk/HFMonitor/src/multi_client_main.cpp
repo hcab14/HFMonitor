@@ -39,7 +39,7 @@ public:
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     // result -> file
-    std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
+    // std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
     return dump_result(rp);
   }
 

@@ -84,7 +84,7 @@ public:
   void procIQ(std::vector<std::complex<double> >::const_iterator i0,
               std::vector<std::complex<double> >::const_iterator i1) {
     // std::cout << "counter= " << counter_ << " " << iqBuffer_.m() << std::endl;
-    if (counter_ == iqBuffer_.m());
+    if (counter_ == boost::int64_t(iqBuffer_.m()));
     p_.process_iq(service_, i0, i1);
     counter_ = 0;
   }
