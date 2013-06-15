@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   try {
     const boost::program_options::variables_map vm(process_options("config/FFTProcessor.xml", argc, argv));
     boost::property_tree::ptree config;
-    read_xml(vm["config"].as<std::string>(), config);
+    read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
     const std::string stream_name("DataIQ");
 

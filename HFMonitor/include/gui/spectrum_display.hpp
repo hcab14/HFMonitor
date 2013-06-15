@@ -31,6 +31,8 @@
 #include <vector>
 #include <cmath>
 
+#include "Spectrum.hpp"
+
 class spectrum_display : public Fl_Double_Window {
 public:
   enum {
@@ -77,6 +79,24 @@ public:
     s->damage(FL_DAMAGE_ALL);
   }
   
+  template<typename T>
+  void insert_spec(const frequency_vector<T>& spec) {
+    fMin_.value(spec.fmin());
+    fMax_.value(spec.fmax());
+
+    specIndex_--;
+    if (specIndex_ <0) specIndex_ = specM()-1;
+    for (size_t i=0; i<specN(); ++i) {
+      const double fi(spec.fmin() + (spec.fmax()-spec.fmin())*i/double(specN()-1));
+      const double spec_i(10*std::log10(spec[spec.freq2index(fi)].second));
+      spec_[specIndex_*specN()+i] = spec_i;
+      double x = (spec_i-sMin_.value())/(sMax_.value()-sMin_.value());
+      x= (x<0) ? 0 : (x>1) ? 1 : x;
+      specImg_[specIndex_*specN()+i] = specImg_[(specM()+specIndex_)*specN()+i] = 255*x;
+    }
+    this->damage(FL_DAMAGE_ALL);
+  }
+
   void insert_spec(const std::vector<double>& spec) {
     specIndex_--;
     if (specIndex_ <0) specIndex_ = specM()-1;

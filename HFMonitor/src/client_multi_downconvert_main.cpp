@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     const boost::program_options::variables_map
       vm(process_options("config/multi_downconvert.xml", argc, argv));
     boost::property_tree::ptree config;
-    read_xml(vm["config"].as<std::string>(), config);
+    read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
     processor::registry::add<writer_txt                  >("WriterTXT");
     processor::registry::add<iq_adapter<wave::writer_iq> >("WriterIQ");

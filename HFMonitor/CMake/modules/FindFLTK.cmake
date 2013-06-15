@@ -24,7 +24,8 @@
 # use fltk-config
 set(FLTK_CONFIG_EXECUTABLE FLTK_CONFIG_EXECUTABLE-NOTFOUND)
 find_program(FLTK_CONFIG_EXECUTABLE NAME fltk-config 
-                                    PATHS /home/chm/C++/HFMonitor_v2.0/software/fltk/insted/bin )
+                                    PATHS ${FLTK_PATH}
+                                    NO_DEFAULT_PATH)
 mark_as_advanced(FLTK_CONFIG_EXECUTABLE)
 
 if(FLTK_CONFIG_EXECUTABLE)
