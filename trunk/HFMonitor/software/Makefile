@@ -2,7 +2,7 @@
 # $Id$
 
 
-ALL: boost #fltk
+ALL: #boost fltk
 
 boost: boost_1_53_0/b2
 	cd boost_1_53_0 && ./b2 -j4 && cd .. && rm -f boost && ln -s boost_1_53_0 boost

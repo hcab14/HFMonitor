@@ -205,10 +205,11 @@ public:
       processor_map_[input] = pp;
     }
     // Calibration
-    const std::string cal_algo(config.get_child("Calibration").get<std::string>("<xmlattr>.algorithm"));
+    const ptree& cal_config(config.get_child("Calibration"));
+    const std::string cal_algo(cal_config.get<std::string>("<xmlattr>.algorithm"));
     if (cal_algo != "WeightedMean")
       LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-    BOOST_FOREACH(const ptree::value_type& p, config.get_child("Calibration")) { 
+    BOOST_FOREACH(const ptree::value_type& p, cal_config) { 
       if (p.first != "Key") {
         LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
         continue;
