@@ -24,6 +24,10 @@
 #include <vector>
 #include <cmath>
 
+// global state:
+
+bool run=true;
+
 class MyWindow : public Fl_Double_Window {
 public:
   MyWindow(int w, int h)
@@ -58,7 +62,7 @@ public:
       spec.push_back(-20*(1+sin(0.1*i + w->counter_*0.1)));
     w->get_spec_display().insert_spec(spec);
     w->counter_++;
-    Fl::repeat_timeout(0., (Fl_Timeout_Handler)timeout_cb, (void *)w);
+    Fl::repeat_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)w);
   }
 
 protected:
@@ -76,7 +80,9 @@ protected:
     if ( p ) p->label("New Aaa Name");
   }
   static void Quit_CB(Fl_Widget *, void *) {
-    exit(0);
+    run = false;
+    char* msg="quit";
+    Fl::awake(msg);
   }
 private:
   Fl_Menu_Bar menu_bar_;
@@ -89,7 +95,10 @@ private:
 
 class test_proc {
 public:
-  test_proc(const boost::property_tree::ptree&) {}
+  test_proc(const boost::property_tree::ptree&)
+    : w_(1200,400) {
+    w_.show();
+  }
 
   void process_iq(processor::service_iq::sptr sp,
                   std::vector<std::complex<double> >::const_iterator i0,
@@ -102,59 +111,55 @@ public:
               << " " << sp->offset_ppb()
               << std::endl;
   }
+private:
+  MyWindow w_;
 } ;
-
-struct main_func {
-  main_func(int argc, char **argv)
-    : argc_(argc)
-    , argv_(argv) {}
-
-  void operator()() {
-    
-  }
-  int    argc_;
-  char** argv_;
-} ;
-
-void* main_func(int argc, char **argv, void* p) {
-  MyWindow* w = (MyWindow *)(p);
-
-  LOGGER_INIT("./Log", "test_client_fltk");
-  try {
-    const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
-    boost::property_tree::ptree config;
-    read_xml(filename, config);
-
-    const std::string stream_name("DataIQ");
-
-    client<iq_adapter<repack_processor<test_proc> > >
-      c(config.get_child("Server"));
-    const std::set<std::string> streams(c.ls());
-    if (streams.find(stream_name) != streams.end())
-      ASSERT_THROW(c.connect_to(stream_name) == true);
-    else
-      throw std::runtime_error(str(boost::format("stream '%s' is not available")
-                                   % stream_name));
-    c.start();
-    run_in_thread(network::get_io_service());
-  } catch (const std::exception &e) {
-    LOG_ERROR(e.what());
-  }
-  return NULL;
-}
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "test_client");
+  namespace po = boost::program_options;
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help,?",                                                       "produce help message")
+    ("version,v",                                                    "display version")
+    ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
+    ("port,p", po::value<std::string>()->default_value("18001"),     "server port")
+    ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name");
+
+  po::variables_map vm;
   try {
-    const std::string filename((argc > 1 ) ? argv[1] : "config_client.xml");
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+    
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
+      return 1;
+    }
+    if (vm.count("version")) {
+      std::cout << SVN_VERSION_STRING << std::endl;
+      return 1;
+    }
+  } catch (const std::exception &e) {
+    std::cout << e.what() << std::endl;
+    std::cout << desc << std::endl;
+    return 1;
+  }
+  
+  LOGGER_INIT("./Log", "test_fltk_spec");
+
+  try {
+    // make up ptree config
     boost::property_tree::ptree config;
-    read_xml(filename, config);
+    config.put("server.<xmlattr>.host", vm["host"].as<std::string>());
+    config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
+    config.put("Repack.<xmlattr>.bufferLength_sec", 1);
+    config.put("Repack.<xmlattr>.overlap_percent", 0);
 
-    const std::string stream_name("DataIQ");
+    Fl::lock();
 
-    client<iq_adapter<repack_processor<test_proc> > >
-      c(config.get_child("Server"));
+    const std::string stream_name(vm["stream"].as<std::string>());
+    client<iq_adapter<repack_processor<test_proc> > > c(config);
+
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       ASSERT_THROW(c.connect_to(stream_name) == true);
@@ -163,16 +168,22 @@ int main(int argc, char* argv[])
                                    % stream_name));
     c.start();
 
+    // run io_service in a thread
+    boost::asio::io_service& io_service(network::get_io_service());
     typedef boost::shared_ptr<boost::thread> thread_sptr;
-    thread_sptr tp(new boost::thread(boost::bind(&boost::asio::io_service::run,
-						 &network::get_io_service())));
+    thread_sptr tp(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
 
-    // wait Fl:...
 
-  
+    // FLTK event loop
+    //    Fl::run();
+    while (Fl::wait() > 0) {
+      if (Fl::thread_message())
+	if (!run) break;
+    }
 
-  io_service.stop();
-  tp->join();
+    // now all FLTK windows are closed:
+    io_service.stop();
+    tp->join();
 
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
