@@ -4,12 +4,14 @@
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include "FFT.hpp"
 #include "gui/spectrum_display.hpp"
 #include "network.hpp"
 #include "network/client.hpp"
 #include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
+#include "Spectrum.hpp"
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -25,8 +27,11 @@
 #include <cmath>
 
 // global state:
+struct global_state {
+  static bool run;
+};
 
-bool run=true;
+bool global_state::run = true;
 
 class MyWindow : public Fl_Double_Window {
 public:
@@ -50,7 +55,7 @@ public:
     // box1_.labelcolor(0x00FF0000);
     input_.value("Now is the time for all good men...");
     end();
-    Fl::add_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)this);
+    // Fl::add_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)this);
   }
   virtual ~MyWindow() {
     Fl::remove_timeout((Fl_Timeout_Handler)timeout_cb, (void *)this);
@@ -64,9 +69,9 @@ public:
     w->counter_++;
     Fl::repeat_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)w);
   }
+  spectrum_display& get_spec_display() { return specDisplay_; }
 
 protected:
-  spectrum_display& get_spec_display() { return specDisplay_; }
   static void Change_CB(Fl_Widget *w, void *) {
     // MyWindow *wp = (MyWindow*)(p);
     
@@ -80,7 +85,7 @@ protected:
     if ( p ) p->label("New Aaa Name");
   }
   static void Quit_CB(Fl_Widget *, void *) {
-    run = false;
+    global_state::run = false;
     char* msg="quit";
     Fl::awake(msg);
   }
@@ -96,23 +101,46 @@ private:
 class test_proc {
 public:
   test_proc(const boost::property_tree::ptree&)
-    : w_(1200,400) {
+    : w_(1200,400)
+    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE) {
     w_.show();
   }
 
   void process_iq(processor::service_iq::sptr sp,
                   std::vector<std::complex<double> >::const_iterator i0,
                   std::vector<std::complex<double> >::const_iterator i1) {
+    const size_t length(std::distance(i0, i1));
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()
               << " " << sp->sample_rate_Hz()
               << " " << sp->center_frequency_Hz()
               << " " << sp->offset_ppb()
+	      << " length=" << length
               << std::endl;
+
+    if (length != fftw_.size())
+      fftw_.resize(length);
+    std::cout << "A" << std::endl;
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>());
+    std::cout << "B" << std::endl;
+    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
+    std::cout << "C" << std::endl;
+    const double f_min(sp->center_frequency_Hz() - 0*sp->sample_rate_Hz());
+    const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz()/4-1);
+    const frequency_vector<double> ps(f_min, f_max, s, s2db);
+    std::cout << "D" << std::endl;
+    w_.get_spec_display().insert_spec(ps);
+    std::cout << "E" << std::endl;
+    char* msg="spec_update";
+    Fl::awake(msg);
   }
 private:
+  static double s2db(std::complex<double> c) {
+    return 10*std::log10(std::abs(c));
+  }
   MyWindow w_;
+  FFT::FFTWTransform<double> fftw_;
 } ;
 
 int main(int argc, char* argv[])
@@ -155,6 +183,7 @@ int main(int argc, char* argv[])
     config.put("Repack.<xmlattr>.bufferLength_sec", 1);
     config.put("Repack.<xmlattr>.overlap_percent", 0);
 
+    Fl::visual(FL_RGB);
     Fl::lock();
 
     const std::string stream_name(vm["stream"].as<std::string>());
@@ -178,7 +207,7 @@ int main(int argc, char* argv[])
     //    Fl::run();
     while (Fl::wait() > 0) {
       if (Fl::thread_message())
-	if (!run) break;
+	if (!global_state::run) break;
     }
 
     // now all FLTK windows are closed:
