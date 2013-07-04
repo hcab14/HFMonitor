@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <MultiClient>
+  <StationInfo>
+    Station  = HTV
+    Computer = Latitude E6430 : N-Series Base
+  </StationInfo>
   <server host="127.0.0.1"
 	  port="8080">
   </server>

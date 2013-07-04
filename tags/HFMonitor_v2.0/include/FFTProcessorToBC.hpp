@@ -28,7 +28,8 @@ public:
   FFTProcessorToBC(const boost::property_tree::ptree& config)
     : FFTProcessor<FFTFloat>(config)
     , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
-    , started_(false) {}
+    , started_(false)
+    , station_info_(config.get<std::string>("StationInfo")) {}
 
   virtual ~FFTProcessorToBC() {}
 
@@ -40,11 +41,12 @@ protected:
       started_= true;
     }
     const std::string path(result.second->name());
-    result.second->dumpToBC(path, result.first, broadcaster_);
+    result.second->dumpToBC(path, result.first, broadcaster_, station_info_);
   }
 private:
   broadcaster::sptr broadcaster_;
   bool              started_;
+  std::string       station_info_;
 } ;
 
 #endif // _FFT_PROCESSOR_TO_BC_HPP_cm130210_
