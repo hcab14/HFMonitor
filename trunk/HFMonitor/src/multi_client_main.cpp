@@ -30,21 +30,25 @@
 #include "wave/writer.hpp"
 #include "writer.hpp"
 
+#include "station_info.hpp"
+
 class multi_client_tofile : public multi_client, public writer_txt_base {
 public:
   typedef boost::property_tree::ptree ptree;
   multi_client_tofile(const ptree& config)
     : multi_client(config)
-    , writer_txt_base(config.get_child("FileSink")) {}
+    , writer_txt_base(config.get_child("FileSink"))
+    , station_info_(config.get<std::string>("StationInfo")) {}
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     // result -> file
     // std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
-    return dump_result(rp);
+    return dump_result(rp, station_info_.to_string());
   }
 
 protected:
 private:
+  station_info station_info_;
 } ;
 
 int main(int argc, char* argv[])
