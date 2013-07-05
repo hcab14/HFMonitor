@@ -35,6 +35,7 @@
 
 #include "network/protocol.hpp"
 #include "wave/writer.hpp"
+#include "station_info.hpp"
 
 template<typename FFTFloat>
 class multi_downconvert_toBC : public multi_downconvert_processor<FFTFloat> {
@@ -44,10 +45,12 @@ public:
   typedef typename multi_downconvert_processor<FFTFloat>::service service;
   typedef typename multi_downconvert_processor<FFTFloat>::filter_param filter_param;
   typedef typename multi_downconvert_processor<FFTFloat>::overlap_save_type overlap_save_type;
-  multi_downconvert_toBC(const ptree& config)
+
+  multi_downconvert_toBC(const boost::property_tree::ptree& config)
     : multi_downconvert_processor<FFTFloat>(config)
     , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
-    , started_(false) {}
+    , started_(false)
+    , station_info_(config.get<std::string>("StationInfo")) {}
 
   virtual ~multi_downconvert_toBC() {}
 
@@ -79,12 +82,14 @@ protected:
     std::copy(s.begin(), s.end(), data.begin()+sizeof(iq_info));
     broadcaster_->bc_data(sp->approx_ptime(), fp.name(), "WAV_0000", data);
   }
+  
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     std::ostringstream oss_header;
+    oss_header << station_info_;
     rp->dump_header(oss_header);
     std::string header_str(oss_header.str());
-    
+
     std::ostringstream oss_data;
     rp->dump_data(oss_data);
     std::string data_str(oss_data.str());
@@ -96,7 +101,7 @@ protected:
 private:
   broadcaster::sptr broadcaster_;
   bool              started_;
-
+  station_info      station_info_;
 } ;
 
 int main(int argc, char* argv[])

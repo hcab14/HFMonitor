@@ -20,6 +20,7 @@
 #define _FFT_RESULT_HPP_cm101026_
 
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <deque>
 #include <boost/lexical_cast.hpp>
@@ -30,6 +31,7 @@
 
 #include "network/protocol.hpp"
 #include "gen_filename.hpp"
+#include "station_info.hpp"
 
 namespace Result {
   class Base : public gen_filename {
@@ -64,11 +66,13 @@ namespace Result {
 
     // dump data
     void dumpToFile(std::string path,
-                    std::string tag) {
+                    std::string tag,
+                    std::string s) {
+      const station_info si(s, lineBreak());
       boost::filesystem::fstream *ofs(0);
-      ofs = dumpSingle(ofs, path, tag, this);
+      ofs = dumpSingle(ofs, path, tag, this, si);
       BOOST_FOREACH(const HandleVector::value_type& h, handles_)
-        ofs = dumpSingle(ofs, path, tag, h.get());
+        ofs = dumpSingle(ofs, path, tag, h.get(), si);
       updateTimeTag(*ofs, posEndTime_, getLatest()->makeTimeLabel());
       delete ofs;
     }
@@ -76,18 +80,22 @@ namespace Result {
     template<typename BROADCASTER>
     void dumpToBC(std::string path,
                   std::string tag,
-                  boost::shared_ptr<BROADCASTER> bc) {
-      dumpToBCSingle(path, tag, bc, this);
+                  boost::shared_ptr<BROADCASTER> bc,
+                  std::string s) {
+      const station_info si(s, lineBreak());
+      dumpToBCSingle(path, tag, bc, this, si);
       BOOST_FOREACH(const HandleVector::value_type& h, handles_)
-        dumpToBCSingle(path, tag, bc, h.get());
+        dumpToBCSingle(path, tag, bc, h.get(), si);
     }
 
     template<typename BROADCASTER>
     void dumpToBCSingle(std::string path,
                         std::string tag,
                         boost::shared_ptr<BROADCASTER> bc,
-                        Base* h) {
+                        Base* h,
+                        const station_info& si) {
       std::ostringstream sHeader;
+      sHeader << si;
       h->dumpHeader(sHeader);
       const std::string sh(sHeader.str());
 
@@ -100,7 +108,8 @@ namespace Result {
 
     boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 
                                            std::string path, std::string tag, 
-                                           const Base* h) const {
+                                           const Base* h,
+                                           const station_info& si) const {
       const boost::filesystem::path p(gen_file_path(path, tag, h->time()));
       const bool file_exists(boost::filesystem::exists(p));
       if (not file_exists) {
@@ -108,6 +117,7 @@ namespace Result {
           delete ofs; ofs= NULL; 
         }
         boost::filesystem::fstream lofs(p, std::ios::out);  
+        lofs << si;
         h->dumpHeaderToFile(lofs) << h->lineBreak();
       }
       if (ofs == NULL) {
