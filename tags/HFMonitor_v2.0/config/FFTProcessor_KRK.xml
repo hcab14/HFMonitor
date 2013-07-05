@@ -10,7 +10,7 @@
 	  port="18001">
   </server>
   <Broadcaster>
-    <Data port="8081"
+    <Data port="8080"
 	  maxQueueSize_MB="1"
 	  maxQueueDelay_Minutes="2">
     </Data>
