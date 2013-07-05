@@ -1,6 +1,7 @@
 // -*- C++ -*-
 // $Id$
 
+#include <complex>
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
 

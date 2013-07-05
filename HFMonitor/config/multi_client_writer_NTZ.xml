@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- $Id$ -->
 <MultiClient>
+  <StationInfo>
+    Station  = NTZ
+    Computer = Latitude E6430 : N-Series Base
+  </StationInfo>
   <server host="nz23-18.ifj.edu.pl"
 	  port="8080">
   </server>

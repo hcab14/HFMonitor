@@ -32,7 +32,7 @@
 
 class SpectrumBase : private boost::noncopyable {
 public:
-  typedef std::complex<double> Complex;
+  typedef std::complex<double> complex_type;
 
   SpectrumBase(double sampleRate,
                double centerFrequency)
@@ -44,7 +44,7 @@ public:
   double centerFrequency() const { return centerFrequency_; }
 
   virtual size_t size()                    const = 0;
-  virtual Complex operator[](size_t index) const = 0;
+  virtual complex_type operator[](size_t index) const = 0;
   virtual double normWindow()              const = 0;
 
   size_t freq2index(double qrg_Hz) const { // get the nearest bin index
@@ -76,7 +76,7 @@ public:
   virtual ~FFTWSpectrum() {}
 
   virtual size_t size() const { return fftw_.size(); }
-  virtual Complex operator[](size_t index) const { return fftw_.getBin(index); }  
+  virtual complex_type operator[](size_t index) const { return fftw_.getBin(index); }  
   virtual double normWindow() const { return fftw_.normWindow(); }
 
 protected:

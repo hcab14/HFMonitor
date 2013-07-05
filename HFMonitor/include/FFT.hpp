@@ -74,14 +74,14 @@ namespace FFT {
 #define MAKE_TRAITS(P, T)                                               \
     template<>                                                          \
     struct FFTWTraits<T> {                                              \
-      typedef FFTW_CONCAT(P,_complex) Complex;                          \
+      typedef FFTW_CONCAT(P,_complex) complex_type;                          \
       typedef FFTW_CONCAT(P,_plan) Plan;                                \
                                                                         \
-      static Complex* malloc(size_t n) {                                \
-        return (Complex*)FFTW_CONCAT(P,_malloc)(sizeof(Complex)*n);     \
+      static complex_type* malloc(size_t n) {                                \
+        return (complex_type*)FFTW_CONCAT(P,_malloc)(sizeof(complex_type)*n);     \
       }                                                                 \
-      static void free(Complex* a) { FFTW_CONCAT(P,_free)(a); }         \
-      static Plan plan_dft_1d(size_t n, Complex* in, Complex* out,      \
+      static void free(complex_type* a) { FFTW_CONCAT(P,_free)(a); }         \
+      static Plan plan_dft_1d(size_t n, complex_type* in, complex_type* out,      \
                               int sign, unsigned flags) {               \
         return FFTW_CONCAT(P,_plan_dft_1d)(n, in, out, sign, flags);    \
       }                                                                 \
@@ -101,7 +101,7 @@ namespace FFT {
     class FFTWArray {
     public:
       typedef Internal::FFTWTraits<T> Traits;
-      typedef typename Traits::Complex Complex;
+      typedef typename Traits::complex_type complex_type;
 
       FFTWArray(size_t n)
         : n_(n)
@@ -120,10 +120,10 @@ namespace FFT {
       size_t size() const { return n_; }
       T norm() const { return norm_; }
       
-      Complex* begin() { return a_; }
-      Complex* end()   { return a_+n_; }  
-      Complex&       operator[](size_t n)       { return a_[n]; }
-      const Complex& operator[](size_t n) const { return a_[n]; }
+      complex_type* begin() { return a_; }
+      complex_type* end()   { return a_+n_; }  
+      complex_type&       operator[](size_t n)       { return a_[n]; }
+      const complex_type& operator[](size_t n) const { return a_[n]; }
       
       template<typename V,
                template<typename U> class WINDOW_FCN>
@@ -157,7 +157,7 @@ namespace FFT {
       }
     private:
       size_t n_;
-      Complex *a_;
+      complex_type *a_;
       T norm_;
     } ;
   } // namespace Internal
@@ -166,7 +166,7 @@ namespace FFT {
   class FFTWTransform : public Internal::FFTWTraits<T> {
   public:    
     typedef Internal::FFTWTraits<T> Traits;
-    typedef typename Traits::Complex Complex;
+    typedef typename Traits::complex_type complex_type;
     typedef typename Traits::Plan Plan;
     
     using Traits::plan_dft_1d;
@@ -240,8 +240,8 @@ namespace FFT {
     std::complex<T> getBin(size_t u) const {
       return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]); 
     }
-    std::vector<Complex> getBins() const {
-      std::vector<Complex> v(size());
+    std::vector<complex_type> getBins() const {
+      std::vector<complex_type> v(size());
       for (size_t u(0); u<size(); ++u) 
         v[u] = getBin(u);
       return v;
