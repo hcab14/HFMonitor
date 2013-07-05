@@ -20,6 +20,7 @@
 # FLTK_FOUND 
 # FLTK_CXXFLAGS
 # FLTK_LDFLAGS
+# FLTK_LIBS
 
 # use fltk-config
 set(FLTK_CONFIG_EXECUTABLE FLTK_CONFIG_EXECUTABLE-NOTFOUND)
@@ -36,16 +37,16 @@ if(FLTK_CONFIG_EXECUTABLE)
     OUTPUT_VARIABLE _fltk_config_cxxflags
     RESULT_VARIABLE _fltk_config_failed)
   string(REGEX REPLACE "[\r\n]" " " FLTK_CXXFLAGS "${_fltk_config_cxxflags}")
+  string(REGEX REPLACE " $" "" FLTK_CXXFLAGS "${FLTK_CXXFLAGS}")
 
   execute_process(
-    COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldstaticflags
+    COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldflags
     OUTPUT_VARIABLE _fltk_config_ldflags
     RESULT_VARIABLE _fltk_config_failed)
   string(REGEX REPLACE "[\r\n]" " " FLTK_LDFLAGS "${_fltk_config_ldflags}")
+  string(REGEX REPLACE " $" "" FLTK_LDFLAGS "${FLTK_LDFLAGS}")
 
 endif(FLTK_CONFIG_EXECUTABLE)
-
-MESSAGE("FLTK found: " ${FLTK_CXXFLAGS} ${FLTK_LDFLAGS})
 
 MARK_AS_ADVANCED(
     FLTK_FOUND
