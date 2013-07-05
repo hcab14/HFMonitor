@@ -3,6 +3,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <MultiDownConverter l="500000"
                     m="125001">
+  <StationInfo>
+    Station  = NTZ
+    Computer = Latitude E6430 : N-Series Base
+  </StationInfo>
   <Broadcaster>
     <Data maxQueueSize_MB="2"
           maxQueueDelay_Minutes="5"

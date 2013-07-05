@@ -3,6 +3,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <MultiDownConverter l="500000"
                     m="125001">
+  <StationInfo>
+    Station  = KRK
+    Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
+  </StationInfo>
   <Broadcaster>
     <Data maxQueueSize_MB="2"
           maxQueueDelay_Minutes="5"

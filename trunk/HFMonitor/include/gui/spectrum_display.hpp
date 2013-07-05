@@ -22,7 +22,7 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Input.H>
-#include <FL/Fl_Draw.H>
+// #include <FL/Fl_draw.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Simple_Counter.H>
@@ -116,9 +116,9 @@ public:
 
       const size_t j1(3*(specIndex_*specN() + i));
       const size_t j2(j1 + 3*specM()*specN());
-      specImg_[j1]   = specImg_[j2]   = cr*255;
-      specImg_[j1+1] = specImg_[j2+1] = cg*255;
-      specImg_[j1+2] = specImg_[j2+2] = cb*255;
+      specImg_[j1]   = specImg_[j2]   = uchar(cr*255);
+      specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
+      specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
     }
     this->damage(FL_DAMAGE_ALL);
   }
