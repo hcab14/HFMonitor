@@ -6,20 +6,21 @@
     Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
   </StationInfo>
   <server host="nz23-18.ifj.edu.pl"
-	  port="8080">
+	  port="8081">
   </server>
-  <FileSink filePath="DataKRK"
+  <FileSink filePath="DataKRK_"
             filePeriod="1d">
   </FileSink>
   <Streams>
-    <Stream pattern="L2.*">Writer</Stream>
+    <Stream pattern="L.*">Writer</Stream>
+    <Stream pattern="M.*">Writer</Stream>
     <!--
        <Stream pattern="TGF.*">Writer</Stream>
     -->
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
-            filePath="DataKRK"
+            filePath="DataKRK_"
             filePeriod="1d">
     </Writer>
   </Clients>

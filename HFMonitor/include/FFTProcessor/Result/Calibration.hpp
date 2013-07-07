@@ -33,6 +33,7 @@
 namespace Result {
   class Calibration : public Base {
   public:
+    typedef boost::shared_ptr<Calibration> sptr;
     typedef boost::shared_ptr<Calibration> Handle;
     typedef boost::numeric::ublas::matrix<double> Matrix;
     typedef boost::numeric::ublas::vector<double> Vector;
@@ -96,12 +97,30 @@ namespace Result {
     const Matrix& q() const { return q_; } // variance-covariance matrix for x
 
     // return a handle with a "worst-case" covariance matrix
-    Base::Handle withWorstCaseCov() const {
+    Base::Handle withWorstCaseCov(std::string name) const {
       Matrix q(2,2);
       q(1,0) = q(0,1) = 0.0;
       q(0,0) = std::pow(  offsetMax_, 2);
       q(1,1) = std::pow(1e-6*ppmMax_, 2);
-      return Base::Handle(new Calibration(time_, q, x_, offsetMax_, ppmMax_));
+      Base::Handle h(new Calibration(approx_ptime(), q, x_, offsetMax_, ppmMax_));
+      h->set_name(name);
+      return h;
+    }
+
+    // makes a default calibration object with huge errors
+    static Base::Handle makeDefault(ptime t, std::string name) {
+      const double offsetMax = 999;
+      const double ppmMax    = 9999;
+      Matrix q(2,2);
+      q(1,0) = q(0,1) = 0.0;
+      q(0,0) = std::pow(  offsetMax, 2);
+      q(1,1) = std::pow(1e-6*ppmMax, 2);
+      Vector x(2);
+      x(0) = 0.0;
+      x(1) = 1.0;
+      Base::Handle h(new Calibration(t, q, x, offsetMax, ppmMax));
+      h->set_name(name);
+      return h;
     }
 
     // returns a value,RMS pair
@@ -124,11 +143,11 @@ namespace Result {
       return std::make_pair(fCal, std::sqrt(inner_prod(a, Vector(prod(q_, a)))));       
     }
     
-    virtual std::ostream& dumpHeader(std::ostream& os) const {      
-      Base::dumpHeader(os);
+    virtual std::ostream& dump_header(std::ostream& os) const {      
+      Base::dump_header(os);
       return os << " clockOffset_Hz clockOffset_ppm clockOffsetRMS_Hz clockOffsetRMS_ppm";
     }
-    virtual std::ostream& dumpData(std::ostream& os) const {
+    virtual std::ostream& dump_data(std::ostream& os) const {
       return os << boost::format("%6.3f")  % x_(0) << " "
                 << boost::format("%10.2f") % (1e6*(1-x_(1))) << " "
                 << boost::format("%7.3f")  % std::sqrt(q_(0,0)) << " "

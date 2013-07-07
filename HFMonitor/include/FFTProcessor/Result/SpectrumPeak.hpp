@@ -34,6 +34,7 @@
 namespace Result {
   class SpectrumPeak : public Base {
   public:
+    typedef boost::shared_ptr<SpectrumPeak> sptr;
     typedef boost::shared_ptr<SpectrumPeak> Handle;
     typedef frequency_vector<double> PowerSpectrum;
     SpectrumPeak(ptime time, double fReference)
@@ -143,12 +144,12 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual std::ostream& dumpHeader(std::ostream& os) const {
+    virtual std::ostream& dump_header(std::ostream& os) const {
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n";
-      Base::dumpHeader(os);
+      Base::dump_header(os);
       return os << "fMeasured_Hz fMeasuredRMS_Hz strength_dBm strengthRMS_dBm S/N_dB ";
     }
-    virtual std::ostream& dumpData(std::ostream& os) const {
+    virtual std::ostream& dump_data(std::ostream& os) const {
       return os << boost::format("%12.3f") % fMeasured() << " "
                 << boost::format("%6.3f")  % fMeasuredRMS() << " "
                 << boost::format("%7.2f")  % strength() << " "

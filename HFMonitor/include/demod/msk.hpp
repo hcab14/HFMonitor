@@ -74,12 +74,12 @@ namespace demod {
         gf_center_.reset();
         gf_minus_.reset();
       }
-      const complex_type s2(s*s);
-      pll_plus_.process(s2);
-      pll_minus_.process(s2);
+      const complex_type s2(std::pow(s, 2));
       gf_plus_.update(s2);
       gf_center_.update(s2);
       gf_minus_.update(s2);
+      pll_plus_.process(s2);
+      pll_minus_.process(s2);
       ++sample_counter_;
       if (sample_counter_ == period_) {
         sample_counter_= 0;

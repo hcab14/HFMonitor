@@ -190,8 +190,8 @@ public:
       if (xl-labelWidth/2 < last_x) continue;
       fl_line(xl, ySpecBeg(),      xl, ySpecEnd());
       fl_line(xl, yWaterfallBeg(), xl, yWaterfallEnd());
-      fl_draw(label, xl-labelWidth/2, yWaterfallBeg()-fl_descent());
-      last_x = xl+labelWidth/2;
+      fl_draw(label, xl-int(labelWidth/2+0.5), yWaterfallBeg()-fl_descent());
+      last_x = xl+int(labelWidth/2+0.5);
     }
 
     int step_db = 10;
@@ -201,8 +201,8 @@ public:
       step_db = 2;
 
     int last_y(0);
-    for (int s(sMin_.value()); s<sMax_.value(); s+= step_db) {
-      const int yl = ySpecFromInput(s);
+    for (int s(int(sMin_.value())); s<sMax_.value(); s+= step_db) {
+      const int yl(ySpecFromInput(s));
       sprintf(label, "%d", s);
       int _dx(0), _dy(0), _w0(0), _h0(0);
       fl_text_extents(label, _dx, _dy, _w0, _h0);
@@ -213,8 +213,8 @@ public:
       if (s != int(sMin_.value()) &&
           last_y - (yl-labelHeight/2) < 10) continue;
       fl_line(xSpecBeg(), yl, xSpecEnd(), yl);
-      fl_draw(label, xSpecBeg()-labelWidth-4, yl+labelHeight/2);
-      last_y = yl-labelHeight/2;
+      fl_draw(label, xSpecBeg()-int(labelWidth+0.5)-4, yl+int(labelHeight/2+0.5));
+      last_y = yl-int(labelHeight/2+0.5);
     }
   }
 
@@ -252,12 +252,12 @@ protected:
   int xSpecFromInput(double xi) const {
     double x = (xi-fMin_.value()) / (fMax_.value()-fMin_.value());
     x = (x<0) ? 0. : (x>1) ? 1. : x;
-    return xSpecBeg() + x * (xSpecEnd()-xSpecBeg()-1);
+    return int(0.5+ xSpecBeg() + x * (xSpecEnd()-xSpecBeg()-1));
   }
   int ySpecFromInput(double yi) const {
     double x = (yi-sMin_.value()) / (sMax_.value()-sMin_.value());
     x = (x<0) ? 0. : (x>1) ? 1. : x;
-    return ySpecEnd()-1 - x * (ySpecEnd()-ySpecBeg());
+    return int(0.5+ ySpecEnd()-1 - x * (ySpecEnd()-ySpecBeg()));
   }
   double xInputFromSpec(int i) const {
     double x = double(i-xSpecBeg())/double(xSpecEnd()-xSpecBeg());

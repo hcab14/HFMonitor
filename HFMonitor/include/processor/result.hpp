@@ -17,7 +17,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #ifndef _RESULT_HPP_cm130217_
-#define _RESULT_HPP_cm130217__
+#define _RESULT_HPP_cm130217_
 
 #include <iostream>
 #include <string>
@@ -46,6 +46,8 @@ namespace processor {
       return oss.str();
     }
 
+    void set_name(std::string name) { name_ = name; }
+
     virtual std::ostream& dump_header(std::ostream& os) const { return os;  }
     virtual std::ostream& dump_data(std::ostream& os)   const { return os; }
 
@@ -58,8 +60,8 @@ namespace processor {
       , t_(t) {}
 
   private:    
-    const std::string name_;
-    const ptime       t_;
+    std::string name_;
+    const ptime t_;
   } ;
 
 } // namespace processor

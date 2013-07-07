@@ -26,44 +26,59 @@ namespace FFT {
   namespace WindowFunction {
     template<typename T>
     struct Rectangular {
-      T operator()(size_t u, size_t n) const { return T(1); }
+      Rectangular(size_t) {}
+      T operator()(size_t) const { return T(1); }
     } ;
     template<typename T>
-    struct Hanning {
-      T operator()(size_t u, size_t n) const { 
-        return 0.5*(1.0-std::cos(2.*M_PI*u/double(n-1)));
+    class  Hanning {
+    public:
+      Hanning(size_t n)
+        : norm_(1./double(n-1)) {}
+      T operator()(size_t u) const { 
+        return 0.5*(1.0-std::cos(2.*M_PI*u*norm_));
       }
+    private:
+      const double norm_;
     } ;
     template<typename T>
-    struct Hamming {
-      T operator()(size_t u, size_t n) const { 
-        return 0.54 - 0.46*std::cos(2.*M_PI*u/double(n-1));
+    class Hamming {
+    public:
+      Hamming(size_t n)
+        : norm_(1./double(n-1)) {}
+      T operator()(size_t u) const { 
+        return 0.54 - 0.46*std::cos(2.*M_PI*u*norm_);
       }
+    private:
+      const double norm_;
     } ;
     template<typename T>
     class Gaussian {
     public:
-      Gaussian(T sigma)
-        : sigma_(sigma) {}
-      T operator()(size_t u, size_t n) const { 
-        return std::exp(-0.5*std::pow((u-0.5*(n-1)) / (0.5*sigma_*(n-1)), 2));
+      Gaussian(size_t n, T sigma)
+        : n_(n)
+        , norm_(1./(0.5*sigma*(n-1))) {}
+      T operator()(size_t u) const { 
+        return std::exp(-0.5*std::pow((u-0.5*(n_-1))*norm_, 2));
       }
     private:
-      const T sigma_;
+      const size_t n_;
+      const double norm_;
     } ;
     template<typename T>
     class Blackman {
     public:
-      Blackman(T alpha=0.16)
+      Blackman(size_t n, T alpha=0.16)
         : a0_(0.5*(1-alpha))
         , a1_(0.5)
-        , a2_(0.5*alpha) {}
-      T operator()(size_t u, size_t n) const { 
-        const T t(2.*M_PI*u/(n-1));
+        , a2_(0.5*alpha)
+        , norm_(1./double(n-1)) {}
+      T operator()(size_t u) const { 
+        const T t(2.*M_PI*u*norm_);
         return a0_ - a1_*std::cos(t) + a2_*std::cos(2*t);
       }
     private:
       const T a0_, a1_, a2_;
+      const double norm_;
     } ;
   } // namespace WindowFunction
 
@@ -74,14 +89,14 @@ namespace FFT {
 #define MAKE_TRAITS(P, T)                                               \
     template<>                                                          \
     struct FFTWTraits<T> {                                              \
-      typedef FFTW_CONCAT(P,_complex) complex_type;                          \
+      typedef FFTW_CONCAT(P,_complex) complex_type;                     \
       typedef FFTW_CONCAT(P,_plan) Plan;                                \
                                                                         \
-      static complex_type* malloc(size_t n) {                                \
-        return (complex_type*)FFTW_CONCAT(P,_malloc)(sizeof(complex_type)*n);     \
+      static complex_type* malloc(size_t n) {                           \
+        return (complex_type*)FFTW_CONCAT(P,_malloc)(sizeof(complex_type)*n); \
       }                                                                 \
-      static void free(complex_type* a) { FFTW_CONCAT(P,_free)(a); }         \
-      static Plan plan_dft_1d(size_t n, complex_type* in, complex_type* out,      \
+      static void free(complex_type* a) { FFTW_CONCAT(P,_free)(a); }    \
+      static Plan plan_dft_1d(size_t n, complex_type* in, complex_type* out, \
                               int sign, unsigned flags) {               \
         return FFTW_CONCAT(P,_plan_dft_1d)(n, in, out, sign, flags);    \
       }                                                                 \
@@ -140,7 +155,7 @@ namespace FFT {
         if (length != n_) resize(length);
         norm_= 0;
         for (unsigned u(0); u<n_ && i0 != i1; ++u, ++i0) {
-          const T w(window_fcn(u,n_));
+          const T w(window_fcn(u));
           norm_ += w;
           a_[u][0] = w * i0->real();
           a_[u][1] = w * i0->imag();

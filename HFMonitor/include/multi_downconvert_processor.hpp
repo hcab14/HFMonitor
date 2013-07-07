@@ -143,11 +143,7 @@ protected:
       , stream_name_(stream_name)
       , sample_rate_Hz_(sample_rate_Hz)
       , center_frequency_Hz_(center_frequency_Hz)
-      , offset_ppb_(pp->calibration_offset_ppb()) {
-      LOG_INFO(str(boost::format("service_dc: calibration_offset_ppb: %.3f +- %.3f")
-                   % offset_ppb_.first
-                   % offset_ppb_.second));
-    }
+      , offset_ppb_(pp->calibration_offset_ppb()) {}
 
     multi_downconvert_processor<FFTFloat>* pp_;
     const service::sptr   sp_;
@@ -230,6 +226,9 @@ public:
   virtual void process_iq(service::sptr sp,
                           const_iterator i0,
                           const_iterator i1) {
+    // (0) possibly broadcast also the incoming data stream
+    dump(sp, i0, i1);
+
     // (1) initialize filters
     BOOST_FOREACH(filter_param& fp, filter_params_) {
       if (not fp.initialized()) {
@@ -252,20 +251,19 @@ public:
                                fp.name(),
                                sp->sample_rate_Hz()/fp.decim(),
                                fp.center_freq_Hz()));
-      dump(sp_dc, fp, overlap_save_.get_filter(fp.handle())->result());
+      const typename overlap_save_type::complex_vector_type& out(overlap_save_.get_filter(fp.handle())->result());
+      dump(sp_dc, out.begin(), out.end());
       processor_map::iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
-        proc(sp_dc, i->second, overlap_save_.get_filter(fp.handle())->result());
+        proc(sp_dc, i->second, out);
       }
     }
   }
 
 protected:
   // may be overwritten in a derived class
-  virtual void dump(service::sptr sp,
-                    const filter_param& fp,
-                    const typename overlap_save_type::complex_vector_type& out) {
+  virtual void dump(service::sptr sp, const_iterator begin, const_iterator end) {
     // std::cout << "out: " << fp.name() << " " << out.size() << std::endl;
   }
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
@@ -303,8 +301,8 @@ private:
       if (rp->f0_Hz() == 0.0) continue; // being pedantic
 
       const double rms(1e9*rp->f_Hz().rms_value()/rp->f0_Hz());
-      if (rms > 20.) { // don't use obervations with more than 20 ppb error
-        LOG_INFO(str(boost::format("calibration_offset_ppb: obervation '%s' not used: rms=%.2f ppb > 20.00 ppb") % rp % rms));
+      if (rms > 20.) { // don't use observations with more than 20 ppb error
+        LOG_INFO(str(boost::format("calibration_offset_ppb: observation '%s' not used: rms=%.2f ppb > 20.00 ppb") % rp % rms));
         continue;
       }
       // w_i = 1/sigma_i^2

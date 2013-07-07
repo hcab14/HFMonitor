@@ -72,8 +72,8 @@ namespace Internal {
 
 class IQBuffer {
 public:
-  typedef std::complex<double> Complex;
-  typedef std::vector<Complex> Samples;
+  typedef std::complex<double> complex_type;
+  typedef std::vector<complex_type> Samples;
   IQBuffer(size_t n,       // buffer length
            double overlap) // overlap \in [-1,1]
     : iqVec_(2*n,0)
@@ -120,7 +120,7 @@ public:
  
   // insert a single sample
   template<typename PROCESSOR>
-  void insert(PROCESSOR* p, Complex c) {
+  void insert(PROCESSOR* p, const complex_type& c) {
     if (isFirst_) 
       isFirst_ = false;
     else if (!isFull_) 
@@ -139,7 +139,7 @@ public:
   // insert a range of samples
   template<typename PROCESSOR>
   void insert(PROCESSOR* p, Samples::const_iterator begin, Samples::const_iterator end) {
-    void (IQBuffer::*fp)(PROCESSOR*, Complex)(&IQBuffer::insert<PROCESSOR>);
+    void (IQBuffer::*fp)(PROCESSOR*, complex_type)(&IQBuffer::insert<PROCESSOR>);
     std::for_each(begin, end, boost::bind(fp, this, p, _1));
   }
 
