@@ -29,7 +29,8 @@
                       f0_Hz="60.0e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
-                      maxHistorySize="100">
+                      maxHistorySize="100"
+                      maxNumWithoutLock="5">
     </TrackingGoertzel>
   </Processors>
   <Filters>

@@ -169,7 +169,9 @@ namespace detail {
       size_t counter(0);
       for (phase_vector_t::const_iterator i(phase_vector_.begin()), j(i+1);
            i != phase_vector_.end() && j != phase_vector_.end(); ++i, ++j, ++counter) {
+        // time difference (Note: each measurement is made in the middle of its time interval!)
         const double dt(0.5*(i->dt() + j->dt()));
+        // phase advance: each phase is ambiguous modulo df*2*M_PI TODO
         const double dphase(j->phase() - i->phase());
         dfs[counter] = j->df() + dphase/dt/(2*M_PI);
         if (i->df() != j->df() && counter>0)
@@ -277,7 +279,7 @@ namespace detail {
     goertzel_type   filter_;
     phase_vector_t  phase_vector_;
     size_t          period_;         // in samples
-    size_t          max_hist_size_;  // in samples
+    const size_t    max_hist_size_;  // in samples
     size_t          sample_counter_;
     double          offset_;
     double          last_amplitude_;
@@ -333,8 +335,9 @@ public:
 		   double f0,              // center frequency (Hz)
 		   double df,              // initial resolution (Hz): +- df
 		   double min_df,          // maximal frequency resolution (Hz)
-		   size_t max_hist_size) { // maximal size of history in seconds
-    return sptr(new tracking_goertzel_filter(fs, f0, df, min_df, max_hist_size));
+		   size_t max_hist_size,   // maximal size of history in seconds
+                   size_t max_num_without_lock) {
+    return sptr(new tracking_goertzel_filter(fs, f0, df, min_df, max_hist_size, max_num_without_lock));
   }
 
   double         fs_Hz()         const { return fs_; }
@@ -397,14 +400,22 @@ public:
         if (period_ > min_period_ && last_state() == state::MOVE_LEFT) {
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() - 1./period_);
-          std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
-          gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
-          gfs_[GF_CENTER]->update(kN_center,              period_);
-          gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+          if (kN_center - 1./period_ > k_min_ &&
+              kN_center + 1./period_ < k_max_) {
+            std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
+            gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
+            gfs_[GF_CENTER]->update(kN_center,              period_);
+            gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+          }
         } else {
-          std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
-          std::swap(gfs_[GF_LEFT],   gfs_[GF_CENTER]);
-          gfs_[GF_LEFT] = detail::gf_with_phase_hist::make(gf_id2str(GF_LEFT), gfs_[GF_CENTER]->kN() - 1./period_, period_, max_history_size_);
+          const double kN_center(gfs_[GF_LEFT]->kN());
+          if (kN_center - 1./period_ > k_min_ &&
+              kN_center + 1./period_ < k_max_) {
+            std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
+            std::swap(gfs_[GF_LEFT],   gfs_[GF_CENTER]);
+            gfs_[GF_LEFT] =
+              detail::gf_with_phase_hist::make(gf_id2str(GF_LEFT), kN_center - 1./period_, period_, max_history_size_);
+          }
         }
         last_state_ = state::MOVE_LEFT;
       } else if (ampl[GF_LEFT]   < ampl[GF_CENTER] &&
@@ -416,15 +427,23 @@ public:
           // std::cout << "\tA" << std::endl;
           period_ /= 2;
           const double kN_center(gfs_[GF_CENTER]->kN() + 1./period_);
-          std::swap(gfs_[GF_LEFT], gfs_[GF_CENTER]);
-          gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
-          gfs_[GF_CENTER]->update(kN_center,              period_);
-          gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+          if (kN_center - 1./period_ > k_min_ &&
+              kN_center + 1./period_ < k_max_) {
+            std::swap(gfs_[GF_LEFT], gfs_[GF_CENTER]);
+            gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
+            gfs_[GF_CENTER]->update(kN_center,              period_);
+            gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+          }
         } else {
           // std::cout << "\tB" << std::endl;
-          std::swap(gfs_[GF_LEFT],   gfs_[GF_CENTER]);
-          std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
-          gfs_[GF_RIGHT] = detail::gf_with_phase_hist::make(gf_id2str(GF_RIGHT), gfs_[GF_CENTER]->kN() + 1./period_, period_, max_history_size_);
+          const double kN_center(gfs_[GF_RIGHT]->kN());
+          if (kN_center - 1./period_ > k_min_ &&
+              kN_center + 1./period_ < k_max_) {
+            std::swap(gfs_[GF_LEFT],   gfs_[GF_CENTER]);
+            std::swap(gfs_[GF_CENTER], gfs_[GF_RIGHT]);
+            gfs_[GF_RIGHT] =
+              detail::gf_with_phase_hist::make(gf_id2str(GF_RIGHT), kN_center + 1./period_, period_, max_history_size_);
+          }
         }
         last_state_ = state::MOVE_RIGHT;
       } else {
@@ -433,9 +452,12 @@ public:
         if (period_ > min_period_ && last_state() == state::REST)
           period_ /= 2;
         const double kN_center(gfs_[GF_CENTER]->kN());
-        gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
-        gfs_[GF_CENTER]->update(kN_center,              period_);
-        gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+        if (kN_center - 1./period_ > k_min_ &&
+            kN_center + 1./period_ < k_max_) {
+          gfs_[GF_LEFT]->update  (kN_center - 1./period_, period_);
+          gfs_[GF_CENTER]->update(kN_center,              period_);
+          gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
+        }
         last_state_ = state::REST;
       }
     }    
@@ -445,6 +467,15 @@ public:
     gfs_[GF_LEFT]  ->set_df(gfs_[GF_CENTER]->kN() - gfs_[GF_LEFT]->kN());
     gfs_[GF_CENTER]->set_df(0);
     gfs_[GF_RIGHT] ->set_df(gfs_[GF_CENTER]->kN() - gfs_[GF_RIGHT]->kN());
+
+    if (last_state_ != state::PEAK)
+      ++num_without_lock_;
+    else
+      num_without_lock_ = 0;
+   
+    if (num_without_lock_ > 5)
+      reset();
+
   }
 
 protected:
@@ -453,26 +484,41 @@ private:
 			   double f0,            // center frequency (Hz)
 			   double df,            // initial resolution (Hz): +- df
 			   double min_df,        // maximal frequency resolution (Hz)
-			   size_t max_hist_size) // maximal size of history in seconds
+			   size_t max_hist_size, // maximal size of history in seconds
+                           size_t max_num_without_lock) // max. number of iterations without lock
 
     : fs_(fs)
-    , period_(size_t(0.5+fs/df))
+    , f0_(f0)
+    , df_(df)
     , min_period_(period_)
     , max_period_(size_t(0.5+fs/min_df))
-    , filters_updated_(false)
-    , last_state_(state::UNDEFINED)
-    , estimated_f_(f0, df)
-    , delta_time_sec_(0)
-    , max_history_size_(size_t(0.5+fs*max_hist_size)) {
-    const double f[NUM_GF] = { f0-df, f0 , f0+df };
+    , k_min_((f0-df)/fs)
+    , k_max_((f0+df)/fs)
+    , max_history_size_(size_t(0.5+fs*max_hist_size))
+    , max_num_without_lock_(max_num_without_lock) {
+    reset();
+  }
+
+  void reset() {
+    period_           = size_t(0.5+fs_/df_);
+    last_state_       = state::UNDEFINED;
+    filters_updated_  = false;
+    estimated_f_      = detail::value_and_error(f0_, df_);
+    delta_time_sec_   = 0;
+    num_without_lock_ = 0;
+    const double f[NUM_GF] = { f0_-df_, f0_ , f0_+df_ };
     for (size_t i(0); i<NUM_GF; ++i)
       gfs_[i]   = detail::gf_with_phase_hist::make(gf_id2str(gf_id_t(i)),  f[i]/fs_, period_, max_history_size_);
   }
 
-  double          fs_;
+  const double    fs_;
+  const double    f0_;
+  const double    df_;
   size_t          period_;
   size_t          min_period_;
   size_t          max_period_;
+  const double    k_min_; // lower bound in normalized frequency
+  const double    k_max_; // upper bound in normalized frequency
   detail::gf_with_phase_hist::sptr gfs_[NUM_GF];
   bool            filters_updated_;
   state::state_t  last_state_;
@@ -481,8 +527,10 @@ private:
   detail::value_and_error estimated_df_;
   double          delta_time_sec_; // time offset of frequency measurement [sec]
   //   phase_vector_t  phases_;
-  size_t          max_history_size_;
+  const size_t    max_history_size_;
   size_t          history_size_;
+  size_t          num_without_lock_;
+  const size_t    max_num_without_lock_;
 } ;
 
 #endif // _TRACKING_GOERTZEL_FILTER_HPP_cm20121104_

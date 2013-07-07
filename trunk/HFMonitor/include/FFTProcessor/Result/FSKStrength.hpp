@@ -33,6 +33,7 @@
 namespace Result {
   class FFTResultFSKStrength : public Base {
   public:
+    typedef boost::shared_ptr<FFTResultFSKStrength> sptr;
     typedef boost::shared_ptr<FFTResultFSKStrength> Handle;
     typedef frequency_vector<double> PowerSpectrum;
     FFTResultFSKStrength(ptime time,
@@ -62,14 +63,14 @@ namespace Result {
          << " ratio="          << ratio_dB_;
       return ss.str();
     }
-    virtual std::ostream& dumpHeader(std::ostream& os) const {      
-      Base::dumpHeader(os);
+    virtual std::ostream& dump_header(std::ostream& os) const {      
+      Base::dump_header(os);
       return os
         << "fReference_Hz fShift_Hz fMeasuredRef_Hz fMeasuredShift_Hz "
         << "strength_dBm strengthRef_dBm strengthShift_dBm S/N_dB ";
     }
-    virtual std::ostream& dumpData(std::ostream& os) const {
-      Base::dumpData(os);
+    virtual std::ostream& dump_data(std::ostream& os) const {
+      Base::dump_data(os);
       return os
         << boost::format("%12.3f") % peakRef_->fReference() << " "
         << boost::format("%12.3f") % peakShift_->fReference() << " "

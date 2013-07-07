@@ -19,8 +19,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <iostream>
 
-#include "FFTProcessorToBC.hpp"
-#include "FFTProcessorToFile.hpp"
+#include "FFTProcessor.hpp"
 #include "demod_msk_processor.hpp"
 #include "network.hpp"
 #include "network/iq_adapter.hpp"
@@ -83,11 +82,11 @@ int main(int argc, char* argv[])
       spcm[pattern] = std::make_pair(type, config_key);
     }
 
-    processor::registry::add<writer_txt                      >("WriterTXT");
-    processor::registry::add<iq_adapter<wave::writer_iq>     >("WriterIQ");
-    processor::registry::add<FFTProcessorToBC<float>         >("FFTProcToBC_FLOAT");
-    processor::registry::add<FFTProcessorToBC<double>        >("FFTProcToBC_DOUBLE");
-    processor::registry::add<iq_adapter<demod_msk_processor> >("DemodMSK");
+    processor::registry::add<writer_txt>("WriterTXT");
+    processor::registry::add<iq_adapter<wave::writer_iq      > >("WriterIQ");
+    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<iq_adapter<demod_msk_processor>   >("DemodMSK");
 
     multi_client_tofile c(config_multi_client);
 
