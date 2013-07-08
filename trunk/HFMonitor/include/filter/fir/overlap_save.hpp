@@ -68,12 +68,11 @@ namespace filter {
           complex_vector_type in(n(), 0);
           std::copy(b.begin(), b.end(), in.begin());
           fft_.transformVector(in, FFT::WindowFunction::Rectangular<T>(b.size()));
-          for (size_t i(0); i<n(); ++i) {
+          for (size_t i(0), iend(n()); i<iend; ++i) {
             h_[i] = fft_.out(i);
             fft_.in(i) = 0;
           }
-          const size_t nd(n()/d_);
-          for (size_t i(0); i<nd; ++i)
+          for (size_t i(0), nd(n()/d_); i<nd; ++i)
             ifft_.in(i) = 0;
           shift_ = (shift_/size_t(v()+.5))*size_t(v()+0.5);
         }
@@ -106,13 +105,11 @@ namespace filter {
           for (size_t i(0); i<nd; ++i)
             ifft_.in(i) = 0;
           const T norm(T(1)/T(l()));
-          for (size_t i(0); i<n(); ++i)
+          for (size_t i(0), iend(n()); i<iend; ++i)
             ifft_.in(i%nd) += fft.out((n()+i-shift())%n())*h_[i]*norm;
           ifft_.transform();
           
-          const size_t ld(l()/d());
-          const size_t offset((p()-1)/d());
-          for (size_t i(0); i<ld; ++i)
+          for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
             result_[i] = ifft_.out(offset+i);
         }
 
@@ -136,7 +133,7 @@ namespace filter {
         , p_(p)
         , fft_(l+p-1, 1, FFTW_ESTIMATE)
         , last_id_(0) {
-        for (size_t i(0); i<l+p-1; ++i)
+        for (size_t i(0), iend(l+p-1); i<iend; ++i)
           fft_.in(i) = 0;
       }
 
@@ -198,7 +195,7 @@ namespace filter {
           i->second->transform(fft_);
 
         // save old samples
-        for (size_t i(0); i<p_-1; ++i)
+        for (size_t i(0), iend(p_-1); i<iend; ++i)
           fft_.in(i) = fft_.in(l_+i);
       }
       
