@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="client_FFTtoFile"
-CMD="./bin/client_FFTtoFile -c config/FFTProcessor_NTZ.xml"
