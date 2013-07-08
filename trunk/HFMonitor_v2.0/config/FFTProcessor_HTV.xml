@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<FFTProcessor windowFunction="Blackman"
+	      numberOfCollectedEpochs="1">
+  <server host="127.0.0.1"
+	  port="18001">
+  </server>
+  <Broadcaster>
+    <Data port="8080"
+	  maxQueueSize_MB="1"
+	  maxQueueDelay_Minutes="2">
+    </Data>
+  </Broadcaster>
+  <Repack bufferLength_sec="1"
+	  overlap_percent="0">
+  </Repack>
+  <FileSink path="DataNTZ">
+  </FileSink>
+  <Actions calibrationKey="L1.CAL">
+    <L0>
+      <FindPeak name="060000_TS_WWVB"
+		fMin_Hz="59.800e3"
+		fMax_Hz="60.200e3"
+		fRef_Hz="60.000e3"
+		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+      </FindPeak>
+    </L0>
+    <L1>
+      <Calibrator name="CAL"
+		  maxOffset_Hz="10.0"
+		  maxCorrectionFactor_ppm="20.0">
+	<Inputs>
+	  <Input key="L0.060000_TS_WWVB"></Input>
+	</Inputs>
+      </Calibrator>
+    </L1>
+    <L2>
+      <AverageDensity name="024000_Navy_NAA"
+		      fRef_Hz="24.000e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="025200_Navy_NML"
+		      fRef_Hz="25.200e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="037500_Navy_Grindavik"
+		      fRef_Hz="37.5e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <AverageDensity name="040750_Navy_NAU"
+		      fRef_Hz="40.75e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <FindPeak name="060000_TS_WWVB"
+		fMin_Hz="59.800e3"
+		fMax_Hz="60.200e3"
+		fRef_Hz="60.000e3"
+		minRatio="10">
+	<Filter type="LowPass" timeConstant_sec="10.0"></Filter>
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+      <AverageDensity name="073600_Navy_Halifax"
+		      fRef_Hz="73.6e3"
+		      bandwidth_Hz="200">
+	<Calibration key="L1.CAL"></Calibration>
+      </AverageDensity>
+      <FindPeak name="198000_AM_BBC"
+		fMin_Hz="197.800e3"
+		fMax_Hz="198.200e3"
+		fRef_Hz="198.000e3"
+		minRatio="10"
+		plotSpectrum="0">
+	<Calibration key="L1.CAL"></Calibration>
+      </FindPeak>
+    </L2>
+  </Actions>
+</FFTProcessor>
