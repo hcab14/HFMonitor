@@ -84,7 +84,7 @@ namespace Result {
                         boost::shared_ptr<BROADCASTER> bc,
                         Base* h) {
       std::ostringstream sHeader;
-      h->dump_header(sHeader);
+      h->dumpHeader(sHeader);
       const std::string sh(sHeader.str());
 
       std::ostringstream sData;
