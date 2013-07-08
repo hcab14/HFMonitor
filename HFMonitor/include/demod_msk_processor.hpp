@@ -46,7 +46,7 @@ public:
     , b_(n, 0.)
     , phases_ (n, complex_type(1,0))
     , history_(n, complex_type(0,0)) {
-    fir_design_.design(f, f/10);
+    fir_design_.design(f, 0.1*f);
     std::copy(fir_design_.coeff().begin(), fir_design_.coeff().end(), b_.begin());
   }
 
@@ -56,8 +56,9 @@ public:
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
     f0 = double(shift)/double(n_);
+    const double two_pi_f0(2*M_PI*f0);
     for (size_t i(0); i<n_; ++i) {
-      phases_[i] = std::exp(complex_type(0., 2*M_PI*f0*i));
+      phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
       // std::cout << i << " " << phases_[i] << " " << b_[i] << std::endl;
     }
     return f0;
@@ -259,7 +260,7 @@ public:
       frequency_vector<double>::const_iterator i_max;
       double max(-1);
       double sum(0);
-      for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
+      for (frequency_vector<double>::const_iterator i(psf.begin()), end(psf.end()); i!=end; ++i) {
         // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
