@@ -41,8 +41,7 @@ public:
   virtual file_period filePeriod()    const { return file_period_; }
   virtual std::string fileExtension() const { return "txt"; }
 
-  processor::result_base::sptr dump_result(processor::result_base::sptr rp,
-                                           std::string extra_header) {
+  processor::result_base::sptr dump_result(processor::result_base::sptr rp) {
     if (!rp)
       return rp;
     if (rp->format() != "TXT_0000") {
@@ -60,7 +59,6 @@ public:
     if (not boost::filesystem::exists(filepath)) {
       LOG_INFO(str(boost::format("creating new file '%s'") % filepath));
       std::ofstream ofs(filepath.c_str(), std::ios::binary);
-      ofs << extra_header;
       rp->dump_header(ofs) << "\n";
       pos_ = ofs.tellp();
     } else {
@@ -107,10 +105,10 @@ public:
                      std::string data) {
       return sptr(new result(name, t, header, data));
     }
-    virtual std::ostream& dump_header(std::ostream& os) const { return os << header_; }
+    virtual std::ostream& dump_header(std::ostream& os) const { return os << header_;  }
     virtual std::ostream& dump_data(std::ostream& os)   const { return os << data_; }
 
-  protected:
+  protected:    
   private:
     result(std::string name,
            ptime t,
@@ -142,8 +140,7 @@ public:
     }
     std::string data(std::distance(i0, i1), ' ');
     std::copy(i0, i1, data.begin());
-    dump_result(result::make(sp->stream_name(), sp->approx_ptime(), header_, data),
-                ""); // no extra header: extra headers are supposed to be contained in header_
+    dump_result(result::make(sp->stream_name(), sp->approx_ptime(), header_, data));
   }
 
 protected:

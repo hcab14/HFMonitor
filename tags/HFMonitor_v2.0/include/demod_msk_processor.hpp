@@ -110,7 +110,7 @@ public:
     double sn_db()     const { return sn_db_; }
     double phase_rad() const { return phase_rad_; }
 
-    virtual std::ostream& dump_header(std::ostream& os) const {      
+    virtual std::ostream& dump_header(std::ostream& os) const {
       return os
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
         << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"

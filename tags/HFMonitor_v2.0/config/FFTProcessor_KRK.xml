@@ -2,10 +2,6 @@
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="1">
-  <StationInfo>
-    Station  = KRK
-    Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
-  </StationInfo>
   <server host="nz23-18.ifj.edu.pl"
 	  port="18001">
   </server>
