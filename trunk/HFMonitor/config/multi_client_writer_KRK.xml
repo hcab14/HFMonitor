@@ -8,7 +8,7 @@
   <server host="nz23-18.ifj.edu.pl"
 	  port="8080">
   </server>
-  <FileSink filePath="DataKRK_"
+  <FileSink filePath="DataKRK"
             filePeriod="1d">
   </FileSink>
   <Streams>
@@ -20,7 +20,7 @@
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
-            filePath="DataKRK_"
+            filePath="DataKRK"
             filePeriod="1d">
     </Writer>
   </Clients>
