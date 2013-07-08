@@ -1,5 +1,5 @@
 #!/bin/bash
 # $Id$
 
-NAME="server"
-CMD="sudo ./bin/perseus_server -c config/perseus_server_HTV.xml"
+NAME="perseus_server"
+CMD="sudo ./bin/$NAME -c config/${NAME}_HTV.xml"
