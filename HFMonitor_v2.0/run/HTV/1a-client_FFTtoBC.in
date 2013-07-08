@@ -1,0 +1,5 @@
+#!/bin/bash
+# $Id$
+
+NAME="client_FFTtoBC"
+CMD="./bin/client_FFTtoBC -c config/FFTProcessor_HTV.xml"

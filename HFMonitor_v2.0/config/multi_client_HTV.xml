@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<MultiClient>
+  <server host="127.0.0.1"
+	  port="19003">
+  </server>
+  <FileSink filePath="DataPhaseHTV"
+            filePeriod="1d">
+  </FileSink>
+  <Streams>
+    <Stream pattern="TGF.*">WriterText</Stream>
+    <Stream pattern="DC_024000_NAA">DemodMSK_NAA</Stream>
+    <Stream pattern="DC_037500_NRK">DemodMSK_NRK</Stream>
+  </Streams>
+  <Clients>
+    <WriterText type="WriterTXT"
+                filePath="DataPhaseHTV"
+                filePeriod="1d">
+    </WriterText>
+    <WriterIQ type="WriterIQ"
+              filePath="DataIQ"
+              filePeriod="5m"
+              bitsPerSample="24">
+    </WriterIQ>
+    <DemodMSK_NAA type="DemodMSK"
+                  name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NAA>
+    <DemodMSK_NRK type="DemodMSK"
+                  name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_NRK>
+  </Clients>
+</MultiClient>

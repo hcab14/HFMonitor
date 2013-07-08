@@ -1,0 +1,96 @@
+# -*- mode: cmake -*-
+# $Id$
+
+# Check if cmake has the required version
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
+
+# Set name of our project.
+PROJECT(HFMonitor)
+
+SET(CPACK_GENERATOR "RPM")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Christoph Mayer") #required
+INCLUDE(CPack)
+
+EXEC_PROGRAM("echo `svnversion ${CMAKE_HOME_DIRECTORY}` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
+
+MESSAGE("VERSION=${SVN_VERSION_STRING}")
+
+SET(SVN_VERSION_STRING \\\"${SVN_VERSION_STRING}\\\")
+SET(CMAKE_BUILD_TYPE Release)
+#SET(CMAKE_CXX_FLAGS         "-Wall -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG -DSVN_VERSION_STRING=\"${SVN_VERSION_STRING}\"")
+SET(CMAKE_CXX_FLAGS         "-Wall -DSVN_VERSION_STRING=\"${SVN_VERSION_STRING}\"")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
+SET(CMAKE_CXX_FLAGS_DEBUG   "-g")
+SET(CMAKE_VERBOSE_MAKEFILE OFF)
+
+# where to look first for cmake modules
+SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules")
+
+SET(CMAKE_INSTALL_PREFIX ${CMAKE_HOME_DIRECTORY}/bin)
+
+# List of libraries
+SET(_libs)
+
+# Setup FFTW3
+FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
+LIST(APPEND _libs ${FFTW3_LIBRARIES})
+
+# Setup BOOST
+EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
+SET(Boost_NO_SYSTEM_PATHS TRUE)
+SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
+SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
+SET(Boost_USE_STATIC_LIBS   ON)
+SET(Boost_USE_MULTITHREADED ON)
+FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)
+LIST(APPEND _libs ${Boost_LIBRARIES})
+IF(!APPLE)
+  LIST(APPEND _libs rt)
+  LIST(APPEND _libs pthread)
+ENDIF(!APPLE)
+
+# Setup libperseus-sdr
+#FIND_PACKAGE(PerseusSDR REQUIRED)
+#LIST(APPEND _libs ${PerseusSDR_LIBRARY})
+
+# Setup libusb-1.0
+FIND_PACKAGE(libusb-1.0 REQUIRED)
+LIST(APPEND _libs ${libusb-1.0_LIBRARY})
+
+# Setup portaudio
+FIND_PACKAGE(Portaudio REQUIRED)
+LIST(APPEND _libs ${portaudio_LIBRARY})
+
+# Setup FLTK
+SET(FLTK_PATH ${CMAKE_HOME_DIRECTORY}/software/fltk/insted/bin)
+FIND_PACKAGE(FLTK REQUIRED)
+SET(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}         ${FLTK_CXXFLAGS}")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  ${FLTK_LDFLAGS}")
+
+INCLUDE_DIRECTORIES(
+  ${Boost_INCLUDE_DIRS}
+  ${libusb-1.0_INCLUDE_DIR}
+  ${FFTW3_INCLUDE_DIR}
+  "./include"
+  )
+
+ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(test)
+
+#SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VLF Spectrum Monitoring")
+#SET(CPACK_PACKAGE_VENDOR "Christoph Mayer")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")
+#SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Copyright.txt")
+#SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+#SET(CPACK_PACKAGE_VERSION_MINOR "3")
+#SET(CPACK_PACKAGE_VERSION_PATCH "2")
+#SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+#SET(CPACK_STRIP_FILES "bin/client_FFTtoBC")
+#SET(CPACK_SOURCE_STRIP_FILES "")
+#SET(CPACK_PACKAGE_EXECUTABLES 
+#  "client_FFTtoBC" "Executable Description"
+#  "client_FFTtoFile" "Executable Description"
+#  "client_multi_downconvert" "Executable Description"
+#  "multi_client perseus_server" "Executable Description"
+#  "server_ls" "Executable Description"
+#  )
