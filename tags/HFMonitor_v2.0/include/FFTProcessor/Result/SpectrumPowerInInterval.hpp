@@ -35,7 +35,6 @@
 namespace Result {
   class SpectrumPowerInInterval : public Base {
   public:
-    typedef boost::shared_ptr<SpectrumPowerInInterval> sptr;
     typedef boost::shared_ptr<SpectrumPowerInInterval> Handle;
     typedef frequency_vector<double> PowerSpectrum;
 
@@ -99,13 +98,13 @@ namespace Result {
       return std::make_pair(f, double(1));
     }
 
-    virtual std::ostream& dump_header(std::ostream& os) const {      
+    virtual std::ostream& dumpHeader(std::ostream& os) const {      
       os << "# Frequency = " << boost::format("%12.3f") % fReference() << " [Hz]\n"
          << "# Bandwidth = " << boost::format("%9.3f")  % bandwidth()  << " [Hz]\n";
-      Base::dump_header(os);
+      Base::dumpHeader(os);
       return os << "strength_dBm averageStrength_dBm strengthRMS_dBm ";
     }
-    virtual std::ostream& dump_data(std::ostream& os) const {
+    virtual std::ostream& dumpData(std::ostream& os) const {
       return os
         << boost::format("%7.2f")  % strength()        << " "
         << boost::format("%7.2f")  % averageStrength() << " "
@@ -131,7 +130,7 @@ namespace Result {
                                       Calibration::Handle calibrationHandle)
       : SpectrumPowerInInterval(time, fReference, bandwidth, normWindow)
       , calibrationHandle_(calibrationHandle) {
-      processor::result_base::set_name("CalibratedSpectrumPowerInInterval");
+      name_= "CalibratedSpectrumPowerInInterval";
     }
     virtual ~CalibratedSpectrumPowerInInterval() {}
 

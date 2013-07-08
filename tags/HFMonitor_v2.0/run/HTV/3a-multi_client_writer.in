@@ -3,3 +3,8 @@
 
 NAME="multi_client_to_file"
 CMD="./bin/$NAME -c config/multi_client_writer_HTV.xml"
+#!/bin/bash
+# $Id$
+
+NAME="multi_client_to_file"
+CMD="./bin/$NAME -c config/multi_client_writer_HTV.xml"

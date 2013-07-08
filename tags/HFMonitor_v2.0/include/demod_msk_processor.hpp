@@ -46,7 +46,7 @@ public:
     , b_(n, 0.)
     , phases_ (n, complex_type(1,0))
     , history_(n, complex_type(0,0)) {
-    fir_design_.design(f, 0.1*f);
+    fir_design_.design(f, f/10);
     std::copy(fir_design_.coeff().begin(), fir_design_.coeff().end(), b_.begin());
   }
 
@@ -56,9 +56,8 @@ public:
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
     f0 = double(shift)/double(n_);
-    const double two_pi_f0(2*M_PI*f0);
     for (size_t i(0); i<n_; ++i) {
-      phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
+      phases_[i] = std::exp(complex_type(0., 2*M_PI*f0*i));
       // std::cout << i << " " << phases_[i] << " " << b_[i] << std::endl;
     }
     return f0;
@@ -110,7 +109,7 @@ public:
     double sn_db()     const { return sn_db_; }
     double phase_rad() const { return phase_rad_; }
 
-    virtual std::ostream& dump_header(std::ostream& os) const {
+    virtual std::ostream& dump_header(std::ostream& os) const {      
       return os
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
         << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"
@@ -184,7 +183,7 @@ public:
     }
 
     // set up a new filter
-    bool is_first_call(demod_msk_ == 0);
+    bool is_first_call(false);
     if (not demod_msk_) {
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
                                     -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
@@ -193,16 +192,18 @@ public:
 //       filter_.shift((fc_Hz_ - sp->center_frequency_Hz())/sp->sample_rate_Hz());
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
+      is_first_call= true;
     }
 
     demod_msk_->update_ppb(sp->offset_ppb(),
                            -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
                            0.5*fm_Hz_);
+
     std::vector<complex_type> samples2(length, complex_type(0));
     std::vector<complex_type>::iterator j(samples2.begin());
     for (const_iterator i(i0); i!=i1; ++i, ++j) {
       const complex_type sample(filter_.process(*i));
-//       *j = std::pow(sample, 2);
+      *j = (sample*sample);
       demod_msk_->process(sample);
       if (not is_first_call && demod_msk_->updated()) {
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
@@ -238,13 +239,13 @@ public:
         //           << std::endl;
         const time_duration
           dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-        result::sptr r(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
-        sp->put_result(r);
+        sp->put_result(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
+//         dump(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
       }
     }
-#if 0
-    fftw_.transformVector(samples2, FFT::WindowFunction::Blackman<double>(samples2.size()));
+    fftw_.transformVector(samples2, FFT::WindowFunction::Blackman<double>());
     const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz_ - sp->center_frequency_Hz()));
+
     double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
 
     // std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
@@ -260,7 +261,7 @@ public:
       frequency_vector<double>::const_iterator i_max;
       double max(-1);
       double sum(0);
-      for (frequency_vector<double>::const_iterator i(psf.begin()), end(psf.end()); i!=end; ++i) {
+      for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
         // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
@@ -303,7 +304,6 @@ public:
       f_plus  = sum_wx/sum_w;
       sn_plus = i_max->second/sum*psf.size();
     }
-#endif
     // std::cout << "ps: " << name_
     //           << boost::format(" f_minus,plus: %8.3f %8.3f sn_minus,plus: %5.2f %5.2f delta_f: %8.3f baud: %8.3f")
     //   % f_minus % f_plus

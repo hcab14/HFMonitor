@@ -64,9 +64,8 @@ namespace filter {
     // filter update
     double process(complex_type s) {
       const complex_type i_phase(float_type(0), integrator_.process(f1_*ts()));
-      static double two_pi(2*M_PI);
-      f1_ = two_pi*fc() + loop_filter_.process(std::arg(s * std::exp(-i_phase)));
-      if (f1_ > two_pi*f1_upper_limit() || f1_ < two_pi*f1_lower_limit())
+      f1_ = 2*M_PI*fc() + loop_filter_.process(std::arg(s * std::exp(-i_phase)));
+      if (f1_ > 2*M_PI*f1_upper_limit() || f1_ < 2*M_PI*f1_lower_limit())
         reset();
       return theta();
     }

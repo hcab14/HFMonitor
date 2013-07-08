@@ -26,59 +26,44 @@ namespace FFT {
   namespace WindowFunction {
     template<typename T>
     struct Rectangular {
-      Rectangular(size_t) {}
-      T operator()(size_t) const { return T(1); }
+      T operator()(size_t u, size_t n) const { return T(1); }
     } ;
     template<typename T>
-    class  Hanning {
-    public:
-      Hanning(size_t n)
-        : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
-        return 0.5*(1.0-std::cos(2.*M_PI*u*norm_));
+    struct Hanning {
+      T operator()(size_t u, size_t n) const { 
+        return 0.5*(1.0-std::cos(2.*M_PI*u/double(n-1)));
       }
-    private:
-      const double norm_;
     } ;
     template<typename T>
-    class Hamming {
-    public:
-      Hamming(size_t n)
-        : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
-        return 0.54 - 0.46*std::cos(2.*M_PI*u*norm_);
+    struct Hamming {
+      T operator()(size_t u, size_t n) const { 
+        return 0.54 - 0.46*std::cos(2.*M_PI*u/double(n-1));
       }
-    private:
-      const double norm_;
     } ;
     template<typename T>
     class Gaussian {
     public:
-      Gaussian(size_t n, T sigma)
-        : n_(n)
-        , norm_(1./(0.5*sigma*(n-1))) {}
-      T operator()(size_t u) const { 
-        return std::exp(-0.5*std::pow((u-0.5*(n_-1))*norm_, 2));
+      Gaussian(T sigma)
+        : sigma_(sigma) {}
+      T operator()(size_t u, size_t n) const { 
+        return std::exp(-0.5*std::pow((u-0.5*(n-1)) / (0.5*sigma_*(n-1)), 2));
       }
     private:
-      const size_t n_;
-      const double norm_;
+      const T sigma_;
     } ;
     template<typename T>
     class Blackman {
     public:
-      Blackman(size_t n, T alpha=0.16)
+      Blackman(T alpha=0.16)
         : a0_(0.5*(1-alpha))
         , a1_(0.5)
-        , a2_(0.5*alpha)
-        , norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
-        const T t(2.*M_PI*u*norm_);
+        , a2_(0.5*alpha) {}
+      T operator()(size_t u, size_t n) const { 
+        const T t(2.*M_PI*u/(n-1));
         return a0_ - a1_*std::cos(t) + a2_*std::cos(2*t);
       }
     private:
       const T a0_, a1_, a2_;
-      const double norm_;
     } ;
   } // namespace WindowFunction
 
@@ -89,14 +74,14 @@ namespace FFT {
 #define MAKE_TRAITS(P, T)                                               \
     template<>                                                          \
     struct FFTWTraits<T> {                                              \
-      typedef FFTW_CONCAT(P,_complex) complex_type;                     \
+      typedef FFTW_CONCAT(P,_complex) Complex;                          \
       typedef FFTW_CONCAT(P,_plan) Plan;                                \
                                                                         \
-      static complex_type* malloc(size_t n) {                           \
-        return (complex_type*)FFTW_CONCAT(P,_malloc)(sizeof(complex_type)*n); \
+      static Complex* malloc(size_t n) {                                \
+        return (Complex*)FFTW_CONCAT(P,_malloc)(sizeof(Complex)*n);     \
       }                                                                 \
-      static void free(complex_type* a) { FFTW_CONCAT(P,_free)(a); }    \
-      static Plan plan_dft_1d(size_t n, complex_type* in, complex_type* out, \
+      static void free(Complex* a) { FFTW_CONCAT(P,_free)(a); }         \
+      static Plan plan_dft_1d(size_t n, Complex* in, Complex* out,      \
                               int sign, unsigned flags) {               \
         return FFTW_CONCAT(P,_plan_dft_1d)(n, in, out, sign, flags);    \
       }                                                                 \
@@ -116,7 +101,7 @@ namespace FFT {
     class FFTWArray {
     public:
       typedef Internal::FFTWTraits<T> Traits;
-      typedef typename Traits::complex_type complex_type;
+      typedef typename Traits::Complex Complex;
 
       FFTWArray(size_t n)
         : n_(n)
@@ -135,10 +120,10 @@ namespace FFT {
       size_t size() const { return n_; }
       T norm() const { return norm_; }
       
-      complex_type* begin() { return a_; }
-      complex_type* end()   { return a_+n_; }  
-      complex_type&       operator[](size_t n)       { return a_[n]; }
-      const complex_type& operator[](size_t n) const { return a_[n]; }
+      Complex* begin() { return a_; }
+      Complex* end()   { return a_+n_; }  
+      Complex&       operator[](size_t n)       { return a_[n]; }
+      const Complex& operator[](size_t n) const { return a_[n]; }
       
       template<typename V,
                template<typename U> class WINDOW_FCN>
@@ -155,7 +140,7 @@ namespace FFT {
         if (length != n_) resize(length);
         norm_= 0;
         for (unsigned u(0); u<n_ && i0 != i1; ++u, ++i0) {
-          const T w(window_fcn(u));
+          const T w(window_fcn(u,n_));
           norm_ += w;
           a_[u][0] = w * i0->real();
           a_[u][1] = w * i0->imag();
@@ -172,7 +157,7 @@ namespace FFT {
       }
     private:
       size_t n_;
-      complex_type *a_;
+      Complex *a_;
       T norm_;
     } ;
   } // namespace Internal
@@ -181,7 +166,7 @@ namespace FFT {
   class FFTWTransform : public Internal::FFTWTraits<T> {
   public:    
     typedef Internal::FFTWTraits<T> Traits;
-    typedef typename Traits::complex_type complex_type;
+    typedef typename Traits::Complex Complex;
     typedef typename Traits::Plan Plan;
     
     using Traits::plan_dft_1d;
@@ -255,8 +240,8 @@ namespace FFT {
     std::complex<T> getBin(size_t u) const {
       return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]); 
     }
-    std::vector<complex_type> getBins() const {
-      std::vector<complex_type> v(size());
+    std::vector<Complex> getBins() const {
+      std::vector<Complex> v(size());
       for (size_t u(0); u<size(); ++u) 
         v[u] = getBin(u);
       return v;

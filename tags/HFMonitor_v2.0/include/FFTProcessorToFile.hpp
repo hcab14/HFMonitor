@@ -28,7 +28,8 @@ class FFTProcessorToFile : public FFTProcessor<FFTFloat> {
 public:
   FFTProcessorToFile(const boost::property_tree::ptree& config)
     : FFTProcessor<FFTFloat>(config)
-    , dataPath_(config.get<std::string>("FileSink.<xmlattr>.path")) {}
+    , dataPath_(config.get<std::string>("FileSink.<xmlattr>.path"))
+    , station_info_(config.get<std::string>("StationInfo")) {}
 
   virtual ~FFTProcessorToFile() {}
 
@@ -38,11 +39,12 @@ protected:
   typedef typename FFTProcessor<FFTFloat>::ResultMap ResultMap;
 
   virtual void dump(const typename ResultMap::value_type& result) {
-    result.second->dumpToFile(dataPath_, result.first);
+    result.second->dumpToFile(dataPath_, result.first, station_info_);
   }
 private:
-  std::string dataPath_;
+  std::string             dataPath_;
   boost::asio::io_service service_;
+  std::string             station_info_;
 } ;
 
 

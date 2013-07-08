@@ -34,7 +34,6 @@
 namespace Result {
   class PowerSpectrumLine : public Base {
   public:
-    typedef boost::shared_ptr<PowerSpectrumLine> sptr;
     typedef boost::shared_ptr<PowerSpectrumLine> Handle;
     typedef frequency_vector<double> PowerSpectrum;
 

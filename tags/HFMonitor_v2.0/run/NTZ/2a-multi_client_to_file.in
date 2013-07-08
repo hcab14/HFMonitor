@@ -3,3 +3,8 @@
 
 NAME="multi_client_to_file"
 CMD="./bin/$NAME -c config/multi_client_NTZ.xml"
+#!/bin/bash
+# $Id$
+
+NAME="multi_client_to_file"
+CMD="./bin/$NAME -c config/multi_client_NTZ.xml"

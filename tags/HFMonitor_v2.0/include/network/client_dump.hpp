@@ -17,7 +17,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #ifndef _CLIENT_DUMP_HPP_cm121217_
-#define _CLIENT_DUMP_HPP_cm121217_
+#define _CLIENT_DUMO_HPP_cm121217_
 
 #include "processor/service.hpp"
 #include "network/protocol.hpp"
@@ -85,5 +85,6 @@ protected:
 private:
   PROCESSOR p_;
 } ;
+
 
 #endif // _CLIENT_DUMP_HPP_cm121126_ 

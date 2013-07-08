@@ -171,11 +171,9 @@ private:
   
   // asyncronuosly receive the data of a data packet
   void async_receive_data() {
-    if (header_.length() >= data_buffer().size())
-      LOG_ERROR(str(boost::format("header: %s H: %d D: %d") % header_ % header_.length() % data_buffer().size()));
-    ASSERT_THROW(header_.length() < data_buffer().size());
+    ASSERT_THROW(header_.length() < data_buffer_.size());
     boost::asio::async_read(socket_,
-                            boost::asio::buffer(&data_buffer(), header_.length()),
+                            boost::asio::buffer(&data_buffer_, header_.length()),
                             get_strand().wrap(boost::bind(&client_base::on_receive,
                                                           this,
                                                           received_data,
@@ -200,12 +198,12 @@ private:
       assert(bytes_transferred == header_.length());
       if (header_.id() == broadcaster_directory::id()) {
         broadcaster_directory new_directory;
-        new_directory.update(header_.length(), data_buffer().data());
+        new_directory.update(header_.length(), data_buffer_.data());
         directory_update(new_directory);
         std::swap(new_directory, directory_);
       } else {
         // process data samples in a method overwritten in a derived class
-        process(data_buffer().begin(), data_buffer().begin()+header_.length());
+        process(data_buffer_.begin(), data_buffer_.begin()+header_.length());
       }
       // then receive the next header
       async_receive_header();
@@ -253,15 +251,11 @@ private:
     return (!error) || (endpoint_iterator != end);
   }
 
-  static data_buffer_type& data_buffer() {
-    static data_buffer_type db;
-    return db;
-  }
-
   boost::asio::io_service&          io_service_;
   boost::asio::strand               strand_;
   boost::asio::ip::tcp::socket      socket_;
   header                            header_;
+  data_buffer_type                  data_buffer_;
   char                              tick_buffer_;
   boost::asio::deadline_timer       timer_;
   broadcaster_directory             directory_;

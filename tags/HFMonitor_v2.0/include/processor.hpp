@@ -36,7 +36,7 @@ namespace processor {
     typedef boost::shared_ptr<base> sptr;
 
     enum {
-      max_buffer_size = 20*1024*1024 // 20 MB: enough space for 1 sec 2MS/s which is 12,000,000 bytes
+      max_buffer_size = 1024*1024 // 1MB
     } ;
     typedef boost::array<char, max_buffer_size> data_buffer_type;
     typedef data_buffer_type::const_iterator const_iterator;

@@ -20,19 +20,16 @@
 #define _spectrum_display_hpp_cm120516_
 
 #include <FL/Fl.H>
-#include <FL/Fl_Box.H>
-#include <FL/Fl_Input.H>
-// #include <FL/Fl_draw.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
-#include <FL/Fl_Simple_Counter.H>
+#include <FL/Fl_Box.H>
+#include <FL/Fl_Input.H>
 #include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Simple_Counter.H>
 #include <FL/Fl_Value_Output.H>
 
 #include <vector>
 #include <cmath>
-
-#include "Spectrum.hpp"
 
 class spectrum_display : public Fl_Double_Window {
 public:
@@ -64,7 +61,7 @@ public:
     end();
     specIndex_ = specM();
     spec_.resize(specN() * specM());
-    specImg_.resize(2 * 3 * specN() * specM());
+    specImg_.resize(2 * specN() * specM());
   }
   virtual ~spectrum_display() {}
 
@@ -80,54 +77,18 @@ public:
     s->damage(FL_DAMAGE_ALL);
   }
   
-  template<typename T>
-  void insert_spec(const frequency_vector<T>& spec) {
-    fMin_.value(spec.fmin());
-    fMax_.value(spec.fmax());
-    std::vector<double> s(specN(), 0.0);
-    // reverse!!
-    for (int i(0); i<specN(); ++i) {
-      s[i] = spec[spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
-    }
-    // for (size_t i=0; i<spec.size(); ++i) {
-    //   const size_t j(i*specN()/spec.size());
-    //   s[j] = spec[i].second;
-    // }
-    insert_spec(s);
-  }
-
   void insert_spec(const std::vector<double>& spec) {
     specIndex_--;
     if (specIndex_ <0) specIndex_ = specM()-1;
     for (size_t i=0; i<spec.size(); ++i) {
       spec_[specIndex_*specN()+i] = spec[i];
-
-      // normalized, clamped signal
-      const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
-
-      // colormap calculation: blue-red HSV->RGB
-      const double hp(2.*(2.-x));
-      const double xx(1. - std::abs(std::fmod(hp, 2.) - 1.));
-      double cr(0), cg(0), cb(0);
-      if (hp < 4.) { cb = 1; cg = xx; }
-      if (hp < 3.) { cg = 1; cb = xx; }
-      if (hp < 2.) { cg = 1; cr = xx; }
-      if (hp < 1.) { cr = 1; cg = xx; }
-
-      const size_t j1(3*(specIndex_*specN() + i));
-      const size_t j2(j1 + 3*specM()*specN());
-      specImg_[j1]   = specImg_[j2]   = uchar(cr*255);
-      specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
-      specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
+      double x = (spec[i]-sMin_.value())/(sMax_.value()-sMin_.value());
+      x= (x<0) ? 0 : (x>1) ? 1 : x;
+      specImg_[specIndex_*specN()+i] = specImg_[(specM()+specIndex_)*specN()+i] = 255*x;
     }
     this->damage(FL_DAMAGE_ALL);
   }
-
-      // clamp x \in [0,1]
-  static double clamp(double x) {
-    return (x<0) ? 0 : (x>1) ? 1 : x;
-  }
-
+  
   void draw() {
     Fl_Widget *const*a = array();
     if (damage() == FL_DAMAGE_CHILD) { // only redraw some children
@@ -138,7 +99,7 @@ public:
       draw_spec();
       draw_waterfall();
       draw_frames();
-      draw_ticks(100); // step size 100 Hz for now
+      draw_ticks(50); // step size 50 kHz for now
 
       // now draw all the children atop the background:
       for (int i = children(); i--; a++) {
@@ -152,26 +113,22 @@ public:
     fl_color(FL_GREEN);
     fl_begin_line();
     for (int i=0; i<specN(); ++i)
-      fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
+      fl_vertex(i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     fl_end_line();
   }
 
   void draw_waterfall() const {
-    fl_draw_image(&specImg_[0] + 3*specIndex_*specN(),
-                  xWaterfallBeg(), yWaterfallBeg(),
-                  specN(),         specM());
+    // Fl_RGB_Image img(&specImg_[0]+specIndex_*specN(), specN(), specM(), 1);
+    // img.draw(xWaterfallBeg(), yWaterfallBeg());
+    fl_draw_image_mono(&specImg_[0]+specIndex_*specN(),
+		       xWaterfallBeg(), yWaterfallBeg(),
+		       specN(),         specM());
   }
 
   void draw_frames() {
     fl_color(FL_BLACK);
-    fl_rect(xSpecBeg(),
-            ySpecBeg(),
-            xSpecEnd()-xSpecBeg(),
-            ySpecEnd()-ySpecBeg());
-    fl_rect(xWaterfallBeg(),
-            yWaterfallBeg(),
-            xWaterfallEnd()-xWaterfallBeg(),
-            yWaterfallEnd()-yWaterfallBeg());
+    fl_rect(0, ySpecBeg(),      w(), ySpecEnd()-ySpecBeg());
+    fl_rect(0, yWaterfallBeg(), w(), yWaterfallEnd()-yWaterfallBeg());
   }
 
   // every step kHz
@@ -179,7 +136,6 @@ public:
     fl_color(FL_BLUE);
     char label[1024];
     fl_line_style(FL_DASH);
-    int last_x(-100000);
     for (int fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
       if (fi < fMin_.value()) continue;
       const int xl = xSpecFromInput(fi);
@@ -187,34 +143,9 @@ public:
       const double labelWidth = fl_width(label);
       if (xl-labelWidth/2 <= xSpecBeg()) continue;
       if (xl+labelWidth/2 >= xSpecEnd()) continue;
-      if (xl-labelWidth/2 < last_x) continue;
       fl_line(xl, ySpecBeg(),      xl, ySpecEnd());
       fl_line(xl, yWaterfallBeg(), xl, yWaterfallEnd());
-      fl_draw(label, xl-int(labelWidth/2+0.5), yWaterfallBeg()-fl_descent());
-      last_x = xl+int(labelWidth/2+0.5);
-    }
-
-    int step_db = 10;
-    if (sMax_.value()-sMin_.value() < 30)
-      step_db = 5;
-    if (sMax_.value()-sMin_.value() < 10)
-      step_db = 2;
-
-    int last_y(0);
-    for (int s(int(sMin_.value())); s<sMax_.value(); s+= step_db) {
-      const int yl(ySpecFromInput(s));
-      sprintf(label, "%d", s);
-      int _dx(0), _dy(0), _w0(0), _h0(0);
-      fl_text_extents(label, _dx, _dy, _w0, _h0);
-      const double labelHeight(_h0);
-      const double labelWidth(_w0);
-      if (yl+labelHeight/2 >= ySpecEnd()) continue;
-      if (yl-labelHeight/2 <= ySpecBeg()) continue;
-      if (s != int(sMin_.value()) &&
-          last_y - (yl-labelHeight/2) < 10) continue;
-      fl_line(xSpecBeg(), yl, xSpecEnd(), yl);
-      fl_draw(label, xSpecBeg()-int(labelWidth+0.5)-4, yl+int(labelHeight/2+0.5));
-      last_y = yl-int(labelHeight/2+0.5);
+      fl_draw(label, xl-labelWidth/2, yWaterfallBeg()-fl_descent());
     }
   }
 
@@ -231,20 +162,16 @@ public:
       return Fl_Double_Window::handle(event);
     }
   }
-
-  int set_fMin(double fMin) { return fMin_.value(fMin); }
-  int set_fMax(double fMin) { return fMax_.value(fMax); }
-
 protected:
   int ySpecBeg() const { return  0; }
   int ySpecEnd() const { return 100; }
   int yWaterfallBeg() const { return ySpecEnd()+16; }
   int yWaterfallEnd() const { return h()-20; }
 
-  int xSpecBeg() const { return  30; }
+  int xSpecBeg() const { return  0; }
   int xSpecEnd() const { return w(); }
-  int xWaterfallBeg() const { return xSpecBeg(); }
-  int xWaterfallEnd() const { return xSpecEnd(); }
+  int xWaterfallBeg() const { return 0; }
+  int xWaterfallEnd() const { return w(); }
 
   int specN() const { return xSpecEnd()      - xSpecBeg(); }
   int specM() const { return yWaterfallEnd() - yWaterfallBeg(); }
@@ -252,12 +179,12 @@ protected:
   int xSpecFromInput(double xi) const {
     double x = (xi-fMin_.value()) / (fMax_.value()-fMin_.value());
     x = (x<0) ? 0. : (x>1) ? 1. : x;
-    return int(0.5+ xSpecBeg() + x * (xSpecEnd()-xSpecBeg()-1));
+    return xSpecBeg() + x * (xSpecEnd()-xSpecBeg()-1);
   }
   int ySpecFromInput(double yi) const {
     double x = (yi-sMin_.value()) / (sMax_.value()-sMin_.value());
     x = (x<0) ? 0. : (x>1) ? 1. : x;
-    return int(0.5+ ySpecEnd()-1 - x * (ySpecEnd()-ySpecBeg()));
+    return ySpecEnd()-1 - x * (ySpecEnd()-ySpecBeg());
   }
   double xInputFromSpec(int i) const {
     double x = double(i-xSpecBeg())/double(xSpecEnd()-xSpecBeg());

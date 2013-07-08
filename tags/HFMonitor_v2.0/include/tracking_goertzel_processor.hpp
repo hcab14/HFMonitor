@@ -101,8 +101,7 @@ public:
     , f0_Hz_(config.get<double>("<xmlattr>.f0_Hz"))
     , df_Hz_(config.get<double>("<xmlattr>.df_Hz"))
     , min_df_Hz_(config.get<double>("<xmlattr>.minDf_Hz"))
-    , max_history_size_(config.get<size_t>("<xmlattr>.maxHistorySize"))
-    , max_num_without_lock_(config.get<size_t>("<xmlattr>.maxNumWithoutLock")) {}
+    , max_history_size_(config.get<size_t>("<xmlattr>.maxHistorySize")) {}
   
   ~tracking_goertzel_processor() {}
 
@@ -116,8 +115,7 @@ public:
                                                f0_Hz_-sp->center_frequency_Hz(),
                                                df_Hz_,
                                                min_df_Hz_,
-                                               max_history_size_,
-                                               max_num_without_lock_);
+                                               max_history_size_);
     for (const_iterator i(i0); i!=i1; ++i) {
       filter_->update(*i);
       if (filter_->state_updated()) {
@@ -137,11 +135,10 @@ public:
 protected:
 private:
   const std::string name_;
-  const double      f0_Hz_;                 // initial middle frequency
-  const double      df_Hz_;                 // initial df: [f0+-df]
-  const double      min_df_Hz_;             // max. frequency resolution
-  const size_t      max_history_size_;      // max. phase history size in seconds
-  const size_t      max_num_without_lock_;  // max. number of iterations without lock
+  const double      f0_Hz_;             // initial middle frequency
+  const double      df_Hz_;             // initial df: [f0+-df]
+  const double      min_df_Hz_;         // maximal frequency resolution
+  const size_t      max_history_size_;  // maximal phase history size in seconds
   tracking_goertzel_filter::sptr filter_;
 } ;
 

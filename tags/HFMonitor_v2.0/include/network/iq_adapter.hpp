@@ -39,8 +39,6 @@ class iq_adapter : public processor::base {
     } samples;
   } iq_sample;
 
-  typedef std::vector<std::complex<double> > complex_vector_type;
-
 public:
   typedef boost::shared_ptr<iq_adapter > sptr;
 
@@ -62,32 +60,30 @@ public:
     bcopy(begin, &header_iq, sizeof(iq_info));
     begin += sizeof(iq_info);
 
-    const size_t bytes_per_sample(header_iq.bytes_per_sample());
-    const size_t n_samples(std::distance(begin, end) / (2*bytes_per_sample));
-    assert((std::distance(begin, end) % (2*bytes_per_sample)) == 0);
-    if (iqs_.size() != n_samples)
-      iqs_.resize(n_samples);
-
+    std::vector<std::complex<double> > iqs;
     if (header_iq.sample_type() == 'I' && header_iq.bytes_per_sample() ==3) {
       if (is_iq) {
-        static double norm(1./static_cast<double>(1L << 31));
-        size_t counter(0);
+        const double norm(1./static_cast<double>(1L << 31));
         for (const_iterator i(begin); i!=end;) {
           iq_sample s;
           s.samples.i1 = 0; s.samples.i2 = *i++; s.samples.i3 = *i++; s.samples.i4 = *i++;
           s.samples.q1 = 0; s.samples.q2 = *i++; s.samples.q3 = *i++; s.samples.q4 = *i++;
           const std::complex<double> cs(s.iq.q*norm,
                                         s.iq.i*norm);
-          iqs_[counter++] = cs;
+          iqs.push_back(cs);
         }
       } else if (is_wav) {
-        size_t counter(0);
+        const size_t bytes_per_sample(header_iq.bytes_per_sample());
+        assert((std::distance(begin, end) % 2*bytes_per_sample) == 0);
+        std::istringstream iss_iq;
+        // std::cout << "is_wav bytes_per_sample= " << bytes_per_sample 
+        //           << " n= " << std::distance(begin, end) << std::endl;
         for (const_iterator i(begin); i!=end;) {
-          const std::pair<const_iterator, double> xi(wave::detail::read_real_sample(i, 8*bytes_per_sample));
-          i = xi.first;
-          const std::pair<const_iterator, double> xq(wave::detail::read_real_sample(i, 8*bytes_per_sample));
-          i = xq.first;
-          iqs_[counter++] = std::complex<double>(xi.second, xq.second);
+          const std::string str_iq(i, i+2*bytes_per_sample); i+=2*bytes_per_sample;
+          iss_iq.str(str_iq);
+          const double xi(wave::detail::read_real_sample(iss_iq, 8*bytes_per_sample)); // real
+          const double xq(wave::detail::read_real_sample(iss_iq, 8*bytes_per_sample)); // imag
+          iqs.push_back(std::complex<double>(xi,xq));
         }
       }
 
@@ -95,7 +91,7 @@ public:
       service_net_iq::sptr snp(service_net_iq::make(sp, header_iq));
 
       // call processor
-      p_.process_iq(snp, iqs_.begin(), iqs_.end());
+      p_.process_iq(snp, iqs.begin(), iqs.end());
     } else {
       // complain
     }
@@ -104,7 +100,6 @@ protected:
 
 private:
   PROCESSOR p_;
-  complex_vector_type iqs_;
 } ;
 
 #endif // _IQ_ADAPTER_HPP_cm121126_ 

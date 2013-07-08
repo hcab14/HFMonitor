@@ -3,3 +3,8 @@
 
 NAME="client_multi_downconvert"
 CMD="./bin/$NAME -c config/multi_downconvert_HTV.xml"
+#!/bin/bash
+# $Id$
+
+NAME="client_multi_downconvert"
+CMD="./bin/$NAME -c config/multi_downconvert_HTV.xml"

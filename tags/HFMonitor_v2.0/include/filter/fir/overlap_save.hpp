@@ -67,12 +67,12 @@ namespace filter {
           assert((l_%d_) == 0);
           complex_vector_type in(n(), 0);
           std::copy(b.begin(), b.end(), in.begin());
-          fft_.transformVector(in, FFT::WindowFunction::Rectangular<T>(b.size()));
-          for (size_t i(0), iend(n()); i<iend; ++i) {
+          fft_.transformVector(in, FFT::WindowFunction::Rectangular<T>());
+          for (size_t i(0); i<n(); ++i) {
             h_[i] = fft_.out(i);
             fft_.in(i) = 0;
           }
-          for (size_t i(0), nd(n()/d_); i<nd; ++i)
+          for (size_t i(0); i<n()/d_; ++i)
             ifft_.in(i) = 0;
           shift_ = (shift_/size_t(v()+.5))*size_t(v()+0.5);
         }
@@ -101,16 +101,14 @@ namespace filter {
 //           std::cout << "#shift " << shift() << " l=" << l() 
 //                     << " offset=" << offset() 
 //                     << " n/2 " << n()/2 << std::endl;
-          const size_t nd(n()/d());
-          for (size_t i(0); i<nd; ++i)
+          for (size_t i(0); i<n()/d(); ++i)
             ifft_.in(i) = 0;
-          const T norm(T(1)/T(l()));
-          for (size_t i(0), iend(n()); i<iend; ++i)
-            ifft_.in(i%nd) += fft.out((n()+i-shift())%n())*h_[i]*norm;
+          for (size_t i(0); i<n(); ++i)
+            ifft_.in(i%(n()/d())) += fft.out((n()+i-shift())%n())*h_[i]/T(l_);
           ifft_.transform();
           
-          for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
-            result_[i] = ifft_.out(offset+i);
+          for (size_t i(0); i<l()/d(); ++i)
+            result_[i] = ifft_.out((p()-1)/d()+i);
         }
 
       protected:
@@ -133,7 +131,7 @@ namespace filter {
         , p_(p)
         , fft_(l+p-1, 1, FFTW_ESTIMATE)
         , last_id_(0) {
-        for (size_t i(0), iend(l+p-1); i<iend; ++i)
+        for (size_t i(0); i<l+p-1; ++i)
           fft_.in(i) = 0;
       }
 
@@ -191,11 +189,13 @@ namespace filter {
         fft_.transform();
 
         // for each filter
-        for (typename filter_map::iterator i(filters_.begin()), end(filters_.end()); i!=end; ++i)
-          i->second->transform(fft_);
+        for (typename filter_map::iterator i(filters_.begin()); i != filters_.end(); ++i) {
+          typename filt::sptr fp(i->second);
+          fp->transform(fft_);
+        }
 
         // save old samples
-        for (size_t i(0), iend(p_-1); i<iend; ++i)
+        for (size_t i=0; i<p_-1; ++i)
           fft_.in(i) = fft_.in(l_+i);
       }
       

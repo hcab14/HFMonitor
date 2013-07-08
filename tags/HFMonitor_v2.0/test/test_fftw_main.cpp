@@ -34,7 +34,7 @@ int main()
      in[u] = std::exp(std::complex<FFTType>(0.0,f*2.*M_PI*u/double(n)));
 
   FFT::FFTWTransform<FFTType> fft(in.size(), FFTW_FORWARD, FFTW_ESTIMATE);
-  fft.transformVector(in, FFT::WindowFunction::Blackman<FFTType>(in.size()));
+  fft.transformVector(in, FFT::WindowFunction::Blackman<FFTType>());
 
   for (size_t u=0; u<fft.size(); ++u)
     std::cout << u << " " << fft.getInBin(u).real() << " " << fft.getInBin(u).imag() << " "

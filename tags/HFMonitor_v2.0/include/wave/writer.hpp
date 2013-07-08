@@ -39,25 +39,14 @@ namespace wave {
     std::ostream& writeT(std::ostream& os, const T& data) {
       return os.write((char *)(&data), sizeof(T));
     }
-//     void write_real_sample(std::ostream& os, boost::uint16_t bitsPerSample, double s) {
-//       // we assume abs(s)<=1
-//       boost::uint32_t si= boost::uint32_t(std::abs(s) * (1L << (bitsPerSample-1)));
-//       if (s < 0.) si= 1L + (0xFFFFFFFFL ^ si);
-//       for (size_t u(0); u<bitsPerSample; u+=8) {
-//         const boost::uint8_t c((si >> u) & 0xFF);
-//         writeT(os, c);
-//       }
-//     }
-    // for performance reasons this version is avoiding streams
-    std::string::iterator write_real_sample(std::string::iterator i, boost::uint16_t bitsPerSample, double s) {
+    void write_real_sample(std::ostream& os, boost::uint16_t bitsPerSample, double s) {
       // we assume abs(s)<=1
       boost::uint32_t si= boost::uint32_t(std::abs(s) * (1L << (bitsPerSample-1)));
       if (s < 0.) si= 1L + (0xFFFFFFFFL ^ si);
       for (size_t u(0); u<bitsPerSample; u+=8) {
         const boost::uint8_t c((si >> u) & 0xFF);
-        *i++ = c;
+        writeT(os, c);
       }
-      return i;
     }
 
     class wave_header {
@@ -133,15 +122,13 @@ namespace wave {
         std::cerr << "writing header to file '" << filepath << "' exists " << std::endl;
       }
       // write data
+      // TBD
       std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
       ofs.seekp(pos_);
-      std::string s(2*std::distance(i0,i1)*header_.format().bitsPerSample()/8, 0);
-      std::string::iterator si(s.begin());
       for (processor::base_iq::const_iterator i(i0); i!=i1; ++i) {
-        si = detail::write_real_sample(si, header_.format().bitsPerSample(), i->real()); // i
-        si = detail::write_real_sample(si, header_.format().bitsPerSample(), i->imag()); // q
+        detail::write_real_sample(ofs, header_.format().bitsPerSample(), i->real()); // i
+        detail::write_real_sample(ofs, header_.format().bitsPerSample(), i->imag()); // q
       }
-      ofs << s;
       pos_ = ofs.tellp();      
       detail::writeT(ofs.seekp(0), header_.add_samples(std::distance(i0, i1)));
     }

@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
   try {
     const boost::program_options::variables_map vm(process_options("config/perseus_server.xml", argc, argv));
     boost::property_tree::ptree config;
-    read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
+    read_xml(vm["config"].as<std::string>(), config);
 
     libusb::session::sptr s(libusb::session::get_global_session());
 

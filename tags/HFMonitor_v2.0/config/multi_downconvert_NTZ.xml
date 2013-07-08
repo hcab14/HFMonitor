@@ -3,6 +3,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <MultiDownConverter l="500000"
                     m="125001">
+  <StationInfo>
+    Station  = NTZ
+    Computer = Latitude E6430 : N-Series Base
+  </StationInfo>
   <Broadcaster>
     <Data maxQueueSize_MB="2"
           maxQueueDelay_Minutes="5"
@@ -26,16 +30,14 @@
                       f0_Hz="60.0e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
-                      maxHistorySize="100"
-                      maxNumWithoutLock="5">
+                      maxHistorySize="100">
     </TrackingGoertzel>
     <TrackingGoertzel name="TGF_DCF77"
                       input="DC_077500_DCF"
                       f0_Hz="77.5e3"
                       df_Hz="5.0"
                       minDf_Hz=".1"
-                      maxHistorySize="100"
-                      maxNumWithoutLock="5">
+                      maxHistorySize="100">
     </TrackingGoertzel>
   </Processors>
   <Filters>

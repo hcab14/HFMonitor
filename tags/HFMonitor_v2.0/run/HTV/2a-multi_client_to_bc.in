@@ -4,3 +4,9 @@
 NAME="multi_client_to_broadcaster"
 CMD="./bin/$NAME -c config/multi_client_HTV.xml"
 
+#!/bin/bash
+# $Id$
+
+NAME="multi_client_to_broadcaster"
+CMD="./bin/$NAME -c config/multi_client_HTV.xml"
+

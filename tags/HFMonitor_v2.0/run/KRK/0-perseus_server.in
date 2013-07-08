@@ -1,5 +1,5 @@
 #!/bin/bash
 # $Id$
 
-NAME="perseus_server"
-CMD="sudo LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/${NAME}_KRK.xml"
+NAME="server"
+CMD="sudo LD_LIBRARY_PATH=/opt/local/lib ./bin/perseus_server -c config/perseus_server_KRK.xml"

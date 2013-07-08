@@ -24,7 +24,7 @@
 #include <cmath>
 
 namespace filter {
-  namespace detail {
+  namespace { // anonymous
     template<typename COEFF,
              typename STATE,
              size_t N>
@@ -69,7 +69,7 @@ namespace filter {
         *i = *j; 
       }
     } ;
-  } // namespace detail
+  } // anonymous namespace
   
   
   // -----------------------------------------------------------------------------
@@ -125,14 +125,14 @@ namespace filter {
     
     STATE process(STATE s) {
       in_[N-1]  = s;
-      out_[N-1] = b_[0]*in_[N-1] + detail::iter_add<COEFF, STATE, N-2>::exec(a_.begin()+1,
-                                                                             b_.begin()+1,
-                                                                             in_.end() -2,
-                                                                             out_.end()-2);
+      out_[N-1] = b_[0]*in_[N-1] + iter_add<COEFF, STATE, N-2>::exec(a_.begin()+1,
+                                                                     b_.begin()+1,
+                                                                     in_.end() -2,
+                                                                     out_.end()-2);
       if (a_[0] != COEFF(1)) out_[N-1] /= a_[0];
       // old <- new
-      detail::iter_move<STATE, N-2>::exec( in_.begin(),  in_.begin()+1);
-      detail::iter_move<STATE, N-2>::exec(out_.begin(), out_.begin()+1);
+      iter_move<STATE, N-2>::exec( in_.begin(),  in_.begin()+1);
+      iter_move<STATE, N-2>::exec(out_.begin(), out_.begin()+1);
       return out_[N-1];
     }
     

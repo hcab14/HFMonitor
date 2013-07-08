@@ -2,11 +2,15 @@
 <!-- $Id$ -->
 <FFTProcessor windowFunction="Blackman"
 	      numberOfCollectedEpochs="1">
+  <StationInfo>
+    Station  = KRK
+    Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
+  </StationInfo>
   <server host="nz23-18.ifj.edu.pl"
 	  port="18001">
   </server>
   <Broadcaster>
-    <Data port="8080"
+    <Data port="8081"
 	  maxQueueSize_MB="1"
 	  maxQueueDelay_Minutes="2">
     </Data>

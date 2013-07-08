@@ -59,17 +59,6 @@ namespace wave {
       return ( ((a&0x80) == 0x80) ? sum-i_max : sum) * norm;
     }    
 
-    template<typename T>
-    std::pair<T, double> read_real_sample(T i, size_t bits_per_sample) {
-      boost::uint8_t a(0);
-      boost::int32_t sum(0);
-      for (size_t u(0); u<bits_per_sample; u+=8) 
-        sum |= ((a=boost::uint8_t(*i++)) << u);
-      const boost::int32_t i_max(1L << bits_per_sample);
-      const double norm(2. / static_cast<double>(i_max));
-      return std::make_pair(i, ( ((a&0x80) == 0x80) ? sum-i_max : sum) * norm);
-    }
-
     class service_wave_iq : public processor::base_iq::service {
     public:
       virtual ~service_wave_iq() {}
