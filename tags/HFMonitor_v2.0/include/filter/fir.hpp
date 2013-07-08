@@ -62,13 +62,13 @@ namespace filter {
           
           //inverse FFT
           FFT::FFTWTransform<float_type> ifft(m, -1, FFTW_ESTIMATE);
-          ifft.transformRange(f.begin(), f.end(), FFT::WindowFunction::Rectangular<float_type>());
+          ifft.transformRange(f.begin(), f.end(), FFT::WindowFunction::Rectangular<float_type>(f.size()));
           
           // multiply with window function
           const size_t n(b_.size());
           float_t sum(0);
           for (size_t i(0); i<n; ++i) {
-            b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i, n);
+            b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i);
             sum += b_[i];
           }
           
@@ -119,7 +119,7 @@ namespace filter {
           v[j] = double(i)/k;
         }
         
-        base_type::design_(v, v, FFT::WindowFunction::Hamming<float_type>());
+        base_type::design_(v, v, FFT::WindowFunction::Hamming<float_type>(v.size()));
       }
       
     protected:

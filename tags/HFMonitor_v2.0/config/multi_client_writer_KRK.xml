@@ -12,7 +12,8 @@
             filePeriod="1d">
   </FileSink>
   <Streams>
-    <Stream pattern="L2.*">Writer</Stream>
+    <Stream pattern="L.*">Writer</Stream>
+    <Stream pattern="M.*">Writer</Stream>
     <!--
        <Stream pattern="TGF.*">Writer</Stream>
     -->

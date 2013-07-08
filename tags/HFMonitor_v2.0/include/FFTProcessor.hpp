@@ -50,8 +50,8 @@ template<typename FFTFloat>
 class FFTProcessor : public processor::base_iq {
 public:
   // typedef float FFTFloat;
-  typedef std::complex<double> Complex;
-  typedef std::vector<Complex> Samples;
+  typedef std::complex<double> complex_type;
+  typedef std::vector<complex_type> Samples;
 
   typedef std::string LevelKey;
   typedef class ActionKey {
@@ -89,6 +89,7 @@ public:
       std::string key(level() + "." + resultKey);      
       if (resultMap_.find(key) != resultMap_.end())
         LOG_WARNING_T(ptime_, str(boost::format("overwriting key %s") % key));
+      result->set_name(key);
       resultMap_[key] = result;
     }
 
@@ -139,20 +140,20 @@ public:
     return result;
   }
 
-  virtual void process_iq(::processor::service_iq::sptr sp,
-                          Samples::const_iterator i0,
-                          Samples::const_iterator i1) {
+  virtual void process_iq(service::sptr sp,
+                          const_iterator i0,
+                          const_iterator i1) {
     const size_t length(std::distance(i0, i1));
     if (length != fftw_.size()) fftw_.resize(length);
     LOG_INFO_T(sp->approx_ptime(), str(boost::format("FFTProcessor::procIQ %s") % sp->id()));
     if (windowFcnName_ == "Rectangular")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<Complex::value_type>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Rectangular<complex_type::value_type>(length));
     else if (windowFcnName_ == "Hanning")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning<Complex::value_type>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hanning<complex_type::value_type>(length));
     else if (windowFcnName_ == "Hamming")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<Complex::value_type>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<complex_type::value_type>(length));
     else if (windowFcnName_ == "Blackman")
-      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<Complex::value_type>());
+      fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<complex_type::value_type>(length));
     else 
       throw std::runtime_error(THROW_SITE_INFO(windowFcnName_ + ": unknown window function"));
     
@@ -164,7 +165,9 @@ public:
     // it will be overwritten with the new calibration
     if (calibrationHandle_ != 0)
       resultMap[calibrationKey_] = calibrationHandle_;
-
+    else
+      resultMap[calibrationKey_] = Result::Calibration::makeDefault(sp->approx_ptime(), calibrationKey_);
+      
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
         FFTProxy proxy(sp, level.first, resultMap);
@@ -177,6 +180,7 @@ public:
 
     // collect results
     BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
+      sp->put_result(result.second);
       ResultMap::iterator i(resultBuffer_.find(result.first));
       if (i != resultBuffer_.end())
         i->second->push_back(result.second);
@@ -200,7 +204,7 @@ public:
       Result::Calibration::Handle
         ch(boost::dynamic_pointer_cast<Result::Calibration>(i->second));
       if (ch != 0)
-        calibrationHandle_= ch->withWorstCaseCov();
+        calibrationHandle_= ch->withWorstCaseCov(calibrationKey_);
       else
         LOG_WARNING_T(sp->approx_ptime(),
                       str(boost::format("resultMap[%s] is not of type Result::Calibration::Handle")

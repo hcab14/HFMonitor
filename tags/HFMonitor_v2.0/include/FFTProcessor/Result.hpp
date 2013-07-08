@@ -31,31 +31,28 @@
 
 #include "network/protocol.hpp"
 #include "gen_filename.hpp"
+#include "processor/result.hpp"
 #include "station_info.hpp"
 
 namespace Result {
-  class Base : public gen_filename {
+  class Base : public gen_filename, public processor::result_base {
   public:
+    typedef boost::shared_ptr<Base> sptr;
     typedef boost::shared_ptr<Base> Handle;
     typedef boost::weak_ptr<Base> WeakHandle;
-    typedef boost::posix_time::ptime ptime;
     typedef std::deque<Handle> HandleVector;
 
     Base(std::string name, ptime time)
-      : name_(name)
-      , time_(time)
+      : processor::result_base(name, time)
       , posEndTime_(0) {}
     virtual ~Base() {}
-    virtual std::string toString() const { return name(); }
-    std::string name() const { return name_; }
-    ptime time() const { return time_; }
 
-    friend std::ostream& operator<<(std::ostream& os, const Base& b) {
-      return os << b.toString();
-    }
+    virtual std::string toString() const { return name(); }
+
+    ptime time() const { return approx_ptime(); }
 
     void push_back(const Handle& h) { handles_.push_back(h); }
-    
+
     const Base* getLatest() const { 
       return handles_.empty() ? this : handles_.back().get();
     }
@@ -96,11 +93,11 @@ namespace Result {
                         const station_info& si) {
       std::ostringstream sHeader;
       sHeader << si;
-      h->dumpHeader(sHeader);
+      h->dump_header(sHeader);
       const std::string sh(sHeader.str());
 
       std::ostringstream sData;
-      h->dumpData(sData);
+      h->dump_data(sData);
       const std::string sd(sData.str());
 
       bc->bc_data(h->time(), tag, h->format(), sd, sh);
@@ -132,10 +129,10 @@ namespace Result {
     virtual std::string lineBreak() const { return "\n"; }
 
     // virtual string context dump header and data
-    virtual std::ostream& dumpHeader(std::ostream& os) const {
+    virtual std::ostream& dump_header(std::ostream& os) const {
       return os << "# Time_UTC ";
     }
-    virtual std::ostream& dumpData(std::ostream& os) const {
+    virtual std::ostream& dump_data(std::ostream& os) const {
       return os;
     }
 
@@ -145,13 +142,13 @@ namespace Result {
       os << "# StartTime = " << timeLabel << " [UTC]" << lineBreak();
       posEndTime_   = os.tellg() + std::streamoff(14);          
       os << "# EndTime   = " << timeLabel << " [UTC]" << lineBreak();
-      std::ostringstream oss; dumpHeader(oss);
+      std::ostringstream oss; dump_header(oss);
       os << oss.str();
       return os;
     }
     virtual boost::filesystem::fstream& dumpDataToFile(boost::filesystem::fstream& os) const {
       os << makeTimeLabel() << " ";
-      std::ostringstream oss; dumpData(oss);
+      std::ostringstream oss; dump_data(oss);
       os << oss.str();
       return os;
     }
@@ -167,8 +164,8 @@ namespace Result {
     virtual std::string format() const { return "TXT_0000"; }
 
   protected:
-    std::string name_;
-    ptime time_;
+//     std::string name_;
+//     ptime time_;
   private:
     std::string makeTimeLabel() const {
       std::stringstream oss;
