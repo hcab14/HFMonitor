@@ -1,6 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="client_multi_downconvert"
-CMD="LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/multi_downconvert_KRK.xml"
-
