@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="multi_decoder"
-CMD="./bin/multi_client -c config/multi_client_NTZ.xml"
