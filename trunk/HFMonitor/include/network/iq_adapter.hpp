@@ -81,9 +81,6 @@ public:
           iqs_[counter++] = cs;
         }
       } else if (is_wav) {
-//         std::istringstream iss_iq;
-        // std::cout << "is_wav bytes_per_sample= " << bytes_per_sample 
-        //           << " n= " << std::distance(begin, end) << std::endl;
         size_t counter(0);
         for (const_iterator i(begin); i!=end;) {
           const std::pair<const_iterator, double> xi(wave::detail::read_real_sample(i, 8*bytes_per_sample));
