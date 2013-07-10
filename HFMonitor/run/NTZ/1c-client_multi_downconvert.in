@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="client_multi_downconvert"
-CMD="./bin/client_multi_downconvert -c config/multi_downconvert_NTZ.xml"
