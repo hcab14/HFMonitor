@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
+<MultiClient>
+  <StationInfo>
+    Station  = KRK
+    Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
+  </StationInfo>
+  <server host="nz23-18.ifj.edu.pl"
+	  port="8080">
+  </server>
+  <FileSink filePath="DataKRK"
+            filePeriod="1d">
+  </FileSink>
+  <Streams>
+    <Stream pattern="L.*">Writer</Stream>
+    <Stream pattern="M.*">Writer</Stream>
+    <!--
+       <Stream pattern="TGF.*">Writer</Stream>
+    -->
+  </Streams>
+  <Clients>
+    <Writer type="WriterTXT"
+            filePath="DataKRK"
+            filePeriod="1d">
+    </Writer>
+  </Clients>
+</MultiClient>

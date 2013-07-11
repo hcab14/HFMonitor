@@ -1,0 +1,40 @@
+<!---*- xml -*--->
+<!-- $Id$ -->
+<?xml version="1.0" encoding="utf-8"?>
+<MultiDownConverter l="500000"
+                    m="125001">
+  <StationInfo>
+    Station  = HTV
+    Computer = Latitude E6430 : N-Series Base
+  </StationInfo>
+  <Broadcaster>
+    <Data maxQueueSize_MB="2"
+          maxQueueDelay_Minutes="5"
+          port="19003">
+    </Data>
+    <Ctrl port="19004"></Ctrl>
+  </Broadcaster>
+  <Repack bufferLength_sec="1"
+          overlap_percent="0">
+  </Repack>
+  <server host="127.0.0.1"
+	  port="18001">
+  </server>
+  <Calibration algorithm="WeightedMean">
+    <Key>TGF_WWVB</Key>
+  </Calibration>
+  <Processors>
+    <TrackingGoertzel name="TGF_WWVB"
+                      input="DC_060000_WWVB"
+                      f0_Hz="60.0e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="100"
+                      maxNumWithoutLock="5">
+    </TrackingGoertzel>
+  </Processors>
+  <Filters>
+    <FIR name="DC_024000_NAA" type="lowpass" cutoff="0.005" centerFrequency_Hz="24.00e3" decim="100"></FIR>
+    <FIR name="DC_037500_NRK" type="lowpass" cutoff="0.005" centerFrequency_Hz="37.50e3" decim="100"></FIR>
+  </Filters>
+</MultiDownConverter>
