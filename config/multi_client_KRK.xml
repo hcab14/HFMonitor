@@ -8,7 +8,7 @@
   <server host="127.0.0.1"
           port="19100">
   </server>
-  <FileSink filePath="DataPhaseKRK"
+  <FileSink filePath="DataKRK"
             filePeriod="1d">
   </FileSink>
   <Broadcaster>
@@ -48,7 +48,7 @@
   </Streams>
   <Clients>
     <WriterText type="WriterTXT"
-                filePath="DataPhaseKRK"
+                filePath="DataKRK"
                 filePeriod="1d">
     </WriterText>
     <WriterIQ type="WriterIQ"
