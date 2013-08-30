@@ -116,7 +116,9 @@
                   name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_GYN>
-    <FFT_Processor>
+    <FFT_Processor type="FFTProcessor_DOUBLE" name="FFTProcessor"
+                   windowFunction="Blackman"
+                   numberOfCollectedEpochs="1">
       <Actions calibrationKey="L1.CAL">
         <L0>
           <FindPeak name="060000_TS_MSF"
