@@ -1,6 +1,6 @@
 #!/bin/bash
 # $Id$
 
-NAME="multi_client"
-CMD="./bin/$NAME -c config/${NAME}_writer_HTV.xml"
+NAME="multi_client_to_file"
+CMD="./bin/$NAME -c config/multi_client_writer_HTV.xml"
 
