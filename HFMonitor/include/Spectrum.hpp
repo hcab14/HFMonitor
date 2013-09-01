@@ -43,20 +43,27 @@ public:
   double sampleRate() const { return sampleRate_; }
   double centerFrequency() const { return centerFrequency_; }
 
-  virtual size_t size()                    const = 0;
+  virtual size_t size()                         const = 0;
   virtual complex_type operator[](size_t index) const = 0;
-  virtual double normWindow()              const = 0;
+  virtual double normWindow()                   const = 0;
 
   size_t freq2index(double qrg_Hz) const { // get the nearest bin index
+    // clamp to f0 +- fs/2
+    qrg_Hz = std::min(qrg_Hz, centerFrequency() + sampleRate()/2);
+    qrg_Hz = std::max(qrg_Hz, centerFrequency() - sampleRate()/2);
     const int n(size());
-    const int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
-    ASSERT_THROW(i >= -n/2 && i < n/2);
+    int i(round(double(n)*(qrg_Hz - centerFrequency()) / sampleRate()));
+    ASSERT_THROW(-n/2 <= i && i <= n/2);
+    // make sure that +f0 and -f0 do not get the same index
+    if (i == n/2) i -= 1;
     return (i>=0) ? i : n+i;
   }
   
   double index2freq(size_t index) const {
     const int n(size());
-    return centerFrequency() + sampleRate() * (int(index)>=n/2 ? -n+int(index) : int(index)) / double(n);
+    return centerFrequency() + sampleRate() * (int(index) < n/2
+                                               ?    int(index)
+                                               : -n+int(index))/double(n);
   }  
 private:
   static int round(double d) { return int(d+((d>=0.0) ? .5 : -.5)); }
@@ -127,18 +134,32 @@ public:
  
   freq_type fmin() const { return fmin_; }
   freq_type fmax() const { return fmax_; }
-  freq_type deltaf() const { return v_.empty() ? 0.0 : (fmax() - fmin()) / (size()-1); }
+  freq_type deltaf() const { return (v_.size() > 1) ? 0.0 : (fmax() - fmin()) / (size()-1); }
 
   template<typename FUNCTION>
-  frequency_vector<T> fill(const SpectrumBase& s, const FUNCTION& func) {
+  frequency_vector<T>& fill(const SpectrumBase& s, const FUNCTION& func) {
+    // find nearest frequency bin
     const size_t i0(s.freq2index(fmin()));
-    const size_t i1(s.freq2index(fmax()));
-    const size_t n(1+i1-i0);
-    if (v_.size() != n) v_.resize(n);
     fmin_ = s.index2freq(i0);
+
+    // find nearest frequency bin
+    const size_t i1(s.freq2index(fmax()));
     fmax_ = s.index2freq(i1);
-    for (size_t u=i0; u<=i1; ++u) 
-      v_[u-i0]= std::make_pair(s.index2freq(u), func(s[u]));
+
+    if (i0 <= i1) {
+      const size_t n(1+i1-i0);
+      if (v_.size() != n) v_.resize(n);
+      for (size_t u(i0); u<=i1; ++u) 
+        v_[u -i0    ] = std::make_pair(s.index2freq(u), func(s[u]));      
+    } else {
+      const size_t n0(s.size()); // length of FFT spectrum
+      const size_t n(1 + n0-i0 + i1);
+      if (v_.size() != n) v_.resize(n);
+      for (size_t u(i0); u<n0; ++u)
+        v_[u -i0    ] = std::make_pair(s.index2freq(u), func(s[u]));
+      for (size_t u(0); u<=i1; ++u)
+        v_[n0-i0 + u] = std::make_pair(s.index2freq(u), func(s[u]));      
+    }
     return *this;
   }
   template<typename FUNCTION>

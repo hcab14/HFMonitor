@@ -27,11 +27,15 @@
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Simple_Counter.H>
 #include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Output.H>
 #include <FL/Fl_Value_Output.H>
 
 #include <vector>
 #include <cmath>
 
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+
+#include "processor/service.hpp"
 #include "Spectrum.hpp"
 
 class spectrum_display : public Fl_Double_Window {
@@ -51,9 +55,11 @@ public:
     , sMax_(150, h-20,  50, 20, "sMax")
     , fMin_(250, h-20,  50, 20, "fMin:")
     , fMax_(350, h-20,  50, 20, "fMax:")
-    , fCur_(500, h-20,  70, 20, "fCur:") {
-    sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-120);
-    sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(0);
+    , fCur_(500, h-20,  70, 20, "fCur:")
+    , fStreamName_(700, h-20, 150, 20, "Stream Name:")
+    , fTime_(    w-200, h-20, 150, 20, "Current Time:") {
+    sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-60);
+    sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(-40);
 
     fMin_.value( 9700); fMax_.value(10100);
     fCur_.value(-1); fCur_.precision(3); fCur_.range(0, 40e3);
@@ -81,18 +87,25 @@ public:
   }
   
   template<typename T>
-  void insert_spec(const frequency_vector<T>& spec) {
+  void insert_spec(const frequency_vector<T>& spec,
+                   processor::service_iq::sptr sp) {
     fMin_.value(spec.fmin());
     fMax_.value(spec.fmax());
+
+    if (sp) {
+      fStreamName_.value(sp->stream_name().c_str());
+      
+      std::stringstream oss;
+      oss.imbue(std::locale(oss.getloc(), 
+                            new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S")));
+      oss << sp->approx_ptime();
+      fTime_.value(oss.str().c_str());
+    }
     std::vector<double> s(specN(), 0.0);
     // reverse!!
     for (int i(0); i<specN(); ++i) {
       s[i] = spec[spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
     }
-    // for (size_t i=0; i<spec.size(); ++i) {
-    //   const size_t j(i*specN()/spec.size());
-    //   s[j] = spec[i].second;
-    // }
     insert_spec(s);
   }
 
@@ -135,6 +148,7 @@ public:
 	update_child(**a);
     } else { // total redraw
       fl_draw_box(FL_FLAT_BOX, 0, 0, w(), h(), FL_GRAY);
+      fStreamName_.value();
       draw_spec();
       draw_waterfall();
       draw_frames();
@@ -197,10 +211,12 @@ public:
     int step_db = 10;
     if (sMax_.value()-sMin_.value() < 30)
       step_db = 5;
-    if (sMax_.value()-sMin_.value() < 10)
+    if (sMax_.value()-sMin_.value() < 15)
       step_db = 2;
+    if (sMax_.value()-sMin_.value() < 10)
+      step_db = 1;
 
-    int last_y(0);
+    int last_y(ySpecEnd());
     for (int s(int(sMin_.value())); s<sMax_.value(); s+= step_db) {
       const int yl(ySpecFromInput(s));
       sprintf(label, "%d", s);
@@ -208,10 +224,10 @@ public:
       fl_text_extents(label, _dx, _dy, _w0, _h0);
       const double labelHeight(_h0);
       const double labelWidth(_w0);
-      if (yl+labelHeight/2 >= ySpecEnd()) continue;
-      if (yl-labelHeight/2 <= ySpecBeg()) continue;
-      if (s != int(sMin_.value()) &&
-          last_y - (yl-labelHeight/2) < 10) continue;
+      if ((yl+labelHeight/2 >= ySpecEnd()) ||
+          (yl-labelHeight/2 <= ySpecBeg()) || 
+          (last_y - (yl+labelHeight/2) < 2))
+        continue;
       fl_line(xSpecBeg(), yl, xSpecEnd(), yl);
       fl_draw(label, xSpecBeg()-int(labelWidth+0.5)-4, yl+int(labelHeight/2+0.5));
       last_y = yl-int(labelHeight/2+0.5);
@@ -264,13 +280,15 @@ protected:
     return (x<0) ? -1 : (x>1) ? -1 : fMin_.value() + x * (fMax_.value()-fMin_.value());
   }
 private:
-  Fl_Box b0_;
-  Fl_Simple_Counter sMin_;
-  Fl_Box b1_;
-  Fl_Simple_Counter sMax_;
-  Fl_Value_Output   fMin_;
-  Fl_Value_Output   fMax_;
-  Fl_Value_Output   fCur_;
+  Fl_Box              b0_;
+  Fl_Simple_Counter   sMin_;
+  Fl_Box              b1_;
+  Fl_Simple_Counter   sMax_;
+  Fl_Value_Output     fMin_;
+  Fl_Value_Output     fMax_;
+  Fl_Value_Output     fCur_;
+  Fl_Output           fStreamName_;
+  Fl_Output           fTime_;
   int                 specIndex_;
   std::vector<double> spec_;
   std::vector<uchar>  specImg_;

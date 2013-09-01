@@ -122,17 +122,12 @@ public:
 
     if (length != fftw_.size())
       fftw_.resize(length);
-    std::cout << "A" << std::endl;
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
-    std::cout << "B" << std::endl;
     const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
-    std::cout << "C" << std::endl;
-    const double f_min(sp->center_frequency_Hz() - 0*sp->sample_rate_Hz());
-    const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz()/4-1);
+    const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
+    const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
     const frequency_vector<double> ps(f_min, f_max, s, s2db);
-    std::cout << "D" << std::endl;
-    w_.get_spec_display().insert_spec(ps);
-    std::cout << "E" << std::endl;
+    w_.get_spec_display().insert_spec(ps, sp);
     char msg[1024]; sprintf(msg,"spec_update");
     Fl::awake(msg);
   }
