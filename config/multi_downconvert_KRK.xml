@@ -1,6 +1,5 @@
-<!---*- xml -*--->
-<!-- $Id$ -->
 <?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$ -->
 <MultiDownConverter l="500000"
                     m="125001">
   <StationInfo>
@@ -42,8 +41,6 @@
     </TrackingGoertzel>
   </Processors>
   <Filters>
-<!--
--->
     <FIR name="DC_016400_JXN" type="lowpass" cutoff="0.005" centerFrequency_Hz="16.40e3" decim="100"></FIR>
     <FIR name="DC_019600_GQD" type="lowpass" cutoff="0.005" centerFrequency_Hz="19.60e3" decim="100"></FIR>
     <FIR name="DC_019800_NWC" type="lowpass" cutoff="0.005" centerFrequency_Hz="19.80e3" decim="100"></FIR>
