@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
         wait_for_signal w(network::get_io_service());
         w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);        
 
-        const boost::property_tree::ptree& config_broadcaster(config.get_child("Broadcaster"));
+        const boost::property_tree::ptree& config_broadcaster(config_perseus.get_child("Broadcaster"));
         bc = broadcaster::make(config_broadcaster);
 
         bc->start();

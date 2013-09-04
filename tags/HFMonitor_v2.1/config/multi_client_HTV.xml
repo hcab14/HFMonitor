@@ -107,5 +107,6 @@
          </FindPeak>
         </L2>
       </Actions>
+      </FFT_Processor>
     </Clients>
 </MultiClient>

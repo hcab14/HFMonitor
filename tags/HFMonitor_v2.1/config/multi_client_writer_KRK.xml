@@ -14,9 +14,6 @@
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
-    <!--
-       <Stream pattern="TGF.*">Writer</Stream>
-    -->
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
