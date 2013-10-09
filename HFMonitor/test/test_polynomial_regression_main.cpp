@@ -17,6 +17,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <fstream>
@@ -25,20 +27,22 @@
 
 int main()
 {
-  std::vector<std::pair<double, double> > xy;
-  for (size_t i=0; i<50; ++i)
-    xy.push_back(std::make_pair(1.*i, 0.5+2.*i+0.5-drand48()));
+  srand48(getpid());
+  const size_t n(50);
+  std::vector<double> y(n, 0);
+  for (size_t i=0; i<n; ++i)
+    y[i] = 0.5 + 2.*i + drand48();
 
-  polynomial_regression pr(2, xy);
-  std::cout << "x[0]= "   << pr.x(0) << std::endl;
-  std::cout << "x[1]= "   << pr.x(1) << std::endl;
-  std::cout << "q[0,0]= " << pr.q(0,0) << std::endl;
-  std::cout << "q[0,1]= " << pr.q(0,1) << std::endl;
-  std::cout << "q[1,0]= " << pr.q(1,0) << std::endl;
-  std::cout << "q[1,1]= " << pr.q(1,1) << std::endl;
+  polynomial_regression pr(y, 2);
+  std::cout << "x[0]= "   << pr.x()(0)   << std::endl;
+  std::cout << "x[1]= "   << pr.x()(1)   << std::endl;
+  std::cout << "q[0,0]= " << pr.q()(0,0) << std::endl;
+  std::cout << "q[0,1]= " << pr.q()(0,1) << std::endl;
+  std::cout << "q[1,0]= " << pr.q()(1,0) << std::endl;
+  std::cout << "q[1,1]= " << pr.q()(1,1) << std::endl;
   std::cout << "chi2/dof= " << pr.chi2() << "/" << pr.dof() << std::endl;
 
-  for (size_t i=0; i<100; i+=10) {
-    std::cout << "t= " << i << " " << pr.eval(i) <<  " " << pr.eval_err(i) << std::endl;
+  for (size_t i=0; i<n+50; i+=10) {
+    std::cout << "t= " << i << " " << pr.eval(i) <<  " " << pr.eval_error(i) << std::endl;
   }
 }

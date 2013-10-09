@@ -16,28 +16,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef POLYNOMIAL_REGRESSION_HPP_cm130510_
-#define POLYNOMIAL_REGRESSION_HPP_cm130510_
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+#include <iostream>
+#include <fstream>
 
+//#define USE_AXPY_PROD
 #include "carrier_monitoring/polynomial_interval_fit.hpp"
 
-class polynomial_regression : public polynomial_interval_fit {
-public:
-   polynomial_regression(const std::vector<double>& v,
-                         unsigned poly_degree)
-     : polynomial_interval_fit(v, make_single_interval(v), poly_degree) {}
-
-  virtual ~polynomial_regression() {}
-
-private:
-  static const index_vector_type& make_single_interval(const std::vector<double>& v) {
-    ASSERT_THROW(not v.empty());
-    static index_vector_type iv(2);
-    iv[0] = 0;
-    iv[1] = v.size()-1;
-    return iv;
+int main()
+{
+  srand48(getpid());
+  std::vector<double> v(100);
+  for (size_t i=0; i<100; ++i) {
+    const double x(0.01*(i-50.));
+    v[i] = 1+0.3*drand48() - 2*x*x + 20*x*x*x;
   }
-} ;
 
-#endif // POLYNOMIAL_REGRESSION_HPP_cm130510_
+  std::vector<size_t> indices;
+  indices.push_back( 0);
+  indices.push_back( 0);
+  indices.push_back( 0);
+  indices.push_back( 0);
+  indices.push_back(99);  
+
+  const unsigned degree(4);
+
+  polynomial_interval_fit p(v, indices, degree);
+
+  for (size_t i=0; i<100; ++i) {
+    std::cout << "E " << i << " " << v[i] << " " << p.eval(i) << " " << p.eval_error(i) << std::endl;
+  }
+  std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
+}

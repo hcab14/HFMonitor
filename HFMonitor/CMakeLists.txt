@@ -11,7 +11,11 @@ SET(CPACK_GENERATOR "RPM")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Christoph Mayer") #required
 INCLUDE(CPack)
 
-EXEC_PROGRAM("echo `svnversion ${CMAKE_HOME_DIRECTORY}` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
+IF(APPLE)
+  EXEC_PROGRAM("echo `/opt/local/bin/svnversion ${CMAKE_HOME_DIRECTORY}` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
+ELSE(APPLE)
+  EXEC_PROGRAM("echo `svnversion ${CMAKE_HOME_DIRECTORY}` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
+ENDIF(APPLE)
 
 MESSAGE("VERSION=${SVN_VERSION_STRING}")
 
@@ -36,10 +40,15 @@ FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
-EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
-SET(Boost_NO_SYSTEM_PATHS TRUE)
-SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
-SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
+IF (!APPLE)
+  EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
+  SET(Boost_NO_SYSTEM_PATHS TRUE)
+  SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
+  SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
+ELSE(!APPLE)
+  SET(BOOST_INCLUDEDIR /opt/local/include)
+  SET(BOOST_LIBRARYDIR /opt/local/lib)
+ENDIF(!APPLE)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)
