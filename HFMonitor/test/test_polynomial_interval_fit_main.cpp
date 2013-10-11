@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <vector>
 #include <iostream>
 #include <fstream>
 
@@ -37,17 +38,17 @@ int main()
 
   std::vector<size_t> indices;
   indices.push_back( 0);
-  indices.push_back( 0);
-  indices.push_back( 0);
-  indices.push_back( 0);
+  indices.push_back(10);
+  indices.push_back(20);
+  indices.push_back(50);
   indices.push_back(99);  
 
-  const unsigned degree(4);
+  const unsigned degree(2);
 
   polynomial_interval_fit p(v, indices, degree);
 
-  for (size_t i=0; i<100; ++i) {
-    std::cout << "E " << i << " " << v[i] << " " << p.eval(i) << " " << p.eval_error(i) << std::endl;
-  }
+   for (int i=-10; i<110; ++i) {
+     std::cout << "E " << i << " " << v[i] << " " << p.eval(i) << " " << p.eval_error(i) << std::endl;
+   }
   std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
 }
