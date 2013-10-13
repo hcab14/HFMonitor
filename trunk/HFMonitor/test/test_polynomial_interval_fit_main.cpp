@@ -31,24 +31,24 @@ int main()
 {
   srand48(getpid());
   std::vector<double> v(100);
-  for (size_t i=0; i<100; ++i) {
-    const double x(0.01*(i-50.));
-    v[i] = 1+0.3*drand48() - 2*x*x + 20*x*x*x;
+  for (size_t i(0); i<100; ++i) {
+    v[i] = 1+0.1*drand48() + cos(2*0.01*i*2*M_PI);
   }
 
   std::vector<size_t> indices;
   indices.push_back( 0);
-  indices.push_back(10);
-  indices.push_back(20);
+  indices.push_back(25);
   indices.push_back(50);
+  indices.push_back(75);
   indices.push_back(99);  
 
-  const unsigned degree(2);
+  const unsigned degree(3);
 
   polynomial_interval_fit p(v, indices, degree);
 
-   for (int i=-10; i<110; ++i) {
-     std::cout << "E " << i << " " << v[i] << " " << p.eval(i) << " " << p.eval_error(i) << std::endl;
+   for (int i=0; i<100; ++i) {
+     const std::pair<double,double> vf(p.eval(i));
+     std::cout << "E " << i << " " << v[i] << " " << vf.first << " " << vf.second << std::endl;
    }
   std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
 }
