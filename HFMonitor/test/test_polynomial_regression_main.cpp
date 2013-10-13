@@ -43,6 +43,7 @@ int main()
   std::cout << "chi2/dof= " << pr.chi2() << "/" << pr.dof() << std::endl;
 
   for (size_t i=0; i<n+50; i+=10) {
-    std::cout << "t= " << i << " " << pr.eval(i) <<  " " << pr.eval_error(i) << std::endl;
+    const std::pair<double,double> yf(pr.eval(i));
+    std::cout << "t= " << i << " " << yf.first <<  " " << yf.second << std::endl;
   }
 }
