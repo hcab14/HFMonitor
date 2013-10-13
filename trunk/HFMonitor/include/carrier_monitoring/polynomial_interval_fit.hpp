@@ -133,6 +133,9 @@ public:
   }
 
   ~polynomial_interval_fit() {}
+  
+  const vector_type& x() const { return x_; }
+  const matrix_type& q() const { return q_; }
 
   std::pair<double, double> eval(double t) const {
     using namespace boost::numeric::ublas;
