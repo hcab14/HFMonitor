@@ -75,8 +75,8 @@ public:
       const slice& sx(slices_x_[slice_counter++]);
       vector_type _v(sx.size(), 0);
       matrix_type _m(sx.size(), sx.size(), 0);
-      project(ata, sx, sx) = axpy_prod(trans(a), a, _m, true);
-      project(aty, sx)     = axpy_prod(project(y_, sy), a, _v, true);
+      noalias(project(ata, sx, sx)) = axpy_prod(trans(a), a, _m, true);
+      noalias(project(aty, sx))     = axpy_prod(project(y_, sy), a, _v, true);
     }
 
     // constraints
@@ -110,8 +110,8 @@ public:
     // solve and compute the parameters x
     matrix_type qc(atac);
     ublas_util::InvertMatrix(atac, qc);
-    q_ = project(qc, sx, sx);
-    x_ =  prod(q_, aty);
+    noalias(q_) = project(qc, sx, sx);
+    noalias(x_) =  prod(q_, aty);
 
     // computer the fitted values yf
     slice_counter= 0;
@@ -123,13 +123,12 @@ public:
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
       vector_type _y(sy.size(), 0);
-      project(yf_, sy) = axpy_prod(a, project(x_, slices_x_[slice_counter++]), _y, true);
+      noalias(project(yf_, sy)) = axpy_prod(a, project(x_, slices_x_[slice_counter++]), _y, true);
     }
 
     // compute chi2 and d.o.f.
-    const vector_type dy(yf_ - y_);
-    chi2_ = inner_prod(dy, dy);
-    dof_  = dy.size() - nx + nc_total;
+    chi2_ = norm_2(yf_ - y_); chi2_ *= chi2_;
+    dof_  = y_.size() - nx + nc_total;
   }
 
   ~polynomial_interval_fit() {}
