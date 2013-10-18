@@ -41,23 +41,33 @@ public:
   typedef boost::numeric::ublas::matrix<double> matrix_type;
   typedef std::vector<size_t> index_vector_type;
 
-  polynomial_interval_fit(const std::vector<double>& y,
-			  const index_vector_type& index_vector,
-			  size_t poly_degree)
-    : y_(y.size(), 0)
-    , yf_(y.size(), 0)
+  polynomial_interval_fit(size_t poly_degree,
+			  const std::vector<size_t>& index_vector)
+    : poly_degree_(poly_degree)
     , indices_(index_vector)
-    , slices_y_(make_slices_y(index_vector))
-    , slices_x_(make_slices_x(poly_degree, slices_y_.size()))
-    , poly_degree_(poly_degree)
-    , x_((poly_degree_+1)*slices_y_.size(), 0)
-    , q_(x_.size(), x_.size(), 0)
+    // , slices_y_(make_slices_y(index_vector))
     , chi2_(0)
-    , dof_(0) {
+    , dof_(0) {}
+
+  bool fit(const std::vector<double>& y) {
+    return fit(y, std::vector<size_t>(y.size(), 1));
+  }
+  bool fit(const std::vector<double>& y,
+	   const std::vector<size_t>& b) {
+    
+    if (b != b_) {
+      const size_t length_y(std::count_if(b.begin(), b.end(),
+					  std::binder1st<std::not_equal_to<size_t> >(std::not_equal_to<size_t>(), 0)));
+      b_        = b;
+      t_        = vector_type(length_y, 0);
+      yf_ = y_  = vector_type(length_y, 0);
+      make_slices_y(indices_, y, b);
+      slices_x_ = make_slices_x(poly_degree_, slices_y_.size());
+      x_        = vector_type((poly_degree_+1)*slices_y_.size(), 0);
+      q_        = matrix_type(x_.size(), x_.size(), 0);
+    }
+
     using namespace boost::numeric::ublas;
-
-    std::copy(y.begin(), y.end(), y_.begin());
-
     // compute ata and aty
     const size_t poly_degree_plus_1(poly_degree_+1);
     const size_t nx(x_.size());
@@ -68,7 +78,7 @@ public:
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0); j<sy.size(); ++j) {
-	const double x(j);
+	const double x(t_(sy(j)) - indices_[slice_counter]);
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
@@ -84,15 +94,15 @@ public:
     const size_t nc_total(poly_degree_>1 ? 2*nc : nc);
     matrix_type ac(nc_total, nx, 0);
     for (size_t i(0); i<nc; ++i) {
-      const double dx(slices_y_[i].size());
+      const double dx(indices_[i+1] - indices_[i]);
       for (size_t j(0); j<poly_degree_plus_1; ++j)
 	ac(i,i*poly_degree_plus_1+j) = (j==0) ? 1 : dx*ac(i,i*poly_degree_plus_1+j-1);
       ac(i,(i+1)*poly_degree_plus_1) = -1;
     }
 
-    if (poly_degree>1) {
+    if (poly_degree_>1) {
       for (size_t i(0); i<nc; ++i) {
-     	const double dx(slices_y_[i].size());
+	const double dx(indices_[i+1] - indices_[i]);
      	for (size_t j(1); j<poly_degree_plus_1; ++j)
      	  ac(nc+i,i*poly_degree_plus_1+j) = (j==1) ? 1 : dx*j/(j-1)*ac(nc+i,i*poly_degree_plus_1+j-1);
      	ac(nc+i,(i+1)*poly_degree_plus_1+1) = -1;
@@ -109,30 +119,37 @@ public:
 
     // solve and compute the parameters x
     matrix_type qc(atac);
-    ublas_util::InvertMatrix(atac, qc);
+    if (!ublas_util::InvertMatrix(atac, qc))
+      return false;
+
     noalias(q_) = project(qc, sx, sx);
     noalias(x_) =  prod(q_, aty);
-
+    
     // computer the fitted values yf
     slice_counter= 0;
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0); j<sy.size(); ++j) {
-	const double x(j);
+	const double x(t_(sy(j)) - indices_[slice_counter]);
+	std::cout << "T " << sy(j) << " " << t_(sy(j)) << " " << find_index(t_(sy(j))) << " " << slice_counter << " " << indices_[slice_counter] << " " << x << std::endl;
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
       vector_type _y(sy.size(), 0);
       noalias(project(yf_, sy)) = axpy_prod(a, project(x_, slices_x_[slice_counter++]), _y, true);
     }
-
     // compute chi2 and d.o.f.
     chi2_ = norm_2(yf_ - y_); chi2_ *= chi2_;
     dof_  = y_.size() - nx + nc_total;
+
+    return true;
   }
 
   ~polynomial_interval_fit() {}
-  
+
+  const vector_type& t() const { return t_; }
+  const vector_type& y() const { return y_; }
+  const vector_type& yf() const { return yf_; }
   const vector_type& x() const { return x_; }
   const matrix_type& q() const { return q_; }
 
@@ -165,12 +182,24 @@ protected:
 	       ? 0
 	       : std::distance(indices_.begin(), std::lower_bound(indices_.begin(), indices_.end(), t))-1));
   }
-  static std::vector<slice> make_slices_y(const index_vector_type& iv) {
+
+  void make_slices_y(const index_vector_type& iv,
+		     const std::vector<double>& y,
+		     const std::vector<size_t>& b) {
     assert(iv.size()>0);
-    std::vector<slice> sv(iv.size()-1);
-    for (size_t i(1); i<iv.size(); ++i)
-      sv[i-1] = slice(iv[i-1], 1, iv[i]-iv[i-1]);
-    return sv;
+    slices_y_ = std::vector<slice>(iv.size()-1);
+    for (size_t i(1), ib(0), it(0); i<iv.size(); ++i) {
+      size_t nb(0);
+      for (size_t j(iv[i-1]), n(iv[i]); j<n; ++j) {
+	if (b[j]) {
+	  ++nb;
+	  t_[it]   = j;//-iv[i-1];
+	  y_[it++] = y[j];
+	}	
+      }
+      slices_y_[i-1] = slice(ib, 1, nb);
+      ib += nb;
+    }
   }
   static std::vector<slice> make_slices_x(size_t poly_degree, size_t num_slices) {
     std::vector<slice> sv(num_slices);
@@ -180,12 +209,14 @@ protected:
   }
 
 private:
+  size_t poly_degree_;
+  const index_vector_type indices_;
+  vector_type t_;
   vector_type y_;
   vector_type yf_;
-  const index_vector_type indices_;
-  const std::vector<slice> slices_y_;
-  const std::vector<slice> slices_x_;
-  size_t poly_degree_;
+  std::vector<size_t> b_;
+  std::vector<slice> slices_y_;
+  std::vector<slice> slices_x_;
   vector_type x_;
   matrix_type q_;
   double chi2_;

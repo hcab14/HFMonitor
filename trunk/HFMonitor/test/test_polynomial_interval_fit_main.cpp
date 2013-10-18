@@ -30,9 +30,12 @@
 int main()
 {
   srand48(getpid());
-  std::vector<double> v(100);
-  for (size_t i(0); i<100; ++i) {
+  const size_t n(100);
+  std::vector<double> v(n);
+  std::vector<size_t> b(n, 1);
+  for (size_t i(0); i<n; ++i) {
     v[i] = 1+0.1*drand48() + cos(2*0.01*i*2*M_PI);
+    b[i] = (i%4 == 0);
   }
 
   std::vector<size_t> indices;
@@ -42,13 +45,23 @@ int main()
   indices.push_back(75);
   indices.push_back(99);  
 
-  const unsigned degree(3);
+  const unsigned poly_degree(2);
 
-  polynomial_interval_fit p(v, indices, degree);
-
-   for (int i=0; i<100; ++i) {
+  polynomial_interval_fit p(poly_degree, indices);
+  
+  if (!p.fit(v, b)) {
+    std::cerr << "fit failed" << std::endl;
+    return 0;
+  }
+  
+  for (int i=0; i<100; ++i) {
      const std::pair<double,double> vf(p.eval(i));
      std::cout << "E " << i << " " << v[i] << " " << vf.first << " " << vf.second << std::endl;
-   }
+  }
+
+  for (int i=0; i<p.y().size(); ++i) {
+    const std::pair<double,double> vf(p.eval(p.t()(i)));
+    std::cout << "X " << p.t()(i) << " " << p.y()(i) << " " << p.yf()(i) << " " << vf.first << " " << vf.second << std::endl;
+  }
   std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
 }

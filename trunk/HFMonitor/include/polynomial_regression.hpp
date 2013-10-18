@@ -26,7 +26,9 @@ class polynomial_regression : public polynomial_interval_fit {
 public:
    polynomial_regression(const std::vector<double>& v,
                          unsigned poly_degree)
-     : polynomial_interval_fit(v, make_single_interval(v), poly_degree) {}
+     : polynomial_interval_fit(poly_degree, make_single_interval(v)) {
+     ASSERT_THROW(fit(v) == true);
+   }
 
   virtual ~polynomial_regression() {}
 
