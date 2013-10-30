@@ -54,7 +54,7 @@ public:
     // box1_.labeltype(FL_SHADOW_LABEL);
     // box2_.box(FL_UP_BOX);
     // box1_.labelcolor(0x00FF0000);
-    input_.value("Now is the time for all good men...");
+    // input_.value("Now is the time for all good men...");
     end();
     // Fl::add_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)this);
   }

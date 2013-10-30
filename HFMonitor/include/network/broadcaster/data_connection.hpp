@@ -180,7 +180,19 @@ public:
                  data_ptr data,
                  data_ptr preamble) {
     if (status_ == status_init)  return true;
+
+    // check if the client is still alive
+    const boost::posix_time::time_duration dt(t - last_tick_time());
+    LOG_INFO(str(boost::format("push_back path=%s dt=%.3f sec (%s %s)")
+                 % path
+                 % (1e-3*dt.total_milliseconds())
+                 % boost::posix_time::to_simple_string(t)
+                 % boost::posix_time::to_simple_string(last_tick_time())));
+    if (dt > boost::posix_time::seconds(60))
+      status_ = status_error;
+
     if (status_ == status_error) return false;
+
     // path="" is always broadcasted
     if (path != "" && !match_path(path))
       return true;
