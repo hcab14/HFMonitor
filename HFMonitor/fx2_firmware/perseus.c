@@ -27,6 +27,8 @@
 #include <setupdat.h>
 #include <eputils.h>
 
+#include "mem.h"
+
 #define SYNCDELAY SYNCDELAY3
 
 __data __at 0x00 unsigned char r0; 
@@ -141,22 +143,32 @@ void function_003();
 void function_004();
 void function_005();
 void function_006();
-void function_007();
-void function_008();
-void function_009();
 void function_010();
 void function_011();
 void function_012();
+void function_013();
 void function_014();
 void function_015();
+void function_016();
 void function_017();
+void function_018();
 void function_020();
 void function_021();
+void function_022();
 void function_023();
+void f024_usb_get_configuration();
+void f025_usb_get_interface();
+void function_026();
+void function_027();
+void f028_usb_set_configuration();
+void f029_usb_set_interface();
 void function_030();
 void function_031();
+void function_032();
+void function_033();
+void function_034();
+void function_035();
 void label_221();
-void label_179();
 
 void main() {
   ENABLE_RESUME();
@@ -383,205 +395,231 @@ void function_000() {
   if ((EP1OUTCS & 0x02) == 0)
     return;
   // Label_003:
-  var0x35 = 0x01;
-  var0x36 = 0xE7; // 0xE780: EP1OUTBUF[0]
-  var0x37 = 0x80;
-  r3 = var0x35;
-  r2 = var0x36;
-  r1 = var0x37;
-  function_007();
+  var0x35 = 0x01; var0x36 = 0xE7; var0x37 = 0x80; // 0xE780: EP1OUTBUF[0]
+  r3 = var0x35; r2 = var0x36; r1 = var0x37;
+  f007_access_byte_abs();
 /*         cjne	A, #0x09, Label_004 // CY = (A < #0x09) */
 /* Label_004: */
 /*         jc	Label_005 */
 /*         ljmp	Label_044 */
-  if (ACC >= 0x09)
-    goto label_044;
-  // jumptable
-  // 0x00: (fpga_config) Label_014                                           -> label_044
-  // 0x01: (fpga_reset)  Label_015                                           -> label_044
-  // 0x02: (fpga_check)  Label_016-18              -> Label_041-42           -> Label_044
-  // 0x03: (fpga_sio)    Label_019-21 -> Label_027 -> Label_034 -> Label_042 -> Label_044
-  // 0x04: (fx2_port)    Label_028                                           -> label_044
-  // 0x05: (??)          Label_022-27              -> Label_034 -> Label_042 -> Label_044
-  // 0x06: (eeprom_read) Label_029-34                           -> Label_042 -> Label_044
-  // 0x07: (??)          Label_035-42                                        -> Label_044
-  // 0x08: (shutdown)    Label_043                                           -> Label_044
-  switch (ACC) {
-  case 0x00:
-    function_023();
-    goto label_044;
-    break;
-  case 0x01:
-  label_015:
-    function_017();
-    goto label_044;
-    break;
-  case 0x02: // fpga_check
-    /* label_016: */
-    var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0; //var0x39,0x3A=EP1INBUF
-    // var0x35,36,37
-    r3     = var0x35;
-    ++var0x37; ACC = var0x37;
-    r2     = var0x36;
-    if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
-    function_007(); // gptr = [(r1r2),r3] -> ACC
-    r7 = ACC;
-    r3 = var0x38;
-    ++var0x3A; ACC = var0x3A;
-    r2 = var0x39;
-    if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
-    ACC = r7;
-    function_011();
-    goto label_041;    
-    break;
-  case 0x03:
-    /*   /\* label_019: *\/ */
-    /*   var0x38 = 0x01; */
-    /*   var0x39 = 0xE7; // var0x39,0x3A = EP1INBUF */
-    /*   var0x3A = 0xC0; */
-    /*   ACC = EP1OUTBC; */
-    /*   var0x31 = 0x00; */
-    /*   var0x32 = ACC; */
-    /*   r3 = var0x35; */
-    /*   ++var0x37; */
-    /*   ACC = var0x37; */
-    /*   r2 = var0x36; */
-    /*   if (ACC == 0) */
-    /* 	++var0x36; */
-    /*   --ACC; */
-    /*   r1 = ACC; */
-    /*   function_007(); */
-    /*   r7 = ACC; */
-    /*   r3 = var0x38; */
-    /*   ++var0x3A; */
-    /*   ACC = var0x3A; */
-    /*   r2 = var0x39; */
-    /*   if (ACC == 0) */
-    /* 	++var0x39; */
-    /*   --ACC; */
-    /*   r1 = ACC; */
-    /*   ACC = r7; */
-    /*   label_179(); */
-    /*   ACC = var0x32; */
-    /*   ACC += 0xFF; */
-    /*   r7 = ACC; */
-    /*   ACC = var0x31; */
-    /*   __asm__("addc A, #0xFF"); */
-    /*   r6 = ACC; */
-    /*   var0x40 = var0x38; */
-    /*   var0x41 = var0x39; */
-    /*   var0x42 = var0x3A; */
-    /*   r3 = var0x35; */
-    /*   r2 = var0x36; */
-    /*   r1 = var0x37; */
-    /*   function_006(); */
-    /*   goto label_027; */
-    /* label_027: */
-    /*   ACC = EP1OUTBC; */
-    /*   goto label_034; */
-    /* label_034: */
-    /*   __asm__("mov DPTR, #0xE68F"); //EP1INBC */
-    /*   goto label_042; */
+  if (ACC < 0x09) {
+    // jumptable
+    // 0x00: (fpga_config) Label_014                                           -> label_044
+    // 0x01: (fpga_reset)  Label_015                                           -> label_044
+    // 0x02: (fpga_check)  Label_016-18              -> Label_041-42           -> Label_044
+    // 0x03: (fpga_sio)    Label_019-21 -> Label_027 -> Label_034 -> Label_042 -> Label_044
+    // 0x04: (fx2_port)    Label_028                                           -> label_044
+    // 0x05: (??)          Label_022-27              -> Label_034 -> Label_042 -> Label_044
+    // 0x06: (eeprom_read) Label_029-34                           -> Label_042 -> Label_044
+    // 0x07: (??)          Label_035-42                                        -> Label_044
+    // 0x08: (shutdown)    Label_043                                           -> Label_044
+    switch (ACC) {
+    case 0x00:
+      function_023();
+      break;
+    case 0x01:
+    label_015:
+      function_017();
+      break;
+    case 0x02: // fpga_check
+      /* label_016: */
+      var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0; //var0x39,0x3A=EP1INBUF
+      // var0x35,36,37
+      r3     = var0x35;
+      ++var0x37; ACC = var0x37;
+      r2     = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs(); // gptr = [(r1r2),r3] -> ACC
+      r7 = ACC;
+      r3 = var0x38;
+      ++var0x3A; ACC = var0x3A;
+      r2 = var0x39;
+      if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
+      ACC = r7;
+      function_011();
+      /* label_041: */
+      r3 = var0x38; r2 = var0x39; r1 = var0x3A;
+      ACC = r7;
+      l179_write_byte_abs();
+      EP1INBC = 0x02;
     /* label_042: */
-    /*   __asm__("movx @DPTR, A"); SYNCDELAY; */
-    /*   goto label_044;       	   */
-    break;
-  case 0x04:
-  label_028:
-    r3 = var0x35;
-    r2 = var0x36;
-    r1 = var0x37;
-    __asm__("mov DPTR, #0x0001");
-    function_008();
-    IOE = ACC;
-    break;
-  case 0x05:
-  label_022:
-    break;
-  case 0x06:
-  label_029:
-    var0x38 = 0x01;
-    var0x39 = 0xE7; // 0xE7C0 EP1INBUF[0]
-    var0x3A = 0xC0;
-    r3 = var0x35;
-    ++var0x37;
-    r2 = var0x36;
-    if (ACC == 0)
-      ++var0x36;
-    --ACC;
-    r1 = ACC;
-    function_007(); // [r2r3] -> ACC
-    r7 = ACC;
-    r3 = var0x38;
-    ++var0x3A;
-    r2 = var0x39;
-    if (ACC == 0)
-      ++var0x39;
-    --ACC;
-    r1 = ACC;
-    ACC = r7;
-    label_179();
-    r3 = var0x35;
-    ++var0x37;
-    ACC = var0x37;
-    r2 = 0x36;
-    if (ACC == 0)
-      ++var0x36;
-    --ACC;
-    r1 = ACC;
-    function_007(); // [r2r3] -> ACC
-    var0x33 = 0x00;
-    var0x34 = ACC;
-    ++var0x37;
-    r2 = var0x36;
-    if (ACC == 0) ++ var0x36;
-    --ACC;
-    r1 = ACC;
-    function_007();
-    r6 = ACC;
-    ACC = r6;
-    var0x33 |= ACC;
-    r2 = var0x36;
-    r1 = var0x37;
-    function_007(); // [r2r3] -> ACC
-    var0x31 = 0x00;
-    var0x32 = ACC;
-    r3 = var0x38;
-    r2 = var0x39;
-    r1 = var0x3A;
-    var0x40 = var0x31;
-    var0x41 = ACC;
-    r5 = var0x34;
-    r4 = var0x33;
-    function_021();
-    ACC = var0x32;
-    ACC += 0x02;
-    goto label_034;
-    break;
-  case 0x07:
-  label_035:
-    break;
-  case 0x08:
-    break;
-  }
-
- label_034:
-  __asm__("mov DPTR, #0xE68F"); // DPTR = EP1INBC
-  goto label_042;
-  
- label_042:
-  __asm__("movx @DPTR, A"); SYNCDELAY;
-  goto label_044;
-  
-  label_043:
-  function_017();
-  function_030();
-
- label_044:
+      __asm__("movx @DPTR, A"); SYNCDELAY;
+      break;
+    case 0x03:
+      /*   /\* label_019: *\/ */
+        var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0; // var0x39,0x3A = EP1INBUF
+        ACC = EP1OUTBC;
+        var0x31 = 0x00;
+        var0x32 = ACC;
+        r3 = var0x35;
+        ++var0x37; ACC = var0x37;
+        r2 = var0x36;
+        if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+        f007_access_byte_abs();
+        r7 = ACC;
+        r3 = var0x38;
+        ++var0x3A; ACC = var0x3A;
+        r2 = var0x39;
+        if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
+        ACC = r7;
+        l179_write_byte_abs();
+        ACC = var0x32;
+        ACC += 0xFF;
+        r7 = ACC;
+        ACC = var0x31;
+        __asm__("addc A, #0xFF");
+        r6 = ACC;
+        var0x40 = var0x38; var0x41 = var0x39; var0x42 = var0x3A;
+        r3 = var0x35; r2 = var0x36; r1 = var0x37;
+        function_006();
+	/*   goto label_027; */
+	/* label_027: */	
+	/*   goto label_034; */
+	/* label_034: */
+	EP1INBC = EP1OUTBC; SYNCDELAY;
+      break;
+    case 0x04:
+    label_028:
+      r3 = var0x35; r2 = var0x36; r1 = var0x37;
+      __asm__("mov DPTR, #0x0001");
+      f008_access_byte_rel();
+      IOE = ACC;
+      break;
+    case 0x05:
+    label_022:
+      var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0;  // 0xE7C0 EP1INBUF[0]
+      ACC = EP1OUTBC;
+      var0x31 = 0x00;
+      var0x32 = ACC;
+      __asm__("clr A"); r7 = ACC; r6 = ACC;
+    label_023:
+      CY = 0;
+      // r6r7 -= var0x31,32
+      __asm__("mov  A, R7");
+      __asm__("subb A, 0x32");
+      __asm__("mov  A, R6");
+      __asm__("subb A, 0x31");
+      if (CY) {
+	r3 = var0x35;
+	++var0x37; ACC = var0x37;
+	r2 = var0x36;
+	if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+	f007_access_byte_abs();
+	r5  = ACC;
+	r3  = var0x38;
+	++var0x3A; ACC = var0x3A;
+	r2  = var0x39;
+	if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
+	r5 = ACC;
+	l179_write_byte_abs();
+	++r7;
+	if (r7 == 0)
+	  ++r6;
+      label_026:
+	goto label_023;
+      }
+    label_027:      
+      EP1INBC = EP1OUTBC; SYNCDELAY;
+      break;
+    case 0x06:
+    label_029:
+      var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0; // 0xE7C0 EP1INBUF[0]
+      r3 = var0x35;
+      ++var0x37; ACC = var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs(); // [r2r3] -> ACC
+      r7 = ACC;
+      r3 = var0x38;
+      ++var0x3A; ACC = var0x3A;
+      r2 = var0x39;
+      if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
+      ACC = r7;
+      l179_write_byte_abs();
+      r3 = var0x35;
+      ++var0x37; ACC = var0x37;
+      r2 = 0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs(); // [r2r3] -> ACC
+      var0x33 = 0x00;
+      var0x34 = ACC;
+      ++var0x37; ACC = var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      r6 = ACC;
+      ACC = r6;
+      var0x33 |= ACC;
+      r2 = var0x36; r1 = var0x37;
+      f007_access_byte_abs(); // [r2r3] -> ACC
+      var0x31 = 0x00;
+      var0x32 = ACC;
+      r3 = var0x38; r2 = var0x39; r1 = var0x3A;
+      var0x40 = var0x31;
+      var0x41 = ACC;
+      r5 = var0x34; r4 = var0x33;
+      function_021();
+      ACC = var0x32;
+      ACC += 0x02;
+      /* goto label_034; */
+      EP1INBC = ACC; SYNCDELAY;
+      break;
+    case 0x07:
+    label_035:
+      var0x38 = 0x01; var0x39 = 0xE7; var0x3A = 0xC0;  // 0xE7C0 EP1INBUF[0]
+      r3 = var0x35;
+      ++var0x37; ACC= var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      r7 = ACC;
+      r3 = var0x38;
+      ++var0x3A; ACC = var0x3A;
+      r2 = var0x39;
+      if (ACC == 0) ++var0x39; --ACC; r1 = ACC;
+      ACC = r7;
+      l179_write_byte_abs();
+      r3 = var0x35;
+      ++var0x37; ACC = var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      var0x33 = 0x00;
+      var0x34 = ACC;
+      ++var0x37; ACC = var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      r6 = ACC;
+      ACC = r6;
+      var0x33 |= ACC;
+      ++var0x37; ACC = var0x37;
+      r2 = var0x36;
+      if (ACC == 0) ++var0x36; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      var0x31 = 0x00;
+      var0x32 = ACC;
+      r2 = var0x36; r1 = var0x37;
+      var0x40 = var0x31;
+      var0x41 = ACC;
+      r5 = var0x34; r4 = var0x33;
+      function_026();
+      r3 = var0x38; r2 = var0x39; r1 = var0x3A;
+      ACC = r7;
+      l179_write_byte_abs();
+      EP1INBC = 0x02; SYNCDELAY;
+      break;
+    case 0x08:
+      function_017();
+      function_030();    
+      break;
+    }
+  } // acc >= 0x09
+ /* label_044: */
   __asm__("clr A");
   EP1OUTBC = ACC;
-  return;
 }
+
 // 0x00: fpga_config
 void function_023() {
   ACC = EP1OUTBC;
@@ -598,6 +636,105 @@ void function_023() {
             mov A, R7;     \n		\
             jnz label_224;");
   __asm__("mov P2, #0x84");
+}
+
+void function_026() {
+  r7 = r5;
+  r6 = r4;
+  var0x47 = var0x40;
+  var0x48 = var0x41;
+  function_013();
+  __asm__("clr A");
+  __asm__("rlc A");
+  __asm__("mov R7, A");
+}
+
+void function_027() {  
+  if (GPCR2 & 0x10) // bmFULLSPEEDONLY
+    CY = 0;
+  else
+    CY = 1;
+}
+
+void function_013() {
+  var0x44 = r3;
+  var0x45 = r2;
+  var0x46 = r1;
+  bit0x04 = 1;
+  function_012();
+  if (CY) {
+  label_198:
+    ACC= var0x48; --var0x48;
+    r6 = var0x47;
+    if (ACC == 0) --var0x47;
+    ACC |= r6;
+    if (ACC != 0) {
+      r3 = var0x44;
+      ++var0x46; ACC = var0x46;
+      r2 = var0x45;
+      if (ACC == 0) ++var0x45; --ACC; r1 = ACC;
+      f007_access_byte_abs();
+      function_022();
+      if (CY)
+	goto label_198;
+      I2CS |= bmSTART; // 0x40
+    } else {
+      I2CS |= bmSTART; // 0x40
+      CY = 1;      
+    }
+  }
+}
+
+void function_016() {
+  r1 = r7;
+  r6 = r4_2;
+  r7 = r5_2;
+ label_210:
+  DPL = r7; DPH = r6;
+  __asm__("inc  DPTR");
+  __asm__("movx A, @DPTR");
+  __asm__("xrl  A, 0x03"); // ACC ^= 0x03
+  if (ACC == 0) { // ACC == 3
+    r5 = r1; --r1;
+    ACC = r5;
+    if (ACC == 0)
+      return;
+    DPL = r7; DPH = r6;
+    __asm__("movx A, @DPTR");
+    r4 = 0x00;
+    __asm__("add  A, R7");
+    __asm__("mov  R5, A");  // r5 = ACC + r7
+    __asm__("mov  A, R4");  // ACC = r4 = 0;
+    __asm__("addc A, R6");
+    __asm__("mov  R6, A");  // r6 += CY
+    r7 = r5; //    __asm__("mov  R7, R5"); // r7 = r5
+    goto label_210;
+  }
+  __asm__("clr A");
+  r6 = ACC; r7 = ACC;
+}
+
+void function_018() { // SUDAV Interrupt; depends on application
+  switch (SETUPDAT[1]) { // bmRequest
+  case 0xD1: // label_216
+    r7  = FIFORESET & 0x7F; // !bmNAKALL
+    SYNCDELAY;
+    __asm__("mov  A, R7");
+    __asm__("movx @DPTR, A");
+    CY = 0;
+    break;
+
+  case 0xD0:
+    r7 = FIFORESET | 0x80; // bmNAKALL
+    SYNCDELAY;
+    __asm__("mov  A, R7");
+    __asm__("movx @DPTR, A");
+    CY = 0;
+    break;
+
+  default: // label_218
+    CY = 1;
+  }
 }
 
 // fpga_reset:
@@ -628,7 +765,257 @@ void function_017() {
     goto label_215;
 }
 
-void function_001() {}
+void function_001() {
+    /*  0     0   254   249   248   247   246   251 */
+    /*  1     0   254   249   248   247   246   251 */
+    /*  2     1   255   250   249   248   247   252 */
+    /*  3     2     0   251   250   249   248   253 */
+    /*  4     3     1   252   251   250   249   254 */
+    /*  5     4     2   253   252   251   250   255 */
+    /*  6     5     3   254   253   252   251     0 */
+    /*  7     6     4   255   254   253   252     1 */
+    /*  8     7     5     0     0     0     0     5 */
+    /*  9     8     6     1     0     0     0     5 */
+    /* 10     9     7     2     1     0     0     5 */
+    /* 11    10     8     3     2     1     0     5 */
+
+  ACC =SETUPDAT[1];
+  switch (SETUPDAT[1]) { // bmRequest
+  case  0: // Label_066 (GET_STATUS)
+    function_033();
+    if (CY) {
+      switch (SETUPDAT[0]) { // bmRequestType
+      case 0x81: // label_068 -> label_173
+	ACC = 0x00;
+	EP0BUF[0] = ACC;
+	__asm__("inc DPTR");
+	__asm__("movx @DPTR, A");
+	EP0BCH = 0x00;
+	EP0BCL = 0x02;
+	break;
+
+      case 0x82: // label_069
+	r7  = (SETUPDAT[4] & 0x7E);
+	r6  = 0x00;
+	ACC = SETUPDAT[4];
+	__asm__("setb C"); // CY  = 1;
+	__asm__("subb A, #0x80");
+	r4 = 0x00;
+	if (CY)
+	  r5 = 0x00;
+	else
+	  r5 = 0x01;
+	// label_071:
+	r6  = (r4|r6);
+	DPL = (r5|r7) + 0x43;
+	__asm__("mov  A, #0x0E");
+	__asm__("addc A, R6");
+	DPH = ACC;
+	__asm__("clr A");
+	__asm__("movc A, @A+DPTR");
+	r7 = ACC;
+	__asm__("rlc  A");
+	__asm__("subb A, ACC");
+	r6  = ACC;
+	r7 += 0xA1; // ACC = r7; ACC += 0xA1; r7 = ACC;
+	ACC = r6;
+	__asm__("addc A, #0xE6");
+	DPL = r7; DPH = ACC;
+	__asm__("movx A, @DPTR");
+	ACC &= 0x01;
+	EP0BUF[0] = ACC;
+	__asm__("clr A");
+	// label_073:
+	__asm__("inc DPTR");
+	__asm__("movx @DPTR, A");
+	EP0BCH = ACC;
+	EP0BCL = 0x02;	
+	break;
+
+      case 0x80:
+	CY = 0;
+	__asm__("clr A");
+	__asm__("rlc A");
+	__asm__("add A, ACC");
+	r7 = ACC;
+	CY = 0x02;
+	__asm__("clr A");
+	__asm__("rlc A");
+	ACC |= r7;
+	break;
+      default:
+	EP0CS |= 0x01; // bmEPSTALL
+      }
+      break;
+    }
+    break;
+
+  case  1: // Label_075 (CLEAR_FEATURE)
+    function_034();
+    if (CY) {
+      ACC = SETUPDAT[0] + 0xFE;
+      switch (ACC) {
+      case 0x02: // label_079
+	if (SETUPDAT[2] == 0x00) {
+	  r6  = (r4|r6);
+	  DPL = (r5|r7) + 0x43;
+	  __asm__("mov  A, #0x0E");
+	  __asm__("addc A, R6");
+	  DPH = ACC;
+	  __asm__("clr A");
+	  __asm__("movc A, @A+DPTR");
+	  r7 = ACC;
+	  __asm__("rlc  A");
+	  __asm__("subb A, ACC");
+	  r6  = ACC;
+	  r7 += 0xA1; // ACC = r7; ACC += 0xA1; r7 = ACC;
+	  ACC = r6;
+	  __asm__("addc A, #0xE6");
+	  DPL = r7; DPH = ACC;
+	  __asm__("movx A, @DPTR");
+	  ACC &= 0xFE;
+	  __asm__("movx @DPTR, A");
+	  ACC = SETUPDAT[4];
+	  ACC &= 0x80;
+	  ACC >>= 1;
+	  ACC >>= 1;
+	  ACC >>= 1;
+	  ACC &= 0x1F;
+	  r7 = ACC;
+	  __asm__("movx A, @DPTR");
+	  ACC &= 0x0F;
+	  ACC += r7;
+	  TOGCTL  = ACC;
+	  TOGCTL |= 0x20;
+	} else {
+	  EP0CS |= 0x01; // bmEPSTALL
+	}
+	break;
+
+      case 0x00: // label_077
+	if (SETUPDAT[2] == 0x01) {
+	  bit0x00 = 0;
+	} else {
+	  EP0CS |= 0x01; // bmEPSTALL
+	}
+	break;
+
+      default:
+	// goto label_091
+      }
+    }
+    break;
+
+  case  3: // Label_083 (SET_FEATURE)
+    function_035();
+    if (CY) {
+      switch(SETUPDAT[0]) {
+      case 2: // Label_085
+	r7 = SETUPDAT[4] & 0x7E;
+	r6 = 0x00;
+	ACC = SETUPDAT[4];
+	__asm__("setb C");
+	__asm__("subb A, #0x80");
+	r4 = 0x00;
+	if (CY == 0) {
+	  r5 = 0x01;
+	} else {
+	  r5 = 0x00;
+	}
+	r6 |= r4;             // ACC = r4; ACC |= r6; r6 = ACC;
+	DPL = (r5|r7) + 0x43; // ACC = r5; ACC |= r7; ACC += 0x43; DPL = ACC;
+	__asm__("clr A");
+	__asm__("movc A, @A+DPTR");
+	r7 = ACC;
+	__asm__("rlc A");
+	__asm__("subb A, ACC");
+	r6 = ACC;
+	r7 += 0xA1; // ACC = r7; ACC += 0xA1; R7 = ACC;
+	ACC = r6;
+	__asm__("addc A, #0xE6");
+	DPL = r7; DPH = ACC;
+	__asm__("movx A, @DPTR");
+	__asm__("orl  A, #0x01");
+	__asm__("movx @DPTR, A");
+	break;
+
+      case 0:
+	if (SETUPDAT[2] == 0x01) {
+	  bit0x00 = 1;
+	} else {
+	  if ((SETUPDAT[2] ^ 0x02) != 0)
+	    EP0CS |= 0x01; // bmEPSTALL
+	}
+	break;
+
+      default: // Label_088
+	EP0CS |= 0x01; // bmEPSTALL
+      }
+    }
+    break;
+  case  8: // Label_065 (GET_CONFIGURATION)
+    f024_usb_get_configuration();
+    break;
+  case  9: // Label_064 (SET_CONFIGURATION)
+    f028_usb_set_configuration();
+    break;
+  case 10: // Label_062 (GET_INTERFACE)
+    f025_usb_get_interface();
+    break;
+  case 11: // Label_063 (SET_INTERFACE)
+    f029_usb_set_interface();
+    break;
+  case  6: // Label_053 (GET_DESCRIPTOR)
+    function_035();
+    if (CY) {
+      switch (SETUPDAT[3]) {
+      case 0x02: // Label_056
+	SUDPTRH = r2_2;
+	SUDPTRL = r3_2;
+	break;
+      case 0x03: // Label_058
+	r7 = SETUPDAT[2];
+	function_016();
+	r2 = r6; r1 = r7; r3 = 0x01;
+	if ((r2 | r1 | r3) != 0) {
+	  SUDPTRH = r6;
+	  SUDPTRL = r7;
+	} else {
+	  EP0CS |= 0x01; // bmEPSTALL
+	}
+	break;
+      case 0x06: // Label_055
+	function_027();
+	if (CY) {
+	  SUDPTRH = r2_2;
+	  SUDPTRL = r3_2;	  
+	} else {
+	  EP0CS |= 0x01; // bmEPSTALL
+	}	
+	break;
+      case 0x07: // Label_057
+	SUDPTRH = r6_1;
+	SUDPTRL = r7_1;
+	break;
+      case 0x01:
+	SUDPTRH = r2_1;
+	SUDPTRL = r3_1;
+	break;
+      default:  // Label_061
+	EP0CS |= 0x01; // bmEPSTALL
+      }
+    }
+    break;
+
+  default: // label_089    
+    function_018();
+    if (CY) {
+      EP0CS |= 0x01; // bmEPSTALL
+    }
+  }
+  label_091:
+  EP0CS |= 0x80; // bmHSNAK
+}
 void function_005() {}
 void function_010() {}
 void function_015() {}
@@ -662,10 +1049,32 @@ void function_021() {
     return;
   }
 }
+void function_022() {
+  I2DAT   = ACC;
+  bit0x05 = 1;
+ label_221:
+  if (I2CS & 0x01) { // bmDONE
+    CY = 1; return;
+  }
+  if (I2CS & 0x04) { // bmBERR
+  label_222:
+    I2CS |= 0x40; // bmSTART
+    CY = 0; return;
+  }
+  if (bit0x05 == 0) 
+    goto label_221;
+  I2CS |= 0x40; // bmSTART
+  CY = 0;  
+}
+
 void function_030() {
   IOE = 0x3B;
 }
-void function_031() {}
+void function_031() { CY = 1; }
+void function_032() { CY = 1; }
+void function_033() { CY = 1; }
+void function_034() { CY = 1; }
+void function_035() { CY = 1; }
 
 void function_014() {
   if (bit0x04) {
@@ -679,7 +1088,7 @@ void function_014() {
   function_004();
   USBIRQ = 0xFF;
   EPIRQ  = 0xFF;
-  EXIF  &= 0xEF;
+  CLEAR_USBINT();//  EXIF  &= 0xEF;
   USBCS &= 0xF7;
 }
 
@@ -748,6 +1157,32 @@ void function_020() {
      orl A, DPH;                // 2 instr. cycles \n	\
      jnz label_220;             // 3 instr. cycles ");
   return;                       // 4 instr. cycles
+}
+
+// usb_get_interface
+void f025_usb_get_interface() {
+  EP0BUF[0] = r6_2;
+  EP0BCH = 0x00;
+  EP0BCL = 0x01;
+}
+// usb_set_interface
+void f029_usb_set_interface() {
+  r6_2 = SETUPDAT[2];
+  CY = 1;
+}
+
+// usb_get_configuration
+void f024_usb_get_configuration() {
+  EP0BUF[0] = r7_2;
+  EP0BCH = 0x00;
+  EP0BCL = 0x01;
+  CY = 1;
+}
+
+// usb_set_configuration
+void f028_usb_set_configuration() {
+  r7_2 = SETUPDAT[2];
+  CY = 1;
 }
 
 void function_002() {
@@ -823,7 +1258,7 @@ void function_003() {
       r3  = var0x47;
       r2  = var0x48;
       r1  = var0x49;
-      label_179();
+      l179_write_byte_abs();
       bit0x05 = 0;
       label_221();
       if (CY) {
@@ -858,7 +1293,7 @@ void function_003() {
         r1 = var0x49;
         DPL = r5;
         DPH = r4;
-        function_009();
+        f009_write_byte_rel();
         bit0x05 = 0;
         label_221();
         if (CY) goto label_109;
@@ -880,64 +1315,11 @@ void function_003() {
     r1 = var0x49;
     DPL = r5;
     DPH = r4;
-    function_009();
+    f009_write_byte_rel();
     CY = 1;
   }
 }
 
-/* // write ACC to XRAM, RAM; absolute address */
-/* // r3==0x01: ADDR16 = (r2 r1) (__xdata) */
-/* // r4==0x00: ADDR8  = r1 (__idata)      */
-/* // r3==0xfe: ADDR8  = r1 (__xdata)      */
-void label_179() {
-  switch (r3) {
-  case 0x01:
-    DPL = r1; DPH = r2;
-    __asm__("movx @DPTR, A");
-    break;
-  case 0x00:
-    __asm__("mov @R1, A");
-    break;
-  case 0xFE:
-    __asm__("movx @R1, A");
-    break;
-  default:
-    return;
-  }
-}
-
-/* // write ACC to XRAM,RAM; relative address */
-void function_009() {
-  r0 = ACC;
-  switch (r3) {
-  case 0x01:
-    __asm__("mov A, DPL");
-    __asm__("add A, R1 ");
-    __asm__("mov DPL, A");
-    __asm__("mov A, DPH");
-    __asm__("addc A, R2");
-    __asm__("mov DPH, A");
-    __asm__("mov A, R0 ");
-    __asm__("movx @DPTR, A");
-    break;
-  case 0x00:
-    ACC = r1;
-    ACC += DPL;
-    __asm__("mov A, R1 ");
-    __asm__("add A, DPL");
-    __asm__("xch A, R0 ");
-    __asm__("mov @R0, A");
-    break;
-  case 0xFE:
-    __asm__("mov  A, R1 ");
-    __asm__("add  A, DPL");
-    __asm__("xch  A, R0 ");
-    __asm__("movx @R0, A");
-    break;
-  default:
-    return;
-  }
-}
 
 void function_006() {
   var0x3B = r6;
@@ -964,7 +1346,7 @@ void function_006() {
       ++var0x3E;
     --ACC;
     r1= ACC;
-    function_007();
+    f007_access_byte_abs();
     r7 = ACC;
     __asm__("clr A");
     r5 = ACC;
@@ -1012,7 +1394,7 @@ void function_006() {
     --ACC;
     r1 = ACC;
     ACC = var0x44;
-    label_179();
+    l179_write_byte_abs();
     ++var0x46;
     if (ACC != 0)
       goto label_163;
@@ -1020,64 +1402,6 @@ void function_006() {
     goto label_163;
   }
   IOC = 0x80;
-}
-
-/* // read from memory into ACC; absolute address */
-void function_007() {
-  switch (r3) {
-  case 0x01:
-    __asm__("mov DPL, R1");
-    __asm__("mov DPH, R2");
-    __asm__("movx A, @DPTR");
-    break;
-  case 0x00:
-    __asm__("mov A, @R1");
-    break;
-  case 0xFE:
-    __asm__("movx A, @R1");
-    break;
-  default:
-    __asm__("mov DPL, R1");
-    __asm__("mov DPH, R2");
-    __asm__("clr A");
-    __asm__("movc A, @DPTR");
-  }
-}
-
-/* // read from memory into ACC; relative address */
-void function_008() {
-  if (r3 == 0x01) {
-    /* // DPTR += R2R1 */
-    __asm__("mov  A, DPL");
-    __asm__("add  A, R1");
-    __asm__("mov  DPL, A");
-    __asm__("mov  A, DPH");
-    __asm__("addc A, R2");
-    __asm__("mov  DPH, A");
-    __asm__("movx A, @DPTR");
-    return;
-  }
-  if (CY) { // r3 < 0x01
-    r0 = r1+DPL;
-    __asm__("mov A, @R0");
-    return;
-  }
-  if (r3 == 0xFE) {
-    r0 = r1+DPL;
-    __asm__("movx A, @R0");
-    return;
-  }
-  /* // r3 != 0,1,0xFE */
-  // DPTR += R2R1
-  __asm__("mov  A, DPL");
-  __asm__("add  A, R1");
-  __asm__("mov  DPL, A");
-  __asm__("mov  A, DPH");
-  __asm__("addc A, R2");
-  __asm__("mov  DPH, A");
-  __asm__("clr  A");
-  __asm__("movc A, @A+DPTR");
-  return;
 }
 
 void label_221() {
@@ -1129,63 +1453,185 @@ void function_011() {
 void function_012() {
   r3 = r7;
   r2 = r6;
-  ACC = 0;
-  r5 = ACC;
-  r4 = ACC;
+  ACC = 0; r5 = ACC; r4 = ACC;
  label_191:
   I2CS |= bmSTART; // 0x80
   I2DAT = 0xA2;
   bit0x05 = 1;
   label_221();
-
+  if (CY == 0) {
+    ++r5;
+    if (r5 ==0)
+      ++r4;
+    ACC = r5;
+    ACC ^= 0x03;
+    ACC |= r4;
+    if (ACC != 0) goto label_191;
+  }
+  ACC = r5;
+  ACC ^= 0x03;
+  ACC |= r4;
+  if (ACC == 0) {
+    I2CS |= 0x40;
+    CY = 0;
+  } else {
+    ACC = r2;
+    function_022();
+    if (CY) {
+      ACC = r3;
+      function_022();
+      if (CY)
+	CY = 1;
+    } else {
+      I2CS |= 0x40;
+    }
+  }  
 }
 
 void handle_resume() __interrupt RESUME_ISR {
   EICON &= 0xEF;
 }
 
-/* // copied routines from setupdat.h */
-#if 0
-BOOL handle_get_descriptor() {
-  return FALSE;
+// 0x0800
+void sudav_isr() __interrupt SUDAV_ISR { // Label_225  /* CLEAR_SUDAV(); */
+  bit0x01 = 1;
+  CLEAR_SUDAV();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x01; */
+}
+void sof_isr() __interrupt SOF_ISR { // Label_228  /* CLEAR_SOF(); */
+  CLEAR_SOF();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x02; */
+  
+}
+void sutok_isr() __interrupt SUTOK_ISR { // Label_227
+  CLEAR_SUTOK();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x04; */
+}
+void suspend_isr() __interrupt SUSPEND_ISR { // Label_226
+  CLEAR_SUSPEND();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x08; */
+}
+void usbreset_isr() __interrupt USBRESET_ISR { // Label_204  /* handle_hispeed(FALSE); */  /* CLEAR_USBRESET(); */
+  r4_1 = r0_2;
+  r5_1 = r1_2;
+  DPL = r5_1; DPH = r4_1;
+  __asm__("inc DPTR");
+  ACC= 0x02;
+  __asm__("inc DPTR");
+  __asm__("movx @DPTR, A");
+  r6_1 = r0_1;
+  r7_1 = r1_1;
+  DPL = r7_1; DPH = r6_1;
+  __asm__("inc DPTR");
+  ACC= 0x07;
+  __asm__("movx @DPTR, A");  
+  CLEAR_USBRESET();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x10; */
+}
+void hispeed_isr() __interrupt HISPEED_ISR { // Label_202  /* handle_hispeed(TRUE); */  /* CLEAR_HISPEED(); */
+  if (USBCS & 0x80) {
+    r4_1 = r0_1;
+    r5_1 = r1_1;
+    DPL = r5_1; DPH = r4_1;
+    __asm__("inc DPTR");
+    ACC = 0x02;
+    __asm__("movx @DPTR, A");
+    r6_1 = r0_2;
+    r7_1 = r1_2;
+    DPL = r7_1; DPH = r6_1;
+    __asm__("inc DPTR");
+    ACC = 0x07;
+    __asm__("movx @DPTR, A");    
+  }  
+  CLEAR_HISPEED();
+  /* EXIF   &= 0xEF; */
+  /* USBIRQ  = 0x20; */
+}
+void ep0ack_isr() __interrupt EP0ACK_ISR { // Label_231
+}
+/* void spare_isr() __interrupt RESERVED_ISR { // Label_232 */
+/* } */
+void ep0in_isr() __interrupt EP0IN_ISR { // Label_233
+}
+void ep0out_isr() __interrupt EP0OUT_ISR { // Label_234
+}
+void ep1in_isr() __interrupt EP1IN_ISR { // Label_235
+}
+void ep1out_isr() __interrupt EP1OUT_ISR { // Label_236
+}
+void ep2_isr() __interrupt EP2_ISR { // Label_237
+}
+void ep4_isr() __interrupt EP4_ISR { // Label_238
+}
+void ep6_isr() __interrupt EP6_ISR { // Label_239
+}
+void ep8_isr() __interrupt EP8_ISR { // Label_240
+}
+void ibn_isr() __interrupt IBN_ISR { // Label_241
+}
+/* void spare_isr() __interrupt RESERVED_ISR { // Label_232 */
+/* } */
+void ep0ping_isr() __interrupt EP0PING_ISR { // Label_242
+}
+void ep1ping_isr() __interrupt EP1PING_ISR { // Label_243
+}
+void ep2ping_isr() __interrupt EP2PING_ISR { // Label_245
+}
+void ep4ping_isr() __interrupt EP4PING_ISR { // Label_245
+}
+void ep6ping_isr() __interrupt EP6PING_ISR { // Label_246
+}
+void ep8ping_isr() __interrupt EP8PING_ISR { // Label_247
+}
+void errlimit_isr() __interrupt ERRLIMIT_ISR { // Label_248
+}
+/* void spare_isr() __interrupt RESERVED_ISR { // Label_232 */
+/* } */
+/* void spare_isr() __interrupt RESERVED_ISR { // Label_232 */
+/* } */
+/* void spare_isr() __interrupt RESERVED_ISR { // Label_232 */
+/* } */
+void ep2isoerr_isr() __interrupt EP2ISOERR_ISR { // Label_249
+}
+void ep4isoerr_isr() __interrupt EP4ISOERR_ISR { // Label_250
+}
+void ep6isoerr_isr() __interrupt EP6ISOERR_ISR { // Label_251
+}
+void ep8isoerr_isr() __interrupt EP8ISOERR_ISR { // Label_252
+}
+// 0x0880
+// gpif ints
+void ep2pf_isr() __interrupt EP2PF_ISR { // Label_253
+}
+void ep4pf_isr() __interrupt EP4PF_ISR { // Label_254
+}
+void ep6pf_isr() __interrupt EP6PF_ISR { // Label_255
+}
+void ep8pf_isr() __interrupt EP8PF_ISR { // Label_256
+}
+void ep2ef_isr() __interrupt EP2EF_ISR { // Label_257
+}
+void ep4ef_isr() __interrupt EP4EF_ISR { // Label_258
+}
+void ep6ef_isr() __interrupt EP6EF_ISR { // Label_259
+}
+void ep8ef_isr() __interrupt EP8EF_ISR { // Label_260
+}
+void ep2ff_isr() __interrupt EP2FF_ISR { // Label_262
+}
+void ep4ff_isr() __interrupt EP4FF_ISR { // Label_262
+}
+void ep6ff_isr() __interrupt EP6FF_ISR { // Label_263
+}
+void ep8ff_isr() __interrupt EP8FF_ISR { // Label_264
+}
+void gpifdone_isr() __interrupt GPIFDONE_ISR { // Label_265
+}
+void gpifwf_isr() __interrupt GPIFWF_ISR { // Label_266
 }
 
-
-BOOL handle_vendorcommand(BYTE cmd) {
-  return FALSE;
-}
-
-// this firmware only supports 0,0
-BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) { 
-  return TRUE;
-}
-BOOL handle_set_interface(BYTE ifc, BYTE alt_ifc) { 
-  return TRUE;
-}
-
-// get/set configuration
-BYTE handle_get_configuration() {
-  return 1; 
-}
-BOOL handle_set_configuration(BYTE cfg) { 
-  return cfg==1 ? TRUE : FALSE; // we only handle cfg 1
-}
-
-// copied usb jt routines from usbjt.h
-void sudav_isr() __interrupt SUDAV_ISR {
-  /* CLEAR_SUDAV(); */
-}
-
-void sof_isr () __interrupt SOF_ISR __using 1 {
-  /* CLEAR_SOF(); */
-}
-
-void usbreset_isr() __interrupt USBRESET_ISR {
-  /* handle_hispeed(FALSE); */
-  /* CLEAR_USBRESET(); */
-}
-void hispeed_isr() __interrupt HISPEED_ISR {
-  /* handle_hispeed(TRUE); */
-  /* CLEAR_HISPEED(); */
-}
-#endif
