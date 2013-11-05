@@ -56,7 +56,8 @@ namespace processor {
   class base_iq : public base {
   public:
     typedef boost::shared_ptr<base_iq> sptr;
-    typedef std::vector<std::complex<double> >::const_iterator const_iterator;
+    typedef std::complex<double> complex_type;
+    typedef std::vector<complex_type >::const_iterator const_iterator;
 
     typedef service_iq service;
 
