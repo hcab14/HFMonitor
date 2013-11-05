@@ -59,7 +59,7 @@ int main()
      std::cout << "E " << i << " " << v[i] << " " << vf.first << " " << vf.second << std::endl;
   }
 
-  for (int i=0; i<p.y().size(); ++i) {
+  for (size_t i=0; i<p.y().size(); ++i) {
     const std::pair<double,double> vf(p.eval(p.t()(i)));
     std::cout << "X " << p.t()(i) << " " << p.y()(i) << " " << p.yf()(i) << " " << vf.first << " " << vf.second << std::endl;
   }
