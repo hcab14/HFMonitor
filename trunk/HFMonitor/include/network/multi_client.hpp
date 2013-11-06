@@ -136,12 +136,12 @@ public:
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     // to be overwritten in a derived class
-    LOG_INFO(str(boost::format("dump: %s %s") % rp->name() % rp->to_string()));
+//     LOG_INFO(str(boost::format("dump: %s %s") % rp->name() % rp->to_string()));
     return rp;
   }
 
   virtual void put_result(processor::result_base::sptr rp) {
-    LOG_INFO(str(boost::format("put_result: %s %s") % rp->name() % rp->to_string()));
+//     LOG_INFO(str(boost::format("put_result: %s %s") % rp->name() % rp->to_string()));
     result_map_[rp->name()] = dump(rp);
   }
   virtual processor::result_base::sptr get_result(std::string name) const {
