@@ -279,7 +279,7 @@ protected:
 private:
   // results
   void put_result(processor::result_base::sptr rp) {
-    LOG_INFO(str(boost::format("multi_downconvert_processor::put_result %s") % rp->to_string()));
+//     LOG_INFO(str(boost::format("multi_downconvert_processor::put_result %s") % rp->to_string()));
     result_map_[rp->name()] = dump(rp);
   }
   processor::result_base::sptr get_result(std::string name) const {
