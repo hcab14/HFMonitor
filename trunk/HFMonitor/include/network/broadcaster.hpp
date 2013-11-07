@@ -106,7 +106,7 @@ public:
     data_ptr_type bytes_preamble(preamble != ""
                                  ? data_ptr_type(new data_type(add_header(t, path, id, preamble)))
                                  : data_ptr_type());
-    
+
     // insert to all data connections, checking if they are still alive
     for (std::set<data_connection::sptr>::iterator k(data_connections_.begin());
          k!=data_connections_.end(); ) {

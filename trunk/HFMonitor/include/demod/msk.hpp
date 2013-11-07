@@ -40,7 +40,7 @@ namespace demod {
 
     static sptr make(double fs_Hz,      // sampling frequency
                      double fc_Hz,      // center frequency
-                     double fm_Hz,      // frequency of modulation
+                     double fm_Hz,      // frequency of modulation \equiv baud/2
                      double dwl_Hz,     // bandwidth of PLL
                      double period_Sec, // Goertzel filter time period
                      double xi = 1./sqrt(2)) {
@@ -64,7 +64,7 @@ namespace demod {
     double period_sec()      const { return period_/fs_Hz_; }
     double delta_phase_rad() const { return delta_phase_; }
 
-    bool   bit_available() const   { return bit_available_; }
+    bool   bit_available() const   { return bit_availableE_ | bit_availableO_; }
     bool   current_bit()  const    { return current_bit_; }
 
     const goertzel_type& gf_plus()   const { return gf_plus_;   }
@@ -88,39 +88,39 @@ namespace demod {
       pll_minus_.process(s2);
       
       // bit stream
-      //  (1) carrier phase
+      //  (1) 4*carrier phase
       const double theta0(pll_plus_.theta() + pll_minus_.theta());
       //  (2) demodulated signal
-      const complex_type x(s*exp(-complex_type(0, 0.25*theta0)));
+      const complex_type x(s * exp(-complex_type(0, 0.25*theta0)));
       //  (3a)
-      const double ct(0.25*(cos(pll_plus_.theta() - pll_minus_.theta())));
+      const double ct(cos(0.25*(pll_plus_.theta() - pll_minus_.theta()))); // baud/4
       const int    sign_ct(ct > 0 ? 1 : -1);
       const double xE(x.real() * ct);
       signE_ = (signE_ == 0) ? sign_ct : signE_; // init
-      if (sign_ct == signE_) {
+      if (signE_ == sign_ct) { // no change in sign
         sumE_ += xE;
-        bit_available_ = false;
+        bit_availableE_ = false;
       } else {
         bitE_  = (sumE_ > 0.);
         sumE_  = 0.;
         signE_ = sign_ct;
         current_bit_   = bitE_ ^ bitO_;
-        bit_available_ = true;
+        bit_availableE_ = true;
       }
       //  (3b)
-      const double st(0.25*(sin(pll_plus_.theta() - pll_minus_.theta())));
+      const double st(sin(0.25*(pll_plus_.theta() - pll_minus_.theta()))); // baud/4
       const int    sign_st(st > 0 ? 1 : -1);      
       const double xO(x.imag() * st);
       signO_ = (signO_ == 0) ? sign_st : signO_; // init
-      if (sign_st == signO_) {
+      if (signO_ == sign_st) { // no change in sign
         sumO_ += xO;
-        bit_available_ = false;
+        bit_availableO_ = false;
       } else {
         bitO_  = (sumO_ > 0.);
         sumO_  = 0.;
         signO_ = sign_st;
         current_bit_   = bitE_ ^ bitO_;
-        bit_available_ = true;
+        bit_availableO_ = true;
       }
       //  (4)
       ++sample_counter_;
@@ -146,14 +146,14 @@ namespace demod {
 
     msk(double fs_Hz,
         double fc_Hz,
-        double fm_Hz,
+        double fm_Hz, // baud/2
         double dwl_Hz,
         double period_Sec,
         double xi)
       : fs_Hz_(fs_Hz)
       , period_(size_t(period_Sec*fs_Hz+0.5))
-      , pll_plus_ (make_pll(fs_Hz, 2*fc_Hz+fm_Hz, dwl_Hz, xi))
-      , pll_minus_(make_pll(fs_Hz, 2*fc_Hz-fm_Hz, dwl_Hz, xi))
+      , pll_plus_ (make_pll(fs_Hz, 2*fc_Hz+fm_Hz, dwl_Hz, xi)) //  baud/2
+      , pll_minus_(make_pll(fs_Hz, 2*fc_Hz-fm_Hz, dwl_Hz, xi)) // -baud/2
       , gf_plus_  ((2*fc_Hz+fm_Hz)/fs_Hz)
       , gf_center_( 2*fc_Hz       /fs_Hz)
       , gf_minus_ ((2*fc_Hz-fm_Hz)/fs_Hz)
@@ -163,10 +163,11 @@ namespace demod {
       , sumE_(0)
       , signE_(0)
       , bitE_(false)
+      , bit_availableE_(false)
       , sumO_(0)
       , signO_(0)
       , bitO_(false)
-      , bit_available_(false)
+      , bit_availableO_(false)
       , current_bit_(false) {
       // std::cout << "msk: " << 2*fc_Hz+fm_Hz << " " << 2*fc_Hz << " "<< 2*fc_Hz-fm_Hz << std::endl;
     }
@@ -188,10 +189,11 @@ namespace demod {
     double sumE_;
     int    signE_;
     bool   bitE_;
+    bool   bit_availableE_;
     double sumO_;
     int    signO_;
     bool   bitO_;
-    bool   bit_available_;
+    bool   bit_availableO_;
     bool   current_bit_;
   } ;
 

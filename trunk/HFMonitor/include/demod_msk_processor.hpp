@@ -198,7 +198,7 @@ public:
       for (const_iterator i(begin()); i!=end();) {
         unsigned char x(0);
         for (size_t j(0); j<4 && i!=end(); ++j, ++i)
-          x |= (*i << j);
+          x |= (*i << (3-j));
         const char c(x<10 ? '0'+x : 'A'+x-10);
         os << c;
       }
@@ -213,7 +213,7 @@ public:
                double fm_Hz)
       : result_base(name, t)
       , fc_Hz_(fc_Hz)
-      , fm_Hz_(fc_Hz) {}
+      , fm_Hz_(fm_Hz) {}
     
     const double    fc_Hz_;
     const double    fm_Hz_;
@@ -265,7 +265,7 @@ public:
     if (not demod_msk_) {
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
                                     -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
-                                    0.5*fm_Hz(),
+                                    0.5*fm_Hz(), // baud/2
                                     dwl_Hz_, period_Sec_);
 //       filter_.shift((fc_Hz() - sp->center_frequency_Hz())/sp->sample_rate_Hz());
       filter_amp_pm_.reset(-1);
@@ -275,10 +275,11 @@ public:
     demod_msk_->update_ppb(sp->offset_ppb(),
                            -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
                            0.5*fm_Hz());
-    std::vector<complex_type> samples2(length, complex_type(0));
-    std::vector<complex_type>::iterator j(samples2.begin());
-    for (const_iterator i(i0); i!=i1; ++i, ++j) {
+//     std::vector<complex_type> samples2(length, complex_type(0));
+//     std::vector<complex_type>::iterator j(samples2.begin());
+    for (const_iterator i(i0); i!=i1; ++i) {
       const complex_type sample(filter_.process(*i));
+//       *j = sample*sample;
       demod_msk_->process(sample);
 
       // collect bit data
@@ -289,9 +290,9 @@ public:
           result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
         }
         result_bits_->push_back(demod_msk_->current_bit());
-        if (result_bits_->size() == size_t(0.5+1./fm_Hz())) {
+        if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           sp->put_result(result_bits_);
-          result_bits_.reset();          
+          result_bits_.reset();
         }
       }
       // amplitude and phase data
@@ -338,10 +339,10 @@ public:
     const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz() - sp->center_frequency_Hz()));
     double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
 
-    // std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
-    //           << " minus " << (fc_Hz() - sp->center_frequency_Hz()) << std::endl;
+    std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
+              << " minus " << (fc_Hz() - sp->center_frequency_Hz()) << std::endl;
     {
-      const frequency_vector<double> ps(-120., -45., s, std::abs<double>);
+      const frequency_vector<double> ps(-250., -45., s, std::abs<double>);
       if (filter_minus_.x().empty())
         filter_minus_.init(sp->approx_ptime(), ps);
       else
@@ -352,7 +353,7 @@ public:
       double max(-1);
       double sum(0);
       for (frequency_vector<double>::const_iterator i(psf.begin()), end(psf.end()); i!=end; ++i) {
-        // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
           max = i->second;
@@ -368,7 +369,7 @@ public:
       sn_minus = i_max->second/sum*psf.size();
     }
     {
-      const frequency_vector<double> ps(45., 120., s, std::abs<double>);
+      const frequency_vector<double> ps(45., 250., s, std::abs<double>);
       if (filter_plus_.x().empty())
         filter_plus_.init(sp->approx_ptime(), ps);
       else
@@ -379,7 +380,7 @@ public:
       double max(-1);
       double sum(0);
       for (frequency_vector<double>::const_iterator i(psf.begin()); i!=psf.end(); ++i) {
-        // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+        std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
         sum += i->second;
         if (i->second > max) {
           max = i->second;
@@ -408,7 +409,7 @@ private:
   Filter::Cascaded<frequency_vector<double> > filter_minus_;
   const std::string name_;
   const double      fc_Hz_;     // center frequency
-  const double      fm_Hz_;     // modulation frequency
+  const double      fm_Hz_;     // baud
   const double      dwl_Hz_;
   const double      period_Sec_;
   const double      min_SN_db_;
