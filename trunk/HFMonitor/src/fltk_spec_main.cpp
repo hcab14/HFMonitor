@@ -6,6 +6,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFT.hpp"
+#include "FFTProcessor/Filter.hpp"
 #include "gui/spectrum_display.hpp"
 #include "network.hpp"
 #include "network/client.hpp"
@@ -104,6 +105,7 @@ public:
   test_proc(const boost::property_tree::ptree&)
     : w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE) {
+    filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
   }
 
@@ -126,17 +128,27 @@ public:
     const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
-    const frequency_vector<double> ps(f_min, f_max, s, s2db);
-    w_.get_spec_display().insert_spec(ps, sp);
+    const frequency_vector<double> ps(f_min, f_max, s, std::abs<double>);
+    if (filter_.x().empty())
+      filter_.init(sp->approx_ptime(), ps);
+    else
+      filter_.update(sp->approx_ptime(), ps);
+
+    frequency_vector<double> xf(filter_.x());
+    xf.apply(s2db());
+    w_.get_spec_display().insert_spec(xf, sp);
     char msg[1024]; sprintf(msg,"spec_update");
     Fl::awake(msg);
   }
 private:
-  static double s2db(std::complex<double> c) {
-    return 10*std::log10(std::abs(c));
-  }
+  struct s2db {
+    double operator()(double c) const {
+      return 10*std::log10(c);
+    }
+  } ;
   MyWindow w_;
   FFT::FFTWTransform<double> fftw_;
+  Filter::Cascaded<frequency_vector<double> > filter_;
 } ;
 
 int main(int argc, char* argv[])

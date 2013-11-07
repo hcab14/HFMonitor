@@ -163,7 +163,8 @@ public:
   }
 
   void draw_spec() const {
-    fl_color(FL_GREEN);
+    fl_color(FL_RED);
+    fl_line_style(FL_SOLID);
     fl_begin_line();
     for (int i=0; i<specN(); ++i)
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
@@ -191,8 +192,8 @@ public:
   // every step kHz
   void draw_ticks(int step) {
     fl_color(FL_BLUE);
-    char label[1024];
     fl_line_style(FL_DASH);
+    char label[1024];
     int last_x(-100000);
     for (int fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
       if (fi < fMin_.value()) continue;
