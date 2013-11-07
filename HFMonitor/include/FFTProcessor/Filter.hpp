@@ -31,8 +31,8 @@ namespace Filter {
     typedef typename boost::shared_ptr<Base<T> > sptr;
     virtual ~Base() {}
     virtual void init(boost::posix_time::ptime t, const T& x) = 0;
-    virtual T update(boost::posix_time::ptime t, const T& x) = 0 ;
-    virtual T x() const = 0;
+    virtual const T& update(boost::posix_time::ptime t, const T& x) = 0 ;
+    virtual const T& x() const = 0;
     virtual bool isInEquilibrium() const = 0;    
   } ;
 
@@ -80,8 +80,8 @@ namespace Filter {
     static typename Base<T>::sptr make(double dt, double lambda) {
       return typename Base<T>::sptr(new LowPass(dt, lambda));
     }
-    virtual T x() const { return x_; }
-    virtual T update(boost::posix_time::ptime pt, const T& xx) {
+    virtual const T& x() const { return x_; }
+    virtual const T& update(boost::posix_time::ptime pt, const T& xx) {
       using namespace boost::posix_time;
       const double dt(double((pt-t_).ticks()) / double(time_duration::ticks_per_second()));
       t_ = pt;
@@ -117,11 +117,11 @@ namespace Filter {
       LowPassBase<ptime>::init(t0,tCorr);
       secondsInDay_ = 1e-6*tCorr.time_of_day().total_microseconds();
     }        
-    virtual boost::posix_time::ptime update(boost::posix_time::ptime , 
-                                            const boost::posix_time::ptime& pt) {
+    virtual const boost::posix_time::ptime& update(boost::posix_time::ptime , 
+                                                   const boost::posix_time::ptime& pt) {
       return this->update(pt);
     }
-    boost::posix_time::ptime update(boost::posix_time::ptime pt)  {
+    const boost::posix_time::ptime& update(boost::posix_time::ptime pt)  {
       t_ = pt;
       using namespace boost::posix_time;
       // filter input: seconds in day
@@ -137,10 +137,11 @@ namespace Filter {
       secondsInDay_ = xp;
       return this->x();
     }    
-    virtual boost::posix_time::ptime x() const { 
+    virtual const boost::posix_time::ptime& x() const { 
       using namespace boost::posix_time;
       // compensate for filter delay
-      return x_ + time_duration(0,0,0, boost::int64_t((lambda_-dt_)*time_duration::ticks_per_second()));
+      t_ = x_ + time_duration(0,0,0, boost::int64_t((lambda_-dt_)*time_duration::ticks_per_second()));
+      return t_;
     }
   private:  
     static double rollOverOffset(double dt) {
@@ -149,6 +150,7 @@ namespace Filter {
       return 0;
     }    
     double secondsInDay_;  // filter state 
+    mutable boost::posix_time::ptime t_; //
   } ;
 
   template<typename T,
@@ -169,12 +171,12 @@ namespace Filter {
       const vector_type rms2(x.fmin(), x.fmax(), x.size(), initRMS_*initRMS_);
       filterRMS_->init(pt, rms2);
     }
-    virtual vector_type update(boost::posix_time::ptime pt, const vector_type& x) {
-      const vector_type res(filterX_->update(pt, x));
+    virtual const vector_type& update(boost::posix_time::ptime pt, const vector_type& x) {
+      const vector_type& res(filterX_->update(pt, x));
       filterRMS_->update(pt, (x-res)*(x-res));
       return res;
     }
-    virtual vector_type x() const   { return filterX_->x(); }
+    virtual const vector_type& x() const   { return filterX_->x(); }
     virtual vector_type rms() const { return sqrt(filterRMS_->x()); }
     virtual bool isInEquilibrium() const {
       if (filterX_ == 0 || filterRMS_ == 0)
@@ -203,13 +205,13 @@ namespace Filter {
       BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
         filter->init(pt, x);
     }
-    virtual T update(boost::posix_time::ptime pt, const T& x) {
+    virtual const T& update(boost::posix_time::ptime pt, const T& x) {
       x_= x;
       BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
         x_ = filter->update(pt, x_);
       return x_;
     }
-    virtual T x() const {
+    virtual const T& x() const {
       return filters_.empty() ? x_ : filters_.back()->x();
     }
     virtual bool isInEquilibrium() const {
