@@ -1,13 +1,13 @@
 # -*- octave -*-
 
-function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2]=demod_msk(z, baud, fs)
+function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_msk(z, baud, fs)
   xi=1/sqrt(2);
 
   ## timing
   ## z.**2 has components at +- 2*fm, fm=1/(4*T)=baud/4
-  pll_plus  = pll_init(xi, 0.05*baud/2,  baud/2, fs);
-  pll_zero  = pll_init(xi, 0.05*baud/2,  0,      fs);
-  pll_minus = pll_init(xi, 0.05*baud/2, -baud/2, fs);
+  pll_plus  = pll_init(xi, 0.01*baud/2,  baud/2, fs);
+  pll_zero  = pll_init(xi, 0.01*baud/2,  0,      fs);
+  pll_minus = pll_init(xi, 0.01*baud/2, -baud/2, fs);
 
  for n=1:length(z)
     zn = z(n); #*exp(-i*(pll_zero.theta + pll_zero.f1*pll_zero.ts)/2*0);
@@ -30,7 +30,7 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2]=demod_msk(z
     f10(n) = pll_zero.f1;
   endfor
 
-#  theta0=theta1+theta2;
+  theta0=theta1+theta2;
 
   ct=cos((theta1-theta0/2)/2);
   st=sin((theta1-theta0/2)/2);

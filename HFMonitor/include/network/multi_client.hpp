@@ -124,6 +124,9 @@ public:
   virtual void process(data_buffer_type::const_iterator begin,
                        data_buffer_type::const_iterator end) {
     const stream_name str_name(get_directory().stream_name_of(get_header().stream_number()));
+    if (get_header().id() == "WAV_0000")
+      dump_wav(get_header().approx_ptime(), str_name, begin, end);
+
     processor_id_map::iterator i(processor_id_map_.find(str_name));
     if (i == processor_id_map_.end()) {
       return; // TODO: complain
@@ -136,8 +139,12 @@ public:
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     // to be overwritten in a derived class
-//     LOG_INFO(str(boost::format("dump: %s %s") % rp->name() % rp->to_string()));
     return rp;
+  }
+  virtual void dump_wav(processor::service_base::ptime t, std::string str_name,
+                        data_buffer_type::const_iterator begin,
+                        data_buffer_type::const_iterator end) {
+    // to be overwritten in a derived class
   }
 
   virtual void put_result(processor::result_base::sptr rp) {

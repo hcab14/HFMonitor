@@ -8,10 +8,14 @@ function decode_rtcm(bbits)
   idx = sort(idx);
 
   idx -= 8;
-
+  idx(idx==0)=[];
+  idx(idx>length(bbits)-60)=[];
+  idx
+  length(bbits)
   ## search for valid frames
-  ii=1
-  while ii < length(idx)-1
+  ii=1;
+  length(idx)-1
+  while ii < (length(idx)-1)
     n=idx(ii);
     [D, success] = parity_check(bbits(n+1-30:n), ...
 				bbits(n+1:n+30));
@@ -24,26 +28,27 @@ function decode_rtcm(bbits)
 	i +=1;
 	[D, success] = parity_check(bbits(n+1-30+30*i:n+30*i),
 				    bbits(n+1+30*i:n+30+30*i));
-#	fprintf("i=%d success=%d index=%d\n", i, success, n+1+30*i);fflush(stdout);
+	##fprintf("i=%d success=%d index=%d\n", i, success, n+1+30*i);fflush(stdout);
 	
 	if success
 	  preamble = D( 1: 8)*bitshift(1,[ 7:-1:0]');
 	  if preamble==102
 	    p.preamble  = preamble;
-	    p.msg_nr    = D( 9:14)*bitshift(1,[ 5:-1:0]');
+	    p.msg_type  = D( 9:14)*bitshift(1,[ 5:-1:0]');
 	    p.refid     = D(15:24)*bitshift(1,[ 9:-1:0]');
-	    p.frame_len = D(17:21)*bitshift(1,[ 4:-1:0]');
+	    p.parity    = D(25:30)*bitshift(1,[ 5:-1:0]');
 	    i2=1;
 	  elseif i2
 	    p.mod_z     = D( 1:13)*bitshift(1,[12:-1:0]');
 	    p.seq_nr    = D(14:16)*bitshift(1,[ 2:-1:0]');
+	    p.n_data    = D(17:21)*bitshift(1,[ 4:-1:0]');
 	    i3=1; i2=0;
 	  elseif i3
 	    p.prn       = D( 4: 8)*bitshift(1,[ 4:-1:0]');
 	    p.prc       = D( 9:24)*bitshift(1,[15:-1:0]');
 	    fprintf(stdout, 
-		    "preamble=%d msg_nr=%d refid=%d frame_len=%2d mod_z=%d seq_nr=%d prn=%d prc=%d\n",
-		    p.preamble, p.msg_nr, p.refid, p.frame_len, p.mod_z, p.seq_nr, p.prn, p.prc); 
+		    "preamble=%03d msg_type=%02d refid=%03d parity=%2d mod_z=5%d seq_nr=%2d n_data=%2d prn=%02d prc=%d\n",
+		    p.preamble, p.msg_type, p.refid, p.parity, p.mod_z, p.seq_nr, p.n_data, p.prn, p.prc); 
 				#	  fflush(stdout);
 	    i3=0;
 	  endif
