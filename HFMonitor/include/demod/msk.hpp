@@ -55,11 +55,17 @@ namespace demod {
     void reset() {
       pll_plus_.reset();
       pll_minus_.reset();
+      sumE_  = sumO_  = 0.;
+      signE_ = signO_ = 0;
+      bitE_  = bitO_  = false;
     }
 
-    bool   updated()         const { return sample_counter_ == 0; }
+    bool   phase_available() const { return sample_counter_ == 0; }
     double period_sec()      const { return period_/fs_Hz_; }
     double delta_phase_rad() const { return delta_phase_; }
+
+    bool   bit_available() const   { return bit_available_; }
+    bool   current_bit()  const    { return current_bit_; }
 
     const goertzel_type& gf_plus()   const { return gf_plus_;   }
     const goertzel_type& gf_center() const { return gf_center_; }
@@ -80,6 +86,43 @@ namespace demod {
       gf_minus_.update(s2);
       pll_plus_.process(s2);
       pll_minus_.process(s2);
+      
+      // bit stream
+      //  (1) carrier phase
+      const double theta0(pll_plus_.theta() + pll_minus_.theta());
+      //  (2) demodulated signal
+      const complex_type x(s*exp(-complex_type(0, 0.25*theta0)));
+      //  (3a)
+      const double ct(0.25*(cos(pll_plus_.theta() - pll_minus_.theta())));
+      const int    sign_ct(ct > 0 ? 1 : -1);
+      const double xE(x.real() * ct);
+      signE_ = (signE_ == 0) ? sign_ct : signE_; // init
+      if (sign_ct == signE_) {
+        sumE_ += xE;
+        bit_available_ = false;
+      } else {
+        bitE_  = (sumE_ > 0.);
+        sumE_  = 0.;
+        signE_ = sign_ct;
+        current_bit_   = bitE_ ^ bitO_;
+        bit_available_ = true;
+      }
+      //  (3b)
+      const double st(0.25*(sin(pll_plus_.theta() - pll_minus_.theta())));
+      const int    sign_st(st > 0 ? 1 : -1);      
+      const double xO(x.imag() * st);
+      signO_ = (signO_ == 0) ? sign_st : signO_; // init
+      if (sign_st == signO_) {
+        sumO_ += xO;
+        bit_available_ = false;
+      } else {
+        bitO_  = (sumO_ > 0.);
+        sumO_  = 0.;
+        signO_ = sign_st;
+        current_bit_   = bitE_ ^ bitO_;
+        bit_available_ = true;
+      }
+      //  (4)
       ++sample_counter_;
       if (sample_counter_ == period_) {
         sample_counter_= 0;
@@ -116,7 +159,15 @@ namespace demod {
       , gf_minus_ ((2*fc_Hz-fm_Hz)/fs_Hz)
       , last_phase_(0)
       , delta_phase_(0)
-      , sample_counter_(0) {
+      , sample_counter_(0)
+      , sumE_(0)
+      , signE_(0)
+      , bitE_(false)
+      , sumO_(0)
+      , signO_(0)
+      , bitO_(false)
+      , bit_available_(false)
+      , current_bit_(false) {
       // std::cout << "msk: " << 2*fc_Hz+fm_Hz << " " << 2*fc_Hz << " "<< 2*fc_Hz-fm_Hz << std::endl;
     }
 
@@ -133,6 +184,15 @@ namespace demod {
     double last_phase_;        //
     double delta_phase_;       //
     size_t sample_counter_;    //
+
+    double sumE_;
+    int    signE_;
+    bool   bitE_;
+    double sumO_;
+    int    signO_;
+    bool   bitO_;
+    bool   bit_available_;
+    bool   current_bit_;
   } ;
 
 } // namespace demod

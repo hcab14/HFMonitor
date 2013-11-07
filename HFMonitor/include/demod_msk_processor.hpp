@@ -39,49 +39,65 @@ public:
   typedef std::complex<double> complex_type;
   typedef filter::fir::lowpass<double> fir_type;
 
-  fir_filter(size_t n, double f)
+  fir_filter(size_t n,
+             double f,
+             double x_slope=0.1)
     : n_(n)
     , f_(f)
-    , fir_design_(n)
+    , is_shifted_(false)
     , b_(n, 0.)
     , phases_ (n, complex_type(1,0))
     , history_(n, complex_type(0,0)) {
-    fir_design_.design(f, 0.1*f);
-    std::copy(fir_design_.coeff().begin(), fir_design_.coeff().end(), b_.begin());
+    fir_type fir_design(n);
+    fir_design.design(f, x_slope*f);
+    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());
   }
 
+  // shift by frequency f0 (normalized)
+  // returns the true, quantized shift frequency
   double shift(double f0) { 
     long int shift(lround(f0*n_));
-    // std::cout << "shift= " << shift << std::endl;
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
     f0 = double(shift)/double(n_);
-    const double two_pi_f0(2*M_PI*f0);
-    for (size_t i(0); i<n_; ++i) {
-      phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
-      // std::cout << i << " " << phases_[i] << " " << b_[i] << std::endl;
+    is_shifted_ = (f0 != 0);
+    if (is_shifted_) {
+      const double two_pi_f0(2*M_PI*f0);
+      for (size_t i(0); i<n_; ++i)
+        phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
     }
     return f0;
   }
 
-  complex_type process(complex_type sample) {
-    for (size_t i(n_-1); i>0; --i)
+  void insert(complex_type sample) {
+    for (size_t i(n_-1); i!=0; --i)
       history_[i] = history_[i-1];
     history_[0] = sample;
+  }
+  complex_type process() const {
     complex_type result(0);
-    for (size_t i(0); i<n_; ++i)
-      result += history_[i] * phases_[i] * fir_design_.coeff()[i];
+    if (is_shifted_) {
+      for (size_t i(0); i<n_; ++i)
+        result += history_[i] * phases_[i] * b_[i];
+    } else {
+      for (size_t i(0); i<n_; ++i)
+        result += history_[i] * b_[i];
+    }
     return result;
+  }
+  complex_type process(complex_type sample) {
+    insert(sample);
+    return process();
   }
 
 protected:
 private:
-  const size_t n_;
-  const double f_;
-  fir_type fir_design_;
-  std::vector<double> b_;
-  std::vector<complex_type> phases_; // for shift
-  std::vector<complex_type> history_;
+  const size_t n_;                    // filter size
+  const double f_;                    // cutoff frequency (normalized)
+  bool  is_shifted_;
+  std::vector<double> b_;             // fir coefficients
+  std::vector<complex_type> phases_;  // phases for frequency shift
+  std::vector<complex_type> history_; // filter history
 } ;
 
 class demod_msk_processor : public processor::base_iq {
@@ -89,11 +105,11 @@ public:
   typedef boost::shared_ptr<demod_msk_processor> sptr;
   typedef std::complex<double> complex_type;
   
-  class result : public processor::result_base {
+  class result_phase : public processor::result_base {
   public:
-    typedef boost::shared_ptr<result> sptr;
+    typedef boost::shared_ptr<result_phase> sptr;
     
-    virtual ~result() {}
+    virtual ~result_phase() {}
     static sptr make(std::string name,
                      ptime  t,
                      double fc_Hz,
@@ -101,7 +117,7 @@ public:
                      double amplitude,
                      double sn_db,
                      double phase_rad) {
-      return sptr(new result(name, t, fc_Hz, fm_Hz, amplitude, sn_db, phase_rad));
+      return sptr(new result_phase(name, t, fc_Hz, fm_Hz, amplitude, sn_db, phase_rad));
     }
 
     double fc_Hz()     const { return fc_Hz_; }
@@ -125,13 +141,13 @@ public:
     
   protected:
   private:
-    result(std::string name,
-           ptime  t,
-           double fc_Hz,
-           double fm_Hz,
-           double amplitude,
-           double sn_db,
-           double phase_rad)
+    result_phase(std::string name,
+                 ptime  t,
+                 double fc_Hz,
+                 double fm_Hz,
+                 double amplitude,
+                 double sn_db,
+                 double phase_rad)
       : result_base(name, t)
       , fc_Hz_(fc_Hz)
       , fm_Hz_(fm_Hz)
@@ -144,8 +160,66 @@ public:
     const double amplitude_;
     const double sn_db_;
     const double phase_rad_;
+  } ; 
+
+  class result_bits : public processor::result_base {
+  public:
+    typedef boost::shared_ptr<result_bits> sptr;
+    typedef std::vector<bool> bit_vector_type;
+    typedef bit_vector_type::iterator iterator;
+    typedef bit_vector_type::const_iterator const_iterator;
+
+    virtual ~result_bits() {}
+    static sptr make(std::string name,
+                     ptime  t,
+                     double fc_Hz,
+                     double fm_Hz) {
+      return sptr(new result_bits(name, t, fc_Hz, fm_Hz));
+    }
+
+    double fc_Hz() const { return fc_Hz_; }
+    double fm_Hz() const { return fm_Hz_; }
+    // bool   bit()   const { return bit_; }
+
+    size_t size() const { return bitvec_.size(); }
+    const_iterator begin() const { return bitvec_.begin(); }
+    const_iterator end() const { return bitvec_.end(); }
+
+    void clear() { bitvec_.clear(); }
+    void push_back(bool bit) { bitvec_.push_back(bit); }
+
+    virtual std::ostream& dump_header(std::ostream& os) const {      
+      return os
+        << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
+        << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"
+        << "# Time_UTC bits ";
+    }
+    virtual std::ostream& dump_data(std::ostream& os) const {
+      for (const_iterator i(begin()); i!=end();) {
+        unsigned char x(0);
+        for (size_t j(0); j<4 && i!=end(); ++j, ++i)
+          x |= (*i << j);
+        const char c(x<10 ? '0'+x : 'A'+x-10);
+        os << c;
+      }
+      return os;
+    }
+    
+  protected:
+  private:
+    result_bits(std::string name,
+               ptime  t,
+               double fc_Hz,
+               double fm_Hz)
+      : result_base(name, t)
+      , fc_Hz_(fc_Hz)
+      , fm_Hz_(fc_Hz) {}
+    
+    const double    fc_Hz_;
+    const double    fm_Hz_;
+    bit_vector_type bitvec_;
   } ;
-  
+ 
   typedef boost::posix_time::time_duration time_duration;
 
   demod_msk_processor(const boost::property_tree::ptree& config)
@@ -168,6 +242,9 @@ public:
   
   ~demod_msk_processor() {}
 
+  double fc_Hz() const { return fc_Hz_; }
+  double fm_Hz() const { return fm_Hz_; }
+
   void process_iq(service::sptr sp,
                   const_iterator i0,
                   const_iterator i1) {
@@ -176,7 +253,7 @@ public:
       fftw_.resize(length);
 
     const double offset_ppb(sp->offset_ppb());
-    const double offset_Hz(fc_Hz_*offset_ppb*1e-9);
+    const double offset_Hz(fc_Hz()*offset_ppb*1e-9);
 
     if (sp->offset_ppb_rms() > max_offset_ppb_rms_) {
       LOG_INFO(str(boost::format("offset_ppb = %.2f > %.2f is too big") % sp->offset_ppb_rms() % max_offset_ppb_rms_));
@@ -187,24 +264,38 @@ public:
     bool is_first_call(demod_msk_ == 0);
     if (not demod_msk_) {
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
-                                    -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
-                                    0.5*fm_Hz_,
+                                    -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
+                                    0.5*fm_Hz(),
                                     dwl_Hz_, period_Sec_);
-//       filter_.shift((fc_Hz_ - sp->center_frequency_Hz())/sp->sample_rate_Hz());
+//       filter_.shift((fc_Hz() - sp->center_frequency_Hz())/sp->sample_rate_Hz());
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
     }
 
     demod_msk_->update_ppb(sp->offset_ppb(),
-                           -(fc_Hz_ - sp->center_frequency_Hz()) + offset_Hz,
-                           0.5*fm_Hz_);
+                           -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
+                           0.5*fm_Hz());
     std::vector<complex_type> samples2(length, complex_type(0));
     std::vector<complex_type>::iterator j(samples2.begin());
     for (const_iterator i(i0); i!=i1; ++i, ++j) {
       const complex_type sample(filter_.process(*i));
-//       *j = std::pow(sample, 2);
       demod_msk_->process(sample);
-      if (not is_first_call && demod_msk_->updated()) {
+
+      // collect bit data
+      if (not is_first_call && demod_msk_->bit_available()) {
+        if (not result_bits_) {
+          const time_duration
+            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+          result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
+        }
+        result_bits_->push_back(demod_msk_->current_bit());
+        if (result_bits_->size() == size_t(0.5+1./fm_Hz())) {
+          sp->put_result(result_bits_);
+          result_bits_.reset();          
+        }
+      }
+      // amplitude and phase data
+      if (not is_first_call && demod_msk_->phase_available()) {
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
         const double amplitude_center(10*std::log10(std::abs(demod_msk_->gf_center().x())));
         const double amplitude_plus  (10*std::log10(std::abs(demod_msk_->gf_plus().x())));
@@ -225,7 +316,7 @@ public:
         }
 
         const double delta_phase_rad(demod_msk_->delta_phase_rad()
-                                     + 2*M_PI*demod_msk_->period_sec() * (fc_Hz_ - sp->center_frequency_Hz() - offset_Hz));
+                                     + 2*M_PI*demod_msk_->period_sec() * (fc_Hz() - sp->center_frequency_Hz() - offset_Hz));
         phase_ += delta_phase_rad;
         while (phase_ >= M_PI) phase_ -= 2*M_PI;
         while (phase_ < -M_PI) phase_ += 2*M_PI;
@@ -234,21 +325,21 @@ public:
         //           << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
         //           << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
         //           << " " << phase_
-        //           << " " << fc_Hz_ - sp->center_frequency_Hz()
+        //           << " " << fc_Hz() - sp->center_frequency_Hz()
         //           << std::endl;
         const time_duration
           dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-        result::sptr r(result::make(name_, sp->approx_ptime()+dt, fc_Hz_, fm_Hz_, amplitude, sn_db, phase_));
+        result_phase::sptr r(result_phase::make(name_, sp->approx_ptime()+dt, fc_Hz(), fm_Hz_, amplitude, sn_db, phase_));
         sp->put_result(r);
       }
     }
 #if 0
     fftw_.transformVector(samples2, FFT::WindowFunction::Blackman<double>(samples2.size()));
-    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz_ - sp->center_frequency_Hz()));
+    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz() - sp->center_frequency_Hz()));
     double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
 
     // std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
-    //           << " minus " << (fc_Hz_ - sp->center_frequency_Hz()) << std::endl;
+    //           << " minus " << (fc_Hz() - sp->center_frequency_Hz()) << std::endl;
     {
       const frequency_vector<double> ps(-120., -45., s, std::abs<double>);
       if (filter_minus_.x().empty())
@@ -304,18 +395,11 @@ public:
       sn_plus = i_max->second/sum*psf.size();
     }
 #endif
-    // std::cout << "ps: " << name_
-    //           << boost::format(" f_minus,plus: %8.3f %8.3f sn_minus,plus: %5.2f %5.2f delta_f: %8.3f baud: %8.3f")
-    //   % f_minus % f_plus
-    //   % sn_minus % sn_plus
-    //   % (0.5*(f_minus+f_plus))
-    //   % (f_plus-f_minus)
-    //           << std::endl;
   }
 
-  virtual void dump(result::sptr) {
-    // to be overwritten in a derived class
-  }
+  // virtual void dump(processor::result_base::sptr) {
+  //   // to be overwritten in a derived class
+  // }
 
 protected:
 private:
@@ -334,6 +418,7 @@ private:
   filter::iir_lowpass_1pole<double, double> filter_amp_pm_;
   filter::iir_lowpass_1pole<double, double> filter_amp_center_;
   double            phase_;
+  result_bits::sptr result_bits_; // accumulates bits
 } ;
 
 #endif // _DEMOD_MSK_PROCESSOR_HPP_cm130214_

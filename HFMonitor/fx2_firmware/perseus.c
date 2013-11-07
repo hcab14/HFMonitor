@@ -83,7 +83,7 @@ __data __at 0x21 unsigned char var0x21;
 __data __at 0x22 unsigned char var0x22;
 __data __at 0x23 unsigned char var0x23;
 __data __at 0x24 unsigned char var0x24;
-
+/* 32 bit number: var24,25,26,27,28 */
 __data __at 0x25 unsigned char var0x25;
 __data __at 0x26 unsigned char var0x26;
 __data __at 0x27 unsigned char var0x27;
@@ -93,12 +93,13 @@ __data __at 0x29 unsigned char var0x29;
 __data __at 0x2A unsigned char var0x2A;
 __data __at 0x2B unsigned char var0x2B;
 __data __at 0x2C unsigned char var0x2C;
-
+/* 32 bit number: var2D,2E,2F,30 */
 __data __at 0x2D unsigned char var0x2D;
 __data __at 0x2E unsigned char var0x2E;
 __data __at 0x2F unsigned char var0x2F;
 __data __at 0x30 unsigned char var0x30;
 
+/* 16 bit number: var31,32 */
 // sleep for var0x31,32 ms
 __data __at 0x31 unsigned char var0x31; // H
 __data __at 0x32 unsigned char var0x32; // L
@@ -106,10 +107,12 @@ __data __at 0x32 unsigned char var0x32; // L
 __data __at 0x33 unsigned char var0x33; //
 __data __at 0x34 unsigned char var0x34; //
 
+/* pointer */
 __data __at 0x35 unsigned char var0x35; // FLAG
 __data __at 0x36 unsigned char var0x36; // ADDRH
 __data __at 0x37 unsigned char var0x37; // ADDRL
 
+/* pointer */
 __data __at 0x38 unsigned char var0x38;
 __data __at 0x39 unsigned char var0x39;
 __data __at 0x3A unsigned char var0x3A;
@@ -136,22 +139,26 @@ __data __at 0x49 unsigned char var0x49;
 __data __at 0x4A unsigned char var0x4A;
 __data __at 0x4B unsigned char var0x4B;
 
-void function_000();
-void function_001();
+void f005_process_host_request();
+void f001_handle_setupdata();
 void function_002();
 void function_003();
-void function_004();
-void function_005();
+void f004_delay();
+void f005_return_true();
 void function_006();
+/* void f007_access_byte_abs(); */
+/* void f008_access_byte_rel(); */
+/* void f009_write_byte_rel(); */
 void function_010();
 void function_011();
 void function_012();
 void function_013();
 void function_014();
-void function_015();
+void f015_resume();
 void function_016();
 void function_017();
 void function_018();
+void f019_goto_idle();
 void function_020();
 void function_021();
 void function_022();
@@ -163,11 +170,11 @@ void function_027();
 void f028_usb_set_configuration();
 void f029_usb_set_interface();
 void function_030();
-void function_031();
-void function_032();
-void function_033();
-void function_034();
-void function_035();
+void f031_return_true();
+void f032_return_true();
+void f033_return_true();
+void f034_return_true();
+void f035_return_true();
 void label_221();
 
 void main() {
@@ -187,11 +194,11 @@ void main() {
   function_002();
 
   r6   = 0x09;  r7   = 0x00;
-  r2_1 = r6;    r3_1 = r7;
-  r2_2 = 0x09;  r3_2 = 0x12;
-  r0_1 = 0x09;  r1_1 = 0x1C;
-  r0_2 = 0x09;  r1_2 = 0x43;
-  r4_2 = 0x09;  r5_2 = 0x6A;
+  r2_1 = r6;    r3_1 = r7;   // dev_dscr
+  r2_2 = 0x09;  r3_2 = 0x12; // dev_qual_dscr
+  r0_1 = 0x09;  r1_1 = 0x1C; // highspd_dscr
+  r0_2 = 0x09;  r1_2 = 0x43; // fullspd_dscr
+  r4_2 = 0x09;  r5_2 = 0x6A; // dev_strings
 
   ACC  = r6;
   ACC &= 0xC0;
@@ -201,7 +208,7 @@ void main() {
     var0x2E = 0x80;
     var0x2F = r6;
     var0x30 = r7;
-     /* 16 bit address operation; r6r7 = 0x09AA - r6r7 + 2 */
+     /* 16 bit address operation; r6r7 = 0x09AA(dev_strings_end) - r6r7 + 2 */
     __asm__("clr  C");
     __asm__("mov  A, #0xAA");
     __asm__("subb A, R7");
@@ -233,8 +240,8 @@ void main() {
     r1 = var0x22;
     r0 = var0x21;
     CY = 0;
-    function_010();
-    if (CY) {
+    function_010(); // r2r3 == r6r7 && r0r2 == r4r5
+    if (CY == 1) {
       /* DPL = var0x30 + var0x24; */
       __asm__("mov  A, 0x30");
       __asm__("add  A, 0x24");
@@ -342,7 +349,7 @@ void main() {
     __asm__("mov  A, 0x14"); // 0x14 = R4<#2>
     __asm__("subb A, R6");
     __asm__("mov  0x14, A");
-  }
+  } // ACC != 0
 
  label_096:
   {
@@ -362,38 +369,40 @@ void main() {
   CKCON    &= 0xF8; // timers T2,1,0 use CLKOUT/4
   bit0x03   = 0;
   
- label_097:
-  function_000();
+ label_097: // main loop
+  f005_process_host_request();
   if (bit0x01) {
-    function_001();
+    f001_handle_setupdata();
     bit0x01 = 0;
   }
  label_098:
   if (bit0x03 == 0)
     goto label_097;
-  function_005();
+  f005_return_true();
   if (CY == 0)
     goto label_097;
   bit0x03 = 0;
  label_099:
+  f019_goto_idle();
   if (bit0x00 == 0) {
-    if (WAKEUPCS & 0x80) {
-      if (WAKEUPCS & 0x02)
+    if (WAKEUPCS & 0x80) { // bmWU2
+      if (WAKEUPCS & 0x02) // bmWU2EN
         goto label_099;
     }
-    if (WAKEUPCS & 0x40)
-      if (WAKEUPCS & 0x01)
+    if (WAKEUPCS & 0x40)   // bmWU
+      if (WAKEUPCS & 0x01) // bmWUEN
         goto label_099;
   }
  label_101:
-  function_015();
-  function_031();
+  f015_resume();
+  f031_return_true();
   goto label_097;
 }
 
-void function_000() {
-  if ((EP1OUTCS & 0x02) == 0)
+void f005_process_host_request() {
+  if ((EP1OUTCS & 0x02) != 0) // bmEPBUSY
     return;
+  // host data is available
   // Label_003:
   var0x35 = 0x01; var0x36 = 0xE7; var0x37 = 0x80; // 0xE780: EP1OUTBUF[0]
   r3 = var0x35; r2 = var0x36; r1 = var0x37;
@@ -765,7 +774,7 @@ void function_017() {
     goto label_215;
 }
 
-void function_001() {
+void f001_handle_setupdata() {
     /*  0     0   254   249   248   247   246   251 */
     /*  1     0   254   249   248   247   246   251 */
     /*  2     1   255   250   249   248   247   252 */
@@ -782,7 +791,7 @@ void function_001() {
   ACC =SETUPDAT[1];
   switch (SETUPDAT[1]) { // bmRequest
   case  0: // Label_066 (GET_STATUS)
-    function_033();
+    f033_return_true();
     if (CY) {
       switch (SETUPDAT[0]) { // bmRequestType
       case 0x81: // label_068 -> label_173
@@ -851,7 +860,7 @@ void function_001() {
     break;
 
   case  1: // Label_075 (CLEAR_FEATURE)
-    function_034();
+    f034_return_true();
     if (CY) {
       ACC = SETUPDAT[0] + 0xFE;
       switch (ACC) {
@@ -907,7 +916,7 @@ void function_001() {
     break;
 
   case  3: // Label_083 (SET_FEATURE)
-    function_035();
+    f035_return_true();
     if (CY) {
       switch(SETUPDAT[0]) {
       case 2: // Label_085
@@ -966,7 +975,7 @@ void function_001() {
     f029_usb_set_interface();
     break;
   case  6: // Label_053 (GET_DESCRIPTOR)
-    function_035();
+    f035_return_true();
     if (CY) {
       switch (SETUPDAT[3]) {
       case 0x02: // Label_056
@@ -1016,9 +1025,43 @@ void function_001() {
   label_091:
   EP0CS |= 0x80; // bmHSNAK
 }
-void function_005() {}
-void function_010() {}
-void function_015() {}
+void f005_return_true() { __asm__("setb C"); }
+
+
+void function_010() {
+  // ACC = (r3-r7) | (r2-r6) | (r1-r5) | (r0-r4)
+  __asm__("mov  A, R3");
+  __asm__("subb A, R7");
+  __asm__("mov  B, A ");
+  __asm__("mov  A, R2");
+  __asm__("subb A, R6");
+  __asm__("orl  B, A ");
+  __asm__("mov  A, R1");
+  __asm__("subb A, R5");
+  __asm__("orl  B, A ");
+  __asm__("mov  A, R0");
+  __asm__("subb A, R4");
+  __asm__("orl  A, B ");
+}
+void f015_resume() {
+  if (WAKEUPCS & 0x01) { // bmWUEN
+    if (WAKEUPCS & 0x40) { // bmWU
+      // WAKEUP event has occurred
+      goto label_208;
+    }
+  }
+ label_207:
+  if ((WAKEUPCS & 0x02) == 0) // bmWU2EN
+    return;
+  if ((WAKEUPCS & 0x80) == 0) // bmWU2
+    return;
+ label_208:
+  USBCS |= 0x01; // bmSIGRESUME
+  r7 = 0x14; r6 = 0x00;
+  f004_delay(); // 20ms
+  USBCS &= 0xFE; // clear bmSIGRESUME
+}
+
 void function_021() {
   r7 = r5;
   r6 = r4;
@@ -1070,11 +1113,11 @@ void function_022() {
 void function_030() {
   IOE = 0x3B;
 }
-void function_031() { CY = 1; }
-void function_032() { CY = 1; }
-void function_033() { CY = 1; }
-void function_034() { CY = 1; }
-void function_035() { CY = 1; }
+void f031_return_true() { CY = 1; }
+void f032_return_true() { CY = 1; }
+void f033_return_true() { CY = 1; }
+void f034_return_true() { CY = 1; }
+void f035_return_true() { CY = 1; }
 
 void function_014() {
   if (bit0x04) {
@@ -1083,18 +1126,17 @@ void function_014() {
     USBCS |= 0x08; // bmDISCON
   }
  label_206:
-  r7 = 0xDC;
-  r6 = 0x05;
-  function_004();
-  USBIRQ = 0xFF;
-  EPIRQ  = 0xFF;
-  CLEAR_USBINT();//  EXIF  &= 0xEF;
-  USBCS &= 0xF7;
+  r7 = 0xDC;  r6 = 0x05;
+  f004_delay(); // 1500 ms
+  USBIRQ = 0xFF;  // 0x80 | bmEP0ACK | bmHSGRANT    bmBIT5 | bmURES | bmSUSP | bmSUTOK | bmSOF | bmSUDAV
+  EPIRQ  = 0xFF;  // bmEP0IN | bmEP0OUT | bmEP1IN | bmEP1OUT | bmEP2 | bmEP4 | bmEP6 | bmEP8
+  CLEAR_USBINT(); // EXIF  &= 0xEF;
+  USBCS &= 0xF7;  // bmHSM | 0x70 | bmNOSYNSOF | bmRENUM | bmSIGRESUME
 }
 
 
 // delay for r6r7 ms
-void function_004() {
+void f004_delay() {
   // var0x31,0x32 = r6r7
   var0x31 = r6;
   var0x32 = r7;
@@ -1157,6 +1199,14 @@ void function_020() {
      orl A, DPH;                // 2 instr. cycles \n	\
      jnz label_220;             // 3 instr. cycles ");
   return;                       // 4 instr. cycles
+}
+
+void f019_goto_idle() {
+  WAKEUPCS |= 0xC0;    // bmWU | bmWU2
+  SUSPEND   = WAKEUPCS;
+  PCON     |= 0x01;    // go to idle state
+  SYNCDELAY;
+  SYNCDELAY2;
 }
 
 // usb_get_interface
@@ -1534,7 +1584,7 @@ void usbreset_isr() __interrupt USBRESET_ISR { // Label_204  /* handle_hispeed(F
   /* USBIRQ  = 0x10; */
 }
 void hispeed_isr() __interrupt HISPEED_ISR { // Label_202  /* handle_hispeed(TRUE); */  /* CLEAR_HISPEED(); */
-  if (USBCS & 0x80) {
+  if (USBCS & 0x80) { // bmHSM
     r4_1 = r0_1;
     r5_1 = r1_1;
     DPL = r5_1; DPH = r4_1;
