@@ -10,7 +10,8 @@ struct dummy_processor {
 		       typename std::vector<T>::const_iterator end,
 		       boost::uint64_t counter) {
     std::cout << "counter= " << counter << " | ";
-    std::copy(beg, end, typename std::ostream_iterator<T>(std::cout , " "));
+    typedef typename std::ostream_iterator<T> ostream_iterator_T;
+    std::copy(beg, end, ostream_iterator_T(std::cout , " "));
     std::cout << std::endl;
   }
 } ;

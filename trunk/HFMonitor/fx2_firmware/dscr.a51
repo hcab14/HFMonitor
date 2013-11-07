@@ -48,14 +48,14 @@ ENDPOINT_TYPE_INT=3
 ; in code memory otherwise SUDPTRH:L don't work right
     .area	DSCR_AREA	(CODE)
 
-_dev_dscr:
-	.db	dev_dscr_end-_dev_dscr    ; len
-	.db	DSCR_DEVICE_TYPE		  ; type
+_dev_dscr: ; 0x0900
+	.db	dev_dscr_end-_dev_dscr			  ; len
+	.db	DSCR_DEVICE_TYPE		  	  ; type
 	.dw	0x0002					  ; usb 2.0
 	.db	0x00  					  ; class (vendor specific)
 	.db	0x00					  ; subclass (vendor specific)
 	.db	0x00					  ; protocol (vendor specific)
-	.db	64						  ; packet size (ep0)
+	.db	64					  ; packet size (ep0)
 	.dw	0xB404					  ; vendor id 
 	.dw	0x5C32					  ; product id
 	.dw	0x0000					  ; version id
@@ -73,12 +73,12 @@ _dev_qual_dscr:
 	.db	0x00
 	.db	0x00
 	.db	64                                  ; max packet
-	.db	1									; n configs
-	.db	0									; extra reserved byte
+	.db	1				    ; n configs
+	.db	0				    ; extra reserved byte
 dev_qualdscr_end:
 
 _highspd_dscr:
-	.db	highspd_dscr_end-_highspd_dscr      ; dscr len											;; Descriptor length
+	.db	highspd_dscr_end-_highspd_dscr      ; dscr len ;; Descriptor length
 	.db	DSCR_CONFIG_TYPE
     ; can't use .dw because byte order is different
 	.db	(highspd_dscr_realend-_highspd_dscr) % 256 ; total length of config lsb
@@ -94,43 +94,43 @@ highspd_dscr_end:
 ; NOTE the default TRM actually has more alt interfaces
 ; but you can add them back in if you need them.
 ; here, we just use the default alt setting 1 from the trm
+; default interface 0, alternate setting 0
 	.db	DSCR_INTERFACE_LEN
 	.db	DSCR_INTERFACE_TYPE
 	.db	0				 ; index
 	.db	0				 ; alt setting idx
 	.db	3				 ; n endpoints	
-	.db	0xff			 ; class
+	.db	0xff			 	 ; class
 	.db	0x00
 	.db	0x00
-	.db	0	             ; string index	
+	.db	0				; string index	
 
-; endpoint ? out
+; endpoint EP1 out (0x01) "cmd"
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x01				;  ep? dir=OUT and address
-	.db	ENDPOINT_TYPE_BULK	; type
-	.db	0x40				; max packet LSB
-	.db	0x00				; max packet size=512 bytes
-	.db	0x00				; polling interval
-
-; endpoint ? in
-	.db	DSCR_ENDPOINT_LEN
-	.db	DSCR_ENDPOINT_TYPE
-	.db	0x81				; ep? dir=in and address
+	.db	0x01				; ep1 dir=OUT and address
 	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=512 bytes
 	.db	0x00				; polling interval
 
-; endpoint ? in
+; endpoint EP1 in (0x81) "status"
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x82				; ep? dir=in and address
+	.db	0x81				; ep1 dir=IN and address
+	.db	ENDPOINT_TYPE_BULK		; type
+	.db	0x40				; max packet LSB
+	.db	0x00				; max packet size=512 bytes
+	.db	0x00				; polling interval
+
+; endpoint EP2 in (0x82) "data_in"
+	.db	DSCR_ENDPOINT_LEN
+	.db	DSCR_ENDPOINT_TYPE
+	.db	0x82				; ep2 dir=OUT and address
 	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0xFE				; max packet LSB
-	.db	0x01				; max packet size=512 bytes
+	.db	0x01				; max packet size=510 bytes
 	.db	0x00				; polling interval
-
 highspd_dscr_realend:
 
 ;  .even
@@ -161,28 +161,28 @@ fullspd_dscr_end:
 	.db	0x00
 	.db	0				 ; string index	
 
-; endpoint 2 out
+; endpoint 1 out (0x01) "cmd"
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x01				; ep? dir=OUT and address
+	.db	0x01				; ep1 dir=OUT and address
 	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
 	.db	0x00				; polling interval
 
-; endpoint 6 in
+; endpoint 1 in (0x81) "status"
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x81				; ep? dir=in and address
+	.db	0x81				; ep1 dir=IN and address
 	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
 	.db	0x00				; polling interval
 
-; endpoint 6 in
+; endpoint 2 in (0x82) "data_in"
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
-	.db	0x82				; ep? dir=in and address
+	.db	0x82				; ep2 dir=OUT and address
 	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
