@@ -55,9 +55,9 @@ public:
     , sMax_(150, h-20,  50, 20, "sMax")
     , fMin_(250, h-20,  50, 20, "fMin:")
     , fMax_(350, h-20,  50, 20, "fMax:")
-    , fCur_(500, h-20,  70, 20, "fCur:")
+    , fCur_(500, h-20,  80, 20, "fCur:")
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
-    , fTime_(    w-200, h-20, 150, 20, "Current Time:") {
+    , fTime_(    w-200, h-20, 160, 20, "Current Time:") {
     sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-60);
     sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(-40);
 
@@ -88,6 +88,7 @@ public:
   
   template<typename T>
   void insert_spec(const frequency_vector<T>& spec,
+                   const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
     fMin_.value(spec.fmin());
     fMax_.value(spec.fmax());
@@ -102,18 +103,21 @@ public:
       fTime_.value(oss.str().c_str());
     }
     std::vector<double> s(specN(), 0.0);
+    std::vector<double> sf(specN(), 0.0);
     // reverse!!
     for (int i(0); i<specN(); ++i) {
-      s[i] = spec[spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
+      s[i]  = spec         [spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
+      sf[i] = spec_filtered[spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
     }
-    insert_spec(s);
+    insert_spec(s, sf);
   }
 
-  void insert_spec(const std::vector<double>& spec) {
+  void insert_spec(const std::vector<double>& spec,
+                   const std::vector<double>& spec_filtered) {
     specIndex_--;
     if (specIndex_ <0) specIndex_ = specM()-1;
     for (size_t i=0; i<spec.size(); ++i) {
-      spec_[specIndex_*specN()+i] = spec[i];
+      spec_[specIndex_*specN()+i] = spec_filtered[i];
 
       // normalized, clamped signal
       const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
@@ -163,11 +167,13 @@ public:
   }
 
   void draw_spec() const {
-    fl_color(FL_GREEN);
+    fl_color(FL_RED);
+    fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 2);
     fl_begin_line();
     for (int i=0; i<specN(); ++i)
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     fl_end_line();
+    fl_line_style(FL_SOLID, 0);
   }
 
   void draw_waterfall() const {
@@ -191,8 +197,8 @@ public:
   // every step kHz
   void draw_ticks(int step) {
     fl_color(FL_BLUE);
-    char label[1024];
     fl_line_style(FL_DASH);
+    char label[1024];
     int last_x(-100000);
     for (int fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
       if (fi < fMin_.value()) continue;
