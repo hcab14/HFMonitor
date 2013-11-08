@@ -138,8 +138,8 @@ public:
       specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
       specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
     }
-    init_ = false;
     this->damage(FL_DAMAGE_ALL);
+    init_ = false;
   }
 
       // clamp x \in [0,1]
@@ -174,7 +174,6 @@ public:
     fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 2);
     fl_begin_line();
     for (int i=0; i<specN(); ++i) {
-      std::cout << i << " " << spec_[specIndex_*specN() + i] << " " << ySpecFromInput(spec_[specIndex_*specN() + i]) << std::endl;
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     }
     fl_end_line();
