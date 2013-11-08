@@ -1,23 +1,25 @@
 # -*- octave -*-
 
-function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_msk(z, baud, fs)
+function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10,sum]=demod_msk(z, baud, fs)
   xi=1/sqrt(2);
 
   ## timing
   ## z.**2 has components at +- 2*fm, fm=1/(4*T)=baud/4
-  pll_plus  = pll_init(xi, 0.01*baud/2,  baud/2, fs);
-  pll_zero  = pll_init(xi, 0.01*baud/2,  0,      fs);
-  pll_minus = pll_init(xi, 0.01*baud/2, -baud/2, fs);
-
- for n=1:length(z)
+  pll_plus  = pll_init(xi, 0.005*baud/2,  baud/2, fs);
+  pll_zero  = pll_init(xi, 0.001*baud/2,  0,      fs);
+  pll_minus = pll_init(xi, 0.005*baud/2, -baud/2, fs);
+  tic;
+  theta1 = ud1 = uf1 = f11 = theta2 = ud2 = uf2 = f12 = theta0 = ud0 = uf0 = f10 = zeros(size(z));
+  for n=1:length(z)
     zn = z(n); #*exp(-i*(pll_zero.theta + pll_zero.f1*pll_zero.ts)/2*0);
-    pll_plus  = pll_1(zn**2, pll_plus);
+    z2 = zn**2;
+    pll_plus  = pll_1(z2, pll_plus);
     theta1(n) = pll_plus.theta;
     ud1(n) = pll_plus.ud;
     uf1(n) = pll_plus.uf;
     f11(n) = pll_plus.f1;
 
-    pll_minus = pll_1(zn**2, pll_minus);
+    pll_minus = pll_1(z2, pll_minus);
     theta2(n) = pll_minus.theta;
     ud2(n) = pll_minus.ud;
     uf2(n) = pll_minus.uf;
@@ -30,13 +32,15 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_m
     f10(n) = pll_zero.f1;
   endfor
 
-  theta0=theta1+theta2;
-
+#  theta0=theta1+theta2;
+  toc;
+  tic;
   ct=cos((theta1-theta0/2)/2);
   st=sin((theta1-theta0/2)/2);
 
-  xE=real(z .* exp(-i*theta0/4)) .* ct;
-  xO=imag(z .* exp(-i*theta0/4)) .* st;
+  carrier = exp(-i*theta0/4);
+  xE=real(z .* carrier) .* ct;
+  xO=imag(z .* carrier) .* st;
 
   _sign=@(x) 1-2*(x<0);
 
@@ -46,11 +50,13 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_m
   sO=sign(st(1));
   sumE=xE(1); 
   sumO=xO(1);
+  sum=[];
   for n=2:length(z)-1
     ## ct <-> xE
     if _sign(ct(n)) == sE
       sumE += xE(n);
     else
+      sum(end+1) = sumE;
       bits(end+1) = bitsE(end+1:end+2) = sumE>0;
       if isempty(bitsO) bitsO=true; endif
       bits_t(end+1)=n;
@@ -61,6 +67,7 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_m
     if _sign(st(n)) == sO
       sumO += xO(n);
     else
+      sum(end+1) = sumO;
       bits(end+1) = bitsO(end+1:end+2) = sumO>0;
       if isempty(bitsE) bitsE=true; endif
       bits_t(end+1)=n;
@@ -82,4 +89,5 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_m
       btO(40*bits_t(n-2)+1:40*bits_t(n)) = 2*bits(n)-1;
     endif
   endfor
+  toc;
 endfunction
