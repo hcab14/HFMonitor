@@ -1,5 +1,21 @@
 // -*- C++ -*-
 // $Id$
+//
+// Copyright 2010-2013 Christoph Mayer
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 #include <complex>
 #include <iostream>
@@ -22,6 +38,7 @@
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Text_Display.H>
 
+#include <boost/format.hpp>
 #include <boost/thread.hpp>
 
 #include <iostream>
@@ -38,7 +55,7 @@ bool global_state::run = true;
 class MyWindow : public Fl_Double_Window {
 public:
   MyWindow(int w, int h)
-    : Fl_Double_Window(w, h)
+    : Fl_Double_Window(w, h, "Spectrum Display")
     , menu_bar_(0,0,w,20)
     , input_(0, h-30, w, 30, "label")
     , specDisplay_(20, 20, w-40, h-50)
@@ -46,46 +63,13 @@ public:
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
     menu_bar_.add("File/Quit",   FL_CTRL+'q', Quit_CB);
-    menu_bar_.add("Edit/Change", FL_CTRL+'c', Change_CB);
-    menu_bar_.add("Edit/Submenu/Aaa");
-    menu_bar_.add("Edit/Submenu/Bbb");
-    // box1_.box(FL_UP_BOX);
-    // box1_.labelfont(FL_BOLD|FL_ITALIC);
-    // box1_.labelsize(18);
-    // box1_.labeltype(FL_SHADOW_LABEL);
-    // box2_.box(FL_UP_BOX);
-    // box1_.labelcolor(0x00FF0000);
-    // input_.value("Now is the time for all good men...");
     end();
-    // Fl::add_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)this);
   }
-  virtual ~MyWindow() {
-    Fl::remove_timeout((Fl_Timeout_Handler)timeout_cb, (void *)this);
-  }
+  virtual ~MyWindow() {}
 
-  static void timeout_cb(MyWindow *w) {
-    std::vector<double> spec;
-    for (size_t i=0; i<1000; ++i)
-      spec.push_back(-20*(1+sin(0.1*i + w->counter_*0.1)));
-    w->get_spec_display().insert_spec(spec);
-    w->counter_++;
-    Fl::repeat_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)w);
-  }
   spectrum_display& get_spec_display() { return specDisplay_; }
 
 protected:
-  static void Change_CB(Fl_Widget *w, void *) {
-    // MyWindow *wp = (MyWindow*)(p);
-    
-    Fl_Menu_Bar *menu = (Fl_Menu_Bar*)w;
-    Fl_Menu_Item *p;
-    // Change submenu name
-    p = (Fl_Menu_Item*)menu->find_item("Edit/Submenu");
-    if ( p ) p->label("New Submenu Name");
-    // Change item name
-    p = (Fl_Menu_Item*)menu->find_item("Edit/New Submenu Name/Aaa");
-    if ( p ) p->label("New Aaa Name");
-  }
   static void Quit_CB(Fl_Widget *, void *) {
     global_state::run = false;
     char* msg="quit";
@@ -102,9 +86,11 @@ private:
 
 class test_proc {
 public:
-  test_proc(const boost::property_tree::ptree&)
+  test_proc(const boost::property_tree::ptree& config)
     : w_(1200,400)
-    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE) {
+    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+    , host_(config.get<std::string>("server.<xmlattr>.host"))
+    , port_(config.get<std::string>("server.<xmlattr>.port")) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
   }
@@ -113,6 +99,7 @@ public:
                   std::vector<std::complex<double> >::const_iterator i0,
                   std::vector<std::complex<double> >::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
+#if 0
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()
@@ -121,22 +108,23 @@ public:
               << " " << sp->offset_ppb()
 	      << " length=" << length
               << std::endl;
-
+#endif
     if (length != fftw_.size())
       fftw_.resize(length);
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
     const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
-    const frequency_vector<double> ps(f_min, f_max, s, std::abs<double>);
+    frequency_vector<double> ps(f_min, f_max, s, std::abs<double>);
     if (filter_.x().empty())
       filter_.init(sp->approx_ptime(), ps);
     else
       filter_.update(sp->approx_ptime(), ps);
 
     frequency_vector<double> xf(filter_.x());
-    xf.apply(s2db());
-    w_.get_spec_display().insert_spec(xf, sp);
+    const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
+    w_.label(window_title.c_str());
+    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
     char msg[1024]; sprintf(msg,"spec_update");
     Fl::awake(msg);
   }
@@ -149,6 +137,8 @@ private:
   MyWindow w_;
   FFT::FFTWTransform<double> fftw_;
   Filter::Cascaded<frequency_vector<double> > filter_;
+  std::string host_;
+  std::string port_;
 } ;
 
 int main(int argc, char* argv[])
