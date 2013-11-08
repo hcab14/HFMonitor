@@ -57,7 +57,8 @@ public:
     , fMax_(350, h-20,  50, 20, "fMax:")
     , fCur_(500, h-20,  80, 20, "fCur:")
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
-    , fTime_(    w-200, h-20, 160, 20, "Current Time:") {
+    , fTime_(    w-200, h-20, 160, 20, "Current Time:")
+    , init_(true) {
     sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-60);
     sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(-40);
 
@@ -69,8 +70,8 @@ public:
 
     end();
     specIndex_ = specM();
-    spec_.resize(specN() * specM());
-    specImg_.resize(2 * 3 * specN() * specM());
+    spec_.resize(specN() * specM(), -120);
+    specImg_.resize(2 * 3 * specN() * specM(), -120);
   }
   virtual ~spectrum_display() {}
 
@@ -115,7 +116,7 @@ public:
   void insert_spec(const std::vector<double>& spec,
                    const std::vector<double>& spec_filtered) {
     specIndex_--;
-    if (specIndex_ <0) specIndex_ = specM()-1;
+    if (specIndex_ < 0) specIndex_ = specM()-1;
     for (size_t i=0; i<spec.size(); ++i) {
       spec_[specIndex_*specN()+i] = spec_filtered[i];
 
@@ -137,6 +138,7 @@ public:
       specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
       specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
     }
+    init_ = false;
     this->damage(FL_DAMAGE_ALL);
   }
 
@@ -167,16 +169,20 @@ public:
   }
 
   void draw_spec() const {
+    if (init_) return;
     fl_color(FL_RED);
     fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 2);
     fl_begin_line();
-    for (int i=0; i<specN(); ++i)
+    for (int i=0; i<specN(); ++i) {
+      std::cout << i << " " << spec_[specIndex_*specN() + i] << " " << ySpecFromInput(spec_[specIndex_*specN() + i]) << std::endl;
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
+    }
     fl_end_line();
     fl_line_style(FL_SOLID, 0);
   }
 
   void draw_waterfall() const {
+    if (init_) return;
     fl_draw_image(&specImg_[0] + 3*specIndex_*specN(),
                   xWaterfallBeg(), yWaterfallBeg(),
                   specN(),         specM());
@@ -298,6 +304,7 @@ private:
   int                 specIndex_;
   std::vector<double> spec_;
   std::vector<uchar>  specImg_;
+  bool                init_;
 } ;
 
 #endif // _spectrum_display_hpp_cm120516_
