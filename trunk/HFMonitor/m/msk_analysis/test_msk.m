@@ -1,9 +1,9 @@
 # -*- octave -*-
 
-function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10,z,fs]=test_msk
+function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10,sum,z,fs]=test_msk
   addpath("../demod");
-  [y,fs,bits] = wavread ("../../DataKRKIQ/DC_298000_DGPS/y2013-m11-d06_H18M10.wav");
 
+  [y,fs,bits] = wavread ("../../DataKRKIQ/DC_298000_DGPS/y2013-m11-d06_H18M10.wav");
   z=y(:,1)+1i*y(:,2);
 
   baud=100;
@@ -26,16 +26,15 @@ function [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10,z,fs]=te
     plot(f,log10(mean(s')));
   endif
 
-  z=z(1:5000*30);
+  z=z(1:5000*300);
 
-  decim=5;
+  decim=10;
   z=z(1:decim:end);
   fs /= decim;
 
   z=z';
 
-  [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10]=demod_msk(z, baud, fs);
-
+  [bits,bitsE,bitsO,btE,btO,xE,xO,ct,st,theta0,theta1,theta2,f10,sum]=demod_msk(z, baud, fs);
 #  bbits=bitxor(bitsE, bitsO)
 
 #  decode_rtcm(bbits);
