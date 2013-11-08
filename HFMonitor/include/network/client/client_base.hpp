@@ -126,6 +126,12 @@ public:
   }
 
 protected:
+  virtual void dump_wav(processor::service_base::ptime t, std::string str_name,
+                        data_buffer_type::const_iterator begin,
+                        data_buffer_type::const_iterator end) {
+    // to be overwritten in a derived class
+  }
+
 private:
   void do_close() {
     LOG_INFO("do_close");
@@ -204,6 +210,11 @@ private:
         directory_update(new_directory);
         std::swap(new_directory, directory_);
       } else {
+        // dump all wav stream
+        const std::string str_name(get_directory().stream_name_of(get_header().stream_number()));
+        if (get_header().id() == "WAV_0000")
+          dump_wav(get_header().approx_ptime(), str_name, data_buffer().begin(), data_buffer().begin()+header_.length());
+
         // process data samples in a method overwritten in a derived class
         process(data_buffer().begin(), data_buffer().begin()+header_.length());
       }

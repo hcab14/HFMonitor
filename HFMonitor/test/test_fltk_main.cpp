@@ -46,7 +46,7 @@ public:
     std::vector<double> spec;
     for (size_t i=0; i<1000; ++i)
       spec.push_back(-20*(1+sin(0.1*i + w->counter_*0.1)));
-    w->get_spec_display().insert_spec(spec);
+    w->get_spec_display().insert_spec(spec, spec);
     w->counter_++;
     Fl::repeat_timeout(0.1, (Fl_Timeout_Handler)timeout_cb, (void *)w);
   }
