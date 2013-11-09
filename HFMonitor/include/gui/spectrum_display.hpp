@@ -71,7 +71,7 @@ public:
     end();
     specIndex_ = specM();
     spec_.resize(specN() * specM(), -120);
-    specImg_.resize(2 * 3 * specN() * specM(), -120);
+    specImg_.resize(2 * 3 * specN() * specM(), 0);
   }
   virtual ~spectrum_display() {}
 
