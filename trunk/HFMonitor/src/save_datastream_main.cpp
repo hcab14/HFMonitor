@@ -35,12 +35,6 @@
 #include <vector>
 #include <cmath>
 
-// global state:
-struct global_state {
-  static bool run;
-};
-
-bool global_state::run = true;
 
 class save_datastream : public processor::base, public gen_filename {
 public:
@@ -75,13 +69,14 @@ public:
     }
     if (not boost::filesystem::exists(filepath)) {
       std::ofstream ofs(filepath.c_str(), std::ios::binary);        
-      broadcaster_directory d;
-      const std::pair<boost::uint32_t, bool> r(d.insert(sp->stream_name()));
-      ASSERT_THROW(r.second == true);
-      stream_number_ = r.first;
+      if (not directory_.contains(sp->stream_name())) {
+	const std::pair<boost::uint32_t, bool> r(directory_.insert(sp->stream_name()));
+	ASSERT_THROW(r.second == true);
+	stream_number_ = r.first;
+      }
 
-      const std::string sd(d.serialize(sp->approx_ptime()));
-      const header h(d.id(), sp->approx_ptime(), 0, sd.size());
+      const std::string sd(directory_.serialize(sp->approx_ptime()));
+      const header h(directory_.id(), sp->approx_ptime(), 0, sd.size());
       std::copy(h.begin(),  h.end(),  std::ostream_iterator<char>(ofs, ""));
       std::copy(sd.begin(), sd.end(), std::ostream_iterator<char>(ofs, ""));
       pos_ = ofs.tellp();
@@ -97,6 +92,7 @@ private:
   std::string               base_path_;
   gen_filename::file_period file_period_;
   std::streampos            pos_;    
+  broadcaster_directory     directory_;
   boost::uint32_t           stream_number_;
 } ;
 
