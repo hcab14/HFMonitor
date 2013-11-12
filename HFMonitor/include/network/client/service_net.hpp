@@ -50,13 +50,13 @@ public:
   virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
 
 protected:
-private:
   service_net(const header& h,
               const broadcaster_directory& d)
     : service_base()
     , header_(h)
     , directory_(d) {}
   
+private:
   header header_;
   const broadcaster_directory& directory_;
 } ;

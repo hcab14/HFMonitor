@@ -44,7 +44,8 @@ public:
              double x_slope=0.1)
     : n_(n)
     , f_(f)
-    , is_shifted_(false)
+    , shift_(0)
+    , sample_counter_(0)
     , b_(n, 0.)
     , phases_ (n, complex_type(1,0))
     , history_(n, complex_type(0,0)) {
@@ -59,29 +60,35 @@ public:
     long int shift(lround(f0*n_));
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
-    f0 = double(shift)/double(n_);
-    is_shifted_ = (f0 != 0);
-    if (is_shifted_) {
-      const double two_pi_f0(2*M_PI*f0);
+    shift_ = double(shift)/double(n_);
+    if (is_shifted()) {
+      const double two_pi_f0(2*M_PI*shift_);
       for (size_t i(0); i<n_; ++i)
-        phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
+        phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
     }
-    return f0;
+    return shift_;
   }
+
+  double get_shift() const { return shift_; }
+  bool is_shifted() const { return shift_ != 0.; }
 
   void insert(complex_type sample) {
     for (size_t i(n_-1); i!=0; --i)
       history_[i] = history_[i-1];
     history_[0] = sample;
   }
-  complex_type process() const {
+  complex_type process() {
     complex_type result(0);
-    if (is_shifted_) {
+    if (is_shifted()) {
       for (size_t i(0); i<n_; ++i)
         result += history_[i] * phases_[i] * b_[i];
     } else {
       for (size_t i(0); i<n_; ++i)
         result += history_[i] * b_[i];
+    }
+    if (is_shifted()) {
+      result *= std::conj(phases_[sample_counter_++]);
+      sample_counter_ %= phases_.size();
     }
     return result;
   }
@@ -94,7 +101,8 @@ protected:
 private:
   const size_t n_;                    // filter size
   const double f_;                    // cutoff frequency (normalized)
-  bool  is_shifted_;
+  double shift_;
+  size_t sample_counter_;
   std::vector<double> b_;             // fir coefficients
   std::vector<complex_type> phases_;  // phases for frequency shift
   std::vector<complex_type> history_; // filter history
@@ -262,12 +270,18 @@ public:
 
     // set up a new filter
     bool is_first_call(demod_msk_ == 0);
+
     if (not demod_msk_) {
+      const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
+      double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
+      fc_Hz_ -= f_shift_Hz;
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz(),
                                     -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
                                     0.5*fm_Hz(), // baud/2
                                     dwl_Hz_, period_Sec_);
-//       filter_.shift((fc_Hz() - sp->center_frequency_Hz())/sp->sample_rate_Hz());
+      std::cout << "shift: " << fc_Hz() << " " << sp->center_frequency_Hz() << " "
+                << f_shift0_Hz << " " << f_shift_Hz
+                << std::endl;
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
     }
@@ -408,7 +422,7 @@ private:
   Filter::Cascaded<frequency_vector<double> > filter_plus_;
   Filter::Cascaded<frequency_vector<double> > filter_minus_;
   const std::string name_;
-  const double      fc_Hz_;     // center frequency
+  double            fc_Hz_;     // center frequency
   const double      fm_Hz_;     // baud
   const double      dwl_Hz_;
   const double      period_Sec_;
