@@ -29,6 +29,11 @@
 #include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 
+#include "FFTProcessor.hpp"
+#include "demod_msk_processor.hpp"
+#include "processor/registry.hpp"
+#include "network/iq_adapter.hpp"
+
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
@@ -47,32 +52,62 @@ namespace detail {
 
 class read_datastream {
 public:
-  read_datastream() {}
+  read_datastream(processor::base::sptr pp)
+    : processor_(pp) {}
   ~read_datastream() {}
+
+  class service_read_data_stream : public service_net {
+  public:
+    typedef boost::shared_ptr<service_read_data_stream> sptr;
+    virtual ~service_read_data_stream() {}
+
+    static sptr make(const header& h, const broadcaster_directory& d) {
+      return sptr(new service_read_data_stream(h, d));
+    }
+
+    virtual void put_result(processor::result_base::sptr r) {
+      std::cout << r->name() << " " << make_time_label(r->approx_ptime()) << " ";
+      r->dump_data(std::cout) << std::endl;
+    }
+    
+  protected:
+    service_read_data_stream(const header& h, const broadcaster_directory& d)
+      : service_net(h, d) {}
+
+    std::string make_time_label(ptime t) const {
+      std::stringstream oss;
+      oss.imbue(std::locale(oss.getloc(), new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%s")));
+      oss << t;
+      return oss.str();
+    }
+  private:
+    service_read_data_stream(const service_read_data_stream& );
+    service_read_data_stream& operator=(const service_read_data_stream& );
+  } ;
 
   bool process_file(std::string filename) {
     std::ifstream ifs(filename.c_str(), std::ios::binary);
     while (ifs) {
       try {
 	header_ = detail::readT<header>(ifs);
-	std::cout << header_ << std::endl;
 	if (header_.length()) {
 	  std::string bytes(" ", header_.length());
 	  ifs.read(&bytes[0], header_.length());
 	  if (header_.id() == directory_.id()) {
 	    directory_.update(header_.length(), &bytes[0]);
-	    std::cout << "DIR: " << directory_ << std::endl;
 	  } else {
 	    if (processor_) {
 	      // make up service object
-	      processor::service_base::sptr sp(service_net::make(get_header(), get_directory()));
+	      processor::service_base::sptr sp(service_read_data_stream::make(get_header(), get_directory()));
 	      processor_->process(sp, &bytes[0], &bytes[0]+header_.length());
 	    }
 	  }
+	} else {
 	  return false;
 	}
-      } catch (...) {
-	break;
+      } catch (const std::exception &e) {
+	// std::cout << "AAA " << e.what() << std::endl;
+	return false;
       }
     }
     return true;
@@ -83,9 +118,9 @@ protected:
   const header& get_header() const { return header_; }
 
 private:
-  broadcaster_directory     directory_;
-  header                    header_;
-  processor::base::sptr     processor_;
+  broadcaster_directory directory_;
+  header                header_;
+  processor::base::sptr processor_;
 } ;
 
 int main(int argc, char* argv[])
@@ -93,14 +128,11 @@ int main(int argc, char* argv[])
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help,?",
-     "produce help message")
-    ("version,v",
-     "display version")
-    ("config,c",  po::value<std::string>()->default_value("config.xml"),
-     "path to XML configuration file")
-    ("input,i",   po::value<std::vector<std::string> >(),
-     "input files");
+    ("help,?",                                           "produce help message")
+    ("version,v",                                        "display version")
+    ("config,c", po::value<std::string>(),               "path to XML configuration file")
+    ("key,k",    po::value<std::string>(),               "key in config file defining the processor to be used")
+    ("input,i",  po::value<std::vector<std::string> >(), "input files");
   po::positional_options_description p;
   p.add("input", -1);
   
@@ -134,7 +166,15 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
-    read_datastream rds;
+    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
+
+    const boost::property_tree::ptree& processor_config(config.get_child(vm["key"].as<std::string>()));
+    
+    std::cout << "type= " << processor_config.get<std::string>("<xmlattr>.type") << std::endl;
+    read_datastream rds(processor::registry::make(processor_config.get<std::string>("<xmlattr>.type"),
+						  processor_config));
 
     if (vm.count("input")) {
       std::cout << "input: [" << vm.count("input") << "]: ";
