@@ -185,9 +185,11 @@ public:
       return sptr(new result_bits(name, t, fc_Hz, fm_Hz));
     }
 
-    double fc_Hz() const { return fc_Hz_; }
-    double fm_Hz() const { return fm_Hz_; }
-    // bool   bit()   const { return bit_; }
+    double fc_Hz()   const { return fc_Hz_; }
+    double fm_Hz()   const { return fm_Hz_; }
+    double quality() const { return quality_; }
+
+    void  set_quality(double q) { quality_ = q; }
 
     size_t size() const { return bitvec_.size(); }
     const_iterator begin() const { return bitvec_.begin(); }
@@ -200,9 +202,10 @@ public:
       return os
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
         << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"
-        << "# Time_UTC bits ";
+        << "# Time_UTC quality[%] bits ";
     }
     virtual std::ostream& dump_data(std::ostream& os) const {
+      os << boost::format("%3.0f") % (100.*quality()) << " ";
       for (const_iterator i(begin()); i!=end();) {
         unsigned char x(0);
         for (size_t j(0); j<4 && i!=end(); ++j, ++i)
@@ -221,10 +224,12 @@ public:
                double fm_Hz)
       : result_base(name, t)
       , fc_Hz_(fc_Hz)
-      , fm_Hz_(fm_Hz) {}
+      , fm_Hz_(fm_Hz)
+      , quality_(0) {}
     
     const double    fc_Hz_;
     const double    fm_Hz_;
+    double          quality_;
     bit_vector_type bitvec_;
   } ;
  
@@ -243,7 +248,8 @@ public:
     , filter_(401, 0.05*fm_Hz_/200.)
     , filter_amp_pm_    (  config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , filter_amp_center_(5*config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
-    , phase_(0) {
+    , phase_(0)
+    , signal_present_(0) {
     filter_plus_.add (Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
     filter_minus_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
   }
@@ -284,6 +290,7 @@ public:
                 << std::endl;
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
+      signal_present_ = 0;
     }
 
     demod_msk_->update_ppb(sp->offset_ppb(),
@@ -296,19 +303,6 @@ public:
 //       *j = sample*sample;
       demod_msk_->process(sample);
 
-      // collect bit data
-      if (not is_first_call && demod_msk_->bit_available()) {
-        if (not result_bits_) {
-          const time_duration
-            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-          result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
-        }
-        result_bits_->push_back(demod_msk_->current_bit());
-        if (result_bits_->size() == size_t(0.5+fm_Hz())) {
-          sp->put_result(result_bits_);
-          result_bits_.reset();
-        }
-      }
       // amplitude and phase data
       if (not is_first_call && demod_msk_->phase_available()) {
         const double amplitude_minus (10*std::log10(std::abs(demod_msk_->gf_minus().x())));
@@ -325,27 +319,44 @@ public:
         const double amplitude(filter_amp_pm_.get());
         const double sn_db(amplitude - filter_amp_center_.get());
 
-        if (sn_db < min_SN_db_) {
-          continue;
-          // demod_msk_->reset();
-        }
+        if (sn_db > min_SN_db_) {
+          ++signal_present_;
 
-        const double delta_phase_rad(demod_msk_->delta_phase_rad()
-                                     + 2*M_PI*demod_msk_->period_sec() * (fc_Hz() - sp->center_frequency_Hz() - offset_Hz));
-        phase_ += delta_phase_rad;
-        while (phase_ >= M_PI) phase_ -= 2*M_PI;
-        while (phase_ < -M_PI) phase_ += 2*M_PI;
-        // std::cout << "XXX A+-0: " << amplitude << " " << sn_db << " " << sn_db+amplitude
-        //           << " P: " << 0.5*(demod_msk_->pll_plus().theta() + demod_msk_->pll_minus().theta())
-        //           << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
-        //           << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
-        //           << " " << phase_
-        //           << " " << fc_Hz() - sp->center_frequency_Hz()
-        //           << std::endl;
-        const time_duration
-          dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-        result_phase::sptr r(result_phase::make(name_, sp->approx_ptime()+dt, fc_Hz(), fm_Hz_, amplitude, sn_db, phase_));
-        sp->put_result(r);
+          const double delta_phase_rad(demod_msk_->delta_phase_rad()
+                                       + 2*M_PI*demod_msk_->period_sec() * (fc_Hz() - sp->center_frequency_Hz() - offset_Hz));
+          phase_ += delta_phase_rad;
+          while (phase_ >= M_PI) phase_ -= 2*M_PI;
+          while (phase_ < -M_PI) phase_ += 2*M_PI;
+          // std::cout << "XXX A+-0: " << amplitude << " " << sn_db << " " << sn_db+amplitude
+          //           << " P: " << 0.5*(demod_msk_->pll_plus().theta() + demod_msk_->pll_minus().theta())
+          //           << " DeltaF: " << demod_msk_->delta_phase_rad() /2/M_PI/demod_msk_->period_sec()
+          //           << " " << delta_phase_rad /2/M_PI/demod_msk_->period_sec()
+          //           << " " << phase_
+          //           << " " << fc_Hz() - sp->center_frequency_Hz()
+          //           << std::endl;
+          const time_duration
+            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+          result_phase::sptr r(result_phase::make(name_, sp->approx_ptime()+dt, fc_Hz(), fm_Hz_, amplitude, sn_db, phase_));
+          sp->put_result(r);
+        }
+      }
+
+      // collect bit data
+      if (not is_first_call && demod_msk_->bit_available()) {
+        if (not result_bits_) {
+          const time_duration
+            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+          result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
+        }
+        result_bits_->push_back(demod_msk_->current_bit());
+        if (result_bits_->size() == size_t(0.5+fm_Hz())) {
+          result_bits_->set_quality(double(signal_present_));
+          std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
+          if (result_bits_->quality() > 0.5)
+            sp->put_result(result_bits_);
+          result_bits_.reset();
+          signal_present_ = 0;
+        }
       }
     }
 #if 0
@@ -433,6 +444,7 @@ private:
   filter::iir_lowpass_1pole<double, double> filter_amp_pm_;
   filter::iir_lowpass_1pole<double, double> filter_amp_center_;
   double            phase_;
+  size_t            signal_present_;
   result_bits::sptr result_bits_; // accumulates bits
 } ;
 
