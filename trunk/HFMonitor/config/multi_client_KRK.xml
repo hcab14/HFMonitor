@@ -102,7 +102,7 @@
     </DemodMSK_SXA>
     <DemodMSK_GXH type="DemodMSK"
                   name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="-10" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_GXH>
     <DemodMSK_FTA type="DemodMSK"
                   name="MSK_FTA" fc_Hz="63.850000083e3" fm_Hz="200.0"
