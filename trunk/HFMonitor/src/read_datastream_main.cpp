@@ -30,6 +30,7 @@
 #include "repack_processor.hpp"
 
 #include "FFTProcessor.hpp"
+#include "demod_fsk_processor.hpp"
 #include "demod_msk_processor.hpp"
 #include "processor/registry.hpp"
 #include "network/iq_adapter.hpp"
@@ -169,6 +170,7 @@ int main(int argc, char* argv[])
     processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
     processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
+    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
 
     const boost::property_tree::ptree& processor_config(config.get_child(vm["key"].as<std::string>()));
     
