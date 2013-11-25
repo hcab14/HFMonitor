@@ -27,86 +27,15 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "demod/msk.hpp"
-#include "filter/fir.hpp"
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
+#include "filter/fir_filter.hpp"
 #include "logging.hpp"
 #include "processor.hpp"
 #include "Spectrum.hpp"
 
-class fir_filter {
-public:
-  typedef std::complex<double> complex_type;
-  typedef filter::fir::lowpass<double> fir_type;
-
-  fir_filter(size_t n,
-             double f,
-             double x_slope=0.1)
-    : n_(n)
-    , f_(f)
-    , shift_(0)
-    , sample_counter_(0)
-    , b_(n, 0.)
-    , phases_ (n, complex_type(1,0))
-    , history_(n, complex_type(0,0)) {
-    fir_type fir_design(n);
-    fir_design.design(f, x_slope*f);
-    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());
-  }
-
-  // shift by frequency f0 (normalized)
-  // returns the true, quantized shift frequency
-  double shift(double f0) { 
-    long int shift(lround(f0*n_));
-    while (shift >= int(n_/2)) shift -= n_;
-    while (shift < -int(n_/2)) shift += n_;
-    shift_ = double(shift)/double(n_);
-    if (is_shifted()) {
-      const double two_pi_f0(2*M_PI*shift_);
-      for (size_t i(0); i<n_; ++i)
-        phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
-    }
-    return shift_;
-  }
-
-  double get_shift() const { return shift_; }
-  bool is_shifted() const { return shift_ != 0.; }
-
-  void insert(complex_type sample) {
-    for (size_t i(n_-1); i!=0; --i)
-      history_[i] = history_[i-1];
-    history_[0] = sample;
-  }
-  complex_type process() {
-    complex_type result(0);
-    if (is_shifted()) {
-      for (size_t i(0); i<n_; ++i)
-        result += history_[i] * phases_[i] * b_[i];
-    } else {
-      for (size_t i(0); i<n_; ++i)
-        result += history_[i] * b_[i];
-    }
-    if (is_shifted()) {
-      result *= std::conj(phases_[sample_counter_++]);
-      sample_counter_ %= phases_.size();
-    }
-    return result;
-  }
-  complex_type process(complex_type sample) {
-    insert(sample);
-    return process();
-  }
-
-protected:
-private:
-  const size_t n_;                    // filter size
-  const double f_;                    // cutoff frequency (normalized)
-  double shift_;
-  size_t sample_counter_;
-  std::vector<double> b_;             // fir coefficients
-  std::vector<complex_type> phases_;  // phases for frequency shift
-  std::vector<complex_type> history_; // filter history
-} ;
+#include <complex>
+#include <vector>
 
 class demod_msk_processor : public processor::base_iq {
 public:
@@ -254,7 +183,7 @@ public:
     filter_minus_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
   }
   
-  ~demod_msk_processor() {}
+  virtual ~demod_msk_processor() {}
 
   double fc_Hz() const { return fc_Hz_; }
   double fm_Hz() const { return fm_Hz_; }
