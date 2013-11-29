@@ -32,13 +32,32 @@ public:
     : n_(n)
     , f_(f)
     , shift_(0)
-    , sample_counter_(0)
+    , sample_counter_(n_-1)
     , b_(n, 0.)
     , phases_ (n, complex_type(1,0))
     , history_(n, complex_type(0,0)) {
+    design(n, f, x_slope);
+  }
+
+  bool design(size_t n,
+              double f,
+              double x_slope=0.1) {
+    n_ = n;
+    f_ = f;
+    b_.resize(n_, 0);
+    phases_.resize(n_, 1);
+    history_.resize(n_, 0);
     fir_type fir_design(n);
     fir_design.design(f, x_slope*f);
-    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());
+    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());    
+    reset();
+    return true;
+  }
+
+  void reset() {
+    sample_counter_= n_-1;
+    for (size_t i(0), n(history_.size()); i<n; ++i)
+      history_[i] = 0;    
   }
 
   // shift by frequency f0 (normalized)
@@ -63,6 +82,7 @@ public:
     for (size_t i(n_-1); i!=0; --i)
       history_[i] = history_[i-1];
     history_[0] = sample;
+    sample_counter_++;
   }
   complex_type process() {
     complex_type result(0);
@@ -74,8 +94,9 @@ public:
         result += history_[i] * b_[i];
     }
     if (is_shifted()) {
-      result *= std::conj(phases_[sample_counter_++]);
       sample_counter_ %= phases_.size();
+      result *= std::conj(phases_[sample_counter_]);
+      // sample_counter_ = (sample_counter_ == 0) ? n_-1 : sample_counter_
     }
     return result;
   }
@@ -86,8 +107,8 @@ public:
 
 protected:
 private:
-  const size_t n_;                    // filter size
-  const double f_;                    // cutoff frequency (normalized)
+  size_t n_;                          // filter size
+  double f_;                          // cutoff frequency (normalized)
   double shift_;
   size_t sample_counter_;
   std::vector<double> b_;             // fir coefficients

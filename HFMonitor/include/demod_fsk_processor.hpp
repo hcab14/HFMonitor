@@ -26,8 +26,10 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "demod/msk.hpp"
-#include "filter/goertzel.hpp"
+#include "demod/early_late_synch.hpp"
+#include "decode/efr.hpp"
+#include "filter/iir.hpp"
+#include "filter/iir_design.hpp"
 #include "filter/fir_filter.hpp"
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
@@ -104,8 +106,10 @@ public:
   } ;
  
   typedef boost::posix_time::time_duration time_duration;
-
-  typedef goertzel<std::complex<double> > goertzel_type;
+  
+  typedef filter::iir<double, complex_type>         iir_type;
+  typedef filter::iir_lowpass_1pole<double, double> iir_lp_type;
+  typedef filter::integrator_modulo<double>         osc_phase_type;
 
   demod_fsk_processor(const boost::property_tree::ptree& config)
     : base_iq(config)
@@ -116,7 +120,17 @@ public:
     , is_initialized_(false)
     , period_(1)
     , sample_counter_(0)
-    , filter_(401, 0.025*baud_/200.) {}
+    , filter_(401, 0.02*baud_/200.)
+    , dc_factor_(1)
+    , osc_phase_mark_(2*M_PI)
+    , osc_phase_space_(2*M_PI)
+    , iir_filter_order_(config.get<size_t>("<xmlattr>.filterOrder"))
+    , iir_mark_(1+iir_filter_order_)
+    , iir_space_(1+iir_filter_order_)
+    , iir_strength_(60., 1000.)
+    , iir_startup_counter_(0)
+    , early_late_synch_(5)
+  {}
   
   virtual ~demod_fsk_processor() {}
 
@@ -127,47 +141,81 @@ public:
   void process_iq(service::sptr sp,
                   const_iterator i0,
                   const_iterator i1) {
-    // const size_t length(std::distance(i0, i1));
-
     const double offset_ppb(sp->offset_ppb());
     const double offset_Hz(fc_Hz()*offset_ppb*1e-9);
     if (not is_initialized_) {
       // measurements per bit
       period_ = size_t(0.5+sp->sample_rate_Hz()/baud()/10);
 
-      const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz() - offset_Hz);
+      const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
       double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
       fc_Hz_ -= f_shift_Hz;
 
       // normalized mark frequency
       double k_mark ((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
-      k_mark  = round(k_mark/period_*sp->sample_rate_Hz())/sp->sample_rate_Hz()*period_;
-      gf_mark_.set_parameter (k_mark);
+      // normalized space frequency
+      double k_space((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
 
-      // normalized shift frequency
-      double k_shift((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
-      k_shift = round(k_shift/period_*sp->sample_rate_Hz())/sp->sample_rate_Hz()*period_;
-      gf_shift_.set_parameter(k_shift);
+      // filter +- baud()
+      filter_.design(401, 2*baud()/sp->sample_rate_Hz());
 
-      std::cout << "k_mark,shift,period= " << k_mark << " " << k_shift << " " << period_ << " " 
+      // downconversion to 5*baud Hz
+      dc_factor_ = size_t(0.5+sp->sample_rate_Hz()/(5*baud()));
+
+      // iir filters for mark and space with cutoff +- fs_Hz
+      filter::iir_design_lowpass iird(iir_filter_order_);
+      iird.design(iir_filter_order_, 2*fs_Hz()/sp->sample_rate_Hz()*dc_factor_);
+      const filter::iir_design_lowpass::vector_type a(iird.a());
+      const filter::iir_design_lowpass::vector_type b(iird.b());
+      iir_mark_.init(a, b);
+      iir_space_.init(a, b);
+
+      iir_strength_.init(0.25, sp->sample_rate_Hz() / dc_factor_);
+
+      early_late_synch_ = demod::early_late_synch(sp->sample_rate_Hz() / dc_factor_ / baud());
+
+      std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " " 
                 << sp->sample_rate_Hz() << " " 
-                << sp->center_frequency_Hz() << std::endl;
+                << sp->center_frequency_Hz() << " "
+                << early_late_synch_.period() << std::endl;
+      std::cout << "a= "; std::copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, ", "));
+      std::cout << std::endl;
+      std::cout << "b= "; std::copy(b.begin(), b.end(), std::ostream_iterator<double>(std::cout, ", "));
+      std::cout << std::endl;
+
+      if (not decoder_)
+        decoder_ = decode::efr::make();
 
       is_initialized_ = true;
     }
 
-    for (const_iterator i(i0); i!=i1; ++i) {
-      const complex_type sample(filter_.process(*i));
-      std::cout << "S " << sample.real() <<  " " << sample.imag() << "\n";
-      gf_mark_.update(sample);
-      gf_shift_.update(sample);
-      ++sample_counter_;
-      if (sample_counter_ == period_) {
-        std::cout << std::abs(gf_mark_.x()) << " " 
-                  << std::abs(gf_shift_.x()) << "\n";
+    const double fs(sp->sample_rate_Hz() / dc_factor_);
+    const double f_mark ((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
+    const double f_space((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
+    for (const_iterator i(i0); i!=i1; ++i, ++sample_counter_) {
+      if ((sample_counter_ % dc_factor_) != 0) {
+        filter_.insert(*i);
+      } else {
+        const complex_type sample(filter_.process(*i));
         sample_counter_ = 0;
-        gf_mark_.reset();
-        gf_shift_.reset();
+        osc_phase_mark_.process (2*M_PI*f_mark);
+        osc_phase_space_.process(2*M_PI*f_space);
+        const double sig_mark (std::abs(iir_mark_.process (sample*std::exp(complex_type(0, osc_phase_mark_.get())))));
+        const double sig_space(std::abs(iir_space_.process(sample*std::exp(complex_type(0, osc_phase_space_.get())))));
+        if (iir_startup_counter_ < size_t(0.5+3/baud()*fs)) {
+          iir_strength_.reset(sig_mark + sig_space);
+          ++iir_startup_counter_;
+        } else {
+          iir_strength_.process(sig_mark + sig_space);
+          early_late_synch_.insert_signal((sig_mark - sig_space)/std::min(1e-10, iir_strength_.get()));
+          std::cout << "S " 
+                    << sig_mark << " " << sig_space << " "
+                    << iir_strength_.get() << " "
+                    << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
+                    << "\n";
+          if (early_late_synch_.bit_valid())
+            decoder_->push_back(not early_late_synch_.current_bit());
+        }
       }
     }
 
@@ -187,8 +235,16 @@ private:
   size_t            period_;
   size_t            sample_counter_;
   fir_filter        filter_;
-  goertzel_type     gf_mark_;
-  goertzel_type     gf_shift_;
+  size_t            dc_factor_;    // down conversion factor
+  osc_phase_type    osc_phase_mark_;
+  osc_phase_type    osc_phase_space_;
+  size_t            iir_filter_order_;
+  iir_type          iir_mark_;
+  iir_type          iir_space_;
+  iir_lp_type       iir_strength_;  
+  size_t            iir_startup_counter_;
+  demod::early_late_synch  early_late_synch_;
+  decode::efr::sptr decoder_;
   result_bits::sptr result_bits_; // accumulates bits
 } ;
 
