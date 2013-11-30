@@ -61,9 +61,6 @@ public:
     double fc_Hz()   const { return fc_Hz_; }
     double fs_Hz()   const { return fs_Hz_; }
     double baud()    const { return baud_; }
-    double quality() const { return quality_; }
-
-    void  set_quality(double q) { quality_ = q; }
 
     size_t size() const { return data_vec_.size(); }
     const_iterator begin() const { return data_vec_.begin(); }
@@ -77,12 +74,11 @@ public:
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
         << "# fs[Hz] = " << boost::format("%7.3f")  % fs_Hz() << "\n"
         << "# baud[Hz] = " << boost::format("%7.0f")  % baud() << "\n"
-        << "# Time_UTC quality[%] bits ";
+        << "# Time_UTC data ";
     }
     // f= @(bb) [bb(:,10) bb(:,9) bb(:,8)-160 bb(:,7) bb(:,6) bitshift(bb(:,5),-2) bitshift(bb(:,1),-4), bitand(bb(:,1),15)]
 
     virtual std::ostream& dump_data(std::ostream& os) const {
-      os << boost::format("%3.0f") % (100.*quality()) << " ";
       os << boost::format("%02X %02X%02X ") % int(data_vec_[0]) % int(data_vec_[1]) % int(data_vec_[2]);
       for (const_iterator i(begin()+3); i!=end(); ++i)
         os << boost::format("%02X") % int(*i);
@@ -136,13 +132,11 @@ public:
       : result_base(name, t)
       , fc_Hz_(fc_Hz)
       , fs_Hz_(fs_Hz)
-      , baud_(baud)
-      , quality_(0) {}
+      , baud_(baud) {}
     
     const double     fc_Hz_;
     const double     fs_Hz_;
     const double     baud_;
-    double           quality_;
     data_vector_type data_vec_;
   } ;
  
