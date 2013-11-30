@@ -94,7 +94,7 @@ namespace filter {
 
     size_t order() const { return order_; }
 
-    double operator()(double s) const {
+    double eval(double s) const {
 #if 1
       double p(1);
       for (size_t n(0); n<order_/2; ++n)
@@ -138,7 +138,7 @@ namespace filter {
 
     bool design(size_t ord) { // filter order
       if (ord != order()) {
-        iir_coefficients_ = iir_coefficients_(ord);
+        iir_coefficients_ = iir_coefficients(ord);
         delta_            = detail::delta(0, make_alpha(ord));
       }
       a_ = compute_a();
@@ -212,7 +212,7 @@ namespace filter {
       return std::pow((1+zi), int(order()));
     }
     virtual double q(double zi) const {
-      return iir_coefficients_((1-zi)/(1+zi)/omega_)*p(zi);
+      return iir_coefficients_.eval((1-zi)/(1+zi)/omega_)*p(zi);
     }
   private:
     double omega_;

@@ -64,7 +64,7 @@
     <FIR name="DC_077500_DCF"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 77.50e3" decim="100"></FIR>
     <FIR name="DC_081000_GYN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 81.00e3" decim="100"></FIR>
     <FIR name="DC_020000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 20.00e3" decim=" 50"></FIR>
-    <FIR name="DC_298000_DGPS" type="lowpass" cutoff="0.009" centerFrequency_Hz="298.00e3" decim="100"></FIR>
+    <FIR name="DC_292000_DGPS" type="lowpass" cutoff="0.036" centerFrequency_Hz="292.00e3" decim=" 25"></FIR>
     <FIR name="DC_132000_EFR"  type="lowpass" cutoff="0.036" centerFrequency_Hz="132.00e3" decim=" 25"></FIR>
   </Filters>
 </MultiDownConverter>

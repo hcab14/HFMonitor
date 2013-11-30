@@ -87,17 +87,41 @@ public:
       for (const_iterator i(begin()+3); i!=end(); ++i)
         os << boost::format("%02X") % int(*i);
 
+      static char* weekdays[] = {
+        "___",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      };
+      static char* time_zones[] = {
+        "MEZ",
+        "MESZ"
+      };
+
       if (data_vec_[1] == 0 &&
           data_vec_[2] == 0 &&
           data_vec_[3] == 0) { // time telegram
         os <<
-          boost::format(" T: 20%02d-%02d-%02d %02d:%02d:%02d")
-          % int(data_vec_[9])
-          % int(data_vec_[8])
-          % int(data_vec_[7]-0xA0)
-          % int(data_vec_[6])
-          % int(data_vec_[5])
-          % int(data_vec_[4]>>2);
+          boost::format(" T: 20%02d-%02d-%02d (%s) %02d:%02d:%02d %s")
+          % int(data_vec_[9] & 0x7F)
+          % int(data_vec_[8] & 0x0F)
+          % int(data_vec_[7] & 0x1F)
+          % weekdays[data_vec_[7]>>5]
+          % int(data_vec_[6] & 0x1F)
+          % int(data_vec_[5] & 0x3F)
+          % int(data_vec_[4]>>2)
+          % time_zones[(data_vec_[6]&0x80) == 0x80];
+      }
+      
+      if (data_vec_[1] == 0xFF &&
+          data_vec_[2] == 0xFF) {
+        os << " \'";
+        std::copy(data_vec_.begin()+3, data_vec_.end(), std::ostream_iterator<char>(os, ""));
+        os << "\'";
       }
       return os;
     }

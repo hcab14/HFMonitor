@@ -12,6 +12,7 @@
             filePeriod="1d">
   </FileSink>
   <Streams>
+    <Stream pattern="E.*">Writer</Stream>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
   </Streams>
