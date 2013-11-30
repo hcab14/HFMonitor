@@ -31,6 +31,7 @@ namespace decode {
     typedef boost::shared_ptr<efr> sptr;    
     typedef std::deque<bool>           bit_vector_type;
     typedef std::vector<unsigned char> data_vector_type;
+    typedef data_vector_type::const_iterator const_iterator;
 
     typedef enum {
       STATE_UNLOCKED,
@@ -40,7 +41,12 @@ namespace decode {
 
     state_type get_state() const { return state_; }
     void set_state(state_type s) { state_ = s; }
-    
+
+    bool data_ok() const { return data_ok_; }
+    const data_vector_type& data() const { return data_; }
+    const_iterator begin() const { return data_.begin(); }
+    const_iterator end() const { return data_.end(); }
+
     static sptr make() {
       return sptr(new efr());
     }
@@ -49,28 +55,28 @@ namespace decode {
       bits_.push_back(bit);
       switch (get_state()) {
       case STATE_UNLOCKED:
-        // search for 0 00010110 11 start sequence
-        while (bits_.size() > 44) {
-          std::cout << "D ";
-          std::copy(bits_.begin(),    bits_.begin()+11, std::ostream_iterator<bool>(std::cout, " "));
-          std::cout << "\nD ";
-          std::copy(bits_.begin()+33, bits_.begin()+44, std::ostream_iterator<bool>(std::cout, " "));
-          std::cout << "\nS ";
-          std::copy(start_sequence(), start_sequence()+11, std::ostream_iterator<bool>(std::cout, " "));
-          std::cout << std::endl;
+        data_.clear();
+        data_ok_ = false;
+        if (bits_.size() == 44) {
+          // std::cout << "D ";
+          // std::copy(bits_.begin(),    bits_.begin()+11, std::ostream_iterator<bool>(std::cout, " "));
+          // std::cout << "\nD ";
+          // std::copy(bits_.begin()+33, bits_.begin()+44, std::ostream_iterator<bool>(std::cout, " "));
+          // std::cout << "\nS ";
+          // std::copy(start_sequence(), start_sequence()+11, std::ostream_iterator<bool>(std::cout, " "));
+          // std::cout << std::endl;
           if (std::equal(bits_.begin(),    bits_.begin()+11, start_sequence()) &&
               std::equal(bits_.begin()+11, bits_.begin()+22, bits_.begin()+22) &&
               std::equal(bits_.begin()+33, bits_.begin()+44, start_sequence())) {
             const std::pair<unsigned char, bool> len1(decode_line(bits_.begin()+11));
             const std::pair<unsigned char, bool> len2(decode_line(bits_.begin()+22));
-            std::cout << "D found start: length = "
-                      << int(len1.first) << " "
-                      << int(len2.first) << " "
-                      << len1.second << "," << len2.second
-                      << std::endl;
+            // std::cout << "D found start: length = "
+            //           << int(len1.first) << " "
+            //           << int(len2.first) << " "
+            //           << len1.second << "," << len2.second
+            //           << std::endl;
             if (len1.second && len2.second && len1.first == len2.first) {
               len_ = len1.first;
-              data_.clear();
               for (size_t i(0); i<44; ++i)
                 bits_.pop_front();
               set_state(STATE_LOCKED);
@@ -90,12 +96,12 @@ namespace decode {
             if (data_.size() < len_)  {
               data_.push_back(b.first);
             } else {
-              std::cout << "D checksum: "
-                        << (std::accumulate(data_.begin(), data_.end(), 0) % 256) << " == " << b.first << std::endl;
+              // std::cout << "D checksum: "
+              //           << (std::accumulate(data_.begin(), data_.end(), 0) % 256) << " == " << b.first << std::endl;
               if (std::accumulate(data_.begin(), data_.end(), 0) % 256 == b.first) {
-                std::cout << "D data= ";
-                std::copy(data_.begin(), data_.end(), std::ostream_iterator<int>(std::cout, " "));
-                std::cout << std::endl;
+                // std::cout << "D data= ";
+                // std::copy(data_.begin(), data_.end(), std::ostream_iterator<int>(std::cout, " "));
+                // std::cout << std::endl;
                 set_state(STATE_FINISH_PACKET);
               }
             }
@@ -106,8 +112,8 @@ namespace decode {
       case STATE_FINISH_PACKET:
         if (bits_.size() == 11) {
           if (std::equal(bits_.begin(), bits_.begin()+11, finish_sequence())) {
-            std::cout << "D everything OK!\n";
-            data_.clear();
+            // std::cout << "D everything OK!\n";
+            data_ok_ = true;
           }
           set_state(STATE_UNLOCKED);
           bits_.clear();
@@ -119,12 +125,11 @@ namespace decode {
     }
 
   protected:
-
     std::pair<unsigned char, bool> decode_line(bit_vector_type::const_iterator i) {
       // i[0]==0 and parity check
-      std::cout << "decode_line: ";
-      std::copy(i, i+11, std::ostream_iterator<bool>(std::cout, ""));
-      std::cout << "\ndecode_line: " << (*i) << " " << std::accumulate(i+1, i+9, 0) << " " << *(i+9) << std::endl;
+      // std::cout << "decode_line: ";
+      // std::copy(i, i+11, std::ostream_iterator<bool>(std::cout, ""));
+      // std::cout << "\ndecode_line: " << (*i) << " " << std::accumulate(i+1, i+9, 0) << " " << *(i+9) << std::endl;
       if ((*i != 0) ||
           (std::accumulate(i+1, i+9, 0) % 2) != *(i+9))
         return std::make_pair(0,false);
@@ -140,7 +145,8 @@ namespace decode {
 
   private: 
     efr()
-      : state_(STATE_UNLOCKED) {}
+      : state_(STATE_UNLOCKED)
+      , data_ok_(false) {}
 
     static bool* start_sequence() {
       static bool start_bits[11]  = { 0, 0,0,0,1,0,1,1,0, 1,1 };
@@ -156,6 +162,7 @@ namespace decode {
     bit_vector_type  start_sequence_;
     size_t           len_; // length of packet;
     data_vector_type data_; // extracted bytes
+    bool             data_ok_;
   } ;
 
 } // namespace decode

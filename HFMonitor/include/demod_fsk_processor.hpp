@@ -42,67 +42,84 @@ public:
   typedef boost::shared_ptr<demod_fsk_processor> sptr;
   typedef std::complex<double> complex_type;
   
-  class result_bits : public processor::result_base {
+  class result_data : public processor::result_base {
   public:
-    typedef boost::shared_ptr<result_bits> sptr;
-    typedef std::vector<bool> bit_vector_type;
-    typedef bit_vector_type::iterator iterator;
-    typedef bit_vector_type::const_iterator const_iterator;
+    typedef boost::shared_ptr<result_data> sptr;
+    typedef std::vector<unsigned char> data_vector_type;
+    typedef data_vector_type::iterator iterator;
+    typedef data_vector_type::const_iterator const_iterator;
 
-    virtual ~result_bits() {}
+    virtual ~result_data() {}
     static sptr make(std::string name,
                      ptime  t,
                      double fc_Hz,
-                     double fm_Hz) {
-      return sptr(new result_bits(name, t, fc_Hz, fm_Hz));
+                     double fs_Hz,
+                     double baud) {
+      return sptr(new result_data(name, t, fc_Hz, fs_Hz, baud));
     }
 
     double fc_Hz()   const { return fc_Hz_; }
-    double fm_Hz()   const { return fm_Hz_; }
+    double fs_Hz()   const { return fs_Hz_; }
+    double baud()    const { return baud_; }
     double quality() const { return quality_; }
 
     void  set_quality(double q) { quality_ = q; }
 
-    size_t size() const { return bitvec_.size(); }
-    const_iterator begin() const { return bitvec_.begin(); }
-    const_iterator end() const { return bitvec_.end(); }
+    size_t size() const { return data_vec_.size(); }
+    const_iterator begin() const { return data_vec_.begin(); }
+    const_iterator end() const { return data_vec_.end(); }
 
-    void clear() { bitvec_.clear(); }
-    void push_back(bool bit) { bitvec_.push_back(bit); }
+    void clear() { data_vec_.clear(); }
+    void push_back(unsigned char b) { data_vec_.push_back(b); }
 
     virtual std::ostream& dump_header(std::ostream& os) const {      
       return os
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
-        << "# fm[Hz] = " << boost::format("%7.3f")  % fm_Hz() << "\n"
+        << "# fs[Hz] = " << boost::format("%7.3f")  % fs_Hz() << "\n"
+        << "# baud[Hz] = " << boost::format("%7.0f")  % baud() << "\n"
         << "# Time_UTC quality[%] bits ";
     }
+    // f= @(bb) [bb(:,10) bb(:,9) bb(:,8)-160 bb(:,7) bb(:,6) bitshift(bb(:,5),-2) bitshift(bb(:,1),-4), bitand(bb(:,1),15)]
+
     virtual std::ostream& dump_data(std::ostream& os) const {
       os << boost::format("%3.0f") % (100.*quality()) << " ";
-      for (const_iterator i(begin()); i!=end();) {
-        unsigned char x(0);
-        for (size_t j(0); j<4 && i!=end(); ++j, ++i)
-          x |= (*i << (3-j));
-        const char c(x<10 ? '0'+x : 'A'+x-10);
-        os << c;
+      os << boost::format("%02X %02X%02X ") % int(data_vec_[0]) % int(data_vec_[1]) % int(data_vec_[2]);
+      for (const_iterator i(begin()+3); i!=end(); ++i)
+        os << boost::format("%02X") % int(*i);
+
+      if (data_vec_[1] == 0 &&
+          data_vec_[2] == 0 &&
+          data_vec_[3] == 0) { // time telegram
+        os <<
+          boost::format(" T: 20%02d-%02d-%02d %02d:%02d:%02d")
+          % int(data_vec_[9])
+          % int(data_vec_[8])
+          % int(data_vec_[7]-0xA0)
+          % int(data_vec_[6])
+          % int(data_vec_[5])
+          % int(data_vec_[4]>>2);
       }
       return os;
     }
     
   protected:
   private:
-    result_bits(std::string name,
-               ptime  t,
-               double fc_Hz,
-               double fm_Hz)
+    result_data(std::string name,
+                ptime  t,
+                double fc_Hz,
+                double fs_Hz,
+                double baud)
       : result_base(name, t)
       , fc_Hz_(fc_Hz)
-      , fm_Hz_(fm_Hz)
+      , fs_Hz_(fs_Hz)
+      , baud_(baud)
       , quality_(0) {}
     
-    const double    fc_Hz_;
-    const double    fm_Hz_;
-    double          quality_;
-    bit_vector_type bitvec_;
+    const double     fc_Hz_;
+    const double     fs_Hz_;
+    const double     baud_;
+    double           quality_;
+    data_vector_type data_vec_;
   } ;
  
   typedef boost::posix_time::time_duration time_duration;
@@ -208,13 +225,24 @@ public:
         } else {
           iir_strength_.process(sig_mark + sig_space);
           early_late_synch_.insert_signal((sig_mark - sig_space)/std::min(1e-10, iir_strength_.get()));
-          std::cout << "S " 
-                    << sig_mark << " " << sig_space << " "
-                    << iir_strength_.get() << " "
-                    << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
-                    << "\n";
-          if (early_late_synch_.bit_valid())
+          // std::cout << "S " 
+          //           << sig_mark << " " << sig_space << " "
+          //           << iir_strength_.get() << " "
+          //           << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
+          //           << "\n";
+          if (early_late_synch_.bit_valid()) {
             decoder_->push_back(not early_late_synch_.current_bit());
+            if (decoder_->data_ok()) {
+              const time_duration
+                dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+              
+              result_data::sptr result_data =
+                result_data::make(name_ + "_data", sp->approx_ptime()+dt, fc_Hz(), fs_Hz(), baud());
+              for (decode::efr::data_vector_type::const_iterator i(decoder_->begin()), end(decoder_->end()); i!=end; ++i)
+                result_data->push_back(*i);
+              sp->put_result(result_data);
+            }
+          }
         }
       }
     }
@@ -245,7 +273,6 @@ private:
   size_t            iir_startup_counter_;
   demod::early_late_synch  early_late_synch_;
   decode::efr::sptr decoder_;
-  result_bits::sptr result_bits_; // accumulates bits
 } ;
 
 #endif // _DEMOD_FSK_PROCESSOR_HPP_cm131117_

@@ -56,14 +56,14 @@ namespace demod {
         //  ==> history_.front
         const double early(std::accumulate(history_.begin(), history_.begin()+two_periods_/2, 0.));
         const double late (std::accumulate(history_.begin()+two_periods_/2, history_.end(),   0.));
-        err_     = (1-alpha_)*err_ - alpha_*(std::abs(early)-std::abs(late));
-        std::cout << "t_,err= " << t_ << " " << err_ << std::endl;
+        err_     = (1-alpha_)*err_ - alpha_*(std::abs(early) - std::abs(late));
+        // std::cout << "t_,err= " << t_ << " " << err_ << std::endl;
         t_      += period_ - counter_ + 0.5*err_;
         counter_ = 0;
       } else
         bit_valid_ = false;
 
-      history_.push_back(2*(s>0)-1);
+      history_.push_back(2*(s>0) - 1);
       ++counter_;
     }
 
