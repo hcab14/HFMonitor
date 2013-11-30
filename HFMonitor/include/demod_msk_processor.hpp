@@ -280,7 +280,7 @@ public:
         result_bits_->push_back(demod_msk_->current_bit());
         if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           result_bits_->set_quality(double(signal_present_));
-          std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
+//           std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
           if (result_bits_->quality() > 0.5)
             sp->put_result(result_bits_);
           result_bits_.reset();

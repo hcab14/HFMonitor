@@ -36,6 +36,9 @@
     <Stream pattern="DC_063850_FTA">DemodMSK_FTA</Stream>
     <Stream pattern="DC_065800_FUE">DemodMSK_FUE</Stream>
     <Stream pattern="DC_081000_GYN">DemodMSK_GYN</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK1</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK2</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK3</Stream>
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
   <Clients>
@@ -48,6 +51,27 @@
               filePeriod="5m"
               bitsPerSample="24">
     </WriterIQ>
+    <DemodFSK1 name="EFR_Mainflingen"
+               type="DemodFSK"
+               fc_Hz="129100"
+               fs_Hz="170"
+               baud="200"
+               filterOrder="10">
+    </DemodFSK1>
+    <DemodFSK2 name="EFR_Lakihegy"
+               type="DemodFSK"
+               fc_Hz="135600"
+               fs_Hz="170"
+               baud="200"
+               filterOrder="10">
+    </DemodFSK2>
+    <DemodFSK3 name="EFR_Burg"
+               type="DemodFSK"
+               fc_Hz="139000"
+               fs_Hz="170"
+               baud="200"
+               filterOrder="10">
+    </DemodFSK3>
     <DemodMSK_JXN type="DemodMSK"
                   name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">

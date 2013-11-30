@@ -20,6 +20,7 @@
 #include <iostream>
 
 #include "FFTProcessor.hpp"
+#include "demod_fsk_processor.hpp"
 #include "demod_msk_processor.hpp"
 #include "network.hpp"
 #include "network/broadcaster.hpp"
@@ -105,7 +106,7 @@ int main(int argc, char* argv[])
       }
       const std::string type(i->second.get<std::string>("<xmlattr>.type"));
       LOG_INFO(str(boost::format("registering processor '%s' for steam(s) '%s' with config key '%s' of type '%s'") % name % pattern % config_key % type));
-      spcm[pattern] = std::make_pair(type, config_key);
+      spcm.insert(std::make_pair(pattern, std::make_pair(type, config_key)));
     }
 
     processor::registry::add<writer_txt>("WriterTXT");
@@ -113,6 +114,7 @@ int main(int argc, char* argv[])
     processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
     processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
+    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
 
     multi_client_to_broadcaster c(config_multi_client);
 
