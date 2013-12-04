@@ -8,7 +8,7 @@
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
   <Broadcaster>
-    <Data maxQueueSize_MB="2"
+    <Data maxQueueSize_MB="50"
           maxQueueDelay_Minutes="5"
           port="19003">
     </Data>
