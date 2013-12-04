@@ -55,7 +55,7 @@ public:
   }
 
   void reset() {
-    sample_counter_= n_-1;
+    sample_counter_= 0;//n_-1;
     for (size_t i(0), n(history_.size()); i<n; ++i)
       history_[i] = 0;    
   }
