@@ -101,6 +101,7 @@ namespace demod {
         sumE_ += xE;
         bit_availableE_ = false;
       } else {
+        // std::cout << "_E " << sumE_ << std::endl;
         bitE_  = (sumE_ > 0.);
         sumE_  = 0.;
         signE_ = sign_ct;
@@ -116,6 +117,7 @@ namespace demod {
         sumO_ += xO;
         bit_availableO_ = false;
       } else {
+        // std::cout << "_O " << sumO_ << std::endl;
         bitO_  = (sumO_ > 0.);
         sumO_  = 0.;
         signO_ = sign_st;

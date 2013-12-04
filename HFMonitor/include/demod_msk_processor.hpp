@@ -195,13 +195,13 @@ public:
     if (length != fftw_.size())
       fftw_.resize(length);
 
-    const double offset_ppb(sp->offset_ppb());
-    const double offset_Hz(fc_Hz()*offset_ppb*1e-9);
-
     if (sp->offset_ppb_rms() > max_offset_ppb_rms_) {
       LOG_INFO(str(boost::format("offset_ppb = %.2f > %.2f is too big") % sp->offset_ppb_rms() % max_offset_ppb_rms_));
       return;
     }
+
+    const double offset_ppb(sp->offset_ppb());
+    const double offset_Hz((fc_Hz() + filter_.get_shift()*sp->sample_rate_Hz()) * offset_ppb*1e-9);
 
     // set up a new filter
     bool is_first_call(demod_msk_ == 0);
@@ -217,6 +217,10 @@ public:
       std::cout << "shift: " << fc_Hz() << " " << sp->center_frequency_Hz() << " "
                 << f_shift0_Hz << " " << f_shift_Hz
                 << std::endl;
+
+      // 0.05 = 250/sp->sample_rate_Hz() for 200 baud
+      filter_.design(401, 1.25*fm_Hz_/sp->sample_rate_Hz());
+
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
       signal_present_ = 0;
