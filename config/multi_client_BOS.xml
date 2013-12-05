@@ -12,7 +12,7 @@
             filePeriod="1d">
   </FileSink>
   <Broadcaster>
-    <Data maxQueueSize_MB="2"
+    <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
           port="8080">
     </Data>
