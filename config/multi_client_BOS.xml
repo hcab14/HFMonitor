@@ -140,7 +140,7 @@
                     fMin_Hz="59.800e3"
                     fMax_Hz="60.200e3"
                     fRef_Hz="60.000e3"
-                    minRatio="10">
+                    minRatio="1">
             <Filter type="LowPass" timeConstant_sec="60.0"></Filter>
           </FindPeak>
         </L0>
@@ -318,7 +318,7 @@
                     fMin_Hz="59.800e3"
                     fMax_Hz="60.200e3"
                     fRef_Hz="60.000e3"
-                    minRatio="10">
+                    minRatio="1">
             <Filter type="LowPass" timeConstant_sec="10.0"></Filter>
             <Calibration key="L1.CAL"></Calibration>
           </FindPeak>

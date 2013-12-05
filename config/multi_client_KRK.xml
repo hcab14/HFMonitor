@@ -33,6 +33,7 @@
     <Stream pattern="DC_045900_NSY">DemodMSK_NSY</Stream>
     <Stream pattern="DC_049000_SXA">DemodMSK_SXA</Stream>
     <Stream pattern="DC_057400_GXH">DemodMSK_GXH</Stream>
+    <Stream pattern="DC_063850_FTA">DemodMSK_FUG</Stream>
     <Stream pattern="DC_063850_FTA">DemodMSK_FTA</Stream>
     <Stream pattern="DC_065800_FUE">DemodMSK_FUE</Stream>
     <Stream pattern="DC_081000_GYN">DemodMSK_GYN</Stream>
@@ -104,6 +105,10 @@
                   name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="200.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="-10" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_GXH>
+    <DemodMSK_FUG type="DemodMSK"
+                  name="MSK_FUG" fc_Hz="62.60e3" fm_Hz="200.0"
+                  dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
+    </DemodMSK_FUG>
     <DemodMSK_FTA type="DemodMSK"
                   name="MSK_FTA" fc_Hz="63.850000083e3" fm_Hz="200.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
