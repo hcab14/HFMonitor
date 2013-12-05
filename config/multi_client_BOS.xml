@@ -27,8 +27,8 @@
     <Stream pattern="DC_022100_GQD">DemodMSK_GQD</Stream>
     <Stream pattern="DC_023400_DHO">DemodMSK_DHO</Stream>
     <Stream pattern="DC_024000_NAA">DemodMSK_NAA</Stream>
-    <Stream pattern="DC_024800_NML">DemodMSK_NLK</Stream>
-    <Stream pattern="DC_025200_NLK">DemodMSK_NML</Stream>
+    <Stream pattern="DC_024800_NLK">DemodMSK_NLK</Stream>
+    <Stream pattern="DC_025200_NML">DemodMSK_NML</Stream>
     <Stream pattern="DC_026000_XXX">DemodMSK_XXX</Stream>
     <Stream pattern="DC_026700_TBB">DemodMSK_TBB</Stream>
     <Stream pattern="DC_037500_NRK">DemodMSK_NRK</Stream>
@@ -43,7 +43,7 @@
   </Streams>
   <Clients>
     <WriterText type="WriterTXT"
-                filePath="DataKRK"
+                filePath="DataBOS"
                 filePeriod="1d">
     </WriterText>
     <WriterIQ type="WriterIQ"
