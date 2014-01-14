@@ -2,13 +2,13 @@
 <!-- $Id$ -->
 <MultiClient>
   <StationInfo>
-    Station  = HTV
+    Station  = NTZ
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
-  <server host="TBD"
+  <server host="nvnb19.bc.edu"
 	  port="8080">
   </server>
-  <FileSink filePath="DataHTV"
+  <FileSink filePath="DataBOS"
             filePeriod="1d">
   </FileSink>
   <Streams>
@@ -17,7 +17,7 @@
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
-            filePath="DataHTV"
+            filePath="DataBOS"
             filePeriod="1d">
     </Writer>
   </Clients>
