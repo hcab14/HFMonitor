@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="perseus_server"
-CMD="sudo ./bin/$NAME -c config/${NAME}_HTV.xml"
