@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/filesystem.hpp>
+
 #include "network.hpp"
 #include "network/broadcaster/directory.hpp"
 #include "network/client/service_net.hpp"
@@ -32,6 +34,7 @@
 #include "FFTProcessor.hpp"
 #include "demod_fsk_processor.hpp"
 #include "demod_msk_processor.hpp"
+#include "tracking_goertzel_processor.hpp"
 #include "processor/registry.hpp"
 #include "network/iq_adapter.hpp"
 
@@ -107,7 +110,7 @@ public:
 	  return false;
 	}
       } catch (const std::exception &e) {
-	// std::cout << "AAA " << e.what() << std::endl;
+// 	std::cout << "AAA " << e.what() << std::endl;
 	return false;
       }
     }
@@ -138,8 +141,7 @@ int main(int argc, char* argv[])
   p.add("input", -1);
   
   po::variables_map vm;
-  try {
-    
+  try {    
     po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
     po::notify(vm);
 
@@ -160,8 +162,8 @@ int main(int argc, char* argv[])
     return 1;
   }
   
-  LOGGER_INIT("./Log", "read_datastream");
-
+  boost::filesystem::path fp(vm["config"].as<std::string>());
+  LOGGER_INIT("./Log", fp.stem().native());
   try {
     // make up ptree config
     boost::property_tree::ptree config;
@@ -171,6 +173,7 @@ int main(int argc, char* argv[])
     processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
     processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
+    processor::registry::add<iq_adapter<tracking_goertzel_processor> >("TrackingGoertzel");
 
     const boost::property_tree::ptree& processor_config(config.get_child(vm["key"].as<std::string>()));
     

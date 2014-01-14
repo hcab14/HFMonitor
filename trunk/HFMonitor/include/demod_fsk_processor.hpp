@@ -178,6 +178,16 @@ public:
                   const_iterator i1) {
     const double offset_ppb(sp->offset_ppb());
     const double offset_Hz(fc_Hz()*offset_ppb*1e-9);
+#if 0
+    std::cout << "process_iq nS=" << std::distance(i0, i1)
+              << " " << sp->id()
+              << " " << sp->approx_ptime()
+              << " " << sp->sample_rate_Hz()
+              << " " << sp->center_frequency_Hz()
+              << " " << sp->offset_ppb()
+              << " length=" << int(std::distance(i0, i1))
+              << std::endl;
+#endif
     if (not is_initialized_) {
       // measurements per bit
       period_ = size_t(0.5+sp->sample_rate_Hz()/baud()/10);
@@ -185,7 +195,9 @@ public:
       const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
       double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
       fc_Hz_ -= f_shift_Hz;
-
+#if 0
+      std::cout << "SHIFTs ({f_shift0,f_shift,fc}_Hz): " << f_shift0_Hz << " " << f_shift_Hz << " " << fc_Hz() << std::endl;
+#endif
       // normalized mark frequency
       double k_mark ((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
       // normalized space frequency
@@ -195,36 +207,37 @@ public:
       filter_.design(401, 2*baud()/sp->sample_rate_Hz());
 
       // downconversion to 5*baud Hz
-      dc_factor_ = size_t(0.5+sp->sample_rate_Hz()/(5*baud()));
+      dc_factor_ = size_t(0.5+sp->sample_rate_Hz()/(5.*baud()));
 
       // iir filters for mark and space with cutoff +- fs_Hz
       filter::iir_design_lowpass iird(iir_filter_order_);
-      iird.design(iir_filter_order_, 2*fs_Hz()/sp->sample_rate_Hz()*dc_factor_);
+      iird.design(iir_filter_order_, 2.*fs_Hz()/sp->sample_rate_Hz()*dc_factor_);
       const filter::iir_design_lowpass::vector_type a(iird.a());
       const filter::iir_design_lowpass::vector_type b(iird.b());
       iir_mark_.init(a, b);
       iir_space_.init(a, b);
 
-      iir_strength_.init(0.25, sp->sample_rate_Hz() / dc_factor_);
+      iir_strength_.init(0.25, double(sp->sample_rate_Hz()) / dc_factor_);
 
-      early_late_synch_ = demod::early_late_synch(sp->sample_rate_Hz() / dc_factor_ / baud());
+      early_late_synch_ = demod::early_late_synch(double(sp->sample_rate_Hz()) / dc_factor_ / baud());
 
       std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " " 
                 << sp->sample_rate_Hz() << " " 
                 << sp->center_frequency_Hz() << " "
-                << early_late_synch_.period() << std::endl;
+                << early_late_synch_.period() << " fc_Hz= " << fc_Hz() << std::endl;
+#if 0
       std::cout << "a= "; std::copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, ", "));
       std::cout << std::endl;
       std::cout << "b= "; std::copy(b.begin(), b.end(), std::ostream_iterator<double>(std::cout, ", "));
       std::cout << std::endl;
-
+#endif
       if (not decoder_)
         decoder_ = decode::efr::make();
 
       is_initialized_ = true;
     }
 
-    const double fs(sp->sample_rate_Hz() / dc_factor_);
+    const double fs(double(sp->sample_rate_Hz()) / dc_factor_);
     const double f_mark ((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
     const double f_space((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
     for (const_iterator i(i0); i!=i1; ++i, ++sample_counter_) {
@@ -243,21 +256,37 @@ public:
         } else {
           iir_strength_.process(sig_mark + sig_space);
           early_late_synch_.insert_signal((sig_mark - sig_space)/std::min(1e-10, iir_strength_.get()));
-          // std::cout << "S " 
-          //           << sig_mark << " " << sig_space << " "
-          //           << iir_strength_.get() << " "
-          //           << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
-          //           << "\n";
+#if 0
+          std::cout << "S " 
+                    << sig_mark << " " << sig_space << " "
+                    << iir_strength_.get() << " "
+                    << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
+                    << "\n";
+#endif
           if (early_late_synch_.bit_valid()) {
             decoder_->push_back(not early_late_synch_.current_bit());
             if (decoder_->data_ok()) {
+              // 4 start bytes + data + checksum + end byte
+              const size_t length(6+decoder_->data().size());
+              const double dt_sec(-1.5*early_late_synch_.period() / fs);
               const time_duration
-                dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+                dt(0,0,0, boost::int64_t(0.5 + (std::distance(i0, i)/double(sp->sample_rate_Hz()) - 11.*length/baud_ + dt_sec)*time_duration::ticks_per_second()));
               
+              std::cout << "EFR: len,dt,fs,dt_sec,dt_len_sec = "
+                        << length << " "
+                        << std::distance(i0, i)/double(sp->sample_rate_Hz()) << " "
+                        << fs << " "
+                        << dt_sec << " "
+                        << 11.*length/baud_ << " "
+                        << std::endl;
+
               result_data::sptr result_data =
                 result_data::make(name_ + "_data", sp->approx_ptime()+dt, fc_Hz(), fs_Hz(), baud());
               for (decode::efr::data_vector_type::const_iterator i(decoder_->begin()), end(decoder_->end()); i!=end; ++i)
                 result_data->push_back(*i);
+#if 0
+              std::cout << "push_back: " << result_data->to_string() << std::endl;
+#endif
               sp->put_result(result_data);
             }
           }

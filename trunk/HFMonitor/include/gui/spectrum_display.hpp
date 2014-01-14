@@ -19,6 +19,9 @@
 #ifndef _spectrum_display_hpp_cm120516_
 #define _spectrum_display_hpp_cm120516_
 
+#include "processor/service.hpp"
+#include "Spectrum.hpp"
+
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Input.H>
@@ -35,8 +38,6 @@
 
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-#include "processor/service.hpp"
-#include "Spectrum.hpp"
 
 class spectrum_display : public Fl_Double_Window {
 public:

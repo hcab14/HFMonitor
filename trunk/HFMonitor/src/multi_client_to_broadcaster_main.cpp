@@ -16,8 +16,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include <boost/property_tree/xml_parser.hpp>
 #include <iostream>
+
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include "FFTProcessor.hpp"
 #include "demod_fsk_processor.hpp"
@@ -79,9 +81,17 @@ private:
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "multi_client_to_broadcaster");
+  boost::program_options::variables_map vm;
   try {
-    const boost::program_options::variables_map vm(process_options("config/multi_client.xml", argc, argv));
+    vm = process_options("config/multi_client.xml", argc, argv);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+
+  boost::filesystem::path p(vm["config"].as<std::string>());
+  LOGGER_INIT("./Log", p.stem().native());
+  try {
     typedef boost::property_tree::ptree ptree;
     ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);

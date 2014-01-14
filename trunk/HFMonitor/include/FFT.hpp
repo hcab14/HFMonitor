@@ -154,12 +154,14 @@ namespace FFT {
         const size_t length(std::distance(i0, i1));
         if (length != n_) resize(length);
         norm_= 0;
-        for (unsigned u(0); u<n_ && i0 != i1; ++u, ++i0) {
+#if 1
+        for (unsigned u(0); u<n_ /* && i0 != i1 */; ++u, ++i0) {
           const T w(window_fcn(u));
           norm_ += w;
           a_[u][0] = w * i0->real();
           a_[u][1] = w * i0->imag();
         }
+#endif
         return norm_;
       }
       
@@ -194,7 +196,7 @@ namespace FFT {
       , sign_(sign)
       , flags_(flags)
       , plan_(plan_dft_1d(n, in_.begin(), out_.begin(), sign, flags))
-      , normalizationFactor_(1.0/in_.norm()) {}    
+      , normalizationFactor_(T(1)/in_.norm()) {}    
     
     template<typename WINDOW_FCN>
     FFTWTransform(const std::vector<std::complex<double> >& v,
@@ -281,5 +283,11 @@ namespace FFT {
     Plan plan_;
     T normalizationFactor_;
   } ;
+
 } // namespace FFT
+
+#ifdef USE_CUDA
+#  include "CUFFT.ipp"
+#endif
+
 #endif // _FFT_HPP_cm100823_
