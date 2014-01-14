@@ -22,6 +22,7 @@
 #include <iostream>
 #include <map>
 
+#include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "FFT.hpp"
@@ -183,7 +184,9 @@ namespace filter {
       void proc(typename complex_vector_type::const_iterator i0,
                 typename complex_vector_type::const_iterator i1) {
         if (std::distance(i0, i1) != int(l_))
-          throw std::runtime_error("overlap_save::proc in.size() != l_");
+          throw std::runtime_error(str(boost::format("overlap_save::proc in.size() != l_ : %d != %d")
+                                       % std::distance(i0, i1)
+                                       % int(l_)));
 
         // copy input data
         for (size_t i(0); i<l_; ++i)

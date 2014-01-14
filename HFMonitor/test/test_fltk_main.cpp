@@ -14,6 +14,7 @@
 #include <vector>
 #include <cmath>
 
+
 class MyWindow : public Fl_Double_Window {
 public:
   MyWindow(int w, int h)

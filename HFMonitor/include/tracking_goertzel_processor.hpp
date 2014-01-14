@@ -109,6 +109,17 @@ public:
   void process_iq(service::sptr sp,
                   const_iterator i0,
                   const_iterator i1) {
+#if 0
+    std::cout << "process_iq nS=" << std::distance(i0, i1)
+              << " " << sp->id()
+              << " " << sp->approx_ptime()
+              << " " << sp->sample_rate_Hz()
+              << " " << sp->center_frequency_Hz()
+              << " " << sp->offset_ppb()
+              << " " << sp->offset_ppb_rms()
+              << " length=" << int(std::distance(i0, i1))
+              << std::endl;
+#endif
     // set up a new filter
     const bool update_filter(filter_ ? (filter_->fs_Hz() != sp->sample_rate_Hz()) : true);
     if (update_filter)

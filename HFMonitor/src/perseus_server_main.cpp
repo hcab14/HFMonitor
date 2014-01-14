@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/program_options.hpp>
@@ -116,10 +117,19 @@ private:
 } ;
 
 int main(int argc, char* argv[])
-{
-  LOGGER_INIT("./Log", "perseus_server");
+{ 
+  boost::program_options::variables_map vm;
+  std::cout << "AA " << std::endl;
   try {
-    const boost::program_options::variables_map vm(process_options("config/perseus_server.xml", argc, argv));
+    vm = process_options("config/perseus_server.xml", argc, argv);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+
+  boost::filesystem::path p(vm["config"].as<std::string>());
+  LOGGER_INIT("./Log", p.stem().native());
+  try {
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 

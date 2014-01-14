@@ -16,6 +16,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+//#undef USE_CUDA
+
+#include <time.h>
 #include <iostream>
 #include <iterator>
 #include <complex>
@@ -23,20 +26,73 @@
 
 #include "FFT.hpp"
 
-int main()
-{
+struct delta_time {
+  delta_time(std::string msg="elapsed time: ")
+    : msg_(msg) {
+    gettimeofday(&start, NULL);
+  }
+  ~delta_time() {
+    gettimeofday(&end, NULL);
+    std::cout << msg_ << (end.tv_usec-start.tv_usec+1e6*(end.tv_sec-start.tv_sec))/1e6 << std::endl;
+  }
+  std::string msg_;
+  struct timeval end, start;
+} ;
+
+
+#define FFT_SIZE 500000
+
+#if 1
+void test_fftw() {
   typedef double FFTType;
-  const size_t n(120000);
+  const size_t n(FFT_SIZE);
   std::vector<std::complex<FFTType> > in(n);
-  const double f(102.5);
-
-  for (unsigned u=0; u<n; ++u)
-     in[u] = std::exp(std::complex<FFTType>(0.0,f*2.*M_PI*u/double(n)));
-
+  { delta_time dt("init: ");
+    const double f(102.5);
+    for (unsigned u=0; u<n; ++u)
+      in[u] = std::complex<FFTType>(0.1)+std::exp(std::complex<FFTType>(0.0,f*2.*M_PI*u/double(n)));
+  }
   FFT::FFTWTransform<FFTType> fft(in.size(), FFTW_FORWARD, FFTW_ESTIMATE);
-  fft.transformVector(in, FFT::WindowFunction::Blackman<FFTType>(in.size()));
+  for (int i(0); i<10; ++i ) {
+    delta_time dt("FFTW: ");
+    fft.transformVector(in, FFT::WindowFunction::Rectangular<FFTType>(in.size()));
+  }
+  for (size_t i(100); i<110; ++i)
+    std::cout << fft.getBin(i) << std::endl;
 
-  for (size_t u=0; u<fft.size(); ++u)
-    std::cout << u << " " << fft.getInBin(u).real() << " " << fft.getInBin(u).imag() << " "
-              << std::abs(fft.getBin(u)) << std::endl;
+}
+#endif
+
+void test_cufft(int argc, char* argv[])
+{
+#ifdef USE_CUDA
+  findCudaDevice(argc, (const char **)argv);
+  std::vector<std::complex<float> > v(FFT_SIZE);
+
+  { delta_time dt("init: ");
+    const double f(102.5);
+    for (unsigned u=0, n=FFT_SIZE; u<n; ++u) {
+      const std::complex<float> s(std::complex<float>(0.1)+std::exp(std::complex<float>(0.0,f*2.*M_PI*u/double(n))));
+      v[u] = s;
+    }
+  }
+  
+  FFT::CUFFTTransform cufft(FFT_SIZE, CUFFT_FORWARD, 0);
+  for (int i(0); i<10; ++i ) { delta_time dt("CUFFT: ");
+    cufft.transformVector(v, FFT::WindowFunction::Rectangular<float>(FFT_SIZE));
+  } 
+  for (size_t i(100); i<110; ++i)
+    std::cout << cufft.getBin(i) << std::endl;
+
+#endif
+}
+
+int main(int argc, char* argv[])
+{
+  {delta_time dt("test_fftw: ");
+    test_fftw();
+  }
+  {delta_time dt("test_cuda: ");
+  test_cufft(argc, argv);
+  }
 }

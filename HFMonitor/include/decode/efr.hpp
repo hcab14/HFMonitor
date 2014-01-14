@@ -58,23 +58,32 @@ namespace decode {
         data_.clear();
         data_ok_ = false;
         if (bits_.size() == 44) {
-          // std::cout << "D ";
-          // std::copy(bits_.begin(),    bits_.begin()+11, std::ostream_iterator<bool>(std::cout, " "));
-          // std::cout << "\nD ";
-          // std::copy(bits_.begin()+33, bits_.begin()+44, std::ostream_iterator<bool>(std::cout, " "));
-          // std::cout << "\nS ";
-          // std::copy(start_sequence(), start_sequence()+11, std::ostream_iterator<bool>(std::cout, " "));
-          // std::cout << std::endl;
+#if 0
+          std::cout << "D ";
+          std::copy(bits_.begin(),    bits_.begin()+11, std::ostream_iterator<bool>(std::cout, ""));
+          std::cout << "\nD ";
+          std::copy(bits_.begin()+33, bits_.begin()+44, std::ostream_iterator<bool>(std::cout, ""));
+          std::cout << "\nS ";
+          std::copy(start_sequence(), start_sequence()+11, std::ostream_iterator<bool>(std::cout, ""));
+          std::cout << std::endl;
+          std::cout << "TESTs: "
+                    << std::equal(bits_.begin(),    bits_.begin()+11, start_sequence()) << " "
+                    << std::equal(bits_.begin()+11, bits_.begin()+22, bits_.begin()+22) << " "
+                    << std::equal(bits_.begin()+33, bits_.begin()+44, start_sequence()) << std::endl;
+
+#endif
           if (std::equal(bits_.begin(),    bits_.begin()+11, start_sequence()) &&
               std::equal(bits_.begin()+11, bits_.begin()+22, bits_.begin()+22) &&
               std::equal(bits_.begin()+33, bits_.begin()+44, start_sequence())) {
             const std::pair<unsigned char, bool> len1(decode_line(bits_.begin()+11));
             const std::pair<unsigned char, bool> len2(decode_line(bits_.begin()+22));
-            // std::cout << "D found start: length = "
-            //           << int(len1.first) << " "
-            //           << int(len2.first) << " "
-            //           << len1.second << "," << len2.second
-            //           << std::endl;
+#if 0
+            std::cout << "D found start: length = "
+                      << int(len1.first) << " "
+                      << int(len2.first) << " "
+                      << len1.second << "," << len2.second
+                      << std::endl;
+#endif
             if (len1.second && len2.second && len1.first == len2.first) {
               len_ = len1.first;
               for (size_t i(0); i<44; ++i)
@@ -96,12 +105,16 @@ namespace decode {
             if (data_.size() < len_)  {
               data_.push_back(b.first);
             } else {
-              // std::cout << "D checksum: "
-              //           << (std::accumulate(data_.begin(), data_.end(), 0) % 256) << " == " << b.first << std::endl;
+#if 0
+              std::cout << "D checksum: "
+                        << (std::accumulate(data_.begin(), data_.end(), 0) % 256) << " == " << int(b.first) << std::endl;
+#endif
               if (std::accumulate(data_.begin(), data_.end(), 0) % 256 == b.first) {
-                // std::cout << "D data= ";
-                // std::copy(data_.begin(), data_.end(), std::ostream_iterator<int>(std::cout, " "));
-                // std::cout << std::endl;
+#if 0
+                std::cout << "D data= ";
+                std::copy(data_.begin(), data_.end(), std::ostream_iterator<int>(std::cout, " "));
+                std::cout << std::endl;
+#endif
                 set_state(STATE_FINISH_PACKET);
               }
             }
@@ -112,7 +125,9 @@ namespace decode {
       case STATE_FINISH_PACKET:
         if (bits_.size() == 11) {
           if (std::equal(bits_.begin(), bits_.begin()+11, finish_sequence())) {
-            // std::cout << "D everything OK!\n";
+#if 0
+            std::cout << "D everything OK!\n";
+#endif
             data_ok_ = true;
           }
           set_state(STATE_UNLOCKED);
@@ -132,7 +147,7 @@ namespace decode {
       // std::cout << "\ndecode_line: " << (*i) << " " << std::accumulate(i+1, i+9, 0) << " " << *(i+9) << std::endl;
       if ((*i != 0) ||
           (std::accumulate(i+1, i+9, 0) % 2) != *(i+9))
-        return std::make_pair(0,false);
+        return std::make_pair(0, false);
       // bits -> 8 bit number
       unsigned char data(0);
       unsigned char p(1);

@@ -17,6 +17,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <iostream>
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFTProcessorToBC.hpp"
@@ -28,9 +29,17 @@
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "client_FFTProcessorToBC");
+  boost::program_options::variables_map vm;
   try {
-    const boost::program_options::variables_map vm(process_options("config/FFTProcessor.xml", argc, argv));
+    vm = process_options("config/FFTProcessor.xml", argc, argv);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+
+  boost::filesystem::path p(vm["config"].as<std::string>());
+  LOGGER_INIT("./Log", p.stem().native());
+  try {
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 

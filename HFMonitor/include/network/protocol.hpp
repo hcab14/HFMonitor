@@ -85,12 +85,23 @@ public:
           boost::uint8_t  bytes_per_sample=3,
           float           offset_ppb=0.,
           float           offset_ppb_rms=0.)
-    : sample_rate_Hz_(sample_rate_Hz)
+    :
+#if COMP_OLD
+    sample_rate_Hz_(sample_rate_Hz)
     , center_frequency_Hz_(center_frequency_Hz)
     , sample_type_(sample_type)
     , bytes_per_sample_(bytes_per_sample)
     , offset_ppb_(offset_ppb)
-    , offset_ppb_rms_(offset_ppb_rms) {
+    , offset_ppb_rms_(offset_ppb_rms)
+#else
+    center_frequency_Hz_(center_frequency_Hz) 
+    , offset_ppb_(offset_ppb)
+    , offset_ppb_rms_(offset_ppb_rms)
+    , sample_rate_Hz_(sample_rate_Hz)
+    , sample_type_(sample_type)
+    , bytes_per_sample_(bytes_per_sample)
+#endif
+  {
     dummy_[0] = dummy_[1] = 0;
   }
 
@@ -114,6 +125,7 @@ public:
   }
 protected:
 private:
+#if COMP_OLD
   boost::uint32_t sample_rate_Hz_;       //  sample rate [Hz]        |  4b
   double          center_frequency_Hz_;  //  center frequency [Hz]   |  8b
   char            sample_type_;          //                          |  1b
@@ -121,6 +133,15 @@ private:
   float           offset_ppb_;           //  deviation from nominal  |  4b
   float           offset_ppb_rms_;       //  deviation from nominal  |  4b
   boost::int8_t   dummy_[2];             //  for future use          |  2b
+#else
+  double          center_frequency_Hz_;  //  center frequency [Hz]   |  8b
+  float           offset_ppb_;           //  deviation from nominal  |  4b
+  float           offset_ppb_rms_;       //  deviation from nominal  |  4b
+  boost::uint32_t sample_rate_Hz_;       //  sample rate [Hz]        |  4b
+  char            sample_type_;          //                          |  1b
+  boost::uint8_t  bytes_per_sample_;     //                          |  1b
+  boost::int8_t   dummy_[2];             //  for future use          |  2b
+#endif
   //                                                            total: 24b
 } ;
 

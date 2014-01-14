@@ -19,6 +19,7 @@
 
 #include <complex>
 #include <iostream>
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFT.hpp"
@@ -171,7 +172,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   
-  LOGGER_INIT("./Log", "test_fltk_spec");
+  LOGGER_INIT("./Log", "fltk_spec");
 
   try {
     // make up ptree config

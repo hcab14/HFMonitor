@@ -1,6 +1,6 @@
 #!/bin/bash
 # $Id$
 
-NAME="client_multi_downconvert"
-CMD="LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/multi_downconvert_KRK.xml"
+NAME="1a-client_multi_downconvert"
+CMD="LD_LIBRARY_PATH=/opt/local/cuda-5.0/lib:/opt/local/lib:$LD_LIBRARY_PATH ./bin/client_multi_downconvert -c config/multi_downconvert_KRK_0.xml"
 

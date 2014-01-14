@@ -17,33 +17,34 @@
           overlap_percent="0">
   </Repack>
   <server host="nz23-18.ifj.edu.pl"
-	  port="18001">
+	  port="19090"
+          stream_name="DC_0220000_LW">
   </server>
   <Calibration algorithm="WeightedMean">
     <Key>TGF_MSF</Key>
     <Key>TGF_DCF77</Key>
   </Calibration>
   <Processors>
-    <TrackingGoertzel name="TGF_MSF"
-                      input="DC_060000_MSF"
-                      f0_Hz="60.0e3"
-                      df_Hz="5.0"
-                      minDf_Hz=".1"
-                      maxHistorySize="120"
-                      maxNumWithoutLock="5">
-    </TrackingGoertzel>
-    <TrackingGoertzel name="TGF_DCF77"
-                      input="DC_077500_DCF"
-                      f0_Hz="77.5e3"
-                      df_Hz="5.0"
-                      minDf_Hz=".1"
-                      maxHistorySize="120"
-                      maxNumWithoutLock="5">
-    </TrackingGoertzel>
+    <TGF_MSF name="TGF_MSF"
+             type="TrackingGoertzel"
+             input="DC_060000_MSF"
+             f0_Hz="60.0e3"
+             df_Hz="5.0"
+             minDf_Hz=".1"
+             maxHistorySize="120"
+             maxNumWithoutLock="5">
+    </TGF_MSF>
+    <TGF_DCF name="TGF_DCF77"
+             type="TrackingGoertzel"
+             input="DC_077500_DCF"
+             f0_Hz="77.5e3"
+             df_Hz="5.0"
+             minDf_Hz=".1"
+             maxHistorySize="120"
+             maxNumWithoutLock="5">
+    </TGF_DCF>
   </Processors>
   <Filters>
-<!--
--->
     <FIR name="DC_016400_JXN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 16.40e3" decim="100"></FIR>
     <FIR name="DC_019600_GQD"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.60e3" decim="100"></FIR>
     <FIR name="DC_019800_NWC"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.80e3" decim="100"></FIR>
