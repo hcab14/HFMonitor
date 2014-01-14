@@ -52,7 +52,7 @@ function where_am_I {
     local username=`whoami`
     case $username in
 	gifds-hv)
-	    echo HTV
+	    echo BOS
 	    ;;
 	gifds-nz)
 	    echo NTZ
