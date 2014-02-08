@@ -53,6 +53,12 @@ public:
   typedef std::complex<double> complex_type;
   typedef std::vector<complex_type> Samples;
 
+#ifdef USE_CUDA
+  typedef FFT::CUFFTTransform fft_type;
+#else
+  typedef typename FFT::FFTWTransform<FFTFloat> fft_type;
+#endif
+
   typedef std::string LevelKey;
   typedef class ActionKey {
   public:
@@ -157,7 +163,7 @@ public:
     else 
       throw std::runtime_error(THROW_SITE_INFO(windowFcnName_ + ": unknown window function"));
     
-    const FFTWSpectrum<FFTFloat> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
+    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
   
     // operate on Spectrum
     ResultMap resultMap;
@@ -218,12 +224,12 @@ protected:
   }
 
 private:
-  FFT::FFTWTransform<FFTFloat> fftw_;
+  fft_type    fftw_;
   std::string windowFcnName_;
   std::string calibrationKey_;
   Internal::ModuloCounter<size_t> modCounter_;
-  Result::Base::Handle calibrationHandle_;
-  LevelMap actions_;
+  Result::Base::Handle            calibrationHandle_;
+  LevelMap  actions_;
   ResultMap resultBuffer_;
 } ;
 

@@ -72,15 +72,15 @@ private:
   double centerFrequency_;
 } ;
 
-template<typename T>
-class FFTWSpectrum : public SpectrumBase {
+template<typename FFT_TYPE>
+class FFTSpectrum : public SpectrumBase {
 public:
-  FFTWSpectrum(const FFT::FFTWTransform<T>& fftw,
-               double sampleRate,
-               double centerFrequency)
+  FFTSpectrum(const FFT_TYPE& fftw,
+              double sampleRate,
+              double centerFrequency)
     : SpectrumBase(sampleRate, centerFrequency)
     , fftw_(fftw) {}
-  virtual ~FFTWSpectrum() {}
+  virtual ~FFTSpectrum() {}
 
   virtual size_t size() const { return fftw_.size(); }
   virtual complex_type operator[](size_t index) const { return fftw_.getBin(index); }  
@@ -88,7 +88,7 @@ public:
 
 protected:
 private:
-  const FFT::FFTWTransform<T>& fftw_;
+  const FFT_TYPE& fftw_;
   double sampleRate_;
   double centerFrequency_;
 } ;
