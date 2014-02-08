@@ -163,6 +163,7 @@ public:
   } ;
  
   typedef boost::posix_time::time_duration time_duration;
+  typedef FFT::FFTWTransform<double> fft_type;
 
   demod_msk_processor(const boost::property_tree::ptree& config)
     : base_iq(config)
@@ -294,7 +295,7 @@ public:
     }
 #if 0
     fftw_.transformVector(samples2, FFT::WindowFunction::Blackman<double>(samples2.size()));
-    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz() - sp->center_frequency_Hz()));
+    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), -2*(fc_Hz() - sp->center_frequency_Hz()));
     double f_plus(0), f_minus(0), sn_plus(0), sn_minus(0);
 
     std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
@@ -362,7 +363,7 @@ public:
 
 protected:
 private:
-  FFT::FFTWTransform<double> fftw_;
+  fft_type fftw_;
   Filter::Cascaded<frequency_vector<double> > filter_plus_;
   Filter::Cascaded<frequency_vector<double> > filter_minus_;
   const std::string name_;

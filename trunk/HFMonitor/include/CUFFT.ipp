@@ -40,7 +40,8 @@ namespace FFT {
       } ;
 
       CUFFTArray(size_t n)
-        : host_vec_(n)
+        : in_(n)
+        , out_(n)
         , norm_(n) {
         checkCudaErrors(cudaMalloc(device_vec_.as_vpp(), n*sizeof(Complex)));
       }
@@ -48,25 +49,29 @@ namespace FFT {
         cudaFree(device_vec_.c);
       }
 
-      size_t size() const { return host_vec_.size(); }
+      size_t size() const { return in_.size(); }
       double norm() const { return norm_; }
 
-      Complex&       operator[](size_t n)       { return host_vec_[n]; }
-      const Complex& operator[](size_t n) const { return host_vec_[n]; }
+      Complex&       in(size_t n)       { return in_[n]; }
+      const Complex& in(size_t n) const { return in_[n]; }
+
+      Complex&       out(size_t n)       { return out_[n]; }
+      const Complex& out(size_t n) const { return out_[n]; }
 
       cufftComplex* device_vec() { return device_vec_.c; }
 
       void resize(size_t n) {
-        host_vec_.resize(n);
+        in_.resize(n);
+        out_.resize(n);
         cudaFree(device_vec_.c);
         checkCudaErrors(cudaMalloc(device_vec_.as_vpp(), n*sizeof(Complex)));
       }
 
       void host_to_device() {
-        checkCudaErrors(cudaMemcpy(device_vec_.c, &host_vec_.front(), size()*sizeof(Complex), cudaMemcpyHostToDevice));    
+        checkCudaErrors(cudaMemcpy(device_vec_.c, &in_.front(), size()*sizeof(Complex), cudaMemcpyHostToDevice));    
       }
       void device_to_host() {
-        checkCudaErrors(cudaMemcpy(&host_vec_.front(), device_vec_.c, size()*sizeof(Complex), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&out_.front(), device_vec_.c, size()*sizeof(Complex), cudaMemcpyDeviceToHost));
       }
   
       template<typename V,
@@ -90,10 +95,10 @@ namespace FFT {
 #if 1
           cc.x = w * i0->real();
           cc.y = w * i0->imag();
-          host_vec_[u] = cc;
+          in_[u] = cc;
 #else 
-          host_vec_[u].x = w * i0->real();
-          host_vec_[u].y = w * i0->imag();
+          in_[u].x = w * i0->real();
+          in_[u].y = w * i0->imag();
 #endif
         }
         return norm_;
@@ -101,12 +106,13 @@ namespace FFT {
 
     protected:
     private:
-      std::vector<Complex> host_vec_;
+      std::vector<Complex> in_;
+      std::vector<Complex> out_;
       device_data          device_vec_;
       double               norm_;
     } ;
   } // namespace internal
-  
+
   class CUFFTTransform {
   public:
     CUFFTTransform(size_t n, int direction, unsigned flags=0 /* not used, compatibility to FFTW*/)
@@ -130,11 +136,20 @@ namespace FFT {
     size_t size() const { return vec_.size(); }
 
     std::complex<float> getBin(size_t i) const {
-      std::complex<float> r(vec_[i].x, vec_[i].y);
+      std::complex<float> r(vec_.out(i).x, vec_.out(i).y);
       r *= normalization_factor_;
       return r;
     }
+    // Note: host->device changes in->out
+    std::complex<float>& in(size_t i) { return reinterpret_cast<std::complex<float>& >(vec_.in(i)); }
+    const std::complex<float>& in(size_t i) const { return reinterpret_cast<const std::complex<float>& >(vec_.in(i)); }
+
+    // Note: host->device changes in->out
+    std::complex<float>& out(size_t i) { return reinterpret_cast<std::complex<float>& >(vec_.out(i)); }
+    const std::complex<float>& out(size_t i) const { return reinterpret_cast<const std::complex<float>& >(vec_.out(i)); }
   
+    double normWindow() const { return vec_.size() * normalization_factor_; }
+
     template<typename V,
              template <typename U> class WINDOW_FCN>
     void transformVector(const std::vector<std::complex<V> >& v,
@@ -152,11 +167,15 @@ namespace FFT {
       vec_.fill(i0, i1, window_fcn);
       normalization_factor_= 1./vec_.norm();
     
-      host_to_device();
       transform();
+    }
+
+    void transform() {
+      host_to_device();
+      transform_on_device();
       device_to_host();
     }
-  
+
   protected:
     void host_to_device() {
       vec_.host_to_device();
@@ -164,7 +183,7 @@ namespace FFT {
     void device_to_host() {
       vec_.device_to_host();
     }
-    void transform() {
+    void transform_on_device() {
       checkCudaErrors(cufftExecC2C(plan_, vec_.device_vec(), vec_.device_vec(), direction_));
       checkCudaErrors(cudaThreadSynchronize());
     }

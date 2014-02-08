@@ -87,6 +87,8 @@ private:
 
 class test_proc {
 public:
+  typedef FFT::FFTWTransform<double> fft_type;
+
   test_proc(const boost::property_tree::ptree& config)
     : w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
@@ -113,7 +115,7 @@ public:
     if (length != fftw_.size())
       fftw_.resize(length);
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
-    const FFTWSpectrum<double> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
+    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
     frequency_vector<double> ps(f_min, f_max, s, std::abs<double>);
@@ -136,7 +138,7 @@ private:
     }
   } ;
   MyWindow w_;
-  FFT::FFTWTransform<double> fftw_;
+  fft_type fftw_;
   Filter::Cascaded<frequency_vector<double> > filter_;
   std::string host_;
   std::string port_;

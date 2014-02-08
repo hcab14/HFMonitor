@@ -81,8 +81,11 @@ void test_cufft(int argc, char* argv[])
   for (int i(0); i<10; ++i ) { delta_time dt("CUFFT: ");
     cufft.transformVector(v, FFT::WindowFunction::Rectangular<float>(FFT_SIZE));
   } 
-  for (size_t i(100); i<110; ++i)
-    std::cout << cufft.getBin(i) << std::endl;
+  for (size_t i(100); i<110; ++i) {
+    std::complex<float> cc(cufft.out(i));
+    cc /= FFT_SIZE;
+    std::cout << cufft.getBin(i) << " " << cc<< std::endl;
+  }
 
 #endif
 }

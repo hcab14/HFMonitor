@@ -38,7 +38,12 @@ namespace filter {
       typedef std::complex<T> complex_type;
       typedef std::vector<T> real_vector_type;
       typedef std::vector<complex_type> complex_vector_type;
-      typedef FFT::FFTWTransform<T> fft_type;
+      typedef FFT::FFTWTransform<T> small_fft_type;
+#ifdef USE_CUDA      
+      typedef FFT::CUFFTTransform large_fft_type;
+#else
+      typedef FFT::FFTWTransform<T> large_fft_type;
+#endif
     private:
 
       // class for holding filter coefficients and the fft
@@ -98,7 +103,7 @@ namespace filter {
         const complex_vector_type& result() const { return result_; }
 
         // performs inverse FFT of (shifted) input and downsampling       
-        void transform(const fft_type& fft) {
+        void transform(const large_fft_type& fft) {
 //           std::cout << "#shift " << shift() << " l=" << l() 
 //                     << " offset=" << offset() 
 //                     << " n/2 " << n()/2 << std::endl;
@@ -106,8 +111,10 @@ namespace filter {
           for (size_t i(0); i<nd; ++i)
             ifft_.in(i) = 0;
           const T norm(T(1)/T(l()));
-          for (size_t i(0), iend(n()); i<iend; ++i)
-            ifft_.in(i%nd) += fft.out((n()+i-shift())%n())*h_[i]*norm;
+          for (size_t i(0), iend(n()); i<iend; ++i) {
+            const complex_type tmp(fft.out((n()+i-shift())%n()));
+            ifft_.in(i%nd) += tmp*h_[i]*norm;
+          }
           ifft_.transform();
           
           for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
@@ -121,8 +128,8 @@ namespace filter {
         const size_t        d_;
         const size_t        n_;
         size_t              shift_;
-        fft_type            fft_;    // fft
-        fft_type            ifft_;   // fft^{-1}
+        small_fft_type      fft_;    // fft
+        small_fft_type      ifft_;   // fft^{-1}
         complex_vector_type h_;      // FFT of filter coefficients+padding
         complex_vector_type result_; // result
       } ;
@@ -205,7 +212,7 @@ namespace filter {
     private:
       const size_t l_;
       const size_t p_;
-      fft_type fft_;
+      large_fft_type fft_;
       size_t last_id_;
       filter_map filters_;
     } ;
