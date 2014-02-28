@@ -6,7 +6,7 @@
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
   <server host="127.0.0.1"
-	  port="8080">
+	  port="19200">
   </server>
   <FileSink filePath="DataBOS"
             filePeriod="1d">
