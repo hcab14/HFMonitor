@@ -135,9 +135,16 @@ public:
 
       const size_t j1(3*(specIndex_*specN() + i));
       const size_t j2(j1 + 3*specM()*specN());
+#if 0
       specImg_[j1]   = specImg_[j2]   = uchar(cr*255);
       specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
       specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
+#else
+      const size_t colorMapIndex(colorScale(x*22));
+      specImg_[j1]   = specImg_[j2]   = svgaPalette(3*colorMapIndex+2)<<2;
+      specImg_[j1+1] = specImg_[j2+1] = svgaPalette(3*colorMapIndex+1)<<2;
+      specImg_[j1+2] = specImg_[j2+2] = svgaPalette(3*colorMapIndex+0)<<2;
+#endif
     }
     this->damage(FL_DAMAGE_ALL);
     init_ = false;
@@ -172,7 +179,7 @@ public:
   void draw_spec() const {
     if (init_) return;
     fl_color(FL_RED);
-    fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 2);
+    fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 1);
     fl_begin_line();
     for (int i=0; i<specN(); ++i) {
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
@@ -291,6 +298,52 @@ protected:
     double x = double(i-xSpecBeg())/double(xSpecEnd()-xSpecBeg());
     return (x<0) ? -1 : (x>1) ? -1 : fMin_.value() + x * (fMax_.value()-fMin_.value());
   }
+
+  static unsigned char colorScale(size_t index) {
+    static unsigned char color_scale[]={ 
+      0, 36,37,38,39,40,41,42,43,44,
+      45,46,47,48,49,50,51,52,53,54,
+      55,15,15};
+    static size_t len(sizeof(color_scale)/sizeof(unsigned char));
+    return color_scale[(index>len) ? len-1 : index];
+  }
+  static unsigned char svgaPalette(size_t index) {
+    static unsigned char svga_palette[] = {
+      //    0       |      1       |     2        |     3
+      0x00,0x00,0x00,0x2a,0x00,0x00,0x00,0x2a,0x00,0x2a,0x2a,0x00,
+      //    4       |      5       |     6        |     7
+      0x00,0x00,0x2a,0x2a,0x00,0x2a,0x00,0x15,0x2a,0x2a,0x2a,0x2a,
+      //    8       |      9       |     10       |     11
+      0x15,0x15,0x15,0x3f,0x15,0x15,0x15,0x3f,0x15,0x3f,0x3f,0x15,
+      //    12      |      13      |     14       |     15
+      0x15,0x15,0x3f,0x3f,0x15,0x3f,0x15,0x3f,0x3f,0x3f,0x3f,0x3f,
+      //    16      |      17      |     18       |     19
+      0x00,0x17,0x00,0x05,0x05,0x05,0x08,0x08,0x08,0x0b,0x0b,0x0b,
+      //    20      |      21      |     22       |     23
+      0x0e,0x0e,0x0e,0x11,0x11,0x11,0x14,0x14,0x14,0x18,0x18,0x18,
+      //    24      |      25      |     26       |     27
+      0x1c,0x1c,0x1c,0x20,0x20,0x20,0x24,0x24,0x24,0x28,0x28,0x28,
+      //    28      |      29      |     30       |     31
+      0x2d,0x2d,0x2d,0x32,0x32,0x32,0x38,0x38,0x38,0x08,0x18,0x1a,
+      //    32      |      33      |     34       |     35
+      0x20,0x3f,0x20,0x12,0x00,0x00,0x17,0x00,0x00,0x00,0x00,0x17,
+      //    36      |      37      |     38       |     39
+      0x08,0x00,0x00,0x10,0x00,0x00,0x18,0x00,0x00,0x1a,0x0a,0x00,
+      //    40      |      41      |     42       |     43
+      0x1c,0x0f,0x00,0x1d,0x16,0x00,0x17,0x1c,0x00,0x14,0x21,0x00,
+      //    44      |      45      |     46       |     47
+      0x05,0x23,0x00,0x00,0x28,0x0a,0x00,0x28,0x1e,0x00,0x23,0x25,
+      //    48      |      49      |     50       |     51
+      0x00,0x21,0x30,0x00,0x1c,0x32,0x00,0x16,0x34,0x00,0x0f,0x3a,
+      //    52      |      53      |     54       |     55
+      0x0a,0x0a,0x3f,0x14,0x14,0x3f,0x1f,0x1f,0x3f,0x2b,0x2b,0x3f,
+      //    56      |      57      |     58       |     59
+      0x0e,0x29,0x22,0x12,0x12,   0,0x30,0x30,0x3f,         0,0,0};
+    static size_t len(sizeof(svga_palette)/sizeof(unsigned char));
+    return svga_palette[(index>len) ? len-1 : index];
+  }
+      
+      
 private:
   Fl_Box              b0_;
   Fl_Simple_Counter   sMin_;
