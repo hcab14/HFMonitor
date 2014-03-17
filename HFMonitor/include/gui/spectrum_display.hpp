@@ -31,12 +31,34 @@
 #include <FL/Fl_Simple_Counter.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Output.H>
+#include <FL/Fl_Value_Input.H>
 #include <FL/Fl_Value_Output.H>
 
 #include <vector>
 #include <cmath>
 
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+
+class output_kHz : public Fl_Value_Input {
+public:
+  output_kHz(int X, int Y, int W, int H, const char *l=0)
+    : Fl_Value_Input(X,Y,W,H,l) {}
+  virtual ~output_kHz() {}
+
+  virtual int format(char *buffer) {
+    const int v(int(0.5+this->value()));
+    if (v%1000 == 0)
+      return sprintf(buffer, "%.0f", 1e-3*this->value());
+    if (v%100 == 0)
+      return sprintf(buffer, "%.1f", 1e-3*this->value());
+    if (v%10 == 0)
+      return sprintf(buffer, "%.2f", 1e-3*this->value());
+    return sprintf(buffer, "%.3f", 1e-3*this->value());
+  }
+  
+protected:
+private:
+} ;
 
 
 class spectrum_display : public Fl_Double_Window {
@@ -63,8 +85,8 @@ public:
     sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-60);
     sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(-40);
 
-    fMin_.value( 9700); fMax_.value(10100);
-    fCur_.value(-1); fCur_.precision(3); fCur_.range(0, 40e3);
+    fMin_.value( 0); fMax_.value(1);
+    fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
 
     sMin_.callback(&cb, sMin); sMax_.callback(&cb, sMax);
     fMin_.callback(&cb, fMin); fMax_.callback(&cb, fMax);
@@ -84,6 +106,10 @@ public:
       break; 
     case sMax: s->sMin_.maximum(v-5);
       break;
+    case fMin: s->fMin_.value(v);
+      break;
+    case fMax: s->fMax_.value(v);
+      break;
     }
     s->damage(FL_DAMAGE_ALL);
   }
@@ -92,8 +118,8 @@ public:
   void insert_spec(const frequency_vector<T>& spec,
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
-    fMin_.value(spec.fmin());
-    fMax_.value(spec.fmax());
+    fMin_.value(init_ ? spec.fmin() : std::min(std::max(fMin_.value(), spec.fmin()), spec.fmax()));
+    fMax_.value(init_ ? spec.fmax() : std::max(std::min(fMax_.value(), spec.fmax()), fMin_.value()+10));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -140,7 +166,7 @@ public:
       specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
       specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
 #else
-      const size_t colorMapIndex(colorScale(x*22));
+      const size_t colorMapIndex(colorScale((unsigned char)(x*22)));
       specImg_[j1]   = specImg_[j2]   = svgaPalette(3*colorMapIndex+2)<<2;
       specImg_[j1+1] = specImg_[j2+1] = svgaPalette(3*colorMapIndex+1)<<2;
       specImg_[j1+2] = specImg_[j2+2] = svgaPalette(3*colorMapIndex+0)<<2;
@@ -166,7 +192,7 @@ public:
       draw_spec();
       draw_waterfall();
       draw_frames();
-      draw_ticks(100); // step size 100 Hz for now
+      draw_ticks(tick_stepsize()); // step size 100 Hz for now
 
       // now draw all the children atop the background:
       for (int i = children(); i--; a++) {
@@ -174,6 +200,18 @@ public:
 	draw_outside_label(**a); // you may not need to do this
       }
     }
+  }
+
+  int tick_stepsize() const {
+    double df(fMax_.value() - fMin_.value());
+    static double f[3] = { 1, 2, 5 };
+    double x(1);
+    for (size_t i(0); i<5; ++i) {
+      for (size_t j(0), n(sizeof(f)/sizeof(double)); j<n; ++j)
+        if (df/(f[j]*x) < 20.) return f[j]*x;
+      x *=10;
+    }
+    return x;
   }
 
   void draw_spec() const {
@@ -213,10 +251,17 @@ public:
     fl_line_style(FL_DASH);
     char label[1024];
     int last_x(-100000);
-    for (int fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
+    for (double fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
       if (fi < fMin_.value()) continue;
       const int xl = xSpecFromInput(fi);
-      sprintf(label, "%d", fi);
+      if ((step % 1000) == 0)
+        sprintf(label, "%.0f", fi/1000);
+      else if ((step % 100)==0)
+        sprintf(label, "%.1f", fi/1000);
+      else if ((step % 10)==0)
+        sprintf(label, "%.2f", fi/1000);
+      else 
+        sprintf(label, "%.3f", fi/1000);
       const double labelWidth = fl_width(label);
       if (xl-labelWidth/2 <= xSpecBeg()) continue;
       if (xl+labelWidth/2 >= xSpecEnd()) continue;
@@ -349,8 +394,8 @@ private:
   Fl_Simple_Counter   sMin_;
   Fl_Box              b1_;
   Fl_Simple_Counter   sMax_;
-  Fl_Value_Output     fMin_;
-  Fl_Value_Output     fMax_;
+  output_kHz     fMin_;
+  output_kHz     fMax_;
   Fl_Value_Output     fCur_;
   Fl_Output           fStreamName_;
   Fl_Output           fTime_;
