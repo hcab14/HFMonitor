@@ -84,9 +84,11 @@ public:
       break; 
     case sMax: s->sMin_.maximum(v-5);
       break;
-    case fMin: s->fMin_.value(v);
+    case fMin:
+      s->fMin_.value(std::min(v, s->fMax_.value()-.5));
       break;
-    case fMax: s->fMax_.value(v);
+    case fMax:
+      s->fMax_.value(std::max(v, s->sMin_.value()+.5));
       break;
     }
     s->damage(FL_DAMAGE_ALL);
