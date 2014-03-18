@@ -39,28 +39,6 @@
 
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-class output_kHz : public Fl_Value_Input {
-public:
-  output_kHz(int X, int Y, int W, int H, const char *l=0)
-    : Fl_Value_Input(X,Y,W,H,l) {}
-  virtual ~output_kHz() {}
-
-  virtual int format(char *buffer) {
-    const int v(int(0.5+this->value()));
-    if (v%1000 == 0)
-      return sprintf(buffer, "%.0f", 1e-3*this->value());
-    if (v%100 == 0)
-      return sprintf(buffer, "%.1f", 1e-3*this->value());
-    if (v%10 == 0)
-      return sprintf(buffer, "%.2f", 1e-3*this->value());
-    return sprintf(buffer, "%.3f", 1e-3*this->value());
-  }
-  
-protected:
-private:
-} ;
-
-
 class spectrum_display : public Fl_Double_Window {
 public:
   enum {
@@ -118,8 +96,8 @@ public:
   void insert_spec(const frequency_vector<T>& spec,
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
-    fMin_.value(init_ ? spec.fmin() : std::min(std::max(fMin_.value(), spec.fmin()), spec.fmax()));
-    fMax_.value(init_ ? spec.fmax() : std::max(std::min(fMax_.value(), spec.fmax()), fMin_.value()+10));
+    set_fMin(init_ ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
+    set_fMax(init_ ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+10));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -130,13 +108,28 @@ public:
       oss << sp->approx_ptime();
       fTime_.value(oss.str().c_str());
     }
-    std::vector<double> s(specN(), 0.0);
-    std::vector<double> sf(specN(), 0.0);
+    std::vector<double> s(specN(),  -1e6);
+    std::vector<double> sf(specN(), -1e6);
+#if 1
+    for (size_t i(0), n(spec.size()); i<n; ++i) {
+      const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
+      s[j]  = std::max(s[j],  spec[i].second);
+      sf[j] = std::max(sf[j], spec_filtered[i].second);
+    }
+    const double dfn(delta_f() / double(specN()));
+    for (int i(0), n(specN()); i<n; ++i) {
+      s[i]  = (s[i]  < -1e5) ? spec         [spec.freq2index(get_fMin() + dfn*i)].second : s[i];
+      sf[i] = (sf[i] < -1e5) ? spec_filtered[spec.freq2index(get_fMin() + dfn*i)].second : sf[i];
+    }
+
+#else
+    const double dfn(delta_f() / double(specN()));
     // reverse!!
     for (int i(0); i<specN(); ++i) {
-      s[i]  = spec         [spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
-      sf[i] = spec_filtered[spec.freq2index(fMin_.value() + (fMax_.value()-fMin_.value())*i/double(specN()))].second;
+      s[i]  = spec         [spec.freq2index(get_fMin() + dfn*i)].second;
+      sf[i] = spec_filtered[spec.freq2index(get_fMin() + dfn*i)].second;
     }
+#endif
     insert_spec(s, sf);
   }
 
@@ -144,12 +137,15 @@ public:
                    const std::vector<double>& spec_filtered) {
     specIndex_--;
     if (specIndex_ < 0) specIndex_ = specM()-1;
-    for (size_t i=0; i<spec.size(); ++i) {
+    for (size_t i(0), n(spec.size()); i<n; ++i) {
       spec_[specIndex_*specN()+i] = spec_filtered[i];
 
       // normalized, clamped signal
       const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
 
+      const size_t j1(3*(specIndex_*specN() + i));
+      const size_t j2(j1 + 3*specM()*specN());
+#if 0
       // colormap calculation: blue-red HSV->RGB
       const double hp(2.*(2.-x));
       const double xx(1. - std::abs(std::fmod(hp, 2.) - 1.));
@@ -159,9 +155,6 @@ public:
       if (hp < 2.) { cg = 1; cr = xx; }
       if (hp < 1.) { cr = 1; cg = xx; }
 
-      const size_t j1(3*(specIndex_*specN() + i));
-      const size_t j2(j1 + 3*specM()*specN());
-#if 0
       specImg_[j1]   = specImg_[j2]   = uchar(cr*255);
       specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
       specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
@@ -176,7 +169,7 @@ public:
     init_ = false;
   }
 
-      // clamp x \in [0,1]
+  // clamp x \in [0,1]
   static double clamp(double x) {
     return (x<0) ? 0 : (x>1) ? 1 : x;
   }
@@ -203,13 +196,13 @@ public:
   }
 
   int tick_stepsize() const {
-    double df(fMax_.value() - fMin_.value());
-    static double f[3] = { 1, 2, 5 };
-    double x(1);
+    static int f[3] = { 1, 2, 5 };
+    const double df(delta_f());
+    int x(1);
     for (size_t i(0); i<5; ++i) {
-      for (size_t j(0), n(sizeof(f)/sizeof(double)); j<n; ++j)
+      for (size_t j(0), n(sizeof(f)/sizeof(int)); j<n; ++j)
         if (df/(f[j]*x) < 20.) return f[j]*x;
-      x *=10;
+      x *= 10;
     }
     return x;
   }
@@ -219,7 +212,7 @@ public:
     fl_color(FL_RED);
     fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 1);
     fl_begin_line();
-    for (int i=0; i<specN(); ++i) {
+    for (int i(0), n(specN()); i<n; ++i) {
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     }
     fl_end_line();
@@ -251,8 +244,8 @@ public:
     fl_line_style(FL_DASH);
     char label[1024];
     int last_x(-100000);
-    for (double fi=step*(int(fMin_.value())/step); fi <= fMax_.value(); fi += step) {
-      if (fi < fMin_.value()) continue;
+    for (double fi=step*(int(get_fMin())/step); fi <= get_fMax(); fi += step) {
+      if (fi < get_fMin()) continue;
       const int xl = xSpecFromInput(fi);
       if ((step % 1000) == 0)
         sprintf(label, "%.0f", fi/1000);
@@ -312,8 +305,13 @@ public:
     }
   }
 
-  int set_fMin(double fMin) { return fMin_.value(fMin); }
-  int set_fMax(double fMin) { return fMax_.value(fMax); }
+  // kHz -> Hz
+  double get_fMin() const { return 1e3*fMin_.value(); }
+  double get_fMax() const { return 1e3*fMax_.value(); }
+  double delta_f() const { return get_fMax() - get_fMin(); }
+  // Hz -> kHz
+  int set_fMin(double fMin) { return fMin_.value(1e-3*fMin); }
+  int set_fMax(double fMax) { return fMax_.value(1e-3*fMax); }
 
 protected:
   int ySpecBeg() const { return  0; }
@@ -330,7 +328,7 @@ protected:
   int specM() const { return yWaterfallEnd() - yWaterfallBeg(); }
 
   int xSpecFromInput(double xi) const {
-    double x = (xi-fMin_.value()) / (fMax_.value()-fMin_.value());
+    double x = (xi-get_fMin()) / delta_f();
     x = (x<0) ? 0. : (x>1) ? 1. : x;
     return int(0.5+ xSpecBeg() + x * (xSpecEnd()-xSpecBeg()-1));
   }
@@ -341,9 +339,10 @@ protected:
   }
   double xInputFromSpec(int i) const {
     double x = double(i-xSpecBeg())/double(xSpecEnd()-xSpecBeg());
-    return (x<0) ? -1 : (x>1) ? -1 : fMin_.value() + x * (fMax_.value()-fMin_.value());
+    return (x<0) ? -1 : (x>1) ? -1 : get_fMin() + x * delta_f();
   }
 
+  // adapted from palette.c \in linrad
   static unsigned char colorScale(size_t index) {
     static unsigned char color_scale[]={ 
       0, 36,37,38,39,40,41,42,43,44,
@@ -352,6 +351,7 @@ protected:
     static size_t len(sizeof(color_scale)/sizeof(unsigned char));
     return color_scale[(index>len) ? len-1 : index];
   }
+  // adapted from palette.c \in linrad
   static unsigned char svgaPalette(size_t index) {
     static unsigned char svga_palette[] = {
       //    0       |      1       |     2        |     3
@@ -387,15 +387,14 @@ protected:
     static size_t len(sizeof(svga_palette)/sizeof(unsigned char));
     return svga_palette[(index>len) ? len-1 : index];
   }
-      
-      
+
 private:
   Fl_Box              b0_;
   Fl_Simple_Counter   sMin_;
   Fl_Box              b1_;
   Fl_Simple_Counter   sMax_;
-  output_kHz     fMin_;
-  output_kHz     fMax_;
+  Fl_Value_Input      fMin_;
+  Fl_Value_Input      fMax_;
   Fl_Value_Output     fCur_;
   Fl_Output           fStreamName_;
   Fl_Output           fTime_;

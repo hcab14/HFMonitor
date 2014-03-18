@@ -8,8 +8,8 @@
     Computer = Linux nz23-18.ifj.edu.pl 2.6.32.27
   </StationInfo>
   <Broadcaster>
-    <Data maxQueueSize_MB="20"
-          maxQueueDelay_Minutes="5"
+    <Data maxQueueSize_MB="200"
+          maxQueueDelay_Minutes="2"
           port="19100">
     </Data>
   </Broadcaster>
@@ -65,6 +65,12 @@
     <FIR name="DC_077500_DCF"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 77.50e3" decim="100"></FIR>
     <FIR name="DC_081000_GYN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 81.00e3" decim="100"></FIR>
     <FIR name="DC_020000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 20.00e3" decim=" 50"></FIR>
+    <FIR name="DC_030000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 30.00e3" decim=" 50"></FIR>
+    <FIR name="DC_040000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 40.00e3" decim=" 50"></FIR>
+    <FIR name="DC_050000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 50.00e3" decim=" 50"></FIR>
+    <FIR name="DC_060000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 60.00e3" decim=" 50"></FIR>
+    <FIR name="DC_070000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 70.00e3" decim=" 50"></FIR>
+    <FIR name="DC_080000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 80.00e3" decim=" 50"></FIR>
     <FIR name="DC_292000_DGPS" type="lowpass" cutoff="0.036" centerFrequency_Hz="292.00e3" decim=" 25"></FIR>
     <FIR name="DC_132000_EFR"  type="lowpass" cutoff="0.036" centerFrequency_Hz="132.00e3" decim=" 25"></FIR>
   </Filters>
