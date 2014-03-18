@@ -125,9 +125,12 @@ public:
       filter_.update(sp->approx_ptime(), ps);
 
     frequency_vector<double> xf(filter_.x());
+
+    Fl::lock();
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
+    Fl::unlock();
     char msg[1024]; sprintf(msg,"spec_update");
     Fl::awake(msg);
   }
@@ -153,7 +156,9 @@ int main(int argc, char* argv[])
     ("version,v",                                                    "display version")
     ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
     ("port,p", po::value<std::string>()->default_value("18001"),     "server port")
-    ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name");
+    ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name")
+    ("overlap,o", po::value<double>()->default_value(0.),       "buffer overlap")
+    ("delta_t,dt", po::value<double>()->default_value(1.),      "dt (sec)");
 
   po::variables_map vm;
   try {
@@ -181,8 +186,8 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     config.put("server.<xmlattr>.host", vm["host"].as<std::string>());
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
-    config.put("Repack.<xmlattr>.bufferLength_sec", 1);
-    config.put("Repack.<xmlattr>.overlap_percent", 0);
+    config.put("Repack.<xmlattr>.bufferLength_sec", vm["delta_t"].as<double>());
+    config.put("Repack.<xmlattr>.overlap_percent", vm["overlap"].as<double>());
 
     Fl::visual(FL_RGB);
     Fl::lock();
@@ -205,10 +210,9 @@ int main(int argc, char* argv[])
 
 
     // FLTK event loop
-    //    Fl::run();
     while (Fl::wait() > 0) {
       if (Fl::thread_message())
-	if (!global_state::run) break;
+ 	if (!global_state::run) break;
     }
 
     // now all FLTK windows are closed:
