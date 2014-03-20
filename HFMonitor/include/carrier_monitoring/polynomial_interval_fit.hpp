@@ -56,8 +56,9 @@ public:
 	   const std::vector<size_t>& b) {
     
     if (b != b_) {
+      typedef std::not_equal_to<size_t> neq_functor;
       const size_t length_y(std::count_if(b.begin(), b.end(),
-					  std::binder1st<std::not_equal_to<size_t> >(std::not_equal_to<size_t>(), 0)));
+					  std::binder1st<neq_functor>(neq_functor(), 0)));
       b_        = b;
       t_        = vector_type(length_y, 0);
       yf_ = y_  = vector_type(length_y, 0);
@@ -188,9 +189,9 @@ protected:
 		     const std::vector<size_t>& b) {
     assert(iv.size()>0);
     slices_y_ = std::vector<slice>(iv.size()-1);
-    for (size_t i(1), ib(0), it(0); i<iv.size(); ++i) {
+    for (size_t i(1), ib(0), it(0), n(iv.size()); i<n; ++i) {
       size_t nb(0);
-      for (size_t j(iv[i-1]), n(iv[i]); j<n; ++j) {
+      for (size_t j(iv[i-1]), m(iv[i]); j<m; ++j) {
 	if (b[j]) {
 	  ++nb;
 	  t_[it]   = j;//-iv[i-1];

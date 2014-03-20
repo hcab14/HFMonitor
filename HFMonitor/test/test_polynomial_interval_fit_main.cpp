@@ -34,8 +34,10 @@ int main()
   std::vector<double> v(n);
   std::vector<size_t> b(n, 1);
   for (size_t i(0); i<n; ++i) {
-    v[i] = 1+0.1*drand48() + cos(2*0.01*i*2*M_PI);
+    v[i] = 1+0.99*drand48() + cos(2*0.01*i*2*M_PI);
     b[i] = (i%4 == 0);
+    if ((i%4) ==0)
+      v[i] += 5;
   }
 
   std::vector<size_t> indices;
@@ -45,7 +47,7 @@ int main()
   indices.push_back(75);
   indices.push_back(99);  
 
-  const unsigned poly_degree(2);
+  const unsigned poly_degree(3);
 
   polynomial_interval_fit p(poly_degree, indices);
   
