@@ -169,8 +169,12 @@ public:
     return *this;
   }
 
-  size_t freq2index(freq_type f) const {
-    ASSERT_THROW(f >= fmin_ && f <= fmax_);
+  size_t freq2index(freq_type f, bool do_throw=true) const {
+    if (do_throw) {
+      ASSERT_THROW(f >= fmin_ && f <= fmax_);
+    } else {
+      f = std::min(std::max(f, fmin_), fmax_);
+    }
     return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * (v_.size()-1));
   }
   
@@ -205,7 +209,7 @@ public:
   frequency_vector<T>& operator+=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
-    for (iterator i(begin()); i!=end(); ++i,++j) {
+    for (iterator i(begin()), iend(end()); i!=iend; ++i,++j) {
       ASSERT_THROW(i->first == j->first);
       i->second += j->second;
     }
@@ -221,7 +225,7 @@ public:
   frequency_vector<T>& operator-=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() != v.size());
     const_iterator j(v.begin());
-    for (iterator i(begin()); i!=end(); ++i,++j) {
+    for (iterator i(begin()), iend(end()); i!=iend; ++i,++j) {
       ASSERT_THROW(i->first == j->first);
       i->second -= j->second;
     }
@@ -259,7 +263,7 @@ public:
   frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
-    for (iterator i(begin()); i!=end(); ++i,++j) {
+    for (iterator i(begin()), iend(end()); i!=iend; ++i,++j) {
       ASSERT_THROW(i->first == j->first);
       i->second *= j->second;
     }
