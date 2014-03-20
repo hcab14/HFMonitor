@@ -85,10 +85,10 @@ public:
     case sMax: s->sMin_.maximum(v-5);
       break;
     case fMin:
-      s->fMin_.value(std::min(v, s->fMax_.value()-.5));
+      s->fMin_.value(std::min(v, s->fMax_.value()-.01));
       break;
     case fMax:
-      s->fMax_.value(std::max(v, s->sMin_.value()+.5));
+      s->fMax_.value(std::max(v, s->sMin_.value()+.01));
       break;
     }
     s->damage(FL_DAMAGE_ALL);
@@ -98,8 +98,11 @@ public:
   void insert_spec(const frequency_vector<T>& spec,
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
+
+    const double correction_factor(1 - (sp ? 1e-9*sp->offset_ppb() : 0.));
+
     set_fMin(init_ ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
-    set_fMax(init_ ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+10));
+    set_fMax(init_ ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -110,28 +113,29 @@ public:
       oss << sp->approx_ptime();
       fTime_.value(oss.str().c_str());
     }
-    std::vector<double> s(specN(),  -1e6);
-    std::vector<double> sf(specN(), -1e6);
-#if 1
+    std::vector<double> s(specN(),  0);
+    std::vector<double> sf(specN(), 0);
+    std::vector<int>    counters(specN(), 0);
     for (size_t i(0), n(spec.size()); i<n; ++i) {
       const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
-      s[j]  = std::max(s[j],  spec[i].second);
-      sf[j] = std::max(sf[j], spec_filtered[i].second);
+      const int ical(spec.freq2index(correction_factor*spec[i].first, false));
+      //         s[j]  = std::max(s[j],  spec[ical].second);
+      //         sf[j] = std::max(sf[j], spec_filtered[ical].second);
+      s[j]  += spec[ical].second;
+      sf[j] += spec_filtered[ical].second;
+      ++counters[j];
     }
     const double dfn(delta_f() / double(specN()));
-    for (int i(0), n(specN()); i<n; ++i) {
-      s[i]  = (s[i]  < -1e5) ? spec         [spec.freq2index(get_fMin() + dfn*i)].second : s[i];
-      sf[i] = (sf[i] < -1e5) ? spec_filtered[spec.freq2index(get_fMin() + dfn*i)].second : sf[i];
+    for (int j(0), n(specN()); j<n; ++j) {
+      if (counters[j] != 0) {
+        s[j]  /= counters[j];
+        sf[j] /= counters[j];
+      } else {
+        const int ical(spec.freq2index(correction_factor*(get_fMin() + dfn*j), false));
+        s[j]  = spec         [ical].second;
+        sf[j] = spec_filtered[ical].second;
+      }
     }
-
-#else
-    const double dfn(delta_f() / double(specN()));
-    // reverse!!
-    for (int i(0); i<specN(); ++i) {
-      s[i]  = spec         [spec.freq2index(get_fMin() + dfn*i)].second;
-      sf[i] = spec_filtered[spec.freq2index(get_fMin() + dfn*i)].second;
-    }
-#endif
     insert_spec(s, sf);
   }
 
