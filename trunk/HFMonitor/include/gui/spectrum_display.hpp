@@ -65,6 +65,8 @@ public:
 
     fMin_.value( 0); fMax_.value(1);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
+    fMin_.when(FL_WHEN_ENTER_KEY);
+    fMax_.when(FL_WHEN_ENTER_KEY);
 
     sMin_.callback(&cb, sMin); sMax_.callback(&cb, sMax);
     fMin_.callback(&cb, fMin); fMax_.callback(&cb, fMax);
@@ -84,12 +86,12 @@ public:
       break; 
     case sMax: s->sMin_.maximum(v-5);
       break;
-    case fMin:
-      s->fMin_.value(std::min(v, s->fMax_.value()-.01));
-      break;
-    case fMax:
-      s->fMax_.value(std::max(v, s->sMin_.value()+.01));
-      break;
+//     case fMin:
+//       s->fMin_.value(std::min(v, s->fMax_.value()-.01));
+//       break;
+//     case fMax:
+//       s->fMax_.value(std::max(v, s->sMin_.value()+.01));
+//       break;
     }
     s->damage(FL_DAMAGE_ALL);
   }
