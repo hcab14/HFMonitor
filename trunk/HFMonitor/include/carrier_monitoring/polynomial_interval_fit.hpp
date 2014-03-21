@@ -132,7 +132,7 @@ public:
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0); j<sy.size(); ++j) {
 	const double x(t_(sy(j)) - indices_[slice_counter]);
-	std::cout << "T " << sy(j) << " " << t_(sy(j)) << " " << find_index(t_(sy(j))) << " " << slice_counter << " " << indices_[slice_counter] << " " << x << std::endl;
+// 	std::cout << "T " << sy(j) << " " << t_(sy(j)) << " " << find_index(t_(sy(j))) << " " << slice_counter << " " << indices_[slice_counter] << " " << x << std::endl;
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }

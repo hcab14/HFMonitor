@@ -60,16 +60,22 @@ public:
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
     , fTime_(    w-200, h-20, 160, 20, "Current Time:")
     , init_(true) {
-    sMin_.step(5,5); sMin_.range(-120,0); sMin_.value(-60);
-    sMax_.step(5,5); sMax_.range(-120,0); sMax_.value(-40);
+    sMin_.step(5,5); sMin_.range(-140,0); sMin_.value(-120);
+    sMax_.step(5,5); sMax_.range(-140,0); sMax_.value(-80);
 
     fMin_.value( 0); fMax_.value(1);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
     fMin_.when(FL_WHEN_ENTER_KEY);
     fMax_.when(FL_WHEN_ENTER_KEY);
 
-    sMin_.callback(&cb, sMin); sMax_.callback(&cb, sMax);
-    fMin_.callback(&cb, fMin); fMax_.callback(&cb, fMax);
+    sMin_.callback(&cb, sMin);
+    sMax_.callback(&cb, sMax);
+
+    fMin_.callback(&cb, fMin);
+    fMax_.callback(&cb, fMax);
+
+    fMin_.range(0, 40e3);
+    fMax_.range(0, 40e3);
 
     end();
     specIndex_ = specM();
@@ -86,12 +92,20 @@ public:
       break; 
     case sMax: s->sMin_.maximum(v-5);
       break;
-//     case fMin:
+     case fMin:
 //       s->fMin_.value(std::min(v, s->fMax_.value()-.01));
-//       break;
-//     case fMax:
+       if (v < 0   ) s->fMin_.value(1.);
+       if (v > 40e3) s->fMin_.value(40e3-1.);
+       if (s->fMin_.value() >= s->fMax_.value())
+         s->fMin_.value(s->fMax_.value()-1);
+       break;
+    case fMax:
 //       s->fMax_.value(std::max(v, s->sMin_.value()+.01));
-//       break;
+       if (v < 0   ) s->fMax_.value(1.);
+       if (v > 40e3) s->fMax_.value(40e3-1);
+       if (s->fMin_.value() >= s->fMax_.value())
+         s->fMax_.value(s->fMin_.value()+1);
+      break;
     }
     s->damage(FL_DAMAGE_ALL);
   }
@@ -100,8 +114,6 @@ public:
   void insert_spec(const frequency_vector<T>& spec,
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
-
-    const double correction_factor(1 - (sp ? 1e-9*sp->offset_ppb() : 0.));
 
     set_fMin(init_ ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
     set_fMax(init_ ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
@@ -120,22 +132,19 @@ public:
     std::vector<int>    counters(specN(), 0);
     for (size_t i(0), n(spec.size()); i<n; ++i) {
       const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
-      const int ical(spec.freq2index(correction_factor*spec[i].first, false));
-      //         s[j]  = std::max(s[j],  spec[ical].second);
-      //         sf[j] = std::max(sf[j], spec_filtered[ical].second);
-      s[j]  += spec[ical].second;
-      sf[j] += spec_filtered[ical].second;
+      s[j]  = (0 == counters[j]) ? spec[i].second          : std::max(s[j],  spec[i].second);
+      sf[j] = (0 == counters[j]) ? spec_filtered[i].second : std::max(sf[j], spec_filtered[i].second);
       ++counters[j];
     }
     const double dfn(delta_f() / double(specN()));
     for (int j(0), n(specN()); j<n; ++j) {
       if (counters[j] != 0) {
-        s[j]  /= counters[j];
-        sf[j] /= counters[j];
+//         s[j]  /= counters[j];
+//         sf[j] /= counters[j];
       } else {
-        const int ical(spec.freq2index(correction_factor*(get_fMin() + dfn*j), false));
-        s[j]  = spec         [ical].second;
-        sf[j] = spec_filtered[ical].second;
+        const int i(spec.freq2index(get_fMin() + dfn*j));
+        s[j]  = spec         [i].second;
+        sf[j] = spec_filtered[i].second;
       }
     }
     insert_spec(s, sf);
@@ -193,7 +202,7 @@ public:
       draw_spec();
       draw_waterfall();
       draw_frames();
-      draw_ticks(tick_stepsize()); // step size 100 Hz for now
+      draw_ticks(tick_stepsize());
 
       // now draw all the children atop the background:
       for (int i = children(); i--; a++) {
@@ -207,12 +216,12 @@ public:
     static int f[3] = { 1, 2, 5 };
     const double df(delta_f());
     int x(1);
-    for (size_t i(0); i<5; ++i) {
+    for (size_t i(0); i<10; ++i) {
       for (size_t j(0), n(sizeof(f)/sizeof(int)); j<n; ++j)
         if (df/(f[j]*x) < 20.) return f[j]*x;
       x *= 10;
     }
-    return x;
+    return std::min(x, 20);
   }
 
   void draw_spec() const {
