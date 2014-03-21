@@ -17,27 +17,22 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <algorithm>
 #include <complex>
 #include <iostream>
+#include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include "carrier_monitoring/polynomial_interval_fit.hpp"
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
-#include "gui/spectrum_display.hpp"
 #include "network.hpp"
 #include "network/client.hpp"
 #include "network/iq_adapter.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 #include "Spectrum.hpp"
-
-#include <FL/Fl.H>
-#include <FL/Fl_Double_Window.H>
-#include <FL/Fl_Menu_Bar.H>
-#include <FL/Fl_Box.H>
-#include <FL/Fl_Input.H>
-#include <FL/Fl_Text_Display.H>
 
 #include <boost/format.hpp>
 #include <boost/thread.hpp>
@@ -46,56 +41,26 @@
 #include <vector>
 #include <cmath>
 
-// global state:
-struct global_state {
-  static bool run;
-};
+bool compare_second(std::pair<double,double>& a,
+		    std::pair<double,double>& b) {
+  return a.second < b.second;
+}
 
-bool global_state::run = true;
-
-class MyWindow : public Fl_Double_Window {
-public:
-  MyWindow(int w, int h)
-    : Fl_Double_Window(w, h, "Spectrum Display")
-    , menu_bar_(0,0,w,20)
-    , input_(0, h-30, w, 30, "label")
-    , specDisplay_(20, 20, w-40, h-50)
-    , counter_(0)
-    // , disp_(20, 40, w-40, h-40, "Display") 
-  {
-    menu_bar_.add("File/Quit",   FL_CTRL+'q', Quit_CB);
-    end();
-  }
-  virtual ~MyWindow() {}
-
-  spectrum_display& get_spec_display() { return specDisplay_; }
-
-protected:
-  static void Quit_CB(Fl_Widget *, void *) {
-    global_state::run = false;
-    char* msg="quit";
-    Fl::awake(msg);
-  }
-private:
-  Fl_Menu_Bar menu_bar_;
-  Fl_Input    input_;
-  spectrum_display specDisplay_;
-  int         counter_;
-  // Fl_Text_Display disp_;
-  // Fl_Text_Buffer buff_;
-} ;
-
-class test_proc {
+class carrier_monitor_processor {
 public:
   typedef FFT::FFTWTransform<double> fft_type;
 
-  test_proc(const boost::property_tree::ptree& config)
-    : w_(1200,400)
-    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+  typedef frequency_vector<double> fvector;
+  typedef fvector::iterator fvector_iterator;
+
+  carrier_monitor_processor(const boost::property_tree::ptree& config)
+    : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
-    , port_(config.get<std::string>("server.<xmlattr>.port")) {
+    , port_(config.get<std::string>("server.<xmlattr>.port"))
+    , fmin_Hz_(1e3*config.get<double>(".<xmlattr>.fMin_kHz"))
+    , fmax_Hz_(1e3*config.get<double>(".<xmlattr>.fMax_kHz"))
+    , spec_counter_(0) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
-    w_.show();
   }
 
   void process_iq(processor::service_iq::sptr sp,
@@ -116,35 +81,114 @@ public:
       fftw_.resize(length);
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
-    const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
-    const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
-    frequency_vector<double> ps(f_min, f_max, s, std::abs<double>, sp->offset_ppb());
+    fvector ps(fmin_Hz_, fmax_Hz_, s, std::abs<double>, (sp ? sp->offset_ppb() : 0.));
     if (filter_.x().empty())
       filter_.init(sp->approx_ptime(), ps);
     else
       filter_.update(sp->approx_ptime(), ps);
 
-    frequency_vector<double> xf(filter_.x());
+    fvector xf(filter_.x());
 
-    Fl::lock();
-    const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
-    w_.label(window_title.c_str());
-    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
-    Fl::unlock();
-    char msg[1024]; sprintf(msg,"spec_update");
-    Fl::awake(msg);
+    // 
+    const double threshold_db(10.);
+    const size_t n(xf.size());
+    std::vector<double> v(n, 0);
+    std::vector<size_t> b(n, 1);
+    for (size_t i(0); i<n; ++i)
+      v[i] = 20*log10(xf[i].second);
+
+    const unsigned poly_degree(2);
+    std::vector<size_t> indices;
+    for (size_t i=0; i<20; ++i)
+      indices.push_back((i*n)/20);
+    indices.push_back(n-1);
+    polynomial_interval_fit p(poly_degree, indices);
+
+    for (size_t l(0); l<20; ++l) {
+      if (!p.fit(v, b)) {
+	std::cerr << "fit failed" << std::endl;
+      }
+      size_t nchanged(0);
+      for (size_t i(0); i<n; ++i) {
+	const std::pair<double,double> vf(p.eval(i));
+	const bool c(v[i]-vf.first > 2*threshold_db);
+	nchanged += (c==b[i]);
+	b[i] = !c;
+      }
+      if (0 == nchanged)
+	break;
+    }
+
+#if 0
+    //
+    for (fvector_iterator i(xf.begin()), end(xf.end()); i!=end; ++i) {
+      const size_t index(std::distance(xf.begin(), i));
+      const std::pair<double,double> vf(p.eval(index));
+      std::cout << str(boost::format("S%06d %.1f %.3e %5.1f %5.1f\n") % spec_counter_ % i->first % i->second % v[index] % vf.first);
+    }
+#endif
+    ++spec_counter_;
+
+    std::cout << str(boost::format("%s max: ")  % sp->approx_ptime());
+    for (size_t j(0); j<10; ++j) {
+      fvector_iterator i(std::max_element(xf.begin()+10, xf.end()-10, compare_second));
+      const size_t index(std::distance(xf.begin(), i));
+      const std::pair<double,double> vf(p.eval(index));
+      if (v[index]-vf.first < threshold_db)
+	break;
+      const std::pair<double, bool> f(estimate_peak(xf.begin(), xf.end(), i));
+      if (f.second)
+	std::cout << str(boost::format("[%.1f %.0f %.0f] ") % f.first % v[index] % (v[index]-vf.first));
+    }
+    std::cout << std::endl;
+
+//     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
+  }
+
+  std::pair<double, bool>
+  estimate_peak(fvector_iterator beg,
+		fvector_iterator end,
+		fvector_iterator i_peak) const {
+    
+    const double s_peak(i_peak->second);
+    double sum_w(i_peak->second);
+    double sum_wx(i_peak->second*i_peak->first);
+    i_peak->second = 0.0;
+    
+    size_t n_plus(0), n_minus(0);
+    double s(s_peak);
+    for (fvector_iterator i(i_peak+1); i->second < s && i->second != 0 && i != end; ++i) {
+//       std::cout << str(boost::format("\n(+): %.1f (%.2e %.2e)\n") % i->first  % s % i->second);
+      s=i->second;
+      sum_w  += i->second;
+      sum_wx += i->second*i->first;
+      i->second = 0.0;
+      ++n_plus;
+    }
+    s = s_peak;
+    for (fvector_iterator i(i_peak-1); i->second < s && i->second != 0 && i != beg; --i) {
+//       std::cout << str(boost::format("\n(-): %.1f (%.2e %.2e)\n") % i->first  % s % i->second);
+      s=i->second;
+      sum_w  += i->second;
+      sum_wx += i->second*i->first;
+      i->second = 0.0;
+      ++n_minus;
+    }
+    return std::make_pair((sum_w != 0) ? sum_wx / sum_w : 0, n_plus>0 && n_minus>0);
   }
 private:
   struct s2db {
     double operator()(double c) const {
-      return 20*std::log10(c);
+      return 20.*std::log10(c);
     }
   } ;
-  MyWindow w_;
   fft_type fftw_;
   Filter::Cascaded<frequency_vector<double> > filter_;
   std::string host_;
   std::string port_;
+  double fmin_Hz_;
+  double fmax_Hz_;
+  size_t spec_counter_;
 } ;
 
 int main(int argc, char* argv[])
@@ -158,7 +202,10 @@ int main(int argc, char* argv[])
     ("port,p", po::value<std::string>()->default_value("18001"),     "server port")
     ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name")
     ("overlap,o", po::value<double>()->default_value(0.),       "buffer overlap")
-    ("delta_t,dt", po::value<double>()->default_value(1.),      "dt (sec)");
+    ("delta_t,dt", po::value<double>()->default_value(1.),      "dt (sec)")
+    ("fMin",    po::value<double>()->default_value(1439.9),    "fMin (kHz)")
+    ("fMax",    po::value<double>()->default_value(1440.1),    "fMax (kHz)")
+    ;
 
   po::variables_map vm;
   try {
@@ -188,12 +235,11 @@ int main(int argc, char* argv[])
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
     config.put("Repack.<xmlattr>.bufferLength_sec", vm["delta_t"].as<double>());
     config.put("Repack.<xmlattr>.overlap_percent", vm["overlap"].as<double>());
-
-    Fl::visual(FL_RGB);
-    Fl::lock();
+    config.put(".<xmlattr>.fMin_kHz", vm["fMin"].as<double>());
+    config.put(".<xmlattr>.fMax_kHz", vm["fMax"].as<double>());
 
     const std::string stream_name(vm["stream"].as<std::string>());
-    client<iq_adapter<repack_processor<test_proc> > > c(config);
+    client<iq_adapter<repack_processor<carrier_monitor_processor> > > c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
@@ -201,22 +247,9 @@ int main(int argc, char* argv[])
     else
       throw std::runtime_error(str(boost::format("stream '%s' is not available")
                                    % stream_name));
+
     c.start();
-
-    // run io_service in a thread
-    boost::asio::io_service& io_service(network::get_io_service());
-    typedef boost::shared_ptr<boost::thread> thread_sptr;
-    thread_sptr tp(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
-
-    // FLTK event loop
-    while (Fl::wait() > 0) {
-      if (Fl::thread_message())
- 	if (!global_state::run) break;
-    }
-
-    // now all FLTK windows are closed:
-    io_service.stop();
-    tp->join();
+    run_in_thread(network::get_io_service());
 
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 

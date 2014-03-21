@@ -116,8 +116,8 @@ public:
   
   template<typename FUNCTION>
   frequency_vector(freq_type fmin, freq_type fmax,
-                   const SpectrumBase& s, FUNCTION func) 
-    : fmin_(fmin), fmax_(fmax) { fill(s, func); }
+                   const SpectrumBase& s, FUNCTION func, double offset_ppb=0.)
+    : fmin_(fmin), fmax_(fmax) { fill(s, func, offset_ppb); }
 
   frequency_vector(const frequency_vector& f) 
     : fmin_(f.fmin_), fmax_(f.fmax_), v_(f.v_) {} 
@@ -137,7 +137,9 @@ public:
   freq_type deltaf() const { return (v_.size() > 1) ? 0.0 : (fmax() - fmin()) / (size()-1); }
 
   template<typename FUNCTION>
-  frequency_vector<T>& fill(const SpectrumBase& s, const FUNCTION& func) {
+  frequency_vector<T>& fill(const SpectrumBase& s, const FUNCTION& func, double offset_ppb=0.) {
+    const double correction_factor(1. - 1e-9*offset_ppb);
+
     // find nearest frequency bin
     const size_t i0(s.freq2index(fmin()));
     fmin_ = s.index2freq(i0);
@@ -149,16 +151,25 @@ public:
     if (i0 <= i1) {
       const size_t n(1+i1-i0);
       if (v_.size() != n) v_.resize(n);
-      for (size_t u(i0); u<=i1; ++u) 
-        v_[u -i0    ] = std::make_pair(s.index2freq(u), func(s[u]));      
+      for (size_t u(i0); u<=i1; ++u) {
+        const double f(s.index2freq(u));
+        const size_t ucal(s.freq2index(correction_factor*f));
+        v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+      }
     } else {
       const size_t n0(s.size()); // length of FFT spectrum
       const size_t n(1 + n0-i0 + i1);
       if (v_.size() != n) v_.resize(n);
-      for (size_t u(i0); u<n0; ++u)
-        v_[u -i0    ] = std::make_pair(s.index2freq(u), func(s[u]));
-      for (size_t u(0); u<=i1; ++u)
-        v_[n0-i0 + u] = std::make_pair(s.index2freq(u), func(s[u]));      
+      for (size_t u(i0); u<n0; ++u) {
+        const double f(s.index2freq(u));
+        const size_t ucal(s.freq2index(correction_factor*f));
+        v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+      }
+      for (size_t u(0); u<=i1; ++u) {
+        const double f(s.index2freq(u));
+        const size_t ucal(s.freq2index(correction_factor*f));
+        v_[n0-i0 + u] = std::make_pair(f, func(s[ucal]));
+      }
     }
     return *this;
   }

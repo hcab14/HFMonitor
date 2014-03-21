@@ -27,8 +27,7 @@
 //#define USE_AXPY_PROD
 #include "carrier_monitoring/polynomial_interval_fit.hpp"
 
-int main()
-{
+void test1() {
   srand48(getpid());
   const size_t n(100);
   std::vector<double> v(n);
@@ -53,7 +52,7 @@ int main()
   
   if (!p.fit(v, b)) {
     std::cerr << "fit failed" << std::endl;
-    return 0;
+    return;
   }
   
   for (int i=0; i<100; ++i) {
@@ -66,4 +65,58 @@ int main()
     std::cout << "X " << p.t()(i) << " " << p.y()(i) << " " << p.yf()(i) << " " << vf.first << " " << vf.second << std::endl;
   }
   std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
+}
+
+void test2() {
+  std::ifstream ifs("test/spec.dat");
+
+  const size_t n(1000);
+  std::vector<double> v(n);
+  std::vector<size_t> b(n, 1);
+  double f(0);
+  for (size_t i(0); i<n; ++i)
+    ifs >> f >> v[i];
+
+  std::vector<size_t> indices;
+  indices.push_back( 0);
+  indices.push_back(n/4);
+  indices.push_back(n/2);
+  indices.push_back(3*n/4);
+  indices.push_back(n-1);
+
+  const unsigned poly_degree(2);
+
+  polynomial_interval_fit p(poly_degree, indices);
+  
+
+  for (size_t l(0); l<2000; ++l) {
+    if (!p.fit(v, b)) {
+      std::cerr << "fit failed" << std::endl;
+      return;
+    }
+    size_t nchanged(0);
+    for (size_t i(0); i<n; ++i) {
+      const std::pair<double,double> vf(p.eval(i));
+      const bool c(v[i]-vf.first > 10.);
+      if (c==b[i]) {
+        std::cout << "CC: " << i << " " << v[i] - vf.first << std::endl;
+      }
+      nchanged += (c==b[i]);
+      b[i] = !c;
+    }
+    std::cout << "nchanged,Chi2/dof = "<< nchanged << " "  << p.chi2() << " / " << p.dof() << std::endl;
+    if (0 == nchanged)
+      break;
+  }
+
+  for (size_t i(0); i<n; ++i) {
+    const std::pair<double,double> vf(p.eval(i));
+    std::cout << "X " << i << " " << v[i] << " " << vf.first << " " << vf.second << std::endl;
+  }
+}
+
+int main()
+{
+//   test1();
+  test2();
 }
