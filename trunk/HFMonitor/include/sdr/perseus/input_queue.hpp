@@ -23,6 +23,8 @@
 #include <numeric>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
 #include "sdr/perseus/perseus_control.hpp"
 
 namespace Perseus {
@@ -148,6 +150,8 @@ namespace Perseus {
                 << transfer->actual_length << " " << transfer->length
                 << std::endl;
 #endif
+      boost::mutex::scoped_lock lock(td->iq->_mutex);
+
       if (td->iq->is_cancelling()) {
         td->cancelled = true;
         td->iq->check_completed();
@@ -189,6 +193,7 @@ namespace Perseus {
     size_t         _idx_expected;
     bool           _cancelling;
     bool           _completed;
+    boost::mutex   _mutex;
   } ;
 } // namespace Perseus
 #endif // _input_queue_hpp_cm120404_
