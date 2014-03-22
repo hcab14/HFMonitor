@@ -158,7 +158,7 @@ private:
       LOG_WARNING(str(boost::format("handle_write_tick aborting: error '%s' bytes_transferred=%d")
                       % ec.message()
                       % bytes_transferred));
-      get_io_service().stop();
+       get_io_service().stop();
       do_close();
     } else
       LOG_INFO(str(boost::format("tick '%c' sent") % tick_value));

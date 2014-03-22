@@ -15,7 +15,8 @@ function start {
     local cmd=$@;
     local pid_file=.pid_$name    
     at now <<EOF
-$cmd > log_$name.txt 2>&1 &
+date >> log_$name.txt
+$cmd >> log_$name.txt 2>&1 &
 echo \$! > .pid_$name
 EOF
 }

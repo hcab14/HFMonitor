@@ -62,7 +62,7 @@ namespace Action {
             sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(input)));
           if (sp != 0)
             peaks.push_back(sp);
-        } catch (const std::runtime_error& e) {
+        } catch (const std::exception& e) {
           LOG_WARNING(e.what());
         }
       }
@@ -70,7 +70,7 @@ namespace Action {
         Result::Base::Handle rh(new Result::Calibration(p.getApproxPTime(), peaks,
                                                         offsetMax_, ppmMax_));
         p.putResult(resultKey_, rh); 
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_WARNING(e.what());
       }
     }

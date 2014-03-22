@@ -69,9 +69,6 @@ public:
     network::get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
   }
 
-  // // returns a reference to the io service object
-  // boost::asio::io_service& get_io_service() { return strand_.get_io_service(); }
-
   typedef data_connection::ptime ptime;
   typedef std::string data_type;
 

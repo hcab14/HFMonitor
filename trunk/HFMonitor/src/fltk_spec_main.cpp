@@ -87,7 +87,11 @@ private:
 
 class test_proc {
 public:
+#ifdef USE_CUDA      
+  typedef FFT::CUFFTTransform fft_type;
+#else
   typedef FFT::FFTWTransform<double> fft_type;
+#endif
 
   test_proc(const boost::property_tree::ptree& config)
     : w_(1200,400)

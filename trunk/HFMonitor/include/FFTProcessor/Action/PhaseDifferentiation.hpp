@@ -83,7 +83,7 @@ namespace Action {
              filterDiffPhase_.x(), 
              filterDiffPhase_.rms(), 
              dt);
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_WARNING(e.what());
       } catch (...) {
         LOG_WARNING("PhaseDifferentiation::perform unknown error");

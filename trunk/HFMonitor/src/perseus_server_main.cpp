@@ -21,6 +21,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/program_options.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -84,7 +85,8 @@ public:
         do_run_ = !strand_.get_io_service().stopped();
 //         if (do_run_)
 //           cond_->wait(lock);
-      } catch (...) {
+      } catch (const std::exception& e) {
+        LOG_ERROR(str(boost::format("bridge::operator() stopped '%s'") % e.what()));
         do_run_= false;
       }
     }
@@ -116,10 +118,21 @@ private:
   boost::shared_ptr<boost::condition>  cond_;   // condition used to signal new data
 } ;
 
+void unexpected_handler() {
+  std::cerr << "unexpected called; uncaught_exception=" << std::uncaught_exception() << std::endl;
+  throw std::runtime_error("unexpected called");
+}
+void terminate_handler() {
+  std::cerr << "terminate handler called uncaught_exception=" << std::uncaught_exception() << std::endl;
+  abort();
+}
+
 int main(int argc, char* argv[])
 { 
+  std::set_unexpected(unexpected_handler);
+  std::set_terminate(terminate_handler);
+
   boost::program_options::variables_map vm;
-  std::cout << "AA " << std::endl;
   try {
     vm = process_options("config/perseus_server.xml", argc, argv);
   } catch (const std::exception &e) {

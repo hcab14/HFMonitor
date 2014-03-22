@@ -71,7 +71,7 @@ namespace Result {
         strengthRMS_     = p.rms_dbm() - 20.*std::log10(std::sqrt((counter != 0) ? counter : 1));
         // p.volt2dbm((counter != 0) ? std::sqrt(sum2/counter-averageStrength_*averageStrength_) : 1.);
         return true;
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_WARNING(e.what());
         return false;
       }
