@@ -25,6 +25,8 @@
 #include <helper_functions.h>
 #include <helper_cuda.h>
 
+#include <boost/interprocess/sync/scoped_lock.hpp>
+
 #include "shared_memory_mutex.hpp"
 
 namespace FFT {  
@@ -41,15 +43,17 @@ namespace FFT {
         void** as_vpp() { return reinterpret_cast<void **>(&v); }
       } ;
 
+      typedef boost::interprocess::scoped_lock<cuda_mutex::mutex_type> cuda_lock_type;
+
       CUFFTArray(size_t n)
         : in_(n)
         , out_(n)
         , norm_(n) {
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         checkCudaErrors(cudaMalloc(device_vec_.as_vpp(), n*sizeof(Complex)));
       }
       ~CUFFTArray() {
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         cudaFree(device_vec_.c);
       }
 
@@ -67,17 +71,17 @@ namespace FFT {
       void resize(size_t n) {
         in_.resize(n);
         out_.resize(n);
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         cudaFree(device_vec_.c);
         checkCudaErrors(cudaMalloc(device_vec_.as_vpp(), n*sizeof(Complex)));
       }
 
       void host_to_device() {
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         checkCudaErrors(cudaMemcpy(device_vec_.c, &in_.front(), size()*sizeof(Complex), cudaMemcpyHostToDevice));    
       }
       void device_to_host() {
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         checkCudaErrors(cudaMemcpy(&out_.front(), device_vec_.c, size()*sizeof(Complex), cudaMemcpyDeviceToHost));
       }
   
@@ -122,22 +126,24 @@ namespace FFT {
 
   class CUFFTTransform {
   public:
+    typedef boost::interprocess::scoped_lock<cuda_mutex::mutex_type> cuda_lock_type;
+
     CUFFTTransform(size_t n, int direction, unsigned flags=0 /* not used, compatibility to FFTW*/)
       : vec_(n)
       , normalization_factor_(vec_.norm())
       , direction_(direction) {
-      boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+      cuda_lock_type lock(cuda_mutex::get());
       checkCudaErrors(cufftPlan1d(&plan_, n, CUFFT_C2C, 1));
       checkCudaErrors(cufftSetCompatibilityMode(plan_, CUFFT_COMPATIBILITY_FFTW_ALL));
     }
     ~CUFFTTransform() {
-      boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+      cuda_lock_type lock(cuda_mutex::get());
       cufftDestroy(plan_);
     }
     
     void resize(size_t n) {
       {
-        boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+        cuda_lock_type lock(cuda_mutex::get());
         cufftDestroy(plan_);
         checkCudaErrors(cufftPlan1d(&plan_, n, CUFFT_C2C, 1));
         checkCudaErrors(cufftSetCompatibilityMode(plan_, CUFFT_COMPATIBILITY_FFTW_ALL));
@@ -196,7 +202,7 @@ namespace FFT {
       vec_.device_to_host();
     }
     void transform_on_device() {
-      boost::interprocess::sharable_lock<cuda_mutex::mutex_type> lock(cuda_mutex::get());
+      cuda_lock_type lock(cuda_mutex::get());
       checkCudaErrors(cufftExecC2C(plan_, vec_.device_vec(), vec_.device_vec(), direction_));
       checkCudaErrors(cudaThreadSynchronize());
     }

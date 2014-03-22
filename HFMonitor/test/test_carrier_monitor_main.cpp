@@ -111,7 +111,7 @@ public:
       size_t nchanged(0);
       for (size_t i(0); i<n; ++i) {
 	const std::pair<double,double> vf(p.eval(i));
-	const bool c(v[i]-vf.first > 2*threshold_db);
+	const bool c(v[i]-vf.first > 5.);
 	nchanged += (c==b[i]);
 	b[i] = !c;
       }
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   
-  LOGGER_INIT("./Log", "fltk_spec");
+  LOGGER_INIT("./Log", "carrier_monitor");
 
   try {
     // make up ptree config

@@ -69,8 +69,8 @@ public:
     , strand_(broadcaster->get_strand())
     , receiver_(receiver)
     , do_run_(true)
-//     , mutex_(new boost::mutex)
-//     , cond_(new boost::condition) 
+    , mutex_(new boost::mutex)
+    , cond_(new boost::condition) 
   {}
 
   ~bridge() {}
@@ -78,13 +78,13 @@ public:
   void operator()() {
     while (do_run_) {
       try {
-//         boost::mutex::scoped_lock lock(*mutex_);
+        boost::mutex::scoped_lock lock(*mutex_);
         data_= buffer_->get(); // this throws an exception if the buffer is stopped
         strand_.dispatch(strand_.wrap(boost::bind(&bridge::broadcast_data, this)));
 //         strand_.post(strand_.wrap(boost::bind(&bridge::broadcast_data, this)));
         do_run_ = !strand_.get_io_service().stopped();
-//         if (do_run_)
-//           cond_->wait(lock);
+        if (do_run_)
+          cond_->wait(lock);
       } catch (const std::exception& e) {
         LOG_ERROR(str(boost::format("bridge::operator() stopped '%s'") % e.what()));
         do_run_= false;
@@ -94,7 +94,7 @@ public:
   }
 protected:
   void broadcast_data() {
-//     boost::mutex::scoped_lock lock(*mutex_);
+    boost::mutex::scoped_lock lock(*mutex_);
     // make up data packet
     const iq_info header_iq(receiver_->get_sample_rate(),
                             receiver_->get_center_frequency_hz(),
@@ -104,7 +104,7 @@ protected:
     std::copy(header_iq.begin(),    header_iq.end(),    d.begin());
     std::copy(data_.second.begin(), data_.second.end(), d.begin()+sizeof(header_iq));
     broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", d);
-//     cond_->notify_one();
+    cond_->notify_one();
   }
 
 private:
