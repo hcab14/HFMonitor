@@ -190,6 +190,7 @@ public:
       
       // normalized, clamped signal
       const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
+//       const double x(clamp((spec[i]-vf.first+2.5)/(sMax_.value()-sMin_.value())));
 
       const size_t j1(3*(specIndex_*specN() + i));
       const size_t j2(j1 + 3*specM()*specN());
