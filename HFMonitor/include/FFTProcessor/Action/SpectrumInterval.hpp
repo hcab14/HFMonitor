@@ -77,7 +77,7 @@ namespace Action {
         }
         // call virtual method
         proc(p, s, filter_.x());
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_WARNING(e.what());
       } catch (...) {
         LOG_WARNING("SpectrumInterval::perform unknown error");

@@ -100,7 +100,7 @@ namespace Perseus {
         LOG_INFO(str(boost::format("device '%s' is already configured")
                      % _perseus_eeprom_pid.to_str()));
         _is_configured = true;
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_ERROR(str(boost::format("fx2_control_impl::fx2_control_impl exception: '%s'") % e.what()));
         // no further action
       }

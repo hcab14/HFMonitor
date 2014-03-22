@@ -89,7 +89,7 @@ namespace Action {
         if (plotSpectrum())
           p.putResult(resultKey()+"_plot",
                       boost::make_shared<Result::PowerSpectrumLine>(t, ps));
-      } catch (const std::runtime_error& e) {
+      } catch (const std::exception& e) {
         LOG_WARNING(e.what());
       }
     }

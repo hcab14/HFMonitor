@@ -19,6 +19,7 @@
 #ifndef _spectrum_display_hpp_cm120516_
 #define _spectrum_display_hpp_cm120516_
 
+#include "carrier_monitoring/polynomial_interval_fit.hpp"
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
 
@@ -80,6 +81,7 @@ public:
     end();
     specIndex_ = specM();
     spec_.resize(specN() * specM(), -120);
+    spec_fitted_.resize(specN() * specM(), -120);
     specImg_.resize(2 * 3 * specN() * specM(), 0);
   }
   virtual ~spectrum_display() {}
@@ -138,14 +140,11 @@ public:
     }
     const double dfn(delta_f() / double(specN()));
     for (int j(0), n(specN()); j<n; ++j) {
-      if (counters[j] != 0) {
-//         s[j]  /= counters[j];
-//         sf[j] /= counters[j];
-      } else {
-        const int i(spec.freq2index(get_fMin() + dfn*j));
-        s[j]  = spec         [i].second;
-        sf[j] = spec_filtered[i].second;
-      }
+      if (counters[j] != 0) 
+        continue;
+      const int i(spec.freq2index(get_fMin() + dfn*j));
+      s[j]  = spec         [i].second;
+      sf[j] = spec_filtered[i].second;
     }
     insert_spec(s, sf);
   }
@@ -154,33 +153,50 @@ public:
                    const std::vector<double>& spec_filtered) {
     specIndex_--;
     if (specIndex_ < 0) specIndex_ = specM()-1;
-    for (size_t i(0), n(spec.size()); i<n; ++i) {
+
+    // compute the fitted spectrum
+    const size_t n(spec.size());
+    std::vector<size_t> b(n, 1);
+
+    const double threshold_db(5.);
+    const unsigned poly_degree(2);
+    std::vector<size_t> indices;
+    for (size_t i(0); i<10; ++i)
+      indices.push_back((i*n)/10);
+    indices.push_back(std::max(indices[8], n-1-size_t(0.01*n)));
+    indices[0] = std::min(indices[1], indices[0]+size_t(0.01*n));
+    polynomial_interval_fit p(poly_degree, indices);
+
+    for (size_t l(0); l<20; ++l) {
+      if (!p.fit(spec_filtered, b)) {
+	std::cerr << "fit failed" << std::endl;
+      }
+      size_t nchanged(0);
+      for (size_t i(0); i<n; ++i) {
+	const std::pair<double,double> vf(p.eval(i));
+	const bool c(spec_filtered[i]-vf.first > threshold_db);
+	nchanged += (c==b[i]);
+	b[i] = !c;
+      }
+      if (0 == nchanged)
+	break;
+    }
+
+    for (size_t i(0); i<n; ++i) {
       spec_[specIndex_*specN()+i] = spec_filtered[i];
 
+      const std::pair<double,double> vf(p.eval(i));
+      spec_fitted_[specIndex_*specN()+i] = vf.first;
+      
       // normalized, clamped signal
       const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
 
       const size_t j1(3*(specIndex_*specN() + i));
       const size_t j2(j1 + 3*specM()*specN());
-#if 0
-      // colormap calculation: blue-red HSV->RGB
-      const double hp(2.*(2.-x));
-      const double xx(1. - std::abs(std::fmod(hp, 2.) - 1.));
-      double cr(0), cg(0), cb(0);
-      if (hp < 4.) { cb = 1; cg = xx; }
-      if (hp < 3.) { cg = 1; cb = xx; }
-      if (hp < 2.) { cg = 1; cr = xx; }
-      if (hp < 1.) { cr = 1; cg = xx; }
-
-      specImg_[j1]   = specImg_[j2]   = uchar(cr*255);
-      specImg_[j1+1] = specImg_[j2+1] = uchar(cg*255);
-      specImg_[j1+2] = specImg_[j2+2] = uchar(cb*255);
-#else
       const size_t colorMapIndex(colorScale((unsigned char)(x*22)));
       specImg_[j1]   = specImg_[j2]   = svgaPalette(3*colorMapIndex+2)<<2;
       specImg_[j1+1] = specImg_[j2+1] = svgaPalette(3*colorMapIndex+1)<<2;
       specImg_[j1+2] = specImg_[j2+2] = svgaPalette(3*colorMapIndex+0)<<2;
-#endif
     }
     this->damage(FL_DAMAGE_ALL);
     init_ = false;
@@ -226,6 +242,14 @@ public:
 
   void draw_spec() const {
     if (init_) return;
+    fl_color(FL_BLUE);
+    fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 2);
+    fl_begin_line();
+    for (int i(0), n(specN()); i<n; ++i) {
+      fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_fitted_[specIndex_*specN() + i]));
+    }
+    fl_end_line();
+
     fl_color(FL_RED);
     fl_line_style(FL_SOLID | FL_CAP_ROUND | FL_JOIN_ROUND, 1);
     fl_begin_line();
@@ -233,6 +257,7 @@ public:
       fl_vertex(xSpecBeg()+i, ySpecFromInput(spec_[specIndex_*specN() + i]));
     }
     fl_end_line();
+
     fl_line_style(FL_SOLID, 0);
   }
 
@@ -417,6 +442,7 @@ private:
   Fl_Output           fTime_;
   int                 specIndex_;
   std::vector<double> spec_;
+  std::vector<double> spec_fitted_;
   std::vector<uchar>  specImg_;
   bool                init_;
 } ;

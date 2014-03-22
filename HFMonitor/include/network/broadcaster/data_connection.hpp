@@ -181,15 +181,18 @@ public:
                  data_ptr preamble) {
     if (status_ == status_init)  return true;
 
-    // check if the client is still alive
-    const boost::posix_time::time_duration dt(t - last_tick_time());
 //     LOG_INFO(str(boost::format("push_back path=%s dt=%.3f sec (%s %s)")
 //                  % path
 //                  % (1e-3*dt.total_milliseconds())
 //                  % boost::posix_time::to_simple_string(t)
 //                  % boost::posix_time::to_simple_string(last_tick_time())));
-    if (dt > boost::posix_time::seconds(60))
+
+    // check if the client is still alive
+    const boost::posix_time::time_duration dt(t - last_tick_time());
+    if (dt > boost::posix_time::minutes(5)) {
+      LOG_WARNING(str(boost::format("time since last tick %s > 5 minutes") % dt));
       status_ = status_error;
+    }
 
     if (status_ == status_error) return false;
 
@@ -383,7 +386,8 @@ public:
                            std::size_t bytes_transferred,
                            status_type new_status) {
     if (ec) {
-      LOG_INFO(str(boost::format("handle_receive_tick ec=%s") % ec));
+      boost::system::error_code ec2;
+      LOG_INFO(str(boost::format("handle_receive_tick ep=%s ec=%s") % tcp_socket_ptr_->remote_endpoint(ec2) % ec));
       status_= status_error; // -> close();
     } else {
       status_= new_status;
