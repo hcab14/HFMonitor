@@ -32,7 +32,7 @@
              df_Hz="5.0"
              minDf_Hz=".1"
              maxHistorySize="120"
-             maxNumWithoutLock="5">
+             maxNumWithoutLock="2">
     </TGF_MSF>
     <TGF_DCF name="TGF_DCF77"
              type="TrackingGoertzel"
@@ -41,7 +41,7 @@
              df_Hz="5.0"
              minDf_Hz=".1"
              maxHistorySize="120"
-             maxNumWithoutLock="5">
+             maxNumWithoutLock="2">
     </TGF_DCF>
   </Processors>
   <Filters>

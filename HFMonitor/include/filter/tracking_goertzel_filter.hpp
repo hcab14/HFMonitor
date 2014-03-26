@@ -126,16 +126,13 @@ namespace detail {
         rms[0] = compute_f_est(dfs, 0);
         double min_val(rms[0].rms_value());
         min_idx = 0;
-        // std::cout << "RRR: " << 0 << " " << rms[0] << std::endl;
         for (size_t i(1); i<dfs.size(); ++i) {
           rms[i] = compute_f_est(dfs, i);
-          // std::cout << "RRR: " << i << " " << rms[i] << std::endl;
           if (rms[i].rms_value() < min_val) {
             min_val = rms[i].rms_value();
             min_idx = i;
           }
         }
-        // std::cout << "RRR: min_idx= " << min_idx << " min_rms= " << min_val << std::endl;
 
         // test if deviation is significant: ...
         double sum_1 (0);
@@ -152,15 +149,12 @@ namespace detail {
         const double rms_of_rms(sqrt(sum_xx/sum_1 - mean_of_rms*mean_of_rms));
         if (std::abs(min_val - mean_of_rms) < 3*rms_of_rms)
           min_idx = -1;
-        // std::cout << "RRR: index= " << min_idx << " mean/rms(RMS)= " 
-        //           << mean_of_rms << " " << rms_of_rms << std::endl;
       }
       return compute_f_est(dfs, min_idx);
     }
 
     value_and_error compute_f_est() const {
       if (phase_vector_.empty()) {
-        // std::cout << "f_est: " << phase_vector_.size() << std::endl;
         return value_and_error(0,0);
       }
 
@@ -195,7 +189,6 @@ namespace detail {
     }
 
     void dump(size_t ccounter) const {
-      // std::cout << "updated[" << name_ << "]: " << last_phase_ << std::endl;
       if (phase_vector_.empty())
         return;
       
@@ -253,7 +246,6 @@ namespace detail {
     void update(double kN, size_t period) {
       period_ = period;
       if (filter_.kN() != kN) {
-        // std::cout << "UPDATE: " << filter_.kN() << " " << kN << filter_.kN() -kN << std::endl;
         filter_ = goertzel_type(kN);
         phase_vector_.clear();
       }
@@ -447,9 +439,8 @@ public:
         }
         last_state_ = state::MOVE_RIGHT;
       } else {
-        LOG_INFO("Rest");
-        // std::cout << "*** Rest" << std::endl;
-        if (period_ > min_period_ && last_state() == state::REST)
+        LOG_INFO(str(boost::format("Rest %d %d") % period_ % min_period_));
+        if (period_ > min_period_)// && last_state() == state::REST)
           period_ /= 2;
         const double kN_center(gfs_[GF_CENTER]->kN());
         if (kN_center - 1./period_ > k_min_ &&
@@ -473,7 +464,7 @@ public:
     else
       num_without_lock_ = 0;
    
-    if (num_without_lock_ > 5)
+    if (num_without_lock_ > max_num_without_lock_)
       reset();
 
   }
@@ -490,7 +481,7 @@ private:
     : fs_(fs)
     , f0_(f0)
     , df_(df)
-    , min_period_(period_)
+    , min_period_(size_t(0.5+fs/df))
     , max_period_(size_t(0.5+fs/min_df))
     , k_min_((f0-df)/fs)
     , k_max_((f0+df)/fs)

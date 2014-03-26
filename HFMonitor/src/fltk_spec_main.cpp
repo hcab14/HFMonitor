@@ -46,12 +46,6 @@
 #include <vector>
 #include <cmath>
 
-// global state:
-struct global_state {
-  static bool run;
-};
-
-bool global_state::run = true;
 
 class MyWindow : public Fl_Double_Window {
 public:
@@ -63,7 +57,7 @@ public:
     , counter_(0)
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
-    menu_bar_.add("File/Quit",   FL_CTRL+'q', Quit_CB);
+    menu_bar_.add("File/Quit", FL_CTRL+'q', Quit_CB);
     end();
   }
   virtual ~MyWindow() {}
@@ -72,8 +66,8 @@ public:
 
 protected:
   static void Quit_CB(Fl_Widget *, void *) {
-    global_state::run = false;
-    char* msg="quit";
+    static char msg[1024];
+    sprintf(msg, "quit");
     Fl::awake(msg);
   }
 private:
@@ -135,13 +129,14 @@ public:
     w_.label(window_title.c_str());
     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
     Fl::unlock();
-    char msg[1024]; sprintf(msg,"spec_update");
+    static char msg[1024];
+    sprintf(msg,"spec_update");
     Fl::awake(msg);
   }
 private:
   struct s2db {
     double operator()(double c) const {
-      return 20*std::log10(c);
+      return 10*std::log10(c);
     }
   } ;
   MyWindow w_;
@@ -214,8 +209,10 @@ int main(int argc, char* argv[])
 
     // FLTK event loop
     while (Fl::wait() > 0) {
-      if (Fl::thread_message())
- 	if (!global_state::run) break;
+      const char* msg = (const char*)Fl::thread_message();      
+      if (msg) {
+	if (std::string(msg) == "quit") break;
+      }
     }
 
     // now all FLTK windows are closed:

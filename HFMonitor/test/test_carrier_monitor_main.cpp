@@ -41,8 +41,8 @@
 #include <vector>
 #include <cmath>
 
-bool compare_second(std::pair<double,double>& a,
-		    std::pair<double,double>& b) {
+bool compare_second(const std::pair<double,double>& a,
+		    const std::pair<double,double>& b) {
   return a.second < b.second;
 }
 
@@ -52,6 +52,7 @@ public:
 
   typedef frequency_vector<double> fvector;
   typedef fvector::iterator fvector_iterator;
+  typedef fvector::const_iterator fvector_const_iterator;
 
   carrier_monitor_processor(const boost::property_tree::ptree& config)
     : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
@@ -77,10 +78,13 @@ public:
 	      << " length=" << length
               << std::endl;
 #endif
+    // compute FFT
     if (length != fftw_.size())
       fftw_.resize(length);
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
+
+    // process each channel:
     fvector ps(fmin_Hz_, fmax_Hz_, s, std::abs<double>, (sp ? sp->offset_ppb() : 0.));
     if (filter_.x().empty())
       filter_.init(sp->approx_ptime(), ps);
@@ -90,28 +94,35 @@ public:
     fvector xf(filter_.x());
 
     // 
-    const double threshold_db(10.);
+    const double threshold_db(5.);
     const size_t n(xf.size());
     std::vector<double> v(n, 0);
     std::vector<size_t> b(n, 1);
     for (size_t i(0); i<n; ++i)
-      v[i] = 20*log10(xf[i].second);
+      v[i] = 10*log10(xf[i].second);
+
 
     const unsigned poly_degree(2);
     std::vector<size_t> indices;
-    for (size_t i=0; i<20; ++i)
-      indices.push_back((i*n)/20);
+    const size_t m(10);
+    for (size_t i(0); i<m; ++i)
+      indices.push_back((i*n)/m);
     indices.push_back(n-1);
+    indices[0] += size_t(0.01*n);
+    indices[m] -= size_t(0.01*n);
+    indices[0] = std::min(indices[1],   indices[0]);
+
     polynomial_interval_fit p(poly_degree, indices);
 
-    for (size_t l(0); l<20; ++l) {
+    for (size_t l(0); l<100; ++l) {
       if (!p.fit(v, b)) {
 	std::cerr << "fit failed" << std::endl;
+	return;
       }
       size_t nchanged(0);
       for (size_t i(0); i<n; ++i) {
 	const std::pair<double,double> vf(p.eval(i));
-	const bool c(v[i]-vf.first > 5.);
+	const bool c(v[i]-vf.first > 5);
 	nchanged += (c==b[i]);
 	b[i] = !c;
       }

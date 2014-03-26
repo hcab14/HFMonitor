@@ -24,7 +24,7 @@
 #include <iostream>
 #include <fstream>
 
-//#define USE_AXPY_PROD
+#include "logging.hpp"
 #include "carrier_monitoring/polynomial_interval_fit.hpp"
 
 void test1() {
@@ -73,21 +73,23 @@ void test2() {
   const size_t n(1000);
   std::vector<double> v(n);
   std::vector<size_t> b(n, 1);
-  double f(0);
-  for (size_t i(0); i<n; ++i)
-    ifs >> f >> v[i];
+  double f(0), dummy(0);
+  for (size_t i(0); i<n; ++i) {
+    ifs >> f >> dummy >> v[i] >> dummy;
+    std::cout << "S " << i << " " << f <<  " " << v[i] << " "<< b[i] << std::endl;
+  }
 
   std::vector<size_t> indices;
-  indices.push_back( 0);
-  indices.push_back(n/4);
-  indices.push_back(n/2);
-  indices.push_back(3*n/4);
+  for (size_t i=0; i<10; ++i)
+    indices.push_back((i*n)/10);
   indices.push_back(n-1);
+
+  for (size_t i=0; i<indices.size(); ++i)
+    std::cout << "I " << indices[i] << std::endl;
 
   const unsigned poly_degree(2);
 
   polynomial_interval_fit p(poly_degree, indices);
-  
 
   for (size_t l(0); l<2000; ++l) {
     if (!p.fit(v, b)) {
@@ -117,6 +119,7 @@ void test2() {
 
 int main()
 {
-//   test1();
-  test2();
+   LOGGER_INIT("./Log", "test_pif");
+//    test1();
+   test2();
 }

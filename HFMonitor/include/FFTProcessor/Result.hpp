@@ -64,7 +64,7 @@ namespace Result {
     // dump data
     void dumpToFile(std::string path,
                     std::string tag,
-                    std::string s) {
+                    std::string s) const {
       const station_info si(s, lineBreak());
       boost::filesystem::fstream *ofs(0);
       ofs = dumpSingle(ofs, path, tag, this, si);
@@ -83,6 +83,8 @@ namespace Result {
       dumpToBCSingle(path, tag, bc, this, si);
       BOOST_FOREACH(const HandleVector::value_type& h, handles_)
         dumpToBCSingle(path, tag, bc, h.get(), si);
+//       for (HandleVector::const_iterator i(handles_.begin()), iend(handles_.end()); i!=iend; ++i)
+//         dumpToBCSingle(path, tag, bc, i->get(), si);
     }
 
     template<typename BROADCASTER>

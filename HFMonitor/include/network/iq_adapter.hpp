@@ -68,8 +68,8 @@ public:
     if (iqs_.size() != n_samples)
       iqs_.resize(n_samples);
 
-    if (header_iq.sample_type() == 'I' && header_iq.bytes_per_sample() ==3) {
-      if (is_iq) {
+    if (header_iq.sample_type() == 'I') {
+      if (is_iq  && bytes_per_sample == 3) {
         static double norm(1./static_cast<double>(1L << 31));
         size_t counter(0);
         for (const_iterator i(begin); i!=end;) {
