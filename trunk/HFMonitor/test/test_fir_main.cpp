@@ -27,35 +27,47 @@ int main()
   typedef double float_type;
   typedef filter::fir::lowpass<float_type> fir_type;
   typedef filter::fir::overlap_save<float_type> os_type;
-  const size_t m( 128+1);
+  const size_t m(125001);
   fir_type fir(m);
-  fir.design(0.1, 0.04);
+  fir.design(0.009, 0.009/5);
 
 #if 1
-  const size_t l(512);
+  const size_t l(500000);
 
   os_type os(l, m);
-  size_t decim(4*4);
-  std::pair<size_t, double> r(os.add_filter(fir.coeff(), 0.4, decim));
-  std::cout << "#offset = " << r.second << " (" << 0.4 << ")" << std::endl;
+  size_t decim(10);
+  std::pair<size_t, double> r(os.add_filter(fir.coeff(), 0.1, decim));
+  std::cout << "#offset = " << r.second << " (" << 0.1 << ")" << std::endl;
   os_type::complex_vector_type buffer(l);
 
-  std::cout << "out = [\n";
+  
+  FFT::FFTWTransform<double> t1(l,       FFTW_FORWARD, FFTW_ESTIMATE);
+  FFT::FFTWTransform<double> t2(l/decim, FFTW_FORWARD, FFTW_ESTIMATE);
+
   size_t counter(0);
   for (size_t i=0; i<5; ++i) {
     for (size_t j=0; j<l; ++j, ++counter) {
-      buffer[j]= os_type::complex_type(drand48()-0.5, drand48()-0.5);
-      buffer[j] += std::exp(os_type::complex_type(0., 2*M_PI*0.405*counter));
+      buffer[j]  = 0.*os_type::complex_type(drand48()-0.5, drand48()-0.5);
+      buffer[j] += std::exp(os_type::complex_type(0., 2*M_PI*0.10*counter));
     }
     os.proc(buffer);
-    const os_type::complex_vector_type& out(os.get_filter(r.first)->result());
-    for (size_t j=0; j<l/decim; ++j) {
-      std::cout << std::scientific
-		<< buffer[j].real() << " " << buffer[j].imag() << " " 
-		<< out[j].real() << " " << out[j].imag() << std::endl;
+
+
+    if (i>1) {
+      const os_type::complex_vector_type& out(os.get_filter(r.first)->result());
+      t1.transformVector(buffer, FFT::WindowFunction::Blackman<double>(l));
+      t2.transformVector(out, FFT::WindowFunction::Blackman<double>(l/decim));
+      for (size_t j=0; j<l; ++j) {
+        std::cout << "O " << j << " " 
+                  << std::scientific << " " 
+                  << std::abs(t1.getBin(j)) << std::endl;;
+      }
+      for (size_t j=0; j<l/decim; ++j) {
+        std::cout << "D " << j*decim << " " 
+                  << std::scientific << std::abs(t2.getBin(j)) << std::endl;;
+      }
     }
   }
-  std::cout << "];\n";
 #endif
   // typedef os_type ols;
   // std::cerr << "do " << 100 << " " << ols::design_optimal(100) << std::endl;

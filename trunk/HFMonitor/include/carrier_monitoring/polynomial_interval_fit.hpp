@@ -22,6 +22,7 @@
 #include <algorithm> 
 #include <vector>
 
+// #define BOOST_UBLAS_MOVE_SEMANTICS 1
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
@@ -60,8 +61,7 @@ public:
       const size_t length_y(std::count_if(b.begin(), b.end(),
 					  std::binder1st<neq_functor>(neq_functor(), 0)));
       b_        = b;
-      t_        = vector_type(length_y, 0);
-      yf_ = y_  = vector_type(length_y, 0);
+      t_        = yf_ = y_ = vector_type(length_y, 0);
       make_slices_y(indices_, y, b);
       slices_x_ = make_slices_x(poly_degree_, slices_y_.size());
       x_        = vector_type((poly_degree_+1)*slices_y_.size(), 0);
@@ -124,36 +124,36 @@ public:
       return false;
 
     noalias(q_) = project(qc, sx, sx);
-    noalias(x_) =  prod(q_, aty);
-    
-    // computer the fitted values yf
+    noalias(x_) = prod(q_, aty);
+
+    // compute the fitted values yf
     slice_counter= 0;
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
-      for (size_t j(0); j<sy.size(); ++j) {
+      for (size_t j(0), n(sy.size()); j<n; ++j) {
 	const double x(t_(sy(j)) - indices_[slice_counter]);
-// 	std::cout << "T " << sy(j) << " " << t_(sy(j)) << " " << find_index(t_(sy(j))) << " " << slice_counter << " " << indices_[slice_counter] << " " << x << std::endl;
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
       vector_type _y(sy.size(), 0);
       noalias(project(yf_, sy)) = axpy_prod(a, project(x_, slices_x_[slice_counter++]), _y, true);
     }
+
     // compute chi2 and d.o.f.
-    chi2_ = norm_2(yf_ - y_); chi2_ *= chi2_;
-    dof_  = y_.size() - nx + nc_total;
+    chi2_  = norm_2(yf_ - y_);
+    chi2_ *= chi2_;
+    dof_   = y_.size() - nx + nc_total;
 
     return true;
   }
 
-  ~polynomial_interval_fit() {}
-
-  const vector_type& t() const { return t_; }
-  const vector_type& y() const { return y_; }
+  const vector_type& t()  const { return t_;  }
+  const vector_type& y()  const { return y_;  }
   const vector_type& yf() const { return yf_; }
-  const vector_type& x() const { return x_; }
-  const matrix_type& q() const { return q_; }
+  const vector_type& x()  const { return x_;  }
+  const matrix_type& q()  const { return q_;  }
 
+  // returns fit (value, rms) for given t
   std::pair<double, double> eval(double t) const {
     using namespace boost::numeric::ublas;
     const size_t i(find_index(t));

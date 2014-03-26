@@ -61,8 +61,8 @@ public:
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
     , fTime_(    w-200, h-20, 160, 20, "Current Time:")
     , init_(true) {
-    sMin_.step(5,5); sMin_.range(-140,0); sMin_.value(-120);
-    sMax_.step(5,5); sMax_.range(-140,0); sMax_.value(-80);
+    sMin_.step(5,5); sMin_.range(-140,0); sMin_.value(-70);
+    sMax_.step(5,5); sMax_.range(-140,0); sMax_.value(-40);
 
     fMin_.value( 0); fMax_.value(1);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
@@ -83,8 +83,11 @@ public:
     spec_.resize(specN() * specM(), -120);
     spec_fitted_.resize(specN() * specM(), -120);
     specImg_.resize(2 * 3 * specN() * specM(), 0);
+    exists_ = true;
   }
-  virtual ~spectrum_display() {}
+  virtual ~spectrum_display() {
+    exists_ = false;
+  }
 
   static void cb(Fl_Widget *w, long u) {
     spectrum_display *s = (spectrum_display*)w->parent();
@@ -158,13 +161,19 @@ public:
     const size_t n(spec.size());
     std::vector<size_t> b(n, 1);
 
-    const double threshold_db(5.);
+    const double threshold_db(2.5);
     const unsigned poly_degree(2);
+
     std::vector<size_t> indices;
-    for (size_t i(0); i<10; ++i)
-      indices.push_back((i*n)/10);
-    indices.push_back(std::max(indices[8], n-1-size_t(0.01*n)));
-    indices[0] = std::min(indices[1], indices[0]+size_t(0.01*n));
+    const size_t m(10);
+    for (size_t i(0); i<m; ++i)
+      indices.push_back((i*n)/m);
+    indices.push_back(n-1);
+    indices[0] += size_t(0.01*n);
+    indices[m] -= size_t(0.01*n);
+    indices[0] = std::min(indices[1],   indices[0]);
+    indices[m] = std::max(indices[m-1], indices[m]);
+
     polynomial_interval_fit p(poly_degree, indices);
 
     for (size_t l(0); l<20; ++l) {
@@ -335,13 +344,15 @@ public:
   }
 
   int handle(int event) {
+    if (!exists_) return Fl_Double_Window::handle(event);
+//     std::cout << "handle: " << event << " " << this << " " << std::endl;
     switch (event) {
     case FL_MOVE:
       fCur_.value(0);
       if (xSpecBeg() < Fl::event_x() && Fl::event_x() < xSpecEnd()) {
-	if ((ySpecBeg()      < Fl::event_y() && Fl::event_y() < ySpecEnd()) ||
-	    (yWaterfallBeg() < Fl::event_y() && Fl::event_y() < yWaterfallEnd()))	  
-	  fCur_.value(xInputFromSpec(Fl::event_x()));
+ 	if ((ySpecBeg()      < Fl::event_y() && Fl::event_y() < ySpecEnd()) ||
+ 	    (yWaterfallBeg() < Fl::event_y() && Fl::event_y() < yWaterfallEnd()))	  
+ 	  fCur_.value(xInputFromSpec(Fl::event_x()));
       }
     default:
       return Fl_Double_Window::handle(event);
@@ -446,6 +457,7 @@ private:
   std::vector<double> spec_fitted_;
   std::vector<uchar>  specImg_;
   bool                init_;
+  bool exists_;
 } ;
 
 #endif // _spectrum_display_hpp_cm120516_

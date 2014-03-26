@@ -104,9 +104,6 @@ namespace filter {
 
         // performs inverse FFT of (shifted) input and downsampling       
         void transform(const large_fft_type& fft) {
-//           std::cout << "#shift " << shift() << " l=" << l() 
-//                     << " offset=" << offset() 
-//                     << " n/2 " << n()/2 << std::endl;
           const size_t nd(n()/d());
           for (size_t i(0); i<nd; ++i)
             ifft_.in(i) = 0;

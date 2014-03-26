@@ -50,7 +50,7 @@ namespace wave {
 //     }
     // for performance reasons this version is avoiding streams
     std::string::iterator write_real_sample(std::string::iterator i, boost::uint16_t bitsPerSample, double s) {
-      // we assume abs(s)<=1
+      // we assume abs(s)<1
       boost::uint32_t si= boost::uint32_t(std::abs(s) * (1L << (bitsPerSample-1)));
       if (s < 0.) si= 1L + (0xFFFFFFFFL ^ si);
       for (size_t u(0); u<bitsPerSample; u+=8) {

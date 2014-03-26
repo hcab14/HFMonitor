@@ -19,7 +19,7 @@
 // cf. http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?LU_Matrix_Inversion
 #ifndef INVERT_MATRIX_HPP
 #define INVERT_MATRIX_HPP
-// REMEMBER to update "lu.hpp" header includes from boost-CVS
+
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
@@ -43,9 +43,10 @@ namespace ublas_util {
       // create a permutation matrix for the LU-factorization
       pmatrix pm(A.size1());
       // perform LU-factorization
-      int res = lu_factorize(A,pm);
-      if( res != 0 ) return false;
+      if (0 != lu_factorize(A, pm))
+        return false;
       // create identity matrix of "inverse"
+      inverse.resize(A.size1(), A.size1());
       inverse.assign(identity_matrix<T>(A.size1()));
       // backsubstitute to get the inverse
       lu_substitute(A, pm, inverse);

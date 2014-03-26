@@ -57,9 +57,6 @@ namespace filter {
           std::reverse_copy(f_neg.begin()+1, f_neg.end()-1, std::back_inserter(f));
           const size_t m(f.size());
           
-//           for (size_t i(0); i<m; ++i)
-//             std::cout << "# f["<< i << "] = "<< f[i] << std::endl;
-          
           //inverse FFT
           FFT::FFTWTransform<float_type> ifft(m, -1, FFTW_ESTIMATE);
           ifft.transformRange(f.begin(), f.end(), FFT::WindowFunction::Rectangular<float_type>(f.size()));
@@ -67,18 +64,17 @@ namespace filter {
           // multiply with window function
           const size_t n(b_.size());
           float_t sum(0);
+          float_t max_value(0);
           for (size_t i(0); i<n; ++i) {
             b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i);
             sum += b_[i];
+            max_value = (b_[i] > max_value) ? b_[i] : max_value;
           }
           
           // normalize
-//           std::cout << "b=[\n";
-          for (size_t i(0); i<n; ++i)  {
-            b_[i] /= sum;
-//             std::cout << std::scientific << b_[i] << std::endl;
-          }
-//           std::cout << "];\n";
+          const float_t norm(float_type(1)/sum);
+          for (size_t i(0); i<n; ++i)
+            b_[i] *= norm;
         }
       private:
         real_vector_type b_;
