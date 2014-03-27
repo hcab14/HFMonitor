@@ -41,6 +41,7 @@
 
 #include <boost/format.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include <iostream>
 #include <vector>
@@ -144,6 +145,7 @@ private:
   Filter::Cascaded<frequency_vector<double> > filter_;
   std::string host_;
   std::string port_;
+//   boost::mutex mutex_;
 } ;
 
 int main(int argc, char* argv[])
@@ -200,12 +202,13 @@ int main(int argc, char* argv[])
     else
       throw std::runtime_error(str(boost::format("stream '%s' is not available")
                                    % stream_name));
-    c.start();
-
     // run io_service in a thread
     boost::asio::io_service& io_service(network::get_io_service());
     typedef boost::shared_ptr<boost::thread> thread_sptr;
     thread_sptr tp(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
+
+    // start client
+    c.start();
 
     // FLTK event loop
     while (Fl::wait() > 0) {
@@ -214,11 +217,10 @@ int main(int argc, char* argv[])
 	if (std::string(msg) == "quit") break;
       }
     }
-
-    // now all FLTK windows are closed:
+    c.stop();
     io_service.stop();
+    tp->detach();
     tp->join();
-
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;
