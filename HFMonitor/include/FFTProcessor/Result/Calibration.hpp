@@ -25,6 +25,7 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/numeric/ublas/io.hpp>
 
 #include "logging.hpp"
 #include "InvertMatrix.hpp"
