@@ -20,12 +20,8 @@
 #ifndef INVERT_MATRIX_HPP
 #define INVERT_MATRIX_HPP
 
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
 #include <boost/numeric/ublas/lu.hpp>
-#include <boost/numeric/ublas/io.hpp>
 
 #include "logging.hpp"
 

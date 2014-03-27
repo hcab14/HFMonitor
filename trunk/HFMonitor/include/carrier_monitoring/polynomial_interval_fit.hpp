@@ -22,14 +22,13 @@
 #include <algorithm> 
 #include <vector>
 
-// #define BOOST_UBLAS_MOVE_SEMANTICS 1
-#include <boost/numeric/ublas/io.hpp>
+// #include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/matrix_proxy.hpp>
-#include <boost/numeric/ublas/storage.hpp>
+// #include <boost/numeric/ublas/matrix_proxy.hpp>
+// #include <boost/numeric/ublas/storage.hpp>
 #include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/operation.hpp>
+// #include <boost/numeric/ublas/vector_proxy.hpp>
+// #include <boost/numeric/ublas/operation.hpp>
 
 #include <boost/foreach.hpp>
 
@@ -46,7 +45,6 @@ public:
 			  const std::vector<size_t>& index_vector)
     : poly_degree_(poly_degree)
     , indices_(index_vector)
-    // , slices_y_(make_slices_y(index_vector))
     , chi2_(0)
     , dof_(0) {}
 
@@ -72,8 +70,8 @@ public:
     // compute ata and aty
     const size_t poly_degree_plus_1(poly_degree_+1);
     const size_t nx(x_.size());
-    vector_type aty(nx);
-    matrix_type ata(nx, nx);
+    vector_type aty(nx, 0);
+    matrix_type ata(nx, nx, 0);
 
     size_t slice_counter(0);
     BOOST_FOREACH(const slice& sy, slices_y_) {
@@ -111,7 +109,7 @@ public:
     }
 
     // fill atac=(ata + constrains)
-    matrix_type atac(nx+nc_total, nx+nc_total, 0 );
+    matrix_type atac(nx+nc_total, nx+nc_total, 0);
     const slice sx(0,  1, nx);
     const slice sc(nx, 1, nc_total);
     project(atac, sx, sx) = ata;
