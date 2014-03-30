@@ -60,6 +60,7 @@ public:
   {
     menu_bar_.add("File/Quit", FL_CTRL+'q', Quit_CB);
     end();
+    this->callback(Quit_CB);
   }
   virtual ~MyWindow() {}
 
@@ -67,9 +68,11 @@ public:
 
 protected:
   static void Quit_CB(Fl_Widget *, void *) {
+    Fl::lock();
     static char msg[1024];
     sprintf(msg, "quit");
     Fl::awake(msg);
+    Fl::unlock();
   }
 private:
   Fl_Menu_Bar menu_bar_;
@@ -129,10 +132,10 @@ public:
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
-    Fl::unlock();
     static char msg[1024];
     sprintf(msg,"spec_update");
     Fl::awake(msg);
+    Fl::unlock();
   }
 private:
   struct s2db {
@@ -212,15 +215,15 @@ int main(int argc, char* argv[])
 
     // FLTK event loop
     while (Fl::wait() > 0) {
-      const char* msg = (const char*)Fl::thread_message();      
+      const char* msg(static_cast<const char *>(Fl::thread_message()));
       if (msg) {
 	if (std::string(msg) == "quit") break;
       }
     }
     c.stop();
-    io_service.stop();
-    tp->detach();
-    tp->join();
+//     io_service.stop();
+//     tp->detach();
+    tp->timed_join(boost::posix_time::seconds(2));
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;

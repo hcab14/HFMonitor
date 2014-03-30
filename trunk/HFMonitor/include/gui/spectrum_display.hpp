@@ -93,9 +93,9 @@ public:
     spectrum_display *s = (spectrum_display*)w->parent();
     const double v = ((Fl_Valuator*)(w))->value();
     switch (u) {
-    case sMin: s->sMax_.minimum(v+5);
+    case sMin: s->sMax_.minimum(v+2);
       break; 
-    case sMax: s->sMin_.maximum(v-5);
+    case sMax: s->sMin_.maximum(v-2);
       break;
      case fMin:
 //       s->fMin_.value(std::min(v, s->fMax_.value()-.01));
@@ -161,22 +161,20 @@ public:
     const size_t n(spec.size());
     std::vector<size_t> b(n, 1);
 
-    const double threshold_db(2.5);
+    const double threshold_db(3);
     const unsigned poly_degree(2);
-
-    std::vector<size_t> indices;
-    const size_t m(10);
+    
+    const size_t m(12); // number of fit intervals
+    std::vector<size_t> indices(m+1, 0);
     for (size_t i(0); i<m; ++i)
-      indices.push_back((i*n)/m);
-    indices.push_back(n-1);
-    indices[0] += size_t(0.01*n);
-    indices[m] -= size_t(0.01*n);
-    indices[0] = std::min(indices[1],   indices[0]);
-    indices[m] = std::max(indices[m-1], indices[m]);
+      indices[i] = (i*n)/m;
+    indices[m] = n-1;
+    indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
+    indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
 
     polynomial_interval_fit p(poly_degree, indices);
 
-    for (size_t l(0); l<20; ++l) {
+    for (size_t l(0); l<100; ++l) {
       if (!p.fit(spec_filtered, b)) {
 	std::cerr << "fit failed" << std::endl;
       }
@@ -196,7 +194,7 @@ public:
 
       const std::pair<double,double> vf(p.eval(i));
       spec_fitted_[specIndex_*specN()+i] = vf.first;
-      
+
       // normalized, clamped signal
       const double x(clamp((spec[i]-sMin_.value())/(sMax_.value()-sMin_.value())));
 //       const double x(clamp((spec[i]-vf.first+2.5)/(sMax_.value()-sMin_.value())));
