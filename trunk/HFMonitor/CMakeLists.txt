@@ -84,6 +84,10 @@ SET(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}         ${FLTK_CXXFLAGS}")
 LIST(APPEND _libs ${FLTK_LDFLAGS})
 MESSAGE("XXXX " ${FLTK_LDFLAGS})
 
+IF (APPLE)
+  LIST(APPEND _libs "-L/opt/local/lib -lsqlite3 -lbz2")
+ENDIF(APPLE)
+
 # Setup CUDA
 SET(CUDA_TOOLKIT_ROOT_DIR /opt/local/cuda-5.0/)
 FIND_PACKAGE(CUDA)

@@ -18,6 +18,9 @@
 //
 //#undef USE_CUDA
 
+#ifdef __APPLE__
+#  include <sys/time.h>
+#endif
 #include <time.h>
 #include <iostream>
 #include <iterator>
