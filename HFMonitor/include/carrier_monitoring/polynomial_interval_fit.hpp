@@ -76,7 +76,7 @@ public:
     size_t slice_counter(0);
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
-      for (size_t j(0); j<sy.size(); ++j) {
+      for (size_t j(0), n(sy.size()); j<n; ++j) {
 	const double x(t_(sy(j)) - indices_[slice_counter]);
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
@@ -90,6 +90,7 @@ public:
 
     // constraints
     const size_t nc(slices_y_.size()-1);
+    // if degree>1 there are constraints on the 1st derivative
     const size_t nc_total(poly_degree_>1 ? 2*nc : nc);
     matrix_type ac(nc_total, nx, 0);
     for (size_t i(0); i<nc; ++i) {
@@ -194,7 +195,7 @@ protected:
 	  ++nb;
 	  t_[it]   = j;//-iv[i-1];
 	  y_[it++] = y[j];
-	}	
+	}
       }
       slices_y_[i-1] = slice(ib, 1, nb);
       ib += nb;
