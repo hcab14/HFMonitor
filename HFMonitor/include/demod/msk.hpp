@@ -103,10 +103,12 @@ namespace demod {
       } else {
         // std::cout << "_E " << sumE_ << std::endl;
         bitE_  = (sumE_ > 0.);
+        sumEold_ = sumE_;
         sumE_  = 0.;
         signE_ = sign_ct;
         current_bit_   = bitE_ ^ bitO_;
         bit_availableE_ = true;
+        // std::cout << "_x " << sumEold_ << " " << sumOold_ << std::endl;
       }
       //  (3b)
       const double st(sin(0.25*(pll_plus_.theta() - pll_minus_.theta()))); // baud/4
@@ -119,10 +121,12 @@ namespace demod {
       } else {
         // std::cout << "_O " << sumO_ << std::endl;
         bitO_  = (sumO_ > 0.);
+        sumOold_ = sumO_;
         sumO_  = 0.;
         signO_ = sign_st;
         current_bit_   = bitE_ ^ bitO_;
         bit_availableO_ = true;
+        // std::cout << "_x " << sumEold_ << " " << sumOold_ << std::endl;
       }
       //  (4)
       ++sample_counter_;
@@ -163,10 +167,12 @@ namespace demod {
       , delta_phase_(0)
       , sample_counter_(0)
       , sumE_(0)
+      , sumEold_(0)
       , signE_(0)
       , bitE_(false)
       , bit_availableE_(false)
       , sumO_(0)
+      , sumOold_(0)
       , signO_(0)
       , bitO_(false)
       , bit_availableO_(false)
@@ -189,10 +195,12 @@ namespace demod {
     size_t sample_counter_;    //
 
     double sumE_;
+    double sumEold_;
     int    signE_;
     bool   bitE_;
     bool   bit_availableE_;
     double sumO_;
+    double sumOold_;
     int    signO_;
     bool   bitO_;
     bool   bit_availableO_;
