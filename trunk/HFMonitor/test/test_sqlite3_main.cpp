@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <stdexcept>
 
@@ -96,7 +97,8 @@ namespace db {
   class statement {
   public:
     statement(connection& db, std::string query)
-      : _stmt(NULL) {
+      : _db(db)
+      , _stmt(NULL) {
       ASSERT_THROW_SQLITE3(sqlite3_prepare_v2(db.get(),
 					      query.c_str(),
 					      -1,//query.size(),
@@ -111,7 +113,7 @@ namespace db {
     }
     // returns true if data is available
     // throws on error
-    bool step() {
+    bool step(bool do_rollback_if_error=true) {
       const int result(sqlite3_step(_stmt));
       switch (result) {
       case SQLITE_ROW:
@@ -119,12 +121,27 @@ namespace db {
       case SQLITE_DONE:
 	reset();
 	return false;
+      case SQLITE_FULL:      // database or disk full
+      case SQLITE_IOERR:     // disk I/O error
+      case SQLITE_BUSY:      // database in use by another process
+      case SQLITE_NOMEM:     // out or memory
+      case SQLITE_INTERRUPT: // processing interrupted by application request
+	if (do_rollback_if_error) {
+	  reset();
+	  do_rollback();
+	}
+	return false;
       default:
 	ASSERT_THROW_SQLITE3(result);
 	return false; // to avoid compiler warning
       }
     }
-    
+
+    void do_rollback() {
+      statement s(_db, "ROLLBACK;");
+      s.step(false);
+    }
+
     // column access    
     int column_count() const { return sqlite3_column_count(_stmt); }
     int           column_type  (int icol) const { return sqlite3_column_type  (_stmt, icol); }
@@ -140,25 +157,43 @@ namespace db {
     // sqlite3_column_bytes16()
 
     // binding
+    statement& bind_double(std::string name, double val) {
+      return bind_double(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
+    }
     statement& bind_double(int index, double val) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_double(_stmt, index, val));
       return *this;
+    }
+    statement& bind_int(std::string name, int val) {
+      return bind_int(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
     }
     statement& bind_int(int index, int val) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_int(_stmt, index, val));
       return *this;
     }
+    statement& bind_int64(std::string name, sqlite3_int64 val) {
+      return bind_int64(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
+    }
     statement& bind_int64(int index, sqlite3_int64 val) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
       return *this;
+    }
+    statement& bind_null(std::string name) {
+      return bind_null(sqlite3_bind_parameter_index(_stmt, name.c_str()));
     }
     statement& bind_null(int index) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_null(_stmt, index));
       return *this;
     }
+    statement& bind_blob(std::string name, const void* data, int n) {
+      return bind_blob(sqlite3_bind_parameter_index(_stmt, name.c_str()), data, n);
+    }
     statement& bind_blob(int index, const void* data, int n, void(*destructor)(void*)=SQLITE_TRANSIENT) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_blob(_stmt, index, data, n, destructor));
       return *this;
+    }
+    statement& bind_text(std::string name, std::string s, void(*destructor)(void*)=SQLITE_TRANSIENT) {
+      return bind_text(sqlite3_bind_parameter_index(_stmt, name.c_str()), s, destructor);
     }
     statement& bind_text(int index, std::string s, void(*destructor)(void*)=SQLITE_TRANSIENT) {
       ASSERT_THROW_SQLITE3(sqlite3_bind_text(_stmt, index, s.c_str(), s.size(), destructor));
@@ -170,14 +205,102 @@ namespace db {
 
   protected:
   private:
+    connection&   _db;
     sqlite3_stmt *_stmt;
   } ;
 
 } // namespace db
 
+class compressed_vector {
+public:
+  typedef std::vector<char> vector_type;
+  typedef vector_type::iterator iterator;
+  typedef vector_type::const_iterator const_iterator;
+
+  compressed_vector(const vector_type& v) {
+    _v.resize(2*v.size());
+    iterator j(_v.begin()), k(j);
+    *j = 0;
+    for (const_iterator i(v.begin()), end(v.end()); i!=end; ++i) {
+      if (*i == 0) {
+	if (*j == -127 || *j > 0) {
+	  j = (*j > 0) ? k : j+1;
+	  *j = 0;
+	}
+	*j -= 1;
+      } else { // *i != 0
+	if (*j < 0 || *j == 127) {	 
+	  j = k+1;
+	  *j = 0;
+	  k = j+1;
+	}
+	*k = *i;
+	++k;
+	*j += 1;
+      }
+    }
+    _v.resize(std::distance(_v.begin(), j+1));
+    std::cout << "compression factor = " << double(_v.size())/double(v.size()) << std::endl;
+    size_t n=_v.size();
+    unsigned int dest_len(32*n);
+    std::vector<char> vc(32*n,0);
+    int result = BZ2_bzBuffToBuffCompress(&vc[0], &dest_len, &_v[0], n, 9, 0, 0);
+    std::cout << "bzip2: " << result << " " << dest_len << std::endl;
+
+  }
+  ~compressed_vector() {}
+
+  const vector_type& get() const { return _v; }
+  vector_type decompress() const {
+    vector_type v;
+    for (const_iterator i(_v.begin()), end(_v.end()); i!=end;) {
+      if (*i < 0) {
+	for (size_t j(0), m(-*i); j<m; ++j)
+	  v.push_back(0);
+	++i;
+      } else {
+	const size_t m(*i);
+	std::cout << "m= " << m << std::endl;
+	++i;
+	for (size_t j(0); j<m && i!=end; ++j) {
+	  v.push_back(*i);
+	  ++i;
+	}
+      }
+    }
+    return v;
+  }
+protected:
+private:
+  vector_type _v;
+} ;
 
 int main()
 {
+  size_t n(10000);
+  std::vector<char> v(n,0);
+  for (size_t i(0); i<100; ++i) {
+    // v[100+1*i] =1+(lrand48()%128);
+    // v[550+1*i] =1+(lrand48()%128);
+    // v[777+i] = 1+(lrand48()%128);
+  }
+
+  compressed_vector cv(v);
+  std::copy(cv.get().begin(), cv.get().end(), std::ostream_iterator<int>(std::cout, " "));
+  std::cout << std::endl;
+
+  unsigned int dest_len(2*n);
+  std::vector<char> vc(2*n,0);
+  int result = BZ2_bzBuffToBuffCompress(&vc[0], &dest_len, &v[0], n, 9, 0, 0);
+  std::cout << "bzip2: " << result << " " << dest_len << std::endl;
+  std::cout << "BZ2 compression factor = " << double(dest_len)/v.size() << std::endl;
+
+  // std::vector<char> dcv(cv.decompress());
+  // std::copy(dcv.begin(), dcv.end(), std::ostream_iterator<int>(std::cout, " "));
+  // std::cout << std::endl;
+
+  return 0;
+#if 0
   try {
     db::sqlite3_context sqc;
     std::cout << sqlite3_libversion() << std::endl;
@@ -189,10 +312,10 @@ int main()
       while (s.step()) std::cout << "step\n";
     }
     {
-      db::statement s(c, "INSERT INTO tbl1 VALUES(?1,?2);");
-      for (int i=0; i<10; ++i) {
+      db::statement s(c, "INSERT INTO tbl1 VALUES(@A,$2);");
+      for (int i=0; i<1000; ++i) {
 	std::string t(str(boost::format("%.15f") % (M_PI*i)));
-	s.bind_text(1, t);
+	s.bind_text("@A", t);
 	s.bind_int(2, i);
 
 	while (s.step())
@@ -229,5 +352,5 @@ int main()
   int result = BZ2_bzBuffToBuffCompress(&sc[0], &dest_len, &s[0], n, 9, 0, 0);
   std::cout << "bzip2: " << result << " " << dest_len << std::endl;
   std::cout << "sizeof(s) = " << sizeof(s) << std::endl;
-
+#endif
 }
