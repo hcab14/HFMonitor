@@ -161,10 +161,10 @@ public:
     const size_t n(spec.size());
     std::vector<size_t> b(n, 1);
 
-    const double threshold_db(3);
+    const double threshold_db(2);
     const unsigned poly_degree(2);
     
-    const size_t m(12); // number of fit intervals
+    const size_t m(15); // number of fit intervals
     std::vector<size_t> indices(m+1, 0);
     for (size_t i(0); i<m; ++i)
       indices[i] = (i*n)/m;

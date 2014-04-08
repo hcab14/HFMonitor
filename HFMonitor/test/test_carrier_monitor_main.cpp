@@ -24,6 +24,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <bzlib.h>
+
 #include "carrier_monitoring/polynomial_interval_fit.hpp"
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
@@ -99,21 +101,19 @@ public:
     std::vector<double> v(n, 0);
     std::vector<size_t> b(n, 1);
     for (size_t i(0); i<n; ++i)
-      v[i] = 10*log10(xf[i].second);
-
+      v[i]  = 10*log10(xf[i].second);
 
     const unsigned poly_degree(2);
-    std::vector<size_t> indices;
-    const size_t m(10);
+    // number of inervals
+    const size_t m(15);
+    std::vector<size_t> indices(m+1, 0);
     for (size_t i(0); i<m; ++i)
-      indices.push_back((i*n)/m);
-    indices.push_back(n-1);
-    indices[0] += size_t(0.01*n);
-    indices[m] -= size_t(0.01*n);
-    indices[0] = std::min(indices[1],   indices[0]);
+      indices[i]= (i*n)/m;
+    indices[m] = n-1;
+    indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
+    indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
 
     polynomial_interval_fit p(poly_degree, indices);
-
     for (size_t l(0); l<100; ++l) {
       if (!p.fit(v, b)) {
 	std::cerr << "fit failed" << std::endl;
@@ -122,7 +122,7 @@ public:
       size_t nchanged(0);
       for (size_t i(0); i<n; ++i) {
 	const std::pair<double,double> vf(p.eval(i));
-	const bool c(v[i]-vf.first > 5);
+	const bool c(v[i]-vf.first > 2.5);
 	nchanged += (c==b[i]);
 	b[i] = !c;
       }
@@ -139,6 +139,27 @@ public:
     }
 #endif
     ++spec_counter_;
+
+    // background subtraction
+    double counter(0);
+    std::vector<unsigned char> spec_bytes(xf.size(), 0);
+    for (fvector_iterator i(xf.begin()), j(ps.begin()), iend(xf.end()), jend(ps.end()); i!=iend && j!=jend; ++i, ++j) {
+      const size_t index(std::distance(xf.begin(), i));
+      const std::pair<double,double> vf(p.eval(index));
+      const double sig_filt(std::max(0., 10*log10(i->second) - vf.first));
+      const double sig_inst(std::max(0., 10*log10(j->second) - vf.first));
+      if (sig_filt > 2. && sig_inst > 2.) {
+	spec_bytes[index] = static_cast<unsigned char>(sig_inst);
+	std::cout << str(boost::format("S%06d %.1f %.3e %5.1f %3d\n") % spec_counter_ % i->first % i->second % sig_filt % int(spec_bytes[index]));
+	++counter;
+      }
+    }
+    std::cout << "occupancy: "<< counter/xf.size() << std::endl;
+    std::vector<unsigned char> spec_bytes_compressed(15*xf.size()/10, 0);
+    unsigned int dest_len(spec_bytes_compressed.size());
+    const int result = BZ2_bzBuffToBuffCompress((char*)(&spec_bytes_compressed[0]), &dest_len, (char*)(&spec_bytes[0]), n, 9, 0, 0);
+    std::cout << "bzip2: " << result << " " << dest_len << " compression factor: " << double(dest_len)/xf.size() << std::endl;
+
 
     std::cout << str(boost::format("%s max: ")  % sp->approx_ptime());
     for (size_t j(0); j<10; ++j) {
