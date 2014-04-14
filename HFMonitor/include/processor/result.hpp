@@ -26,6 +26,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "db/base.hpp"
+
 namespace processor {
 
   // base class for time-stamped named results
@@ -39,6 +41,9 @@ namespace processor {
     virtual std::string name() const { return name_; }
     virtual ptime approx_ptime() const { return t_; }
     virtual std::string format() const { return "TXT_0000"; }
+
+    virtual bool setup_database(db::base::sptr) const { return false; }
+    virtual bool save_to_database(db::base::sptr) const { return false; }
 
     virtual std::string to_string() const {
       std::ostringstream oss;      

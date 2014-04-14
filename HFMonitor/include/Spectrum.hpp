@@ -28,7 +28,6 @@
 #include <boost/foreach.hpp>
 
 #include "logging.hpp"
-#include "FFT.hpp"
 
 class SpectrumBase : private boost::noncopyable {
 public:
