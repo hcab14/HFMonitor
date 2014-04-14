@@ -70,14 +70,18 @@ public:
     fvector xf(filter_.x());
     const unsigned poly_degree(2);
     const size_t num_intervals(15);
-    const double threshold_db(5.);
     background_estimator bg(xf.size(), poly_degree, num_intervals);
 
-    bg.do_fit(xf, threshold_db);
-    const std::pair<vector_compressor::vector_type, char> pp(bg.make_spectrum(2, 0.10));
-    std::cout << "threshold,occupancy = " << pp.second << " " << double(pp.first.size())/xf.size() << std::endl;
+    const double fit_threshold_db(2.5);
+    if (false == bg.do_fit(xf, fit_threshold_db))
+      return;
+    const char   spec_threshold_db(2);
+    const double spec_max_occupancy(0.08);
+    const std::pair<vector_compressor::vector_type, char> pp(bg.make_spectrum(spec_threshold_db, spec_max_occupancy));
+    std::cout << "threshold,occupancy = " << int(pp.second) << " " << double(pp.first.size())/double(xf.size()) << std::endl;
 
     // find peaks
+    const double threshold_db(5. + pp.second - spec_threshold_db);
     std::cout << str(boost::format("%s %8.1f %s max: ")
 		     % type_
 		     % (1e-3*fCenter_Hz_)
@@ -87,7 +91,7 @@ public:
       const size_t index(std::distance(xf.begin(), i));
       if (bg.spec_db(index)-bg.spec_db_fitted(index) < threshold_db)
 	break;
-      const std::pair<double, bool> f(estimate_peak(xf.begin(), xf.end(), i));
+      const std::pair<double, bool> f(estimate_peak(xf.begin()+10, xf.end()-10, i));
       if (f.second)
 	std::cout << str(boost::format("[%.1f %.0f %.0f] ") 
 			 % f.first
@@ -97,11 +101,6 @@ public:
     std::cout << std::endl;    
   }
 protected:
-  static bool compare_second(const std::pair<double,double>& a,
-			     const std::pair<double,double>& b) {
-    return a.second < b.second;
-  }
-
   std::pair<double, bool>
   estimate_peak(fvector_iterator beg,
 		fvector_iterator end,
@@ -114,7 +113,7 @@ protected:
     
     size_t n_plus(0), n_minus(0);
     double s(s_peak);
-    for (fvector_iterator i(i_peak+1); i->second < s && i->second != 0 && i != end; ++i) {
+    for (fvector_iterator i(i_peak+1); i->second < s && i->second != 0 && i < end; ++i) {
 //       std::cout << str(boost::format("\n(+): %.1f (%.2e %.2e)\n") % i->first  % s % i->second);
       s=i->second;
       sum_w  += i->second;
@@ -123,7 +122,7 @@ protected:
       ++n_plus;
     }
     s = s_peak;
-    for (fvector_iterator i(i_peak-1); i->second < s && i->second != 0 && i != beg; --i) {
+    for (fvector_iterator i(i_peak-1); i->second < s && i->second != 0 && i > beg; --i) {
 //       std::cout << str(boost::format("\n(-): %.1f (%.2e %.2e)\n") % i->first  % s % i->second);
       s=i->second;
       sum_w  += i->second;
@@ -132,6 +131,11 @@ protected:
       ++n_minus;
     }
     return std::make_pair((sum_w != 0) ? sum_wx / sum_w : 0, n_plus>0 && n_minus>0);
+  }
+
+  static bool compare_second(const std::pair<double,double>& a,
+			     const std::pair<double,double>& b) {
+    return a.second < b.second;
   }
 
 private:
@@ -162,10 +166,11 @@ public:
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE) {
     const ptree& config_channels(config.get_child("Channels"));
     BOOST_FOREACH(const ptree::value_type& channel_type, config_channels) {
-      const double fMin_kHz  (channel_type.second.get<double>(".<xmlattr>.fMin_kHz"));
-      const double fStep_kHz (channel_type.second.get<double>(".<xmlattr>.fStep_kHz"));
-      const double fMax_kHz  (channel_type.second.get<double>(".<xmlattr>.fMax_kHz"));
-      const double fWidth_kHz(channel_type.second.get<double>(".<xmlattr>.fWidth_kHz"));
+      std::cout << "type= " << channel_type.first << std::endl;
+      const double fMin_kHz  (channel_type.second.get<double>("<xmlattr>.fMin_kHz"));
+      const double fStep_kHz (channel_type.second.get<double>("<xmlattr>.fStep_kHz"));
+      const double fMax_kHz  (channel_type.second.get<double>("<xmlattr>.fMax_kHz"));
+      const double fWidth_kHz(channel_type.second.get<double>("<xmlattr>.fWidth_kHz"));
       for (double f_kHz(fMin_kHz); f_kHz<fMax_kHz+1e-9; f_kHz+=fStep_kHz)
 	channels_.push_back
 	  (single_channel_carrier_monitor::make
@@ -248,10 +253,10 @@ int main(int argc, char* argv[])
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
     config.put("Repack.<xmlattr>.bufferLength_sec", vm["delta_t"].as<double>());
     config.put("Repack.<xmlattr>.overlap_percent", vm["overlap"].as<double>());
-    config.put("Channels.EU.fMin_kHz",   vm["fMin"].as<double>());
-    config.put("Channels.EU.fStep_kHz",  vm["fStep"].as<double>());
-    config.put("Channels.EU.fMax_kHz",   vm["fMax"].as<double>());
-    config.put("Channels.EU.fWidth_kHz", vm["fWidth"].as<double>());
+    config.put("Channels.EU.<xmlattr>.fMin_kHz",   vm["fMin"].as<double>());
+    config.put("Channels.EU.<xmlattr>.fStep_kHz",  vm["fStep"].as<double>());
+    config.put("Channels.EU.<xmlattr>.fMax_kHz",   vm["fMax"].as<double>());
+    config.put("Channels.EU.<xmlattr>.fWidth_kHz", vm["fWidth"].as<double>());
 
     const std::string stream_name(vm["stream"].as<std::string>());
     client<iq_adapter<repack_processor<carrier_monitor_processor> > > c(config);
