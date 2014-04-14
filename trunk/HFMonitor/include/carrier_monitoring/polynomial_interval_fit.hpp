@@ -48,6 +48,9 @@ public:
     , chi2_(0)
     , dof_(0) {}
 
+  size_t poly_degree() const { return poly_degree_; }
+  index_vector_type index_vector() const { return indices_; }
+
   bool fit(const std::vector<double>& y) {
     return fit(y, std::vector<size_t>(y.size(), 1));
   }
@@ -210,7 +213,7 @@ protected:
 
 private:
   size_t poly_degree_;
-  const index_vector_type indices_;
+  index_vector_type indices_;
   vector_type t_;
   vector_type y_;
   vector_type yf_;

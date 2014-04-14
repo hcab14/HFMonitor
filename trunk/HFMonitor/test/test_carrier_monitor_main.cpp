@@ -26,7 +26,7 @@
 
 #include <bzlib.h>
 
-#include "carrier_monitoring/polynomial_interval_fit.hpp"
+#include "carrier_monitoring/background_estimator.hpp"
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
 #include "network.hpp"
@@ -43,138 +43,63 @@
 #include <vector>
 #include <cmath>
 
-bool compare_second(const std::pair<double,double>& a,
-		    const std::pair<double,double>& b) {
-  return a.second < b.second;
-}
 
-class carrier_monitor_processor {
+class single_channel_carrier_monitor : public boost::noncopyable {
 public:
-  typedef FFT::FFTWTransform<double> fft_type;
+  typedef boost::shared_ptr<single_channel_carrier_monitor> sptr;
 
   typedef frequency_vector<double> fvector;
   typedef fvector::iterator fvector_iterator;
   typedef fvector::const_iterator fvector_const_iterator;
 
-  carrier_monitor_processor(const boost::property_tree::ptree& config)
-    : fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
-    , host_(config.get<std::string>("server.<xmlattr>.host"))
-    , port_(config.get<std::string>("server.<xmlattr>.port"))
-    , fmin_Hz_(1e3*config.get<double>(".<xmlattr>.fMin_kHz"))
-    , fmax_Hz_(1e3*config.get<double>(".<xmlattr>.fMax_kHz"))
-    , spec_counter_(0) {
-    filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
+  virtual ~single_channel_carrier_monitor() {}
+
+  static sptr make(std::string type, double fCenter_kHz, double fMin_kHz, double fMax_kHz) {
+    return sptr(new single_channel_carrier_monitor(type, fCenter_kHz, fMin_kHz, fMax_kHz));
   }
+  template<typename FFT_SPECTRUM_TYPE>
+  void process(FFT_SPECTRUM_TYPE& s, processor::service_iq::sptr sp) {
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
-    const size_t length(std::distance(i0, i1));
-#if 0
-    std::cout << "process_iq nS=" << std::distance(i0, i1) 
-              << " " << sp->id()
-              << " " << sp->approx_ptime()
-              << " " << sp->sample_rate_Hz()
-              << " " << sp->center_frequency_Hz()
-              << " " << sp->offset_ppb()
-	      << " length=" << length
-              << std::endl;
-#endif
-    // compute FFT
-    if (length != fftw_.size())
-      fftw_.resize(length);
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
-    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
-
-    // process each channel:
-    fvector ps(fmin_Hz_, fmax_Hz_, s, std::abs<double>, (sp ? sp->offset_ppb() : 0.));
+    const fvector ps(fMin_Hz_, fMax_Hz_, s, std::abs<double>, (sp ? sp->offset_ppb() : 0.));
     if (filter_.x().empty())
       filter_.init(sp->approx_ptime(), ps);
     else
       filter_.update(sp->approx_ptime(), ps);
 
+    // estimate background and compute a background subtracted spectrum
     fvector xf(filter_.x());
-
-    // 
-    const double threshold_db(5.);
-    const size_t n(xf.size());
-    std::vector<double> v(n, 0);
-    std::vector<size_t> b(n, 1);
-    for (size_t i(0); i<n; ++i)
-      v[i]  = 10*log10(xf[i].second);
-
     const unsigned poly_degree(2);
-    // number of inervals
-    const size_t m(15);
-    std::vector<size_t> indices(m+1, 0);
-    for (size_t i(0); i<m; ++i)
-      indices[i]= (i*n)/m;
-    indices[m] = n-1;
-    indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
-    indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
+    const size_t num_intervals(15);
+    const double threshold_db(5.);
+    background_estimator bg(xf.size(), poly_degree, num_intervals);
 
-    polynomial_interval_fit p(poly_degree, indices);
-    for (size_t l(0); l<100; ++l) {
-      if (!p.fit(v, b)) {
-	std::cerr << "fit failed" << std::endl;
-	return;
-      }
-      size_t nchanged(0);
-      for (size_t i(0); i<n; ++i) {
-	const std::pair<double,double> vf(p.eval(i));
-	const bool c(v[i]-vf.first > 2.5);
-	nchanged += (c==b[i]);
-	b[i] = !c;
-      }
-      if (0 == nchanged)
-	break;
-    }
+    bg.do_fit(xf, threshold_db);
+    const std::pair<vector_compressor::vector_type, char> pp(bg.make_spectrum(2, 0.10));
+    std::cout << "threshold,occupancy = " << pp.second << " " << double(pp.first.size())/xf.size() << std::endl;
 
-#if 0
-    //
-    for (fvector_iterator i(xf.begin()), end(xf.end()); i!=end; ++i) {
-      const size_t index(std::distance(xf.begin(), i));
-      const std::pair<double,double> vf(p.eval(index));
-      std::cout << str(boost::format("S%06d %.1f %.3e %5.1f %5.1f\n") % spec_counter_ % i->first % i->second % v[index] % vf.first);
-    }
-#endif
-    ++spec_counter_;
-
-    // background subtraction
-    double counter(0);
-    std::vector<unsigned char> spec_bytes(xf.size(), 0);
-    for (fvector_iterator i(xf.begin()), j(ps.begin()), iend(xf.end()), jend(ps.end()); i!=iend && j!=jend; ++i, ++j) {
-      const size_t index(std::distance(xf.begin(), i));
-      const std::pair<double,double> vf(p.eval(index));
-      const double sig_filt(std::max(0., 10*log10(i->second) - vf.first));
-      const double sig_inst(std::max(0., 10*log10(j->second) - vf.first));
-      if (sig_filt > 2. && sig_inst > 2.) {
-	spec_bytes[index] = static_cast<unsigned char>(sig_inst);
-	std::cout << str(boost::format("S%06d %.1f %.3e %5.1f %3d\n") % spec_counter_ % i->first % i->second % sig_filt % int(spec_bytes[index]));
-	++counter;
-      }
-    }
-    std::cout << "occupancy: "<< counter/xf.size() << std::endl;
-    std::vector<unsigned char> spec_bytes_compressed(15*xf.size()/10, 0);
-    unsigned int dest_len(spec_bytes_compressed.size());
-    const int result = BZ2_bzBuffToBuffCompress((char*)(&spec_bytes_compressed[0]), &dest_len, (char*)(&spec_bytes[0]), n, 9, 0, 0);
-    std::cout << "bzip2: " << result << " " << dest_len << " compression factor: " << double(dest_len)/xf.size() << std::endl;
-
-
-    std::cout << str(boost::format("%s max: ")  % sp->approx_ptime());
+    // find peaks
+    std::cout << str(boost::format("%s %8.1f %s max: ")
+		     % type_
+		     % (1e-3*fCenter_Hz_)
+		     % sp->approx_ptime());
     for (size_t j(0); j<10; ++j) {
       fvector_iterator i(std::max_element(xf.begin()+10, xf.end()-10, compare_second));
       const size_t index(std::distance(xf.begin(), i));
-      const std::pair<double,double> vf(p.eval(index));
-      if (v[index]-vf.first < threshold_db)
+      if (bg.spec_db(index)-bg.spec_db_fitted(index) < threshold_db)
 	break;
       const std::pair<double, bool> f(estimate_peak(xf.begin(), xf.end(), i));
       if (f.second)
-	std::cout << str(boost::format("[%.1f %.0f %.0f] ") % f.first % v[index] % (v[index]-vf.first));
+	std::cout << str(boost::format("[%.1f %.0f %.0f] ") 
+			 % f.first
+			 % bg.spec_db(index)
+			 % (bg.spec_db(index)-bg.spec_db_fitted(index)));
     }
-    std::cout << std::endl;
-
-//     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
+    std::cout << std::endl;    
+  }
+protected:
+  static bool compare_second(const std::pair<double,double>& a,
+			     const std::pair<double,double>& b) {
+    return a.second < b.second;
   }
 
   std::pair<double, bool>
@@ -208,19 +133,73 @@ public:
     }
     return std::make_pair((sum_w != 0) ? sum_wx / sum_w : 0, n_plus>0 && n_minus>0);
   }
+
 private:
-  struct s2db {
-    double operator()(double c) const {
-      return 20.*std::log10(c);
-    }
-  } ;
-  fft_type fftw_;
-  Filter::Cascaded<frequency_vector<double> > filter_;
-  std::string host_;
-  std::string port_;
-  double fmin_Hz_;
-  double fmax_Hz_;
+  single_channel_carrier_monitor(std::string type, double fCenter_kHz, double fMin_kHz, double fMax_kHz)
+    : type_(type)
+    , fCenter_Hz_(1e3*fCenter_kHz)
+    , fMin_Hz_(1e3*fMin_kHz)
+    , fMax_Hz_(1e3*fMax_kHz)
+    , spec_counter_(0) {
+    filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
+  }
+
+  const std::string type_;
+  const double fCenter_Hz_;
+  const double fMin_Hz_;
+  const double fMax_Hz_;
   size_t spec_counter_;
+  Filter::Cascaded<frequency_vector<double> > filter_;
+} ;
+
+class carrier_monitor_processor : public processor::base_iq {
+public:
+  typedef FFT::FFTWTransform<double> fft_type;
+  typedef std::vector<single_channel_carrier_monitor::sptr> channel_vector_type;
+
+  carrier_monitor_processor(const ptree& config)
+    : processor::base_iq(config)
+    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE) {
+    const ptree& config_channels(config.get_child("Channels"));
+    BOOST_FOREACH(const ptree::value_type& channel_type, config_channels) {
+      const double fMin_kHz  (channel_type.second.get<double>(".<xmlattr>.fMin_kHz"));
+      const double fStep_kHz (channel_type.second.get<double>(".<xmlattr>.fStep_kHz"));
+      const double fMax_kHz  (channel_type.second.get<double>(".<xmlattr>.fMax_kHz"));
+      const double fWidth_kHz(channel_type.second.get<double>(".<xmlattr>.fWidth_kHz"));
+      for (double f_kHz(fMin_kHz); f_kHz<fMax_kHz+1e-9; f_kHz+=fStep_kHz)
+	channels_.push_back
+	  (single_channel_carrier_monitor::make
+	   (channel_type.first, f_kHz, f_kHz-0.5*fWidth_kHz, f_kHz+0.5*fWidth_kHz));
+    }
+  }
+  virtual ~carrier_monitor_processor(){}
+
+  void process_iq(service::sptr sp, const_iterator i0, const_iterator i1) {
+    const size_t length(std::distance(i0, i1));
+#if 0
+    std::cout << "process_iq nS=" << std::distance(i0, i1) 
+              << " " << sp->id()
+              << " " << sp->approx_ptime()
+              << " " << sp->sample_rate_Hz()
+              << " " << sp->center_frequency_Hz()
+              << " " << sp->offset_ppb()
+	      << " length=" << length
+              << std::endl;
+#endif
+    // (1) compute FFT spectrum
+    if (length != fftw_.size())
+      fftw_.resize(length);
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
+    
+    // (2) process each channel
+    BOOST_FOREACH(single_channel_carrier_monitor::sptr channel, channels_)
+      channel->process(s, sp);
+  }
+
+private:
+  fft_type fftw_;
+  channel_vector_type channels_;
 } ;
 
 int main(int argc, char* argv[])
@@ -235,8 +214,10 @@ int main(int argc, char* argv[])
     ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name")
     ("overlap,o", po::value<double>()->default_value(0.),       "buffer overlap")
     ("delta_t,dt", po::value<double>()->default_value(1.),      "dt (sec)")
-    ("fMin",    po::value<double>()->default_value(1439.9),    "fMin (kHz)")
-    ("fMax",    po::value<double>()->default_value(1440.1),    "fMax (kHz)")
+    ("fMin",    po::value<double>()->default_value(1413.0),    "fMin   (kHz)")
+    ("fStep",   po::value<double>()->default_value(   9.0),    "fStep  (kHz)")
+    ("fMax",    po::value<double>()->default_value(1611.0),    "fMax   (kHz)")
+    ("fWidth",  po::value<double>()->default_value(   0.2),    "fWidth (kHz)")
     ;
 
   po::variables_map vm;
@@ -267,8 +248,10 @@ int main(int argc, char* argv[])
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
     config.put("Repack.<xmlattr>.bufferLength_sec", vm["delta_t"].as<double>());
     config.put("Repack.<xmlattr>.overlap_percent", vm["overlap"].as<double>());
-    config.put(".<xmlattr>.fMin_kHz", vm["fMin"].as<double>());
-    config.put(".<xmlattr>.fMax_kHz", vm["fMax"].as<double>());
+    config.put("Channels.EU.fMin_kHz",   vm["fMin"].as<double>());
+    config.put("Channels.EU.fStep_kHz",  vm["fStep"].as<double>());
+    config.put("Channels.EU.fMax_kHz",   vm["fMax"].as<double>());
+    config.put("Channels.EU.fWidth_kHz", vm["fWidth"].as<double>());
 
     const std::string stream_name(vm["stream"].as<std::string>());
     client<iq_adapter<repack_processor<carrier_monitor_processor> > > c(config);
@@ -286,7 +269,7 @@ int main(int argc, char* argv[])
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
