@@ -86,7 +86,7 @@ public:
       for (size_t i(0), n(_spec_db.size()); i<n; ++i) {
 	_spec_db_fitted[i] = _pif.eval(i).first;
 	const bool over_threshold(_spec_db[i]-_spec_db_fitted[i] > threshold);
-	nchanged += (over_threshold != _b[i]); // TO BE CHECKED
+	nchanged += !(over_threshold != _b[i]); // TO BE CHECKED
 	_b[i] = !over_threshold;
       }
     }
@@ -100,21 +100,25 @@ public:
     const size_t n(_spec_db.size());
     std::vector<char> bytes(n, 0);
     vector_compressor::vector_type compressed_bytes(n, 0);
+    const size_t imo(size_t(0.5+max_occupancy*n));
     char threshold(min_threshold);
-    for (const size_t imo(0.5+max_occupancy*n); threshold<127 && compressed_bytes.size() >= imo; ++threshold) {
+    for (; threshold<127 && compressed_bytes.size() >= imo; ++threshold) {
       for (size_t i(0); i<n; ++i) {
-	// clamp subtracted signal in [0,127]
-	const char s(std::min(std::max(0., _spec_db[i]-_spec_db_fitted[i]), 127.));
+	// clamp subtracted signal in [0,100]
+	const char s(char(std::min(std::max(0., _spec_db[i]-_spec_db_fitted[i]), 100.)));
+	if (i==10)
+	  std::cout << "SPEC: " << _spec_db[i] << " " << _spec_db_fitted[i] << " " << int(s) << " " << int(threshold) << std::endl;
 	bytes[i]     = (s>=threshold) ? s : 0;
       }
       compressed_bytes = _compressor.compress(bytes);
+      std::cout << "OCC,THR " << double(compressed_bytes.size())/n << " " << int(threshold) << std::endl;
     }
     return std::make_pair(compressed_bytes, threshold-1);
   }
 
 protected:
   static index_vector_type make_indices(size_t m,   // number of intervals
-				   size_t n) { // length of spectrum vector
+					size_t n) { // length of spectrum vector
     index_vector_type indices(m+1, 0);
     for (size_t i(0); i<m; ++i)
       indices[i] = (i*n)/m;
