@@ -14,7 +14,7 @@ INCLUDE(CPack)
 IF(APPLE)
   EXEC_PROGRAM("echo `/opt/local/bin/svnversion ${CMAKE_HOME_DIRECTORY}` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
 ELSE(APPLE)
-  EXEC_PROGRAM("echo `svnversion ${CMAKE_HOME_DIRECTORY}` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
+  EXEC_PROGRAM("${CMAKE_HOME_DIRECTORY}/get_svn_version_string.sh ${CMAKE_HOME_DIRECTORY}" OUTPUT_VARIABLE SVN_VERSION_STRING)
 ENDIF(APPLE)
 
 MESSAGE("VERSION=${SVN_VERSION_STRING}")
