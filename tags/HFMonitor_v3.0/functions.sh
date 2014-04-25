@@ -61,6 +61,9 @@ function where_am_I {
 	chm)
 	    echo KRK
 	    ;;
+	vlfmonitor)
+	    echo MUN
+	    ;;
 	*)
 	    echo XXX
 	    ;;

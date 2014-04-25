@@ -4,7 +4,7 @@
 ALL: boost/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
 
 boost/bjam: boost_1_53_0/b2
-	cd boost_1_53_0 && ./b2 -j2 && cd .. && rm -f boost && ln -s boost_1_53_0 boost
+	cd boost_1_53_0 && ./b2 -j4 && cd .. && rm -f boost && ln -s boost_1_53_0 boost
 
 boost_1_53_0/b2: boost_1_53_0/bootstrap.sh
 	cd boost_1_53_0; ./bootstrap.sh; cd ..
