@@ -21,6 +21,7 @@
 #ifdef __APPLE__
 #  include <sys/time.h>
 #endif
+#include <sys/time.h>
 #include <time.h>
 #include <iostream>
 #include <iterator>

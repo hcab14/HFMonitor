@@ -83,7 +83,7 @@ public:
       for (const_iterator i(begin()+3); i!=end(); ++i)
         os << boost::format("%02X") % int(*i);
 
-      static char* weekdays[] = {
+      static const char* weekdays[] = {
         "___",
         "Mon",
         "Tue",
@@ -93,7 +93,7 @@ public:
         "Sat",
         "Sun"
       };
-      static char* time_zones[] = {
+      static const char* time_zones[] = {
         "MEZ",
         "MESZ"
       };

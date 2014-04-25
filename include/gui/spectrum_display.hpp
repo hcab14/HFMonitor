@@ -120,8 +120,8 @@ public:
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
 
-    set_fMin(init_ ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
-    set_fMax(init_ ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
+    set_fMin(init_ && spec.fmin()>0 ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
+    set_fMax(init_ && spec.fmax()>0 ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -364,6 +364,9 @@ public:
   // Hz -> kHz
   int set_fMin(double fMin) { return fMin_.value(1e-3*fMin); }
   int set_fMax(double fMax) { return fMax_.value(1e-3*fMax); }
+
+  void set_sMin(double sMin) { sMin_.value(sMin); }
+  void set_sMax(double sMax) { sMax_.value(sMax); }
 
 protected:
   int ySpecBeg() const { return  0; }
