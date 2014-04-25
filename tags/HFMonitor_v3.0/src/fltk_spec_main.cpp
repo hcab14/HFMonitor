@@ -103,11 +103,11 @@ public:
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port")) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
+    w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
     w_.set_sMin(config.get<double>("<xmlattr>.sMin_dB"));
     w_.set_sMax(config.get<double>("<xmlattr>.sMax_dB"));
-    w_.show();
   }
 
   void process_iq(processor::service_iq::sptr sp,

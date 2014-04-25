@@ -64,7 +64,7 @@ public:
     sMin_.step(5,5); sMin_.range(-140,0); sMin_.value(-70);
     sMax_.step(5,5); sMax_.range(-140,0); sMax_.value(-40);
 
-    fMin_.value( 0); fMax_.value(1);
+    fMin_.value( 0); fMax_.value(40e3);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
     fMin_.when(FL_WHEN_ENTER_KEY);
     fMax_.when(FL_WHEN_ENTER_KEY);
@@ -98,14 +98,12 @@ public:
     case sMax: s->sMin_.maximum(v-2);
       break;
      case fMin:
-//       s->fMin_.value(std::min(v, s->fMax_.value()-.01));
        if (v < 0   ) s->fMin_.value(1.);
        if (v > 40e3) s->fMin_.value(40e3-1.);
        if (s->fMin_.value() >= s->fMax_.value())
          s->fMin_.value(s->fMax_.value()-1);
        break;
     case fMax:
-//       s->fMax_.value(std::max(v, s->sMin_.value()+.01));
        if (v < 0   ) s->fMax_.value(1.);
        if (v > 40e3) s->fMax_.value(40e3-1);
        if (s->fMin_.value() >= s->fMax_.value())
@@ -120,8 +118,8 @@ public:
                    const frequency_vector<T>& spec_filtered,
                    processor::service_iq::sptr sp) {
 
-    set_fMin(init_ && spec.fmin()>0 ? spec.fmin() : std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
-    set_fMax(init_ && spec.fmax()>0 ? spec.fmax() : std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
+    set_fMin(std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
+    set_fMax(std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -362,11 +360,11 @@ public:
   double get_fMax() const { return 1e3*fMax_.value(); }
   double delta_f() const { return get_fMax() - get_fMin(); }
   // Hz -> kHz
-  int set_fMin(double fMin) { return fMin_.value(1e-3*fMin); }
-  int set_fMax(double fMax) { return fMax_.value(1e-3*fMax); }
+  double set_fMin(double fMin) { return fMin_.value(1e-3*fMin); }
+  double set_fMax(double fMax) { return fMax_.value(1e-3*fMax); }
 
-  void set_sMin(double sMin) { sMin_.value(sMin); }
-  void set_sMax(double sMax) { sMax_.value(sMax); }
+  double set_sMin(double sMin) { return sMin_.value(sMin); }
+  double set_sMax(double sMax) { return sMax_.value(sMax); }
 
 protected:
   int ySpecBeg() const { return  0; }
