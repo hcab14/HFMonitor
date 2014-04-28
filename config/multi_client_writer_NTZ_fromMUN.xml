@@ -2,22 +2,25 @@
 <!-- $Id$ -->
 <MultiClient>
   <StationInfo>
-    Station  = BOS
+    Station  = NTZ
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
-  <server host="127.0.0.1"
-	  port="19200">
+  <server host="cpcfcmd.evn.np.kn.nz.dlr.de"
+	  port="40028">
   </server>
-  <FileSink filePath="DataBOS"
+  <FileSink filePath="DataMUN"
             filePeriod="1d">
   </FileSink>
   <Streams>
+<!-- uncomment for recording EFR telegramms
+    <Stream pattern="E.*">Writer</Stream>
+-->
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
   </Streams>
   <Clients>
     <Writer type="WriterTXT"
-            filePath="DataBOS"
+            filePath="DataMUN"
             filePeriod="1d">
     </Writer>
   </Clients>

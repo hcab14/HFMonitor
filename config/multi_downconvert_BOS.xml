@@ -23,15 +23,14 @@
     <Key>TGF_WWVB</Key>
   </Calibration>
   <Processors>
-    <TGF_WWVB name="TGF_WWVB"
-             type="TrackingGoertzel"
-             input="DC_060000_WWVB"
-             f0_Hz="60.0e3"
-             df_Hz="5.0"
-             minDf_Hz=".1"
-             maxHistorySize="100"
-             maxNumWithoutLock="5">
-    </TGF_WWVB>
+    <TrackingGoertzel name="TGF_WWVB"
+                      input="DC_060000_WWVB"
+                      f0_Hz="60.0e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="120"
+                      maxNumWithoutLock="5">
+    </TrackingGoertzel>
   </Processors>
   <Filters>
     <FIR name="DC_016400_JXN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 16.40e3" decim="100"></FIR>
