@@ -14,7 +14,7 @@
   <Broadcaster>
     <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
-          port="8080">
+          port="19200">
     </Data>
   </Broadcaster>
   <Streams>

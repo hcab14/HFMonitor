@@ -75,7 +75,7 @@
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_NAA>
     <DemodMSK_XXX type="DemodMSK"
-                  name="MSK_XXX" fc_Hz="26.00e3" fm_Hz="100.0"
+                  name="MSK_XXX" fc_Hz="25999.9988759835" fm_Hz="100.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
     </DemodMSK_XXX>
     <DemodMSK_TBB type="DemodMSK"
