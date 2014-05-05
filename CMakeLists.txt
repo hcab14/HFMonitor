@@ -73,11 +73,15 @@ INCLUDE_DIRECTORIES(
   ${FFTW3_INCLUDE_DIR}
   )
 
-ADD_LIBRARY(portaudio_cpp portaudio.cpp)
+ADD_LIBRARY(portaudio_cpp SHARED portaudio.cpp)
 LIST(APPEND _libs portaudio_cpp)
 
-ADD_LIBRARY(fifi_control_cpp libusb1.cpp fifi_control.cpp)
+TARGET_LINK_LIBRARIES(portaudio_cpp ${portaudio_LIBRARY})
+
+ADD_LIBRARY(fifi_control_cpp SHARED libusb1.cpp fifi_control.cpp)
 LIST(APPEND _libs fifi_control_cpp)
+
+TARGET_LINK_LIBRARIES(fifi_control_cpp ${libusb-1.0_LIBRARY})
 
 # add targets
 FILE(GLOB files RELATIVE ${CMAKE_HOME_DIRECTORY} "*_main.cpp")
