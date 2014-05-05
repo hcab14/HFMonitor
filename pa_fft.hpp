@@ -48,12 +48,12 @@ public:
          double sample_rate)
     : center_frequency_(config.get<double>("<xmlattr>.centerFrequency_Hz"))
     , sample_rate_(sample_rate)
-    , frames_(sample_rate_/config.get<double>("<xmlattr>.frequencyResolution_Hz"))
+    , frames_(size_t(0.5+sample_rate_/config.get<double>("<xmlattr>.frequencyResolution_Hz")))
     , num_average_(config.get<size_t>("<xmlattr>.numAverage"))
     , fft_(frames_, FFTW_FORWARD, FFTW_ESTIMATE)
     , ps_(config.get<double>("<xmlattr>.frequencyMin_Hz", center_frequency_-0.5*47/48*sample_rate_),
           config.get<double>("<xmlattr>.frequencyMax_Hz", center_frequency_+0.5*47/48*sample_rate_), 
-          sample_rate_, 0)
+          size_t(0.5+sample_rate_), 0)
     , ps_sum_(ps_)
     , counter_(0)
     , saver_(config, config_saver) {}
@@ -100,7 +100,7 @@ public:
       ps_sum_ /= num_average_;
       const ptime now(boost::posix_time::microsec_clock::universal_time());
       const time_duration dt(0, 0, 0,
-                             num_average_/2 * frames_per_buffer/sample_rate_*time_duration::ticks_per_second());
+                             size_t(0.5 + num_average_/2 * frames_per_buffer/sample_rate_*time_duration::ticks_per_second()));
       saver_.save_spectrum(ps_sum_, now-dt);
     }
     return (counter_ == num_average_) ? paAbort : paContinue;

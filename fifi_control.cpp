@@ -162,7 +162,7 @@ namespace FiFiSDR {
     boost::uint32_t d2c(double d) { return boost::uint32_t(d*(1<<N)); }
 
   private:
-    void get_abpf() { set_abpf(255, 0.0); }
+    void get_abpf() { set_abpf(255, 0); }
 
     boost::uint8_t request_type_out() const { 
       return LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE;
@@ -186,6 +186,6 @@ namespace FiFiSDR {
     freq2_ = receiver_control_impl::d2c<21>(freq2*4.);
     pattern_ = pattern; 
   }
-  double receiver_control::presel_entry::freq1() const { return receiver_control_impl::c2d<21>(freq1_/4.); }
-  double receiver_control::presel_entry::freq2() const { return receiver_control_impl::c2d<21>(freq2_/4.); }
+  double receiver_control::presel_entry::freq1() const { return receiver_control_impl::c2d<21>(size_t(freq1_/4.)); }
+  double receiver_control::presel_entry::freq2() const { return receiver_control_impl::c2d<21>(size_t(freq2_/4.)); }
 }

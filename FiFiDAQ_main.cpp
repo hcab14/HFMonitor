@@ -123,7 +123,7 @@ void init(FiFiSDR::receiver_control::sptr rec,
     const receiver_control::presel_entry
       pentry(entry.second.get<double>("<xmlattr>.freqFrom_MHz", 0.),
              entry.second.get<double>("<xmlattr>.freqTo_MHz",   0.),
-             entry.second.get<size_t>("<xmlattr>.pattern",      0.));           
+             entry.second.get<size_t>("<xmlattr>.pattern",      0));           
     if (pentry == pe) {
       LOG_INFO(str(boost::format("preselector entry(%02d) old=%s not changed")
                    % index % pe));
