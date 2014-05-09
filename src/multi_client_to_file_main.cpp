@@ -22,6 +22,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFTProcessor.hpp"
+#include "demod_fsk_processor.hpp"
 #include "demod_msk_processor.hpp"
 #include "network.hpp"
 #include "network/iq_adapter.hpp"
@@ -69,27 +70,16 @@ int main(int argc, char* argv[])
     ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
     const ptree& config_multi_client(config.get_child("MultiClient"));
-    const ptree& config_clients(config.get_child("MultiClient.Clients"));
 
-    // fill spm
-    multi_client_tofile::stream_processor_config_map spcm;
+    // fill spm (stream name -> processor name) multimap
+    multi_client::stream_processor_map spm;
     BOOST_FOREACH(const ptree::value_type& s,
                   config_multi_client.get_child("Streams")) {
       if (s.first != "Stream") {
         LOG_INFO(str(boost::format("ignoring invalid key: '%s'") % s.first));
         continue;
       }
-      const std::string pattern(s.second.get<std::string>("<xmlattr>.pattern"));
-      const std::string name(s.second.get<std::string>(""));
-      const std::string config_key(std::string("Clients.")+name);
-      const ptree::const_assoc_iterator i(config_clients.find(name));
-      if (i == config_clients.not_found()) {
-        LOG_INFO(str(boost::format("configuration for processor '%s' not found") % config_key));
-        continue;
-      }
-      const std::string type(i->second.get<std::string>("<xmlattr>.type"));
-      LOG_INFO(str(boost::format("registering processor '%s' for steam(s) '%s' with config key '%s' of type '%s'") % name % pattern % config_key % type));
-      spcm.insert(std::make_pair(pattern, std::make_pair(type, config_key)));
+      spm.insert(std::make_pair(s.second.get<std::string>("<xmlattr>.pattern"), s.second.get<std::string>("")));
     }
 
     processor::registry::add<writer_txt>("WriterTXT");
@@ -97,6 +87,7 @@ int main(int argc, char* argv[])
     processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
     processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<iq_adapter<demod_msk_processor>   >("DemodMSK");
+    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
 
     multi_client_tofile c(config_multi_client);
 
@@ -104,7 +95,7 @@ int main(int argc, char* argv[])
     BOOST_FOREACH(std::string stream, streams)
       std::cout << "-- " << stream << std::endl;
 
-    ASSERT_THROW(c.connect_to(spcm) == true);
+    ASSERT_THROW(c.connect_to(spm) == true);
 
     c.start();
     run_in_thread(network::get_io_service());

@@ -189,8 +189,8 @@ public:
     }    
     // Processors
     BOOST_FOREACH(const ptree::value_type& p, config.get_child("Processors")) {
+      const std::string type(p.first);
       const std::string name(p.second.get<std::string>("<xmlattr>.name"));
-      const std::string type(p.second.get<std::string>("<xmlattr>.type"));
       const std::string input(p.second.get<std::string>("<xmlattr>.input"));
       processor::base_iq::sptr
         pp(boost::dynamic_pointer_cast<processor::base_iq>(processor::registry::make(type, p.second)));

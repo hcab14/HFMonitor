@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
 <!-- $Id$ -->
 <MultiClient>
   <StationInfo>
     Station  = MUN 
     Computer = vlfmonitor-workstation 2.6.32-431.el6.x86_64 
   </StationInfo>
-  <server host="127.0.0.1"
-	  port="19200">
-  </server>
-  <FileSink filePath="DataMUN"
-            filePeriod="1d">
-  </FileSink>
+  <server host="127.0.0.1" port="19200"/>
+  <FileSink filePath="DataMUN" filePeriod="1d"/>
   <Streams>
 <!-- remove this comment to enable recording of EFR telegrams
     <Stream pattern="E.*">Writer</Stream>
@@ -19,9 +16,6 @@
     <Stream pattern="M.*">Writer</Stream>
   </Streams>
   <Clients>
-    <Writer type="WriterTXT"
-            filePath="DataMUN"
-            filePeriod="1d">
-    </Writer>
+    <WriterTXT proc_name="WriterTXT" filePath="DataMUN" filePeriod="1d"/>
   </Clients>
 </MultiClient>
