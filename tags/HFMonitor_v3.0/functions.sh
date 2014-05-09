@@ -77,6 +77,7 @@ function config_data {
 ## -----------------------------------------------------------------------------
 
 function start_all {
+    mkdir -p Log
     for i in `config_data`; do
 	source $i
 	local status=`check_running $NAME`

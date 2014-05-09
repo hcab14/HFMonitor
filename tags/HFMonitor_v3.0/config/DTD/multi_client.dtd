@@ -1,0 +1,48 @@
+<!-- multi_client configuration -->
+<!-- $Id$ -->
+
+<!ELEMENT MultiClient (StationInfo,Broadcaster*,server,FileSink,Streams,Clients)>
+
+<!-- Station information for headers of data files -->
+<!ELEMENT StationInfo (#PCDATA)>
+
+<!-- Broadcaster configuration: cf. external DTD -->
+<!ENTITY % Broadcaster-DTD SYSTEM "broadcaster.dtd">
+%Broadcaster-DTD;
+
+<!-- Client configuration: cf. external DTD -->
+<!ENTITY % server-DTD SYSTEM "server.dtd">
+%server-DTD;
+
+<!-- file writer configuration -->
+<!ELEMENT FileSink EMPTY>
+<!ATTLIST FileSink filePath   CDATA         #REQUIRED> <!-- path name -->
+<!ATTLIST FileSink filePeriod (1d|1h|5m|1m) #REQUIRED> <!-- time periods -->
+
+<!-- stream configuration -->
+<!ELEMENT Streams (Stream+)>
+<!ELEMENT Stream (#PCDATA)> <!-- processor name -->
+<!ATTLIST Stream pattern CDATA #REQUIRED> <!-- regular expression specifying for which streams the processor should be run-->
+
+<!ELEMENT Clients (WriterTXT|WriterIQ|DemodFSK|DemodMSK|FFT_Processor)*>
+
+<!-- text writer processor configuration: cf. external DTD -->
+<!ENTITY % WriterTXT-DTD SYSTEM "WriterTXT.dtd">
+%WriterTXT-DTD;
+
+<!-- I/Q wav writer processor configuration: cf. external DTD -->
+<!ENTITY % WriterIQ-DTD SYSTEM "WriterIQ.dtd">
+%WriterIQ-DTD;
+
+<!-- DemodFSK processor configuration: cf. external DTD -->
+<!ENTITY % DemodFSK-DTD SYSTEM "DemodFSK.dtd">
+%DemodFSK-DTD;
+
+<!-- DemodMSK processor configuration: cf. external DTD -->
+<!ENTITY % DemodMSK-DTD SYSTEM "DemodMSK.dtd">
+%DemodMSK-DTD;
+
+<!-- FFT_Processor processor configuration: cf. external DTD -->
+<!ENTITY % FFT_Processor-DTD SYSTEM "FFT_Processor.dtd">
+%FFT_Processor-DTD;
+

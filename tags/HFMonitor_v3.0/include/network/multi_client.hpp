@@ -41,13 +41,11 @@ public:
 
   // (regex matching stream names, processor type, config)
   typedef std::string processor_type;
-  typedef std::vector<boost::tuple<boost::regex, processor_type, std::string> > processor_type_map;
+  typedef std::vector<boost::tuple<boost::regex, processor_type, boost::property_tree::ptree> > processor_type_map;
 
-  // stream_name -> processor_type
-  typedef std::multimap<stream_name, processor_type> stream_processor_map;
-
-  // stream_name -> (processor_type, config_id)
-  typedef std::multimap<stream_name, std::pair<processor_type, std::string> > stream_processor_config_map;
+  // stream_name (can be regular expression) -> processor_name
+  typedef std::string processor_name;
+  typedef std::multimap<stream_name, processor_name> stream_processor_map;
 
   // map of results
   typedef std::map<std::string, processor::result_base::sptr> result_map;
@@ -91,17 +89,6 @@ public:
     , config_(config) {}
   virtual ~multi_client() {}
 
-  bool connect_to(const stream_processor_config_map& map) {
-    std::ostringstream stream_names;
-    BOOST_FOREACH(const stream_processor_config_map::value_type& p, map)
-      stream_names << p.first << " ";
-    if (not client_base::connect_to(stream_names.str()))
-      return false;
-    BOOST_FOREACH(const stream_processor_config_map::value_type& p, map) 
-      add_processors(p.first, p.second.first, p.second.second);
-    return true;
-  }
-
   bool connect_to(const stream_processor_map& map) {
     std::ostringstream stream_names;
     BOOST_FOREACH(const stream_processor_map::value_type& p, map)
@@ -114,11 +101,10 @@ public:
   }
   
   bool connect_to(std::string stream_names,
-		  std::string processor_type,
-		  std::string ptree_path="")  { // extra_argument -> key in ptree
+		  std::string processor_name)  {
     if (client_base::connect_to(stream_names) == false)
       return false;
-    add_processors(stream_names, processor_type, ptree_path);
+    add_processors(stream_names, processor_name);
     return true;
   }
 
@@ -152,17 +138,28 @@ public:
   }
 
 protected:
-  void add_processors(std::string stream_names, std::string processor_type, std::string ptree_path="") {
+  typedef std::pair<processor_type, boost::property_tree::ptree> pp_type;
+
+  boost::property_tree::ptree::value_type find_ptree_for_processor(std::string processor_name) {
+    BOOST_FOREACH(const boost::property_tree::ptree::value_type& s, config_.get_child("Clients")) {
+      if (s.second.get<std::string>("<xmlattr>.proc_name") == processor_name)
+        return s;
+    }
+    throw std::runtime_error(str(boost::format("processor defiinition for '%s' not found") % processor_name));
+  }
+
+  // add processors with name processor_name for the streams matcing stream_name
+  void add_processors(std::string stream_names, std::string processor_name) {
+    const boost::property_tree::ptree::value_type s(find_ptree_for_processor(processor_name));    
     std::istringstream iss(stream_names);
     std::string stream_name;
     while (iss >> stream_name)
       processor_type_map_.push_back(boost::make_tuple(boost::regex(stream_name),
-                                                      processor_type,
-                                                      ptree_path));
+                                                      s.first,
+                                                      s.second));
   }
 
   // notifies derived classes of an update of directory
-  typedef std::pair<processor_type,std::string> pp_type;
   virtual void directory_update(const broadcaster_directory& new_directory) {
     // remove processors not present anymore
     for (processor_id_map::iterator i(processor_id_map_.begin()); i!=processor_id_map_.end();) {
@@ -180,14 +177,21 @@ protected:
       // p.first : processor name
       // p.second: to be used path in ptree config
       BOOST_FOREACH(const pp_type& p, ps) {
-        LOG_INFO(str(boost::format("making processor '%s' type='%s' config='%s'")
-                     % str_name % p.first % p.second));
-        processor_id_map_.insert(std::make_pair(str_name, processor::registry::make(p.first, config_.get_child(p.second))));
+        std::ostringstream oss;
+        boost::property_tree::write_xml(oss, p.second);
+        LOG_INFO(str(boost::format("making processor '%s' type='%s' config='%s' ")
+                     % str_name % p.first % oss.str()));
+        // when the configuration contains an attribute "type" use this value for constructing the processor
+        // (used for FFTProcessor only)
+        const std::string& type_attr(p.second.get<std::string>("<xmlattr>.type", ""));
+        processor_id_map_.insert
+          (std::make_pair(str_name, processor::registry::make
+                          (type_attr == "" ? p.first : type_attr, p.second)));
       }
     }
   }
 
-  // returns (processor_type, ptree section name)
+  // returns vector of pairs of (processor_type, ptree)
   std::vector<pp_type> find_type_of_stream(std::string stream_name) const {
     std::vector<pp_type> result;
     for (processor_type_map::const_iterator i(processor_type_map_.begin()), end(processor_type_map_.end()); i!=end; ++i) {
