@@ -1,4 +1,6 @@
 <!-- txt file writer configuration -->
+<!-- $Id$ -->
+
 <!ELEMENT WriterTXT EMPTY>
 <!ATTLIST WriterTXT proc_name  CDATA         #REQUIRED> <!-- processor name -->
 <!ATTLIST WriterTXT filePath   CDATA         #REQUIRED> <!-- path name -->
