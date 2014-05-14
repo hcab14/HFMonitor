@@ -30,72 +30,77 @@
 #include "network/protocol.hpp"
 #include "processor.hpp"
 
-class service_net : public processor::service_base {
-public:
-  typedef boost::shared_ptr<service_net> sptr;
-  virtual ~service_net() {}
-  
-  static sptr make(const header& h,
-                   const broadcaster_directory& d) {
-    sptr result(new service_net(h, d));
-    return result;
-  }
-  
-  virtual std::string     id()            const { return header_.id(); }
-  virtual ptime           approx_ptime()  const { return header_.approx_ptime(); }
-  virtual boost::uint16_t stream_number() const { return header_.stream_number(); }
-  virtual std::string     stream_name()   const { return directory_.stream_name_of(stream_number()); }
+namespace network {
+  namespace client {
 
-  virtual void put_result(processor::result_base::sptr rp) {}
-  virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
+    class service_net : public processor::service_base {
+    public:
+      typedef boost::shared_ptr<service_net> sptr;
+      virtual ~service_net() {}
+  
+      static sptr make(const protocol::header& h,
+                       const broadcaster::directory& d) {
+        sptr result(new service_net(h, d));
+        return result;
+      }
+  
+      virtual std::string     id()            const { return header_.id(); }
+      virtual ptime           approx_ptime()  const { return header_.approx_ptime(); }
+      virtual boost::uint16_t stream_number() const { return header_.stream_number(); }
+      virtual std::string     stream_name()   const { return directory_.stream_name_of(stream_number()); }
 
-protected:
-  service_net(const header& h,
-              const broadcaster_directory& d)
-    : service_base()
-    , header_(h)
-    , directory_(d) {}
-  
-private:
-  header header_;
-  const broadcaster_directory& directory_;
-} ;
+      virtual void put_result(processor::result_base::sptr rp) {}
+      virtual processor::result_base::sptr get_result(std::string name) const { return processor::result_base::sptr();  }
 
-class service_net_iq : public processor::service_iq {
-public:
-  typedef boost::shared_ptr<service_net_iq> sptr;
-  virtual ~service_net_iq() {}
+    protected:
+      service_net(const protocol::header& h,
+                  const broadcaster::directory& d)
+        : service_base()
+        , header_(h)
+        , directory_(d) {}
   
-  static sptr make(processor::service_base::sptr sp, const iq_info& hiq) {
-    sptr result(new service_net_iq(sp, hiq));
-    return result;
-  }
-  
-  virtual std::string     id()                  const { return sp_->id(); }
-  virtual ptime           approx_ptime()        const { return sp_->approx_ptime(); }
-  virtual boost::uint16_t stream_number()       const { return sp_->stream_number(); }
-  virtual std::string     stream_name()         const { return sp_->stream_name(); }
-  virtual boost::uint32_t sample_rate_Hz()      const { return iq_info_.sample_rate_Hz(); }
-  virtual double          center_frequency_Hz() const { return iq_info_.center_frequency_Hz(); }
-  virtual float           offset_ppb()          const { return iq_info_.offset_ppb(); }
-  virtual float           offset_ppb_rms()      const { return iq_info_.offset_ppb_rms(); }
-  
-  virtual void put_result(processor::result_base::sptr rp) {
-    sp_->put_result(rp);
-  }
-  virtual processor::result_base::sptr get_result(std::string name) const {
-    return sp_->get_result(name);
-  }
+    private:
+      protocol::header header_;
+      const broadcaster::directory& directory_;
+    } ;
 
-protected:
-private:
-  service_net_iq(processor::service_base::sptr sp,
-                 const iq_info& hiq)
-    : sp_(sp)
-    , iq_info_(hiq) {}
+    class service_net_iq : public processor::service_iq {
+    public:
+      typedef boost::shared_ptr<service_net_iq> sptr;
+      virtual ~service_net_iq() {}
   
-  processor::base::service::sptr sp_;
-  iq_info iq_info_;
-} ;
+      static sptr make(processor::service_base::sptr sp, const protocol::iq_info& hiq) {
+        sptr result(new service_net_iq(sp, hiq));
+        return result;
+      }
+  
+      virtual std::string     id()                  const { return sp_->id(); }
+      virtual ptime           approx_ptime()        const { return sp_->approx_ptime(); }
+      virtual boost::uint16_t stream_number()       const { return sp_->stream_number(); }
+      virtual std::string     stream_name()         const { return sp_->stream_name(); }
+      virtual boost::uint32_t sample_rate_Hz()      const { return iq_info_.sample_rate_Hz(); }
+      virtual double          center_frequency_Hz() const { return iq_info_.center_frequency_Hz(); }
+      virtual float           offset_ppb()          const { return iq_info_.offset_ppb(); }
+      virtual float           offset_ppb_rms()      const { return iq_info_.offset_ppb_rms(); }
+  
+      virtual void put_result(processor::result_base::sptr rp) {
+        sp_->put_result(rp);
+      }
+      virtual processor::result_base::sptr get_result(std::string name) const {
+        return sp_->get_result(name);
+      }
 
+    protected:
+    private:
+      service_net_iq(processor::service_base::sptr sp,
+                     const protocol::iq_info& hiq)
+        : sp_(sp)
+        , iq_info_(hiq) {}
+  
+      processor::base::service::sptr sp_;
+      protocol::iq_info iq_info_;
+    } ;
+
+  } // namespace client
+} // namespace network
 #endif // _SERVICE_NET_HPP_cm130103_

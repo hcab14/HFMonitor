@@ -171,6 +171,7 @@ public:
     , name_(config.get<std::string>("<xmlattr>.name"))
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
     , fm_Hz_(config.get<double>("<xmlattr>.fm_Hz"))
+    , record_bits_(config.get<bool>("<xmlattr>.recordBits", false))
     , dwl_Hz_(config.get<double>("<xmlattr>.dwl_Hz"))
     , period_Sec_(config.get<double>("<xmlattr>.period_Sec"))
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
@@ -286,7 +287,7 @@ public:
         if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           result_bits_->set_quality(double(signal_present_));
 //           std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
-          if (result_bits_->quality() > 0.5)
+          if (record_bits_ && result_bits_->quality() > 0.5)
             sp->put_result(result_bits_);
           result_bits_.reset();
           signal_present_ = 0;
@@ -369,6 +370,7 @@ private:
   const std::string name_;
   double            fc_Hz_;     // center frequency
   const double      fm_Hz_;     // baud
+  const bool        record_bits_;
   const double      dwl_Hz_;
   const double      period_Sec_;
   const double      min_SN_db_;

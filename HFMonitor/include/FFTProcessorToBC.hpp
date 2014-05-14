@@ -27,7 +27,7 @@ class FFTProcessorToBC : public FFTProcessor<FFTFloat> {
 public:
   FFTProcessorToBC(const boost::property_tree::ptree& config)
     : FFTProcessor<FFTFloat>(config)
-    , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
+    , broadcaster_(network::broadcaster::broadcaster::make(config.get_child("Broadcaster")))
     , started_(false)
     , station_info_(config.get<std::string>("StationInfo")) {}
 
@@ -44,7 +44,7 @@ protected:
     result.second->dumpToBC(path, result.first, broadcaster_, station_info_);
   }
 private:
-  broadcaster::sptr broadcaster_;
+  network::broadcaster::broadcaster::sptr broadcaster_;
   bool              started_;
   std::string       station_info_;
 } ;
