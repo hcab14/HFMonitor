@@ -64,6 +64,12 @@ public:
   }
   virtual ~MyWindow() {}
 
+  void set_fMin(double fMin) { specDisplay_.set_fMin(1e3*fMin); }
+  void set_fMax(double fMax) { specDisplay_.set_fMax(1e3*fMax); }
+
+  void set_sMin(double sMin) { specDisplay_.set_sMin(sMin); }
+  void set_sMax(double sMax) { specDisplay_.set_sMax(sMax); }
+
   spectrum_display& get_spec_display() { return specDisplay_; }
 
 protected:
@@ -98,6 +104,10 @@ public:
     , port_(config.get<std::string>("server.<xmlattr>.port")) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
+    w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
+    w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
+    w_.set_sMin(config.get<double>("<xmlattr>.sMin_dB"));
+    w_.set_sMax(config.get<double>("<xmlattr>.sMax_dB"));
   }
 
   void process_iq(processor::service_iq::sptr sp,
@@ -156,13 +166,17 @@ int main(int argc, char* argv[])
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help,?",                                                       "produce help message")
-    ("version,v",                                                    "display version")
-    ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
-    ("port,p", po::value<std::string>()->default_value("18001"),     "server port")
-    ("stream,s", po::value<std::string>()->default_value("DataIQ"),  "stream name")
-    ("overlap,o", po::value<double>()->default_value(0.),       "buffer overlap")
-    ("delta_t,dt", po::value<double>()->default_value(1.),      "dt (sec)");
+    ("help,?",    "produce help message")
+    ("version,v", "display version")
+    ("host,h",     po::value<std::string>()->default_value("127.0.0.1"), "server hostname")
+    ("port,p",     po::value<std::string>()->default_value("18001"),     "server port")
+    ("stream,s",   po::value<std::string>()->default_value("DataIQ"),    "stream name")
+    ("overlap,o",  po::value<double>()->default_value(   0.),  "buffer overlap (%)")
+    ("delta_t,dt", po::value<double>()->default_value(   1.),  "dt (sec)")
+    ("fMin_kHz",   po::value<double>()->default_value(   0),   "fMin (kHz)")
+    ("fMax_kHz",   po::value<double>()->default_value(  40e3), "fMax (kHz)")
+    ("sMin_dB",    po::value<double>()->default_value( -70),  "sMin (dB)")
+    ("sMax_dB",    po::value<double>()->default_value( -40),  "sMax (dB)");
 
   po::variables_map vm;
   try {
@@ -192,12 +206,15 @@ int main(int argc, char* argv[])
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
     config.put("Repack.<xmlattr>.bufferLength_sec", vm["delta_t"].as<double>());
     config.put("Repack.<xmlattr>.overlap_percent", vm["overlap"].as<double>());
-
+    config.put("<xmlattr>.fMin_kHz", vm["fMin_kHz"].as<double>());
+    config.put("<xmlattr>.fMax_kHz", vm["fMax_kHz"].as<double>());
+    config.put("<xmlattr>.sMin_dB", vm["sMin_dB"].as<double>());
+    config.put("<xmlattr>.sMax_dB", vm["sMax_dB"].as<double>());
     Fl::visual(FL_RGB);
     Fl::lock();
 
     const std::string stream_name(vm["stream"].as<std::string>());
-    client<iq_adapter<repack_processor<test_proc> > > c(config);
+    network::client::client<network::iq_adapter<repack_processor<test_proc> > > c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
