@@ -34,24 +34,29 @@
 
 #include "station_info.hpp"
 
-class multi_client_tofile : public multi_client, public writer_txt_base {
-public:
-  typedef boost::property_tree::ptree ptree;
-  multi_client_tofile(const ptree& config)
-    : multi_client(config)
-    , writer_txt_base(config.get_child("FileSink"))
-    , station_info_(config.get<std::string>("StationInfo")) {}
+namespace network {
+  namespace client {
+    class multi_client_tofile : public multi_client, public writer_txt_base {
+    public:
+      typedef boost::property_tree::ptree ptree;
+      multi_client_tofile(const ptree& config)
+        : multi_client(config)
+        , writer_txt_base(config.get_child("FileSink"))
+        , station_info_(config.get<std::string>("StationInfo")) {}
 
-  virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
-    // result -> file
-    // std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
-    return dump_result(rp, station_info_.to_string());
-  }
+      virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
+        // result -> file
+        // std::cout << "DUMP: " << rp->name() << " " << rp->to_string() << std::endl;
+        return dump_result(rp, station_info_.to_string());
+      }
 
-protected:
-private:
-  station_info station_info_;
-} ;
+    protected:
+    private:
+      station_info station_info_;
+    } ;
+
+  } // namespace client
+} // namespace network
 
 int main(int argc, char* argv[])
 {
@@ -72,7 +77,7 @@ int main(int argc, char* argv[])
     const ptree& config_multi_client(config.get_child("MultiClient"));
 
     // fill spm (stream name -> processor name) multimap
-    multi_client::stream_processor_map spm;
+    network::client::multi_client::stream_processor_map spm;
     BOOST_FOREACH(const ptree::value_type& s,
                   config_multi_client.get_child("Streams")) {
       if (s.first != "Stream") {
@@ -83,13 +88,13 @@ int main(int argc, char* argv[])
     }
 
     processor::registry::add<writer_txt>("WriterTXT");
-    processor::registry::add<iq_adapter<wave::writer_iq      > >("WriterIQ");
-    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
-    processor::registry::add<iq_adapter<demod_msk_processor>   >("DemodMSK");
-    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
+    processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
+    processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<network::iq_adapter<demod_msk_processor>   >("DemodMSK");
+    processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
 
-    multi_client_tofile c(config_multi_client);
+    network::client::multi_client_tofile c(config_multi_client);
 
     const std::set<std::string> streams(c.ls());
     BOOST_FOREACH(std::string stream, streams)

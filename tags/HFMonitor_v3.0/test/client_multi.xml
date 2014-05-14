@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ClientMulti SYSTEM "DTD/client_multi.dtd"> 
+<!-- $Id$ -->
+<!-- this file was used for testing client_multi_base in KRK -->
+<ClientMulti time_granularity_sec="1" synchronization_delay_sec="5">
+  <Servers>
+    <Server name="KRK" host="nz23-18.ifj.edu.pl" port="8080">
+      <Stream pattern="L.*">ProcessorName</Stream>               
+      <Stream pattern="M.*">ProcessorName</Stream>               
+    </Server>
+    <Server name="BOS" host="localhost" port="19026">
+      <Stream pattern="L.*">ProcessorName</Stream>
+      <Stream pattern="M.*">ProcessorName</Stream>
+    </Server>
+  </Servers>
+</ClientMulti>

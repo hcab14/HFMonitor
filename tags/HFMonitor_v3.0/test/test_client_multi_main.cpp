@@ -16,22 +16,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include <iostream>
-#include <boost/filesystem.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
-#include "FFTProcessorToBC.hpp"
-#include "network/client.hpp"
-#include "network/iq_adapter.hpp"
-#include "processor/registry.hpp"
-#include "repack_processor.hpp"
+#include <iostream>
+#include <sstream>
+#include <boost/property_tree/xml_parser.hpp>
+#include "network.hpp"
+#include "network/client/client_multi_base.hpp"
 #include "run.hpp"
 
 int main(int argc, char* argv[])
 {
   boost::program_options::variables_map vm;
   try {
-    vm = process_options("config/FFTProcessor.xml", argc, argv);
+    vm = process_options("config/multi_downconvert.xml", argc, argv);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     return 1;
@@ -41,24 +38,26 @@ int main(int argc, char* argv[])
   LOGGER_INIT("./Log", p.stem().native());
   try {
     boost::property_tree::ptree config;
-    read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
+    read_xml(vm["config"].as<std::string>(), config,
+             boost::property_tree::xml_parser::no_comments);
 
-    processor::registry::add<FFTProcessorToBC<float>  >("FFTProcessorToBC_FLOAT");
-    processor::registry::add<FFTProcessorToBC<double> >("FFTProcessorToBC_DOUBLE");
+    boost::asio::signal_set signals
+      (network::get_io_service(), SIGINT, SIGTERM, SIGQUIT);
+    signals.async_wait
+      (boost::bind
+       (&boost::asio::io_service::stop, boost::ref(network::get_io_service())));
 
-    const std::string stream_name("DataIQ");
-
-    network::client::client<network::iq_adapter<repack_processor<FFTProcessorToBC<double> > > >
-      c(config.get_child("FFTProcessor"));
-
-    const std::set<std::string> streams(c.ls());
-    if (streams.find(stream_name) != streams.end())
-      ASSERT_THROW(c.connect_to(stream_name) == true);
-    else
-      throw std::runtime_error(str(boost::format("stream '%s' is not available")
-                                   % stream_name));
+    network::client::client_multi_base c(network::get_io_service(), config);
     c.start();
-    run_in_thread(network::get_io_service());
+
+    boost::thread_group threadpool;    
+    for (size_t i(0); i<4; ++i)
+      threadpool.create_thread
+        (boost::bind
+         (&boost::asio::io_service::run,
+          boost::ref(network::get_io_service())));
+
+    threadpool.join_all();
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;

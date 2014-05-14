@@ -21,9 +21,9 @@
 
 #include <stdexcept>
 #include <boost/current_function.hpp>
-#include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/format.hpp>
 
 #include "gen_filename.hpp"
 
@@ -105,7 +105,7 @@ namespace logging {
     static sptr lp(l);
     return lp;
   }
-    
+
   protected:    
   private:
     logger(std::string basePath,

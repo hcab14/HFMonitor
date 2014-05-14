@@ -24,6 +24,7 @@
 #include <sstream>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/foreach.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
 #include <boost/shared_ptr.hpp>
@@ -31,99 +32,100 @@
 #include "logging.hpp"
 #include "network/protocol.hpp"
 
-// -----------------------------------------------------------------------------
-// broadcaster_directory
-//  * hold a set of data streams
+namespace network {
+  namespace broadcaster {
+    // -----------------------------------------------------------------------------
+    // broadcaster directory
+    //  * hold a set of data streams
+    class directory {
+    public:
+      typedef boost::posix_time::ptime ptime;
+      typedef boost::shared_ptr<directory> sptr;
+      typedef std::string index_type;
+      typedef std::map<index_type, boost::uint32_t> directory_map;  // name -> unique stream number
+      typedef directory_map::const_iterator const_iterator;
 
-class broadcaster_directory {
-public:
-  typedef boost::posix_time::ptime ptime;
-  typedef boost::shared_ptr<broadcaster_directory> sptr;
-  typedef std::string index_type;
-  typedef std::map<index_type, boost::uint32_t> directory_map;  // name -> unique stream number
-  typedef directory_map::const_iterator const_iterator;
+      // returns new stream id and a flag indicating if a new entry has been added
+      std::pair<boost::uint32_t, bool> 
+      insert(index_type name) {
+        static boost::uint32_t unique_stream_number(1); // stream number 0 -> directory
+        const_iterator i(directory_.find(name));
+        if (i != end()) return std::make_pair(i->second, false);
+        directory_.insert(std::make_pair(name, unique_stream_number));
+        return std::make_pair(unique_stream_number++, true);
+      }
+      void insert(index_type name,
+                  boost::uint32_t unique_stream_number) {
+        assert(contains(name) == false);
+        directory_.insert(std::make_pair(name, unique_stream_number));
+      }
 
-  // static sptr make() { return sptr(new broadcaster_directory); }
+      static std::string id() { return "DIR_0000"; }
 
-  // returns new stream id and a flag indicating if a new entry has been added
-  std::pair<boost::uint32_t, bool> 
-  insert(index_type name) {
-    static boost::uint32_t unique_stream_number(1); // stream number 0 -> directory
-    const_iterator i(directory_.find(name));
-    if (i != end()) return std::make_pair(i->second, false);
-    directory_.insert(std::make_pair(name, unique_stream_number));
-    return std::make_pair(unique_stream_number++, true);
-  }
-  void insert(index_type name,
-              boost::uint32_t unique_stream_number) {
-    assert(contains(name) == false);
-    directory_.insert(std::make_pair(name, unique_stream_number));
-  }
+      std::string serialize(ptime t) const {
+        std::string bytes_dir;
+        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
+          bytes_dir += protocol::directory_entry::serialize(i->second, i->first);
+        return bytes_dir;
+      }
 
-  static std::string id() { return "DIR_0000"; }
+      void update(size_t n, const char* bytes) {
+        directory_.clear();
+        size_t i(0);
+        while (i < n) {
+          const protocol::directory_entry* de(reinterpret_cast<const protocol::directory_entry* >(bytes+i));
+          const std::string name(bytes+i+protocol::directory_entry::name_offset(),
+                                 bytes+i+protocol::directory_entry::name_offset() + de->length_of_name());
+          LOG_INFO(str(boost::format("directory::update (%04d,%d)") % de->stream_number() % name));
+          directory_.insert(std::make_pair(name, de->stream_number()));
+          i += de->size();
+        }
+        assert(i == n);
+      }
 
-  std::string serialize(ptime t) const {
-    std::string bytes_dir;
-    for (const_iterator i(begin()); i!=end(); ++i)
-      bytes_dir += directory_entry::serialize(i->second, i->first);
-    return bytes_dir;
-  }
+      bool contains(index_type name) const {
+        return directory_.find(name) != end();
+      }
+      bool contains(const boost::regex& e) const {
+        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
+          if (regex_match(i->first, e)) return true;
+        return regex_match("", e);
+      }
 
-  void update(size_t n, const char* bytes) {
-    directory_.clear();
-    size_t i(0);
-    while (i < n) {
-      const directory_entry* de(reinterpret_cast<const directory_entry* >(bytes+i));
-      const std::string name(bytes+i+directory_entry::name_offset(),
-                             bytes+i+directory_entry::name_offset() + de->length_of_name());
-      LOG_INFO(str(boost::format("directory::update (%04d,%d)") % de->stream_number() % name));
-      directory_.insert(std::make_pair(name, de->stream_number()));
-      i += de->size();
-    }
-    assert(i == n);
-  }
+      boost::uint32_t stream_number_of(index_type name) const {
+        const_iterator i(directory_.find(name));
+        assert(i != end());
+        return i->second;
+      }
 
-  bool contains(index_type name) const {
-    return directory_.find(name) != end();
-  }
-  bool contains(const boost::regex& e) const {
-    for (const_iterator i(begin()); i!=end(); ++i)
-      if (regex_match(i->first, e)) return true;
-    return regex_match("", e);
-  }
+      std::string stream_name_of(boost::uint32_t number) const {
+        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
+          if (i->second == number) return i->first;
+        throw std::runtime_error("no stream associated with this stream number");
+      }
 
-  boost::uint32_t stream_number_of(index_type name) const {
-    const_iterator i(directory_.find(name));
-    assert(i != end());
-    return i->second;
-  }
+      std::string ls() const {
+        std::ostringstream oss;
+        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
+          oss << i->first << " " << i->second << "\n";
+        oss << "\r\n";
+        return oss.str();
+      }
 
-  std::string stream_name_of(boost::uint32_t number) const {
-    for (const_iterator i(directory_.begin()); i!=directory_.end(); ++i)
-      if (i->second == number) return i->first;
-    throw std::runtime_error("no stream associated with this stream number");
-  }
-
-  std::string ls() const {
-    std::ostringstream oss;
-    for (const_iterator i(begin()); i!=end(); ++i)
-      oss << i->first << " " << i->second << "\n";
-    oss << "\r\n";
-    return oss.str();
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const broadcaster_directory& d) {
-    for (broadcaster_directory::const_iterator i(d.begin()); i!=d.end() && os; ++i)
-      os << i->first << " (" << i->second << ") ";
-    return os;
-  }
+      friend std::ostream& operator<<(std::ostream& os, const directory& d) {
+        for (directory::const_iterator i(d.begin()), iend(d.end()); i!=iend && os; ++i)
+          os << i->first << " (" << i->second << ") ";
+        return os;
+      }
   
-  const_iterator begin() const { return directory_.begin(); }
-  const_iterator end()   const { return directory_.end(); }
-protected:
+      const_iterator begin() const { return directory_.begin(); }
+      const_iterator end()   const { return directory_.end(); }
+    protected:
 
-private:
-  directory_map directory_;
-} ;
+    private:
+      directory_map directory_;
+    } ;
 
+  } // namespace broadcaster
+} // namespace network
 #endif // _BROADCASTER_DIRECTORY_HPP_cm111222_

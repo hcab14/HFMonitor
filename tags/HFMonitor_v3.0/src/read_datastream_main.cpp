@@ -36,7 +36,6 @@
 #include "demod_msk_processor.hpp"
 #include "tracking_goertzel_processor.hpp"
 #include "processor/registry.hpp"
-#include "network/iq_adapter.hpp"
 
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
@@ -60,12 +59,13 @@ public:
     : processor_(pp) {}
   ~read_datastream() {}
 
-  class service_read_data_stream : public service_net {
+  class service_read_data_stream : public network::client::service_net {
   public:
     typedef boost::shared_ptr<service_read_data_stream> sptr;
     virtual ~service_read_data_stream() {}
 
-    static sptr make(const header& h, const broadcaster_directory& d) {
+    static sptr make(const network::protocol::header& h,
+		     const network::broadcaster::directory& d) {
       return sptr(new service_read_data_stream(h, d));
     }
 
@@ -75,7 +75,8 @@ public:
     }
     
   protected:
-    service_read_data_stream(const header& h, const broadcaster_directory& d)
+    service_read_data_stream(const network::protocol::header& h,
+			     const network::broadcaster::directory& d)
       : service_net(h, d) {}
 
     std::string make_time_label(ptime t) const {
@@ -93,7 +94,7 @@ public:
     std::ifstream ifs(filename.c_str(), std::ios::binary);
     while (ifs) {
       try {
-	header_ = detail::readT<header>(ifs);
+	header_ = detail::readT<network::protocol::header>(ifs);
 	if (header_.length()) {
 	  std::string bytes(" ", header_.length());
 	  ifs.read(&bytes[0], header_.length());
@@ -102,7 +103,8 @@ public:
 	  } else {
 	    if (processor_) {
 	      // make up service object
-	      processor::service_base::sptr sp(service_read_data_stream::make(get_header(), get_directory()));
+	      processor::service_base::sptr sp
+		(service_read_data_stream::make(get_header(), get_directory()));
 	      processor_->process(sp, &bytes[0], &bytes[0]+header_.length());
 	    }
 	  }
@@ -118,13 +120,13 @@ public:
   }
 
 protected:
-  const broadcaster_directory& get_directory() const { return directory_; }
-  const header& get_header() const { return header_; }
+  const network::broadcaster::directory& get_directory() const { return directory_; }
+  const network::protocol::header& get_header() const { return header_; }
 
 private:
-  broadcaster_directory directory_;
-  header                header_;
-  processor::base::sptr processor_;
+  network::broadcaster::directory directory_;
+  network::protocol::header       header_;
+  processor::base::sptr           processor_;
 } ;
 
 int main(int argc, char* argv[])
@@ -169,11 +171,11 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
-    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
-    processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
-    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
-    processor::registry::add<iq_adapter<tracking_goertzel_processor> >("TrackingGoertzel");
+    processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<network::iq_adapter<demod_msk_processor  > >("DemodMSK");
+    processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
+    processor::registry::add<network::iq_adapter<tracking_goertzel_processor> >("TrackingGoertzel");
 
     const boost::property_tree::ptree& processor_config(config.get_child(vm["key"].as<std::string>()));
     
