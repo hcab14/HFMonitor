@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     config.put("server.<xmlattr>.host", vm["host"].as<std::string>());
     config.put("server.<xmlattr>.port", vm["port"].as<std::string>());
 
-    client_base c(network::get_io_service(), config);
+    network::client::client_base c(network::get_io_service(), config);
 
     const std::set<std::string> streams(c.ls());
     BOOST_FOREACH (std::string s, streams) {

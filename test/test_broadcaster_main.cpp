@@ -26,11 +26,11 @@
 class test_bc {
 public:
   typedef boost::shared_ptr<test_bc> sptr;
-  typedef data_connection::ptime ptime;
+  typedef network::broadcaster::data_connection::ptime ptime;
   typedef std::string data_type;
   
   test_bc(const boost::property_tree::ptree& config)
-    : bc_(broadcaster::make(config)) {
+    : bc_(network::broadcaster::broadcaster::make(config)) {
   }
 
   static sptr make(const boost::property_tree::ptree& config) {
@@ -47,17 +47,17 @@ public:
     std::string message2("Hello World!");
     std::string message3("Howdy?");
 
-    header h1("TEST0001", last_callback_time_, 0, message1.size());
+    network::protocol::header h1("TEST0001", last_callback_time_, 0, message1.size());
     std::string data1;
     std::copy(h1.begin(), h1.end(), std::back_inserter(data1));
     std::copy(message1.begin(), message1.end(), std::back_inserter(data1));
 
-    header h2("TEST0002", last_callback_time_, 0, message2.size());
+    network::protocol::header h2("TEST0002", last_callback_time_, 0, message2.size());
     std::string data2;
     std::copy(h2.begin(), h2.end(), std::back_inserter(data2));
     std::copy(message2.begin(), message2.end(), std::back_inserter(data2));
 
-    header h3("TEST0003", last_callback_time_, 0, message3.size());
+    network::protocol::header h3("TEST0003", last_callback_time_, 0, message3.size());
     std::string data3;
     std::copy(h3.begin(), h3.end(), std::back_inserter(data3));
     std::copy(message3.begin(), message3.end(), std::back_inserter(data3));
@@ -69,7 +69,7 @@ public:
 
 protected:
 private:
-  broadcaster::sptr bc_;
+  network::broadcaster::broadcaster::sptr bc_;
   ptime last_callback_time_;
 } ;
 

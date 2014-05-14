@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
     Fl::lock();
 
     const std::string stream_name(vm["stream"].as<std::string>());
-    client<iq_adapter<repack_processor<test_proc> > > c(config);
+    network::client::client<network::iq_adapter<repack_processor<test_proc> > > c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())

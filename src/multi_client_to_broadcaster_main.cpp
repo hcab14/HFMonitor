@@ -34,50 +34,55 @@
 #include "writer.hpp"
 #include "station_info.hpp"
 
-class multi_client_to_broadcaster : public multi_client {
-public:
-  typedef boost::property_tree::ptree ptree;
-  multi_client_to_broadcaster(const ptree& config)
-    : multi_client(config)
-    , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
-    , started_(false)
-    , station_info_(config.get<std::string>("StationInfo")) {}
+namespace network {
+  namespace client {
+    class multi_client_to_broadcaster : public multi_client {
+    public:
+      typedef boost::property_tree::ptree ptree;
+      multi_client_to_broadcaster(const ptree& config)
+        : multi_client(config)
+        , broadcaster_(broadcaster::broadcaster::make(config.get_child("Broadcaster")))
+        , started_(false)
+        , station_info_(config.get<std::string>("StationInfo")) {}
 
-  virtual ~multi_client_to_broadcaster() {}
+      virtual ~multi_client_to_broadcaster() {}
 
-protected:
-  virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
-//     LOG_INFO(str(boost::format("multi_client_to_broadcaster::dump: %s %s") % rp->name() % rp->to_string()));
-    if (not started_) {
-      broadcaster_->start();
-      started_= true;
-    }
+    protected:
+      virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
+        //     LOG_INFO(str(boost::format("multi_client_to_broadcaster::dump: %s %s") % rp->name() % rp->to_string()));
+        if (not started_) {
+          broadcaster_->start();
+          started_= true;
+        }
 
-    std::ostringstream oss_header;
-    oss_header << station_info_;
-    rp->dump_header(oss_header);
-    std::string header_str(oss_header.str());
+        std::ostringstream oss_header;
+        oss_header << station_info_;
+        rp->dump_header(oss_header);
+        std::string header_str(oss_header.str());
 
-    std::ostringstream oss_data;
-    rp->dump_data(oss_data);
-    std::string data_str(oss_data.str());
+        std::ostringstream oss_data;
+        rp->dump_data(oss_data);
+        std::string data_str(oss_data.str());
     
-    broadcaster_->bc_data(rp->approx_ptime(), rp->name(), rp->format(), data_str, header_str);
-    return rp;
-  }
+        broadcaster_->bc_data(rp->approx_ptime(), rp->name(), rp->format(), data_str, header_str);
+        return rp;
+      }
 
-  virtual void dump_wav(processor::service_base::ptime t, std::string str_name,
-                        data_buffer_type::const_iterator begin,
-                        data_buffer_type::const_iterator end) {
-    std::string data(begin, end);
-    broadcaster_->bc_data(t, str_name, "WAV_0000", data);
-  }
+      virtual void dump_wav(processor::service_base::ptime t, std::string str_name,
+                            data_buffer_type::const_iterator begin,
+                            data_buffer_type::const_iterator end) {
+        std::string data(begin, end);
+        broadcaster_->bc_data(t, str_name, "WAV_0000", data);
+      }
 
-private:
-  broadcaster::sptr broadcaster_;
-  bool              started_;
-  station_info      station_info_;
-} ;
+    private:
+      broadcaster::broadcaster::sptr broadcaster_;
+      bool         started_;
+      station_info station_info_;
+    } ;
+
+  } // namespace client
+} // namespace network
 
 int main(int argc, char* argv[])
 {
@@ -98,7 +103,7 @@ int main(int argc, char* argv[])
     const ptree& config_multi_client(config.get_child("MultiClient"));
 
     // fill spm (stream name -> processor name) multimap
-    multi_client::stream_processor_map spm;
+    network::client::multi_client::stream_processor_map spm;
     BOOST_FOREACH(const ptree::value_type& s,
                   config_multi_client.get_child("Streams")) {
       if (s.first != "Stream") {
@@ -109,13 +114,13 @@ int main(int argc, char* argv[])
     }
 
     processor::registry::add<writer_txt>("WriterTXT");
-    processor::registry::add<iq_adapter<wave::writer_iq>     >("WriterIQ");
-    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
-    processor::registry::add<iq_adapter<demod_msk_processor  > >("DemodMSK");
-    processor::registry::add<iq_adapter<demod_fsk_processor  > >("DemodFSK");
+    processor::registry::add<network::iq_adapter<wave::writer_iq>     >("WriterIQ");
+    processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<network::iq_adapter<demod_msk_processor  > >("DemodMSK");
+    processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
 
-    multi_client_to_broadcaster c(config_multi_client);
+    network::client::multi_client_to_broadcaster c(config_multi_client);
 
     const std::set<std::string> streams(c.ls());
     BOOST_FOREACH(std::string stream, streams)

@@ -49,7 +49,7 @@ public:
 
   multi_downconvert_toBC(const boost::property_tree::ptree& config)
     : multi_downconvert_processor<FFTFloat>(config)
-    , broadcaster_(broadcaster::make(config.get_child("Broadcaster")))
+    , broadcaster_(network::broadcaster::broadcaster::make(config.get_child("Broadcaster")))
     , started_(false)
     , station_info_(config.get<std::string>("StationInfo")) {}
 
@@ -70,12 +70,13 @@ protected:
       si = wave::detail::write_real_sample(si, 8*bytes_per_sample, i->real());
       si = wave::detail::write_real_sample(si, 8*bytes_per_sample, i->imag());
     }
-    const iq_info h_iq(sp->sample_rate_Hz(),
-                       sp->center_frequency_Hz(),
-                       'I', bytes_per_sample, sp->offset_ppb(), sp->offset_ppb_rms());
-    std::string data(sizeof(iq_info)+s.size(), 0);
+    const network::protocol::iq_info h_iq
+      (sp->sample_rate_Hz(),
+       sp->center_frequency_Hz(),
+       'I', bytes_per_sample, sp->offset_ppb(), sp->offset_ppb_rms());
+    std::string data(sizeof(network::protocol::iq_info)+s.size(), 0);
     std::copy(h_iq.begin(), h_iq.end(), data.begin());
-    std::copy(s.begin(), s.end(), data.begin()+sizeof(iq_info));
+    std::copy(s.begin(), s.end(), data.begin()+sizeof(network::protocol::iq_info));
     broadcaster_->bc_data(sp->approx_ptime(), sp->stream_name(), "WAV_0000", data);
   }
   
@@ -96,7 +97,7 @@ protected:
   }
 
 private:
-  broadcaster::sptr broadcaster_;
+  network::broadcaster::broadcaster::sptr broadcaster_;
   bool              started_;
   station_info      station_info_;
 } ;
@@ -118,15 +119,15 @@ int main(int argc, char* argv[])
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
     processor::registry::add<writer_txt>("WriterTXT");
-    processor::registry::add<iq_adapter<wave::writer_iq      > >("WriterIQ");
-    processor::registry::add<iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
+    processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
+    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<tracking_goertzel_processor>("TrackingGoertzel");
 
     const std::string stream_name(config.get<std::string>
                                   ("MultiDownConverter.server.<xmlattr>.stream_name", "DataIQ"));
 
-    client<iq_adapter<repack_processor<multi_downconvert_toBC<double> > > >
+    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<double> > > >
       c(config.get_child("MultiDownConverter"));
         
     const std::set<std::string> streams(c.ls());
