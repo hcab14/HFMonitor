@@ -11,12 +11,7 @@ SET(CPACK_GENERATOR "RPM")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Christoph Mayer") #required
 INCLUDE(CPack)
 
-IF(APPLE)
-  EXEC_PROGRAM("echo `/opt/local/bin/svnversion ${CMAKE_HOME_DIRECTORY}` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Author:/ {print $4}'` `/opt/local/bin/svn info ${CMAKE_HOME_DIRECTORY} | awk '/^Last Changed Date:/ {print $4, $5, $6}'`" OUTPUT_VARIABLE SVN_VERSION_STRING)
-ELSE(APPLE)
-  EXEC_PROGRAM("${CMAKE_HOME_DIRECTORY}/get_svn_version_string.sh ${CMAKE_HOME_DIRECTORY}" OUTPUT_VARIABLE SVN_VERSION_STRING)
-ENDIF(APPLE)
-
+EXEC_PROGRAM("${CMAKE_HOME_DIRECTORY}/get_svn_version_string.sh ${CMAKE_HOME_DIRECTORY}" OUTPUT_VARIABLE SVN_VERSION_STRING)
 MESSAGE("VERSION=${SVN_VERSION_STRING}")
 
 SET(SVN_VERSION_STRING \\\"${SVN_VERSION_STRING}\\\")
@@ -53,7 +48,7 @@ ELSE(APPLE)
 ENDIF(APPLE)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread filesystem date_time regex program_options system)
+FIND_PACKAGE(Boost 1.55 REQUIRED COMPONENTS filesystem date_time regex program_options system  coroutine thread context )
 LIST(APPEND _libs ${Boost_LIBRARIES})
 IF(!APPLE)
   LIST(APPEND _libs rt)

@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
     config.put("Channels.EU.<xmlattr>.fWidth_kHz", vm["fWidth"].as<double>());
 
     const std::string stream_name(vm["stream"].as<std::string>());
-    client<iq_adapter<repack_processor<carrier_monitor_processor> > > c(config);
+    network::client::client<network::iq_adapter<repack_processor<carrier_monitor_processor> > > c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
