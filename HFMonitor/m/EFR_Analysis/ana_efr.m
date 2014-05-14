@@ -5,8 +5,8 @@ function [a,dns]=ana_efr
   stns = {"L2.129100_EFR_Mainflingen", ...
 	  "L2.135600_EFR_Lakihegy", ...
 	  "L2.139000_EFR_Burg"};  
-  for year=2012:2013
-    for i=3:length(stns)
+  for year=2013
+    for i=1:length(stns)-1
       [a,dns] = proc_year(stns{i}, year);
       save(sprintf("%d_%s.mat", year, stns{i}), "a", "dns");
     endfor
