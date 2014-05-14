@@ -61,8 +61,8 @@ private:
 //  * data is taken out of the buffer and sent to the broadcaster
 class bridge {
 public:
-  bridge(buffer<std::string>::sptr       buffer,
-         broadcaster::sptr               broadcaster,
+  bridge(buffer<std::string>::sptr buffer,
+         network::broadcaster::broadcaster::sptr broadcaster,
          Perseus::receiver_control::sptr receiver)
     : buffer_(buffer)
     , broadcaster_(broadcaster)
@@ -96,9 +96,10 @@ protected:
   void broadcast_data() {
     boost::mutex::scoped_lock lock(*mutex_);
     // make up data packet
-    const iq_info header_iq(receiver_->get_sample_rate(),
-                            receiver_->get_center_frequency_hz(),
-                            'I', 3, 0);
+    const network::protocol::iq_info
+      header_iq(receiver_->get_sample_rate(),
+                receiver_->get_center_frequency_hz(),
+                'I', 3, 0);
     const std::string stream_name("DataIQ");
     std::string d(sizeof(header_iq)+data_.second.size(), 0);
     std::copy(header_iq.begin(),    header_iq.end(),    d.begin());
@@ -109,7 +110,7 @@ protected:
 
 private:
   buffer<std::string>::sptr       buffer_;
-  broadcaster::sptr               broadcaster_;
+  network::broadcaster::broadcaster::sptr broadcaster_;
   boost::asio::strand&            strand_;
   Perseus::receiver_control::sptr receiver_;
   bool                            do_run_;
@@ -167,7 +168,7 @@ int main(int argc, char* argv[])
 
     if (index != -1) {
       std::vector<boost::shared_ptr<boost::thread> > threads;
-      broadcaster::sptr bc;
+      network::broadcaster::broadcaster::sptr bc;
       buffer<std::string>::sptr buf;
       Perseus::receiver_control::sptr rec;
       {
@@ -176,7 +177,7 @@ int main(int argc, char* argv[])
         w.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);        
 
         const boost::property_tree::ptree& config_broadcaster(config_perseus.get_child("Broadcaster"));
-        bc = broadcaster::make(config_broadcaster);
+        bc = network::broadcaster::broadcaster::make(config_broadcaster);
 
         bc->start();
 

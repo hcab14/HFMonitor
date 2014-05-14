@@ -77,24 +77,25 @@ public:
       }
 
       const std::string sd(directory_.serialize(sp->approx_ptime()));
-      const header h(directory_.id(), sp->approx_ptime(), 0, sd.size());
+      const network::protocol::header h(directory_.id(), sp->approx_ptime(), 0, sd.size());
       std::copy(h.begin(),  h.end(),  std::ostream_iterator<char>(ofs, ""));
       std::copy(sd.begin(), sd.end(), std::ostream_iterator<char>(ofs, ""));
       pos_ = ofs.tellp();
     }
     std::ofstream ofs(filepath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
     ofs.seekp(pos_);
-    const header h(sp->id(), sp->approx_ptime(), stream_number_, std::distance(begin, end));
+    const network::protocol::header h
+      (sp->id(), sp->approx_ptime(), stream_number_, std::distance(begin, end));
     std::copy(h.begin(), h.end(), std::ostream_iterator<char>(ofs, ""));
     std::copy(begin,     end,     std::ostream_iterator<char>(ofs, ""));
     pos_ = ofs.tellp();      
   }
 private:
-  std::string               base_path_;
-  gen_filename::file_period file_period_;
-  std::streampos            pos_;    
-  broadcaster_directory     directory_;
-  boost::uint32_t           stream_number_;
+  std::string                     base_path_;
+  gen_filename::file_period       file_period_;
+  std::streampos                  pos_;    
+  network::broadcaster::directory directory_;
+  boost::uint32_t                 stream_number_;
 } ;
 
 int main(int argc, char* argv[])
@@ -140,7 +141,7 @@ int main(int argc, char* argv[])
     config.put("<xmlattr>.filePeriod",  vm["period"].as<std::string>());
 
     const std::string stream_name(vm["stream"].as<std::string>());
-    client<save_datastream> c(config);
+    network::client::client<save_datastream> c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
