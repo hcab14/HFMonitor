@@ -83,7 +83,7 @@ public:
       for (const_iterator i(begin()+3); i!=end(); ++i)
         os << boost::format("%02X") % int(*i);
 
-      static char* weekdays[] = {
+      static const char* weekdays[] = {
         "___",
         "Mon",
         "Tue",
@@ -93,7 +93,7 @@ public:
         "Sat",
         "Sun"
       };
-      static char* time_zones[] = {
+      static const char* time_zones[] = {
         "MEZ",
         "MESZ"
       };
@@ -271,7 +271,7 @@ public:
               const double dt_sec(-1.5*early_late_synch_.period() / fs);
               const time_duration
                 dt(0,0,0, boost::int64_t(0.5 + (std::distance(i0, i)/double(sp->sample_rate_Hz()) - 11.*length/baud_ + dt_sec)*time_duration::ticks_per_second()));
-              
+#if 0              
               std::cout << "EFR: len,dt,fs,dt_sec,dt_len_sec = "
                         << length << " "
                         << std::distance(i0, i)/double(sp->sample_rate_Hz()) << " "
@@ -279,7 +279,7 @@ public:
                         << dt_sec << " "
                         << 11.*length/baud_ << " "
                         << std::endl;
-
+#endif
               result_data::sptr result_data =
                 result_data::make(name_ + "_data", sp->approx_ptime()+dt, fc_Hz(), fs_Hz(), baud());
               for (decode::efr::data_vector_type::const_iterator i(decoder_->begin()), end(decoder_->end()); i!=end; ++i)

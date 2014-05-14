@@ -40,7 +40,8 @@ process_options(std::string default_config_file,
   desc.add_options()
     ("help,?", "produce help message")
     ("version,v", "display version")
-    ("config,c", po::value<std::string>()->default_value(default_config_file), "path to XML configuration file");
+    ("config,c", po::value<std::string>()->default_value(default_config_file),
+     "path to XML configuration file");
   
   po::variables_map vm;
   try {
@@ -93,7 +94,10 @@ public:
     while (sigtimedwait(&_wait_mask, &siginfo, &ts) < 0) {
       switch (errno) {
       case EAGAIN: // no signal in _wait_mask occured during time period: check if service is still alive
-        if (_service.stopped()) return; 
+        if (_service.stopped()) {
+          std::cout << "_service.stopped()\n";
+          return; 
+        }
       case EINTR: // interrupted by a signal other than in _wait_mask: ignore
         break;
       case EINVAL: // invalid timeout
@@ -118,6 +122,11 @@ private:
   sigset_t _wait_mask;
 } ;
 
+boost::thread_group& get_thread_pool() {
+  static boost::thread_group threadpool;
+  return threadpool;
+}
+
 // run the io service in a backgroud thread until
 //  - it is stopped
 //  - a signal is caught
@@ -127,7 +136,10 @@ void run_in_thread(boost::asio::io_service& io_service) {
   {
     wait_for_signal s(io_service);
     s.add_signal(SIGINT).add_signal(SIGQUIT).add_signal(SIGTERM);
-    tp = thread_sptr(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
+    tp = thread_sptr(new boost::thread
+                     (boost::bind
+                      (&boost::asio::io_service::run,
+                       &io_service)));
   }
   io_service.stop();
   tp->join();
