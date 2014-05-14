@@ -172,8 +172,8 @@ namespace network {
             ++i;
         }
         // construct new processors, if needed
-        for (broadcaster::directory::const_iterator i(new_directory.begin()); i!=new_directory.end(); ++i) {
-          const stream_name str_name(i->first);
+        for (broadcaster::directory::const_iterator i(new_directory.begin()), iend(new_directory.end()); i!=iend; ++i) {
+          stream_name str_name(i->first);
           // if not found: make new
           if (processor_id_map_.find(str_name) != processor_id_map_.end()) continue;
           const std::vector<pp_type> ps(find_type_of_stream(str_name));
@@ -186,10 +186,8 @@ namespace network {
                          % str_name % p.first % oss.str()));
             // when the configuration contains an attribute "type" use this value for constructing the processor
             // (used for FFTProcessor only)
-            const std::string& type_attr(p.second.get<std::string>("<xmlattr>.type", ""));
-            processor_id_map_.insert
-              (std::make_pair(str_name, processor::registry::make
-                              (type_attr == "" ? p.first : type_attr, p.second)));
+            std::string type_attr(p.second.get<std::string>("<xmlattr>.type", p.first));
+            processor_id_map_.insert(std::make_pair(str_name, processor::registry::make(type_attr, p.second)));
           }
         }
       }

@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 
     const std::string stream_name("DataIQ");
 
-    client<iq_adapter<repack_processor<test_proc> > >
+    network::client::client<network::iq_adapter<repack_processor<test_proc> > >
       c(config.get_child("Server"));
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
