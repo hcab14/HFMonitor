@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
 <!-- $Id$ -->
 <MultiClient>
   <StationInfo>
     Station  = NTZ
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
-  <server host="cpcfcmd.evn.np.kn.nz.dlr.de"
-	  port="40028">
-  </server>
-  <FileSink filePath="DataMUN"
-            filePeriod="1d">
-  </FileSink>
+  <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40028"/>
+  <FileSink filePath="DataMUN" filePeriod="1d"/>
   <Streams>
 <!-- uncomment for recording EFR telegramms
     <Stream pattern="E.*">Writer</Stream>
@@ -19,9 +16,6 @@
     <Stream pattern="M.*">Writer</Stream>
   </Streams>
   <Clients>
-    <Writer type="WriterTXT"
-            filePath="DataMUN"
-            filePeriod="1d">
-    </Writer>
+    <WriterTXT proc_name="Writer" filePath="DataMUN" filePeriod="1d"/>
   </Clients>
 </MultiClient>

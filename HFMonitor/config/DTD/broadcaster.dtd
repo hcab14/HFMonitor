@@ -1,0 +1,15 @@
+<!-- Broadcaster configuration -->
+<!-- $Id$ -->
+
+<!ELEMENT Broadcaster (Data,Ctrl?)>
+<!ATTLIST Broadcaster threadPoolSize CDATA #IMPLIED> <!-- number of threads used by the broadcaster -->
+
+<!-- Broadcaster per-client definitions -->
+<!ELEMENT Data EMPTY>
+<!ATTLIST Data maxQueueSize_MB       CDATA #REQUIRED> <!-- max. size of queue per client (MB) -->
+<!ATTLIST Data maxQueueDelay_Minutes CDATA #REQUIRED> <!-- max. delay of queue per client (minutes) -->
+<!ATTLIST Data port                  CDATA #REQUIRED> <!-- TCP port where the broadcaster listenes for clients -->
+
+<!-- Broadcaster control port (unused for now) -->
+<!ELEMENT Ctrl EMPTY>
+<!ATTLIST Ctrl port CDATA #REQUIRED> <!-- TCP port -->

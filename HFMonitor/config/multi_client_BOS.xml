@@ -1,22 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
 <!-- $Id$ -->
 <MultiClient>
   <StationInfo>
     Station  = BOS
     Computer = Latitude E6430 : N-Series Base
   </StationInfo>
-  <server host="127.0.0.1"
-          port="19100">
-  </server>
-  <FileSink filePath="DataBOS"
-            filePeriod="1d">
-  </FileSink>
   <Broadcaster>
     <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
-          port="8080">
-    </Data>
+          port="19200"/>
   </Broadcaster>
+  <server host="127.0.0.1" port="19100"/>
+  <FileSink filePath="DataBOS" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
     <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
@@ -42,96 +38,71 @@
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
   <Clients>
-    <WriterText type="WriterTXT"
-                filePath="DataBOS"
-                filePeriod="1d">
-    </WriterText>
-    <WriterIQ type="WriterIQ"
-              filePath="DataIQ"
-              filePeriod="5m"
-              bitsPerSample="24">
-    </WriterIQ>
-    <DemodMSK_JXN type="DemodMSK"
-                  name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_JXN>
-    <DemodMSK_GQ2 type="DemodMSK"
-                  name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_GQ2>
-    <DemodMSK_NWC type="DemodMSK"
-                  name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NWC>
-    <DemodMSK_ICV type="DemodMSK"
-               name="MSK_ICV" fc_Hz="20269.9998465" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_ICV>
-    <DemodMSK_HWU type="DemodMSK"
-               name="MSK_HWU" fc_Hz="21750.0005863" fm_Hz="200.0"
-               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_HWU>
-    <DemodMSK_GQD type="DemodMSK"
-                  name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_GQD>
-    <DemodMSK_DHO type="DemodMSK"
-                  name="MSK_DHO" fc_Hz="23.400000065e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_DHO>
-    <DemodMSK_NAA type="DemodMSK"
-                  name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NAA>
-    <DemodMSK_NLK type="DemodMSK"
-                  name="MSK_NLK" fc_Hz="24.80e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NLK>
-    <DemodMSK_NML type="DemodMSK"
-                  name="MSK_NML" fc_Hz="25.20e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NML>
-    <DemodMSK_XXX type="DemodMSK"
-                  name="MSK_XXX" fc_Hz="26.00e3" fm_Hz="100.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_XXX>
-    <DemodMSK_TBB type="DemodMSK"
-                  name="MSK_TBB" fc_Hz="26699.9992043" fm_Hz="100.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_TBB>
-    <DemodMSK_NRK type="DemodMSK"
-                  name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NRK>
-    <DemodMSK_NAU type="DemodMSK"
-                  name="MSK_NAU" fc_Hz="40.80e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NAU>
-    <DemodMSK_NSY type="DemodMSK"
-                  name="MSK_NSY" fc_Hz="45.90e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_NSY>
-    <DemodMSK_SXA type="DemodMSK"
-                  name="MSK_SXA" fc_Hz="48999.994175256" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_SXA>
-    <DemodMSK_GXH type="DemodMSK"
-                  name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="-10" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_GXH>
-    <DemodMSK_FTA type="DemodMSK"
-                  name="MSK_FTA" fc_Hz="63.850000083e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_FTA>
-    <DemodMSK_FUE type="DemodMSK"
-                  name="MSK_FUE" fc_Hz="65.80e3" fm_Hz="200.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_FUE>
-    <DemodMSK_GYN type="DemodMSK"
-                  name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"
-                  dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60">
-    </DemodMSK_GYN>
-    <FFT_Processor type="FFTProcessor_DOUBLE" name="FFTProcessor"
+    <WriterTXT proc_name="WriterText" filePath="DataBOS" filePeriod="1d"/>
+    <WriterIQ  proc_name="WriterIQ"   filePath="DataIQ"  filePeriod="5m" bitsPerSample="24"/>
+
+    <DemodMSK proc_name="DemodMSK_JXN"
+              name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_GQ2"
+              name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NWC"
+              name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_ICV"
+           name="MSK_ICV" fc_Hz="20269.9998465" fm_Hz="200.0"
+           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_HWU"
+           name="MSK_HWU" fc_Hz="21750.0005863" fm_Hz="200.0"
+           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_GQD"
+              name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_DHO"
+              name="MSK_DHO" fc_Hz="23.400000065e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NAA"
+              name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NLK"
+              name="MSK_NLK" fc_Hz="24.80e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NML"
+              name="MSK_NML" fc_Hz="25.20e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_XXX"
+              name="MSK_XXX" fc_Hz="26.00e3" fm_Hz="100.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_TBB"
+              name="MSK_TBB" fc_Hz="26699.9992043" fm_Hz="100.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NRK"
+              name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NAU"
+              name="MSK_NAU" fc_Hz="40.80e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NSY"
+              name="MSK_NSY" fc_Hz="45.90e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_SXA"
+              name="MSK_SXA" fc_Hz="48999.994175256" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_GXH"
+              name="MSK_GXH" fc_Hz="57.40e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="-10" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_FTA"
+              name="MSK_FTA" fc_Hz="63.850000083e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_FUE"
+              name="MSK_FUE" fc_Hz="65.80e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_GYN"
+              name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+
+    <FFT_Processor proc_name="FFT_Processor" type="FFTProcessor_DOUBLE" name="FFTProcessor"
                    windowFunction="Blackman"
                    numberOfCollectedEpochs="1">
       <Actions calibrationKey="L1.CAL">
@@ -141,7 +112,7 @@
                     fMax_Hz="60.200e3"
                     fRef_Hz="60.000e3"
                     minRatio="1">
-            <Filter type="LowPass" timeConstant_sec="60.0"></Filter>
+            <Filter type="LowPass" timeConstant_sec="60.0"/>
           </FindPeak>
         </L0>
         <L1>
@@ -149,7 +120,7 @@
                       maxOffset_Hz="10.0"
                       maxCorrectionFactor_ppm="20.0">
             <Inputs>
-              <Input key="L0.060000_TS_WWVB"></Input>
+              <Input key="L0.060000_TS_WWVB"/>
             </Inputs>
           </Calibrator>
         </L1>
@@ -157,190 +128,190 @@
           <AverageDensity name="014800_Navy_unid"
                           fRef_Hz="14.8e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="016400_Navy_Novika"
                           fRef_Hz="16.4e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="017000_Navy_VTX2"
                           fRef_Hz="17e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="018100_Navy_Russia"
                           fRef_Hz="18.1e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="018300_Navy_HWU"
                           fRef_Hz="18.3e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="0192002_Navy_VTX4"
                           fRef_Hz="19.2e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="019600_Navy_CQD"
                           fRef_Hz="19.6e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="019800_Navy_NWC"
                           fRef_Hz="19.8e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="020270_Navy_ICV"
                           fRef_Hz="20.27e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="020500_Navy_RJHxx"
                           fRef_Hz="20.5e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="020900_Navy_HWU"
                           fRef_Hz="20.9e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="021400_Navy_NPM"
                           fRef_Hz="21.4e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="021750_Navy_HWU"
                           fRef_Hz="21.75e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="022100_Navy_Skelton"
                           fRef_Hz="22.1e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="022200_Navy_JJI"
                           fRef_Hz="22.2e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="023400_Navy_DHO38"
                           fRef_Hz="23.4e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="024000_Navy_NAA"
                           fRef_Hz="24.000e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="024800_Navy_NLK"
                           fRef_Hz="24.800e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="025200_Navy_NML"
                           fRef_Hz="25.200e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="026000_Navy_Unid"
                           fRef_Hz="26.000e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="026700_Navy_Turkey"
                           fRef_Hz="26.700e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="037500_Navy_Grindavik"
                           fRef_Hz="37.5e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="038000_Navy_unid"
                           fRef_Hz="38e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="040400_Navy_Karlsborg"
                           fRef_Hz="40.4e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="040750_Navy_NAU"
                           fRef_Hz="40.75e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="044200_Navy_unid"
                           fRef_Hz="44.2e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="045900_Navy_NSY"
                           fRef_Hz="45.9e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="047000_FSK_unid"
                           fRef_Hz="47e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="049000_Navy_Agmarina"
                           fRef_Hz="49e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="051950_Navy_Scotland"
                           fRef_Hz="51.95e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="054000_Navy_Turkey"
                           fRef_Hz="54.0e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="057400_Navy_Scotland"
                           fRef_Hz="57.4e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <FindPeak name="060000_TS_WWVB"
                     fMin_Hz="59.800e3"
                     fMax_Hz="60.200e3"
                     fRef_Hz="60.000e3"
                     minRatio="1">
-            <Filter type="LowPass" timeConstant_sec="10.0"></Filter>
-            <Calibration key="L1.CAL"></Calibration>
+            <Filter type="LowPass" timeConstant_sec="10.0"/>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <AverageDensity name="061800_Navy_UK"
                           fRef_Hz="61.8e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="062600_Navy_LaRegine"
                           fRef_Hz="62.6e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="063850_Navy_FTA63"
                           fRef_Hz="63.85e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="065800_Navy_Kerlouan"
                           fRef_Hz="65.8e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <FindPeak name="066666_TS_RBU"
                     fMin_Hz="65.700e3"
@@ -348,49 +319,49 @@
                     fRef_Hz="66.666666e3"
                     plotSpectrum="0"
                     minRatio="10">
-            <Filter type="LowPass" timeConstant_sec="10.0"></Filter>
-            <Calibration key="L1.CAL"></Calibration>
+            <Filter type="LowPass" timeConstant_sec="10.0"/>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="068500_TS_BPC"
                     fMin_Hz="68.300e3"
                     fMax_Hz="68.700e3"
                     fRef_Hz="68.500e3"
                     minRatio="1">
-            <Filter type="LowPass" timeConstant_sec="10.0"></Filter>
-            <Calibration key="L1.CAL"></Calibration>
+            <Filter type="LowPass" timeConstant_sec="10.0"/>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <AverageDensity name="073600_Navy_Halifax"
                           fRef_Hz="73.6e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <FindPeak name="077500_TS_DCF77"
                     fMin_Hz="77.300e3"
                     fMax_Hz="77.700e3"
                     fRef_Hz="77.500e3"
                     minRatio="10">
-            <Calibration key="L1.CAL"></Calibration>
-            <Filter type="LowPass" timeConstant_sec="10.0"></Filter>
+            <Calibration key="L1.CAL"/>
+            <Filter type="LowPass" timeConstant_sec="10.0"/>
           </FindPeak>
           <AverageDensity name="081000_Navy_UK"
                           fRef_Hz="81e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="082500_Navy_UK2"
                           fRef_Hz="82.5e3"
                           bandwidth_Hz="100">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="124500_FSK_SXJ"
                           fRef_Hz="124.5e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="146500_FSK_SAV"
                           fRef_Hz="146.5e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <FindPeak name="129100_EFR_Mainflingen"
                     fMin_Hz="128.100e3"
@@ -398,7 +369,7 @@
                     fRef_Hz="129.100e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="135600_EFR_Lakihegy"
                     fMin_Hz="134.600e3"
@@ -406,7 +377,7 @@
                     fRef_Hz="135.600e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="139000_EFR_Burg"
                     fMin_Hz="138.000e3"
@@ -414,19 +385,18 @@
                     fRef_Hz="139.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <AverageDensity name="145000_FSK_Riga"
                           fRef_Hz="145.0e3"
                           bandwidth_Hz="200">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <AverageDensity name="147200_WX_DDH47"
                     fRef_Hz="147.200e3"
                     bandwidth_Hz="400"
-                    minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
           <FindPeak name="153000_AM_DLF"
                     fMin_Hz="152.800e3"
@@ -434,7 +404,7 @@
                     fRef_Hz="153.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="162000_AM_TDF"
                     fMin_Hz="161.800e3"
@@ -442,7 +412,7 @@
                     fRef_Hz="162.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="171000_AM_Bolshakovo"
                     fMin_Hz="170.800e3"
@@ -450,7 +420,7 @@
                     fRef_Hz="171.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="177000_AM_DRKultur"
                     fMin_Hz="176.800e3"
@@ -458,7 +428,7 @@
                     fRef_Hz="177.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="183000_AM_XXX"
                     fMin_Hz="182.800e3"
@@ -466,7 +436,7 @@
                     fRef_Hz="183.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="198000_AM_BBC"
                     fMin_Hz="197.800e3"
@@ -474,7 +444,7 @@
                     fRef_Hz="198.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="207000_AM_DLF"
                     fMin_Hz="206.800e3"
@@ -482,7 +452,7 @@
                     fRef_Hz="207.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="216000_AM_XXX"
                     fMin_Hz="215.800e3"
@@ -490,7 +460,7 @@
                     fRef_Hz="216.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="225000_AM_PR"
                     fMin_Hz="224.800e3"
@@ -498,7 +468,7 @@
                     fRef_Hz="225.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="234000_AM_XXX"
                     fMin_Hz="233.800e3"
@@ -506,7 +476,7 @@
                     fRef_Hz="234.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="261000_AM_XXX"
                     fMin_Hz="260.800e3"
@@ -514,7 +484,7 @@
                     fRef_Hz="261.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="270000_AM_Topolna"
                     fMin_Hz="269.800e3"
@@ -522,7 +492,7 @@
                     fRef_Hz="270.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <FindPeak name="279000_AM_XXX"
                     fMin_Hz="278.800e3"
@@ -530,13 +500,13 @@
                     fRef_Hz="279.000e3"
                     minRatio="10"
                     plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </FindPeak>
           <AverageDensity name="283500_DGPS_Test"
                           fRef_Hz="283.5e3"
                           bandwidth_Hz="100"
                           plotSpectrum="0">
-            <Calibration key="L1.CAL"></Calibration>
+            <Calibration key="L1.CAL"/>
           </AverageDensity>
         </L2>
       </Actions>    
