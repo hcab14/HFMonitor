@@ -67,6 +67,7 @@ namespace network {
         status_configured =  1  // after streams have been selected, data is sent to the client
       } status;
   
+      typedef std::map<std::string, data_type> path_preamble_map_type;
     public:
       data_connection(boost::asio::io_service& io_service,
                       boost::asio::strand& strand,
@@ -81,7 +82,6 @@ namespace network {
         , max_total_size_(max_total_size)
         , max_queue_delay_(max_queue_delay)
         , max_delay_(boost::posix_time::seconds(0))
-        , preamble_without_header_("")
         , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
         , status_(status_init)
         , start_async_write_(false) {
@@ -221,8 +221,9 @@ namespace network {
           const bool list_was_empty(empty());
           if (preamble) {
             const data_type preamble_without_header(strip_header(preamble));
-            if (preamble_without_header_ != preamble_without_header) {
-              preamble_without_header_= preamble_without_header;
+            data_type& old_preamble_without_header(path_preamble_without_header_map_[path]);
+            if (preamble_without_header != old_preamble_without_header) {
+              old_preamble_without_header = preamble_without_header;
               list_of_packets_.push_back(std::make_pair(t, preamble));
             }
           }
@@ -410,7 +411,7 @@ namespace network {
       const time_duration      max_queue_delay_;
       time_duration            max_delay_;
       list_of_packets          list_of_packets_;
-      data_type                preamble_without_header_;
+      path_preamble_map_type   path_preamble_without_header_map_;
       char                     dummy_data_;
       ptime                    last_tick_time_;
       std::set<boost::regex>   stream_names_;
