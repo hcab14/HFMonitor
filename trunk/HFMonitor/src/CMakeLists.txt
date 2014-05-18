@@ -6,6 +6,10 @@ ADD_SUBDIRECTORY(libusb1.0)
 ADD_SUBDIRECTORY(sdr)
 ADD_SUBDIRECTORY(FFTProcessor)
 
+ADD_LIBRARY(logging_cpp logging.cpp)
+TARGET_LINK_LIBRARIES(logging_cpp ${Boost_LIBRARIES})
+LIST(APPEND _libs logging_cpp)
+
 ADD_LIBRARY(processor_cpp processor.cpp)
 LIST(APPEND _libs processor_cpp)
 
