@@ -1,7 +1,7 @@
 // -*- mode: c++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2013 Christoph Mayer
+// Copyright 2010-2014 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

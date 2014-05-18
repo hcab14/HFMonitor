@@ -1,7 +1,7 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2013 Christoph Mayer
+// Copyright 2010-2014 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,13 +21,29 @@
 
 int main(int argc, char* argv[])
 {
-  LOGGER_INIT("./Log", "test_logging");
+  logging::init("./Log", "test_logging");
 
   try {
+    const boost::posix_time::ptime tag_i(boost::posix_time::microsec_clock::universal_time());
     LOG_INFO("Info");
-    LOG_ERROR("Info");
+    usleep(10*1000);
+    const boost::posix_time::ptime tag_e(boost::posix_time::microsec_clock::universal_time());
+    LOG_ERROR("Error");
+    usleep(10*1000);
+    const boost::posix_time::ptime tag_s(boost::posix_time::microsec_clock::universal_time());
+    LOG_STATUS("Status");
+    usleep(10*1000);
+    const boost::posix_time::ptime tag_w(boost::posix_time::microsec_clock::universal_time());
+    LOG_WARNING("Warning");
+    usleep(10*1000);
+
+    LOG_INFO_T(tag_i, "Info");
+    LOG_ERROR_T(tag_e, "Error");
+    LOG_STATUS_T(tag_s, "Status");
+    LOG_WARNING_T(tag_w, "Warning");
     throw std::runtime_error("Hello");
   } catch (const std::runtime_error& e) {
-    LOGGER_ERROR << e.what() << " 2nd arg" << " 3rd arg";
+    LOG_ERROR("EXEPTION");
+    LOGGER_ERROR << e.what();
   }
 }

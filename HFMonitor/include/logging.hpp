@@ -1,7 +1,7 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2013 Christoph Mayer
+// Copyright 2010-2014 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,16 +16,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef _logging_hpp_cm101217_
-#define _logging_hpp_cm101217_
+#ifndef _logging_boost_hpp_cm140515_
+#define _logging_boost_hpp_cm140515_
 
 #include <stdexcept>
+
+#include <boost/mpl/quote.hpp>
+#include <boost/parameter/keyword.hpp>
+
 #include <boost/current_function.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 
-#include "gen_filename.hpp"
+#include <boost/scope_exit.hpp>
+
+#include <boost/thread/shared_mutex.hpp>
+
+#include <boost/log/sources/global_logger_storage.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+
+#include <boost/log/utility/strictest_lock.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
 
 #define THROW_SITE_INFO(what)                                           \
   std::string(std::string(what) + "\n" +                                \
@@ -37,104 +49,128 @@
     throw std::runtime_error(THROW_SITE_INFO("assertion failed: " + std::string(#_x))); \
   else void(0)
 
-#define ASSERT_THROW_PERSEUS(_x)                                        \
-  if (not (_x))                                                         \
-    throw std::runtime_error(THROW_SITE_INFO("assertion failed: " + std::string(#_x) \
-                                             + " msg: " + std::string(perseus_errorstr()))); \
-  else void(0) 
-
 namespace logging {
-  typedef enum log_kind {
-    INFO,
-    STATUS,
-    WARNING,
-    ERROR
-  } log_kind;
-  
-  class logger : public gen_filename {
-  public:
-    typedef boost::posix_time::ptime ptime;
-    typedef boost::shared_ptr<logger> sptr;
+  enum severity_level {
+    info,
+    status,
+    warning,
+    error
+  };
 
-    virtual ~logger() {}
-
-    static sptr make(std::string basePath, 
-                     std::string name) { 
-      return sptr(new logger(basePath, name)); 
-    }
-
-    virtual file_period filePeriod() const { return gen_filename::PeriodDay; }
-    virtual std::string filePrefix() const { return name_; }
-    virtual std::string fileExtension() const { return "log"; }
-
-    logger& operator<<(std::string message) {
-      return this->log(log_kind_, message);
-    }
-
-    logger& log(log_kind k, std::string message) {
-      const ptime now(boost::posix_time::microsec_clock::universal_time());
-      return this->log(k, now, message);
-    }
-
-    logger& log(log_kind k, const ptime& now, std::string message) {
-      log_kind_ = k;
-      std::string type;
-      switch (k) {
-      case INFO:
-        type="I"; break;
-      case STATUS:
-        type="S"; break;
-      case WARNING: 
-        type="W"; break;
-      case ERROR:
-        type="E"; break;
-      default: 
-        throw std::runtime_error("unknown log type");
-      }
-      boost::filesystem::fstream ofs(gen_file_path(basePath_, "", now), std::ios::out | std::ios::app);
-      ofs << type << "-[" << now << "]: " << message << std::endl;
-      return *this;
-    }
-
-    logger& set_kind(log_kind k) { 
-      log_kind_=k; 
-      return *this;
-    }
-
-  static sptr get(sptr l=sptr()) {
-    static sptr lp(l);
-    return lp;
+  namespace my_keywords {
+    BOOST_PARAMETER_KEYWORD(time_tag_ns, time_tag);
   }
 
-  protected:    
-  private:
-    logger(std::string basePath,
-           std::string name) 
-      : basePath_(basePath) 
-      , name_(name)
-      , log_kind_(ERROR) {}
-    const std::string basePath_;  
-    const std::string name_;
-    log_kind log_kind_;    
+  template< typename BaseT >
+  class time_tagger_feature : public BaseT {
+  public:
+    typedef typename BaseT::char_type char_type;
+    typedef typename BaseT::threading_model threading_model;
+
+  public:
+    time_tagger_feature();
+    time_tagger_feature(time_tagger_feature const& that);
+    template< typename ArgsT >
+    time_tagger_feature(ArgsT const& args);
+
+    typedef typename boost::log::strictest_lock<boost::lock_guard<threading_model>,
+                                             typename BaseT::open_record_lock,
+                                             typename BaseT::add_attribute_lock,
+                                             typename BaseT::remove_attribute_lock
+                                             >::type open_record_lock;
+
+  protected:
+    template<typename ArgsT>
+      boost::log::record open_record_unlocked(ArgsT const& args);
   } ;
+
+  template< typename BaseT >
+  time_tagger_feature< BaseT >::time_tagger_feature() {}
+
+  template< typename BaseT >
+  time_tagger_feature< BaseT >::time_tagger_feature(time_tagger_feature const& that)
+    : BaseT(static_cast< BaseT const& >(that)) {}
+
+  template< typename BaseT >
+  template< typename ArgsT >
+  time_tagger_feature< BaseT >::time_tagger_feature(ArgsT const& args)
+    : BaseT(args) {}
+
+  template< typename BaseT >
+  template< typename ArgsT >
+  boost::log::record time_tagger_feature< BaseT >::open_record_unlocked(ArgsT const& args) {
+    boost::posix_time::ptime tag_value = args[my_keywords::time_tag | boost::date_time::not_a_date_time];
+
+    // if no time is given use the current universal time
+    if (tag_value.is_not_a_date_time())
+      tag_value = boost::posix_time::microsec_clock::universal_time();
+
+    boost::log::attribute_set& attrs = BaseT::attributes();
+    boost::log::attribute_set::iterator tag = attrs.end();
+
+    std::pair<boost::log::attribute_set::iterator, bool>
+      res = BaseT::add_attribute_unlocked("TimeTag", boost::log::attributes::constant<boost::posix_time::ptime>(tag_value));
+    if (res.second)
+      tag = res.first;
+
+    BOOST_SCOPE_EXIT_TPL((&tag)(&attrs)) {
+      if (tag != attrs.end())
+        attrs.erase(tag);
+    }
+    BOOST_SCOPE_EXIT_END
+      return BaseT::open_record_unlocked(args);
+  }
+
+  struct time_tagger : public boost::mpl::quote1<time_tagger_feature> {};
+
+  template<typename LevelT = int>
+  class severity_timestamp_logger
+    : public boost::log::sources::basic_composite_logger<
+    char,
+    severity_timestamp_logger<LevelT>,
+    boost::log::sources::multi_thread_model<boost::shared_mutex>,
+    boost::log::sources::features<boost::log::sources::severity<LevelT>, time_tagger>
+    > {
+    BOOST_LOG_FORWARD_LOGGER_MEMBERS_TEMPLATE(severity_timestamp_logger);
+  };
   
-}
+  void init(std::string path, std::string name);
 
-#define LOGGER_INIT(_path_, _name_) logging::logger::get(logging::logger::make(_path_, std::string(_name_)+"."))
+  BOOST_LOG_GLOBAL_LOGGER(logger, severity_timestamp_logger<severity_level>);
 
-#define LOG_INFO(_message_)    logging::logger::get()->log(logging::INFO,    _message_)
-#define LOG_STATUS(_message_)  logging::logger::get()->log(logging::STATUS,  _message_)
-#define LOG_WARNING(_message_) logging::logger::get()->log(logging::WARNING, _message_)
-#define LOG_ERROR(_message_)   logging::logger::get()->log(logging::ERROR,   _message_)
+} // namespace logging
 
-#define LOG_INFO_T(_time_, _message_)    logging::logger::get()->log(logging::INFO,    _time_, _message_)
-#define LOG_STATUS_T(_time_, _message_)  logging::logger::get()->log(logging::STATUS,  _time_, _message_)
-#define LOG_WARNING_T(_time_, _message_) logging::logger::get()->log(logging::WARNING, _time_, _message_)
-#define LOG_ERROR_T(_time_, _message_)   logging::logger::get()->log(logging::ERROR,   _time_, _message_)
 
-#define LOGGER_INFO    logging::logger::get()->set_kind(logging::INFO)
-#define LOGGER_STATUS  logging::logger::get()->set_kind(logging::STATUS)
-#define LOGGER_WARNING logging::logger::get()->set_kind(logging::WARNING)
-#define LOGGER_ERROR   logging::logger::get()->set_kind(logging::ERROR)
+#define LOG_WITH_TIME_TAG(lg, sev, tg)					\
+  BOOST_LOG_WITH_PARAMS((lg), (boost::log::keywords::severity=(sev))(logging::my_keywords::time_tag=(tg)))
 
-#endif // _logging_hpp_cm101217_
+#define LOG_WITHOUT_TIME_TAG(lg, sev)                                   \
+  BOOST_LOG_WITH_PARAMS((lg), (boost::log::keywords::severity=(sev)))
+
+#define LOGGER_INIT(_path_, _name_) logging::init(_path_, _name_);
+
+#define LOG_INFO(_message_)                                             \
+  LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::info)    << _message_;
+#define LOG_STATUS(_message_)                                           \
+  LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::status)  << _message_;
+#define LOG_WARNING(_message_)                                          \
+  LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::warning) << _message_;
+#define LOG_ERROR(_message_)                                            \
+  LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::error)   << _message_;
+
+// log with timestamp given as argument
+#define LOG_INFO_T(_time_,_message_)                                    \
+  LOG_WITH_TIME_TAG(logging::logger::get(), logging::info,    _time_) << _message_;
+#define LOG_STATUS_T(_time_,_message_)                                  \
+  LOG_WITH_TIME_TAG(logging::logger::get(), logging::status,  _time_) << _message_;
+#define LOG_WARNING_T(_time_,_message_)                                 \
+  LOG_WITH_TIME_TAG(logging::logger::get(), logging::warning, _time_) << _message_;
+#define LOG_ERROR_T(_time_,_message_)                                   \
+  LOG_WITH_TIME_TAG(logging::logger::get(), logging::error,   _time_) << _message_;
+
+#define LOGGER_INFO    LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::info)
+#define LOGGER_STATUS  LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::status)
+#define LOGGER_WARNING LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::warning)
+#define LOGGER_ERROR   LOG_WITHOUT_TIME_TAG(logging::logger::get(), logging::error)
+
+#endif // _logging_boost_hpp_cm140515_
