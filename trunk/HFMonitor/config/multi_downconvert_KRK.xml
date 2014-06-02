@@ -22,16 +22,16 @@
     <TrackingGoertzel name="TGF_MSF"
                       input="DC_060000_MSF"
                       f0_Hz="60.0e3"
-                      df_Hz="5.0"
-                      minDf_Hz=".1"
-                      maxHistorySize="120"
+                      df_Hz="4.0"
+                      minDf_Hz=".125"
+                      maxHistorySize="40"
                       maxNumWithoutLock="2"/>
     <TrackingGoertzel name="TGF_DCF77"
                       input="DC_077500_DCF"
                       f0_Hz="77.5e3"
-                      df_Hz="5.0"
-                      minDf_Hz=".1"
-                      maxHistorySize="120"
+                      df_Hz="4.0"
+                      minDf_Hz=".125"
+                      maxHistorySize="40"
                       maxNumWithoutLock="2"/>
   </Processors>
   <Filters>

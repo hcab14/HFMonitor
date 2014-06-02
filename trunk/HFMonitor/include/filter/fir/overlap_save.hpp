@@ -105,13 +105,27 @@ namespace filter {
         // performs inverse FFT of (shifted) input and downsampling       
         void transform(const large_fft_type& fft) {
           const size_t nd(n()/d());
+          const T norm(T(1)/T(l()));
+#if 0
+          // naive implementation
           for (size_t i(0); i<nd; ++i)
             ifft_.in(i) = 0;
-          const T norm(T(1)/T(l()));
           for (size_t i(0), iend(n()); i<iend; ++i) {
-            const complex_type tmp(fft.out((n()+i-shift())%n()));
-            ifft_.in(i%nd) += tmp*h_[i]*norm;
+            ifft_.in(i%nd) += complex_multiplication_optimized
+              (fft.out((n()+i-shift())%n()), h_[i]*norm);
           }
+#else
+          // optimized loops
+          const size_t m(n()/nd);
+          for (size_t j(0); j<nd; ++j) {
+            complex_type ci = 0;
+            for (size_t i(0); i<m; ++i) {
+              ci += complex_multiplication_optimized
+                (fft.out((n()+j+i*nd-shift())%n()), norm*h_[j+i*nd]);
+            }
+            ifft_.in(j) = ci;
+          }
+#endif
           ifft_.transform();
           
           for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
@@ -120,6 +134,15 @@ namespace filter {
 
       protected:
       private:
+        inline complex_type complex_multiplication_optimized(complex_type c1, complex_type c2) const {
+          T a(c1.real()), b(c1.imag()),
+            c(c2.real()), d(c2.imag());
+          T k1(a*(c + d)),
+            k2(d*(a + b)),
+            k3(c*(b - a));
+          return complex_type(k1-k2, k1+k3);
+        }
+
         const size_t        l_;
         const size_t        p_;
         const size_t        d_;
