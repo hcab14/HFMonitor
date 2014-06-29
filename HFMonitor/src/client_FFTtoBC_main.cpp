@@ -27,8 +27,18 @@
 #include "repack_processor.hpp"
 #include "run.hpp"
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup client_FFTtoBC client_FFTtoBC
+ * client_FFTtoBC_main
+ * - @ref FFTProcessor with output to @ref network::broadcaster::broadcaster
+ * - configuration using command-line / XML
+ * 
+ * @{
+ */
 int main(int argc, char* argv[])
 {
+  // set up command-line options
   boost::program_options::variables_map vm;
   try {
     vm = process_options("config/FFTProcessor.xml", argc, argv);
@@ -40,14 +50,16 @@ int main(int argc, char* argv[])
   boost::filesystem::path p(vm["config"].as<std::string>());
   LOGGER_INIT("./Log", p.stem().native());
   try {
+    // read the XML initialization file
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
+    // register FFT processors
     processor::registry::add<FFTProcessorToBC<float>  >("FFTProcessorToBC_FLOAT");
     processor::registry::add<FFTProcessorToBC<double> >("FFTProcessorToBC_DOUBLE");
 
+    // connect to DataIQ stream
     const std::string stream_name("DataIQ");
-
     network::client::client<network::iq_adapter<repack_processor<FFTProcessorToBC<double> > > >
       c(config.get_child("FFTProcessor"));
 
@@ -57,7 +69,10 @@ int main(int argc, char* argv[])
     else
       throw std::runtime_error(str(boost::format("stream '%s' is not available")
                                    % stream_name));
+    // start
     c.start();
+
+    // run until a signal is caught
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
@@ -66,3 +81,6 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}
+

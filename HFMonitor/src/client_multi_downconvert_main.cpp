@@ -37,6 +37,18 @@
 #include "wave/writer.hpp"
 #include "station_info.hpp"
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup client_multi_downconvert client_multi_downconvert
+ * client_multi_downconvert
+ * - @ref multi_downconvert_processor with output to @ref network::broadcaster::broadcaster
+ * - configuration using command-line / XML
+ * 
+ * @{
+ */
+
+/// adaptation of @ref multi_downconvert_processor to output to @ref network::broadcaster::broadcaster
+///
 template<typename FFTFloat>
 class multi_downconvert_toBC : public multi_downconvert_processor<FFTFloat> {
 public:
@@ -145,3 +157,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

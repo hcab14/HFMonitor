@@ -33,6 +33,14 @@
 #include "network/protocol.hpp"
 #include "wave/definitions.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup wave_reader wave_reader
+ * WAV reader processor
+ * 
+ * @{
+ */
+
 namespace wave {
   namespace detail { // anonymous 
     template<typename T>
@@ -111,6 +119,7 @@ namespace wave {
     } ;
   } // namespace detail
 
+  /// WAV reader processor
   template<typename PROCESSOR>
   class reader_iq_base : public processor::base_iq {
   public:
@@ -320,4 +329,6 @@ namespace wave {
   } ;
 #endif
 } // namespace wave
+/// @}
+/// @}
 #endif // _WAVE_READER_HPP_cm110729_

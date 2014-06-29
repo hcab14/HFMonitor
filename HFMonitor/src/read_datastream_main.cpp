@@ -43,6 +43,16 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup read_datastream read_datastream
+ * read_datastream
+ * - reads a recorded data stream (with @ref save_datastream)
+ * - runs a processor on the recorded datastream
+ * 
+ * @{
+ */
+
 namespace detail {
   template<typename T>
   T readT(std::istream& is) {
@@ -53,6 +63,7 @@ namespace detail {
   }
 }
 
+/// read_datastream
 class read_datastream {
 public:
   read_datastream(processor::base::sptr pp)
@@ -198,3 +209,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

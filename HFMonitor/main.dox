@@ -1,0 +1,85 @@
+// -*- C++ -*-
+// $Id$
+
+/*! \mainpage HFMonitor
+  
+  \section install_sec Installation
+ 
+  \subsection pre_sec Pre-requisites
+  - C++ compiler, cmake, make
+  - FFTW3
+  - libusb-1.0
+  - portaudio
+  - bzip2
+  - CUDA (optional)
+  
+  \subsection get_sec Obtaining the source code
+  \code
+svn co http://nz23-18.ifj.edu.pl/repos/tags/HFMonitor_vX.X HFMonitor_vX.X
+  \endcode
+  \subsection make_sec Compilation
+   \code
+mkdir objdir;
+cd objdir
+cmake ../
+make -j4 install
+make Docs
+  \endcode
+ 
+  \section expl_sec General remarks
+  - All programs are installed in the \p ./bin/ directory
+  - Each program is configured using command-line parameters and a XML-formatted configuration file
+  - All configuration files are in \p ./config/
+ 
+  \section op_sec Operation
+  All following commands should be executed in the main directory.
+  \subsection start_sec Start
+  \code
+./start.sh
+  \endcode
+  \subsection stop_sec Stop
+  \code
+./stop.sh
+  \endcode
+  \subsection check_sec Check if software is runnning
+  \code
+./check_running.sh
+  \endcode
+  \subsection spec_display_sec Spectrum display
+  \code
+./display_spec.sh <EFR|DCF77|MSF|NavyMSK>
+  \endcode
+  \subsection check_xml_sec Check if XML configuration files are vaild
+  \code
+./check_xml.sh
+  \endcode
+
+  \section crontab_sec crontab setup
+  The following entries need to be adapted for each monitoring station
+  \code
+# remove old log files
+ 10 2 * * * find ~chm/C++/HFMonitor_new/Log -name "*.log" -mtime +1 -exec rm {} \; >> ~chm/C++/HFMonitor_new/logremove.log 2>&1
+
+# execut check_running.sh every minute
+  * * * * * cd ~chm/C++/HFMonitor_new; ./check_running.sh > /dev/null
+
+# compress data older than one day
+ 20 1 * * * find ~chm/C++/HFMonitor_new/DataKRK -name "*.txt" -mtime +1 -exec bzip2 {} \;
+
+  \endcode
+
+ \section code_guide_sec Guide to the source code
+ \subsection over_sec Overview
+ HFMonitor has a C++ framework: 
+ - all processors derive from @ref processor::base
+ - different processing steps are de-coupled using TPC/IP datastreams (using <a href="http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio.html">Boost.Asio</a>)
+ - data stream format:  @ref network::protocol
+ - base class for all clients: network::client::client_base
+ - broadcaster: network::broadcaster::broadcaster
+ - log output: \p ./Log directory
+ - log levels: @ref LOG_INFO, @ref LOG_STATUS, @ref LOG_WARNING, @ref LOG_ERROR (using <a href="http://www.boost.org/doc/libs/1_55_0/libs/log/doc/html/index.html">Boost.Logging</a>)
+ 
+ \subsection e_a_p Executables and processors (algorithms)
+   - @ref executables
+   - @ref processors
+ */

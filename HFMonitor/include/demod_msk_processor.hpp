@@ -37,6 +37,15 @@
 #include <complex>
 #include <vector>
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup demod_msk demod_msk
+ * MSK demodulation
+ * 
+ * @{
+ */
+
+/// MSK demodulation processor
 class demod_msk_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<demod_msk_processor> sptr;
@@ -383,5 +392,6 @@ private:
   size_t            signal_present_;
   result_bits::sptr result_bits_; // accumulates bits
 } ;
-
+/// @}
+/// @}
 #endif // _DEMOD_MSK_PROCESSOR_HPP_cm130214_

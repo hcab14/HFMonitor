@@ -4,7 +4,7 @@
 <Perseus sn="2670"
 	 fs="2000000"
 	 fc="880e3"
-	 use_preselector="1"
+	 use_preselector="true"
 	 attenuator="0"
 	 firmware="config/perseus/perseus.hex">
   <rbs fs="125000">config/perseus/perseus125k.rbs</rbs>

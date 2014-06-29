@@ -39,6 +39,15 @@
 #include "processor/registry.hpp"
 #include "tracking_goertzel_processor.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup multi_downconver multi_downconver
+ * multi downconvert processor
+ * 
+ * @{
+ */
+
+/// multi downconvert processor
 template<typename FFTFloat>
 class multi_downconvert_processor : public processor::base_iq {
 protected:
@@ -322,6 +331,7 @@ private:
   result_map        result_map_;
   calibration_keys  calibration_keys_;
 } ;
-
+/// @}
+/// @}
 #endif // _MULTI_DOWNCONVERT_PROCESSOR_HPP_cm130115_
 
