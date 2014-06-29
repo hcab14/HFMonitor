@@ -46,6 +46,15 @@
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup FFTProcessor FFTProcessor
+ * FFT Processor
+ * 
+ * @{
+ */
+
+/// FFT processor
 template<typename FFTFloat>
 class FFTProcessor : public processor::base_iq {
 public:
@@ -232,6 +241,7 @@ private:
   LevelMap  actions_;
   ResultMap resultBuffer_;
 } ;
-
+/// @}
+/// @}
 #endif // _FFT_PROCESSOR_HPP_cm100729_
 

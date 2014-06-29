@@ -20,7 +20,7 @@ SET(CMAKE_BUILD_TYPE Release)
 
 # -malign-double in on 32bit systems incompatible with BOOST
 SET(CMAKE_CXX_FLAGS         "-Wall -DSVN_VERSION_STRING=\"${SVN_VERSION_STRING}\"")
-SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
 SET(CMAKE_CXX_FLAGS_DEBUG   "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
@@ -37,15 +37,10 @@ FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
 # Setup BOOST
-IF (APPLE)
-  SET(BOOST_INCLUDEDIR /opt/local/include)
-  SET(BOOST_LIBRARYDIR /opt/local/lib)
-ELSE(APPLE)
-  EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
-  SET(Boost_NO_SYSTEM_PATHS ON)
-  SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
-  SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
-ENDIF(APPLE)
+EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
+SET(Boost_NO_SYSTEM_PATHS ON)
+SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
+SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.55 REQUIRED COMPONENTS log_setup log filesystem date_time regex program_options system  coroutine thread context )
@@ -54,6 +49,9 @@ IF(!APPLE)
   LIST(APPEND _libs rt)
   LIST(APPEND _libs pthread)
 ENDIF(!APPLE)
+
+MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")
+MESSAGE("Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
 
 # Setup libperseus-sdr
 #FIND_PACKAGE(PerseusSDR REQUIRED)
@@ -104,6 +102,8 @@ IF(CUDA_FOUND)
   )
 ENDIF(CUDA_FOUND)
 
+LIST(APPEND _libs "-lrt")
+
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${libusb-1.0_INCLUDE_DIR}
@@ -114,6 +114,21 @@ INCLUDE_DIRECTORIES(
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)
 
+Option(BUILD_DOCUMENTATION "Use Doxygen to create the HTML based API documentation" ON)
+If(BUILD_DOCUMENTATION)
+  FIND_PACKAGE(Doxygen)
+  IF (NOT DOXYGEN_FOUND)
+    MESSAGE(FATAL_ERROR "Doxygen is needed to build the documentation. Please install it correctly")
+  ENDIF()
+  #-- Configure the Template Doxyfile for our specific project
+  Configure_file(Doxyfile.in ${PROJECT_BINARY_DIR}/Doxyfile  @ONLY IMMEDIATE)
+  #-- Add a custom target to run Doxygen when ever the project is built
+  add_custom_target (Docs #ALL 
+    COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
+    SOURCES ${PROJECT_BINARY_DIR}/Doxyfile)
+  # IF you do NOT want the documentation to be generated EVERY time you build the project
+  # then leave out the 'ALL' keyword from the above command.
+endif()
 #SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VLF Spectrum Monitoring")
 #SET(CPACK_PACKAGE_VENDOR "Christoph Mayer")
 #SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")

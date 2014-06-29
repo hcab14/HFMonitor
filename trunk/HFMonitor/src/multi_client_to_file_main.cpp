@@ -34,8 +34,18 @@
 
 #include "station_info.hpp"
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup multi_client_to_file multi_client_to_file
+ * multi_client_to_file
+ * - @ref network::client::multi_client with output to files
+ * - configuration using command-line / XML
+ * 
+ * @{
+ */
 namespace network {
   namespace client {
+    /// @ref network::client::multi_client with output to files
     class multi_client_tofile : public multi_client, public writer_txt_base {
     public:
       typedef boost::property_tree::ptree ptree;
@@ -111,3 +121,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

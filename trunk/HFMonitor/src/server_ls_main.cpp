@@ -24,6 +24,15 @@
 #include "network.hpp"
 #include "network/client/client_base.hpp"
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup server_ls server_ls
+ * server_ls
+ * - shows the available data streams of a broadcaster
+ * - configuration using command-line
+ * 
+ * @{
+ */
 int main(int argc, char* argv[])
 {
   namespace po = boost::program_options;
@@ -73,3 +82,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

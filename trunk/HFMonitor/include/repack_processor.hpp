@@ -30,6 +30,15 @@
 #include "processor.hpp"
 #include "repack_buffer.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup repack repack
+ * repack processor
+ * 
+ * @{
+ */
+
+/// repack processor
 template<typename PROCESSOR>
 class repack_processor : public processor::base_iq {
 public:
@@ -117,6 +126,7 @@ private:
   repack_buffer_type repack_buffer_;
   service::sptr      sp_;
 } ;
-
+/// @}
+/// @}
 #endif // _REPACK_PROCESSOR_HPP_cm100818_
 

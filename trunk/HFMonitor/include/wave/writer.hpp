@@ -33,6 +33,15 @@
 #include "network/protocol.hpp"
 #include "wave/definitions.hpp"
 
+
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup wave_writer wave_writer
+ * WAV writer processor
+ * 
+ * @{
+ */
+
 namespace wave {
   namespace detail {
     template<typename T>
@@ -90,6 +99,7 @@ namespace wave {
     } ;
   } // namespace detail
 
+  /// WAV writer processor
   class writer_iq : public processor::base_iq, public gen_filename {
   public:
     typedef boost::shared_ptr<writer_iq> sptr;
@@ -154,5 +164,6 @@ namespace wave {
     detail::wave_header header_;
   } ;
 } // namespace wave
-
+/// @}
+/// @}
 #endif // _WAVE_WRITER_HPP_cm121217_

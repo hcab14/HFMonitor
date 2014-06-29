@@ -34,8 +34,19 @@
 #include "writer.hpp"
 #include "station_info.hpp"
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup multi_client_to_broadcaster multi_client_to_broadcaster
+ * multi_client_to_broadcaster
+ * - @ref network::client::multi_client with output to @ref network::broadcaster::broadcaster
+ * - configuration using command-line / XML
+ * 
+ * @{
+ */
+
 namespace network {
   namespace client {
+    /// @ref network::client::multi_client with output to @ref network::broadcaster::broadcaster
     class multi_client_to_broadcaster : public multi_client {
     public:
       typedef boost::property_tree::ptree ptree;
@@ -137,3 +148,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

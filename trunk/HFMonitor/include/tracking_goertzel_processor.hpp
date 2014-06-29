@@ -30,6 +30,15 @@
 #include "logging.hpp"
 #include "processor.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup tracking_goertzel tracking_goertzel
+ * tracking goertzel processor
+ * 
+ * @{
+ */
+
+/// repack processor
 class tracking_goertzel_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<tracking_goertzel_processor> sptr;
@@ -155,6 +164,7 @@ private:
   const size_t      max_num_without_lock_;  // max. number of iterations without lock
   tracking_goertzel_filter::sptr filter_;
 } ;
-
+/// @}
+/// @}
 #endif // _TRACKING_GOERTZEL_PROCESSOR_HPP_cm130211_
 

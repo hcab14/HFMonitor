@@ -72,7 +72,9 @@ namespace Perseus {
       }
       set_sample_rate(config.get<int>("<xmlattr>.fs"));
       set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
-      use_preselector(config.get<bool>("<xmlattr>.use_preselector"));
+      const std::string config_presel(config.get<std::string>("<xmlattr>.use_preselector"));
+      ASSERT_THROW(config_presel == "true" || config_presel == "false");
+      use_preselector(config_presel == "true");
       set_attenuator(config.get<int>("<xmlattr>.attenuator"));
     }
 

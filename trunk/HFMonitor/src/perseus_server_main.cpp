@@ -16,6 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include <iostream>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -36,9 +37,21 @@
 #include "run.hpp"
 #include "sdr/perseus/perseus_control.hpp"
 
-// perseus callback
-//  * makes copy of data, and
-//  * inserts the data into a buffer
+/*! \addtogroup executables
+ *  HFMontor Executables
+ *  @{
+ * \addtogroup perseus_server perseus_server
+ * perseus_server
+ * - controls the perseus SDR
+ * - provides a datastream with I/Q on a specified TPC/IP port
+ * - configration:  command line / XML file
+ * 
+ * @{
+ */
+
+//! Callback called by perseus sdr:
+///  - makes copy of data, and
+///  - inserts the data into @ref buffer
 class test_cb : public Perseus::callback {
 public:
   test_cb() {}
@@ -56,9 +69,9 @@ private:
   buffer<std::string>::sptr buffer_;
 } ;
 
-// bridge between perseus and the broadcaster
-//  * running in its own thread
-//  * data is taken out of the buffer and sent to the broadcaster
+//! bridge between perseus and the broadcaster
+///  - runs in its own thread
+///  - data is taken out of the buffer and sent to  @ref network::broadcaster::broadcaster
 class bridge {
 public:
   bridge(buffer<std::string>::sptr buffer,
@@ -119,10 +132,12 @@ private:
   boost::shared_ptr<boost::condition>  cond_;   // condition used to signal new data
 } ;
 
+/// for debugging
 void unexpected_handler() {
   std::cerr << "unexpected called; uncaught_exception=" << std::uncaught_exception() << std::endl;
   throw std::runtime_error("unexpected called");
 }
+/// for debugging
 void terminate_handler() {
   std::cerr << "terminate handler called uncaught_exception=" << std::uncaught_exception() << std::endl;
   abort();
@@ -133,6 +148,7 @@ int main(int argc, char* argv[])
   std::set_unexpected(unexpected_handler);
   std::set_terminate(terminate_handler);
 
+  // process command-line arguments
   boost::program_options::variables_map vm;
   try {
     vm = process_options("config/perseus_server.xml", argc, argv);
@@ -141,23 +157,28 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  // inititalize @ref logger.hpp
   boost::filesystem::path p(vm["config"].as<std::string>());
   LOGGER_INIT("./Log", p.stem().native());
   try {
+    // read XML configuration 
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
+    // set up a usb session
     libusb::session::sptr s(libusb::session::get_global_session());
 
     const boost::property_tree::ptree& config_perseus(config.get_child("Perseus"));
     const std::string perseus_firmware(config_perseus.get<std::string>("<xmlattr>.firmware"));
 
+    // get the number of connected perseus SDRs
     const size_t num_perseus(Perseus::receiver_control::get_num_perseus());
     std::cout << "found " << num_perseus << std::endl;
 
     if (num_perseus == 0)
       throw std::runtime_error("no perseus receiver found");    
 
+    // find the right perseus SDR
     int index(-1);
     for (size_t i(0); i<num_perseus; ++i) {
       const Perseus::product_id pid(Perseus::receiver_control::get_product_id_at(i, perseus_firmware));
@@ -184,11 +205,12 @@ int main(int argc, char* argv[])
         // buffer between perseus and broadcaster
         buf = buffer<std::string>::make_buffer(1024*1000, boost::posix_time::seconds(1));
 
-        // set up receiver
+        // set up the receiver
         Perseus::callback::sptr cb(new test_cb(buf));
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
 
+        // thread pool setup
         const size_t thread_pool_size(config_broadcaster.get<size_t>("<xmlattr>.threadPoolSize"));
         for (std::size_t i(0); i<thread_pool_size; ++i) {
           boost::shared_ptr<boost::thread> thread
@@ -207,7 +229,6 @@ int main(int argc, char* argv[])
         rec->start_async_input(cb);
         
       } // here the destructor of wait_for_signal waits for a signal
-
 
       rec->stop_async_input();
       buf->stop();
@@ -228,3 +249,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/*! @} */
+/*! @} */

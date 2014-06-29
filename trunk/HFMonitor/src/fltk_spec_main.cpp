@@ -47,7 +47,18 @@
 #include <vector>
 #include <cmath>
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup fltk_spec fltk_spec
+ * fltk_spec
+ * - GUI spectrum display
+ * - reads an I/Q data stream (TPC/IP) and displays the FFT spectrum
+ * - configuration: command-line
+ * 
+ * @{
+ */
 
+/// FLTK window holding the spectrum display
 class MyWindow : public Fl_Double_Window {
 public:
   MyWindow(int w, int h)
@@ -89,6 +100,7 @@ private:
   // Fl_Text_Buffer buff_;
 } ;
 
+/// processor for computing FFT and inserting the data into @ref MyWindow
 class test_proc {
 public:
 #ifdef USE_CUDA      
@@ -163,6 +175,7 @@ private:
 
 int main(int argc, char* argv[])
 {
+  // set up command-line options
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -197,6 +210,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   
+  // logger initialization
   LOGGER_INIT("./Log", "fltk_spec");
 
   try {
@@ -210,9 +224,12 @@ int main(int argc, char* argv[])
     config.put("<xmlattr>.fMax_kHz", vm["fMax_kHz"].as<double>());
     config.put("<xmlattr>.sMin_dB", vm["sMin_dB"].as<double>());
     config.put("<xmlattr>.sMax_dB", vm["sMax_dB"].as<double>());
+
+    // FLTK initialization
     Fl::visual(FL_RGB);
     Fl::lock();
 
+    // connect to server
     const std::string stream_name(vm["stream"].as<std::string>());
     network::client::client<network::iq_adapter<repack_processor<test_proc> > > c(config);
 
@@ -248,3 +265,6 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/*! @} 
+ *  @} 
+ */

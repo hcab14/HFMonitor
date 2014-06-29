@@ -18,6 +18,7 @@
 //
 #include "processor/registry.hpp"
 
+// global processor registry
 namespace processor {
   registry::map_type registry::map_;
 }

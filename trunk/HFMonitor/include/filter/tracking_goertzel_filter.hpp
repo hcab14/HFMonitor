@@ -171,15 +171,16 @@ namespace detail {
         if (i->df() != j->df() && counter>0)
           dfs[counter-1] += (j->df() - i->df());
 
-      //   std::cout << str(boost::format("\t%4d %9.3f %15.10f (%.10f %.10f) %15.10f %15.10f\n")
-      //                    % j->dt()
-      //                    % j->phase()
-      //                    % filter_.kN()
-      //                    % i->df()
-      //                    % j->df()
-      //                    % (j->df() + dphase/dt/(2*M_PI))
-      //                    % (filter_.kN() +j->df() + dphase/dt/(2*M_PI))
-      //                    );
+        std::cout << str(boost::format("\t%4d %9.3f %8.4e %15.10f (%.10f %.10f) %15.10f %15.10f\n")
+                         % j->dt()
+                         % j->phase()
+                         % dfs[counter]
+                         % filter_.kN()
+                         % i->df()
+                         % j->df()
+                         % (j->df() + dphase/dt/(2*M_PI))
+                         % (filter_.kN() +j->df() + dphase/dt/(2*M_PI))
+                         );
       }
       if (dfs.empty())
         return value_and_error(0,0);

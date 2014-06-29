@@ -36,7 +36,16 @@
 #include <vector>
 #include <cmath>
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup save_datastream save_datastream
+ * save_datastream
+ * - saves a data stream from @ref network::broadcaster::broadcaster
+ * 
+ * @{
+ */
 
+/// save_datastream
 class save_datastream : public processor::base, public gen_filename {
 public:
   save_datastream(const boost::property_tree::ptree& config)
@@ -158,3 +167,5 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/// @}
+/// @}

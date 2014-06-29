@@ -37,6 +37,15 @@
 #include "processor.hpp"
 #include "Spectrum.hpp"
 
+/*! \addtogroup processors
+ *  @{
+ * \addtogroup demod_fsk demod_fsk
+ * FSK demodulation
+ * 
+ * @{
+ */
+
+/// FSK demodulation processor
 class demod_fsk_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<demod_fsk_processor> sptr;
@@ -321,5 +330,7 @@ private:
   demod::early_late_synch  early_late_synch_;
   decode::efr::sptr decoder_;
 } ;
+/// @}
+/// @}
 
 #endif // _DEMOD_FSK_PROCESSOR_HPP_cm131117_
