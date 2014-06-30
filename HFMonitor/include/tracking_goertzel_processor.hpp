@@ -38,11 +38,13 @@
  * @{
  */
 
-/// repack processor
+/// tracking Goertzel filter processor
+/// A @ref tracking_goertzel_filter is used to track a carrier and very precicely measure it's frequency.
 class tracking_goertzel_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<tracking_goertzel_processor> sptr;
 
+  /// result of @ref tracking_goertzel_processor
   class result : public processor::result_base {
   public:
     typedef boost::shared_ptr<result> sptr;
@@ -57,12 +59,12 @@ public:
                      const detail::value_and_error& df) {
       return sptr(new result(name, t, f0_Hz, state, period_sec, f_Hz, df));
     }
-
-    double      f0_Hz()      const { return f0_Hz_; }
-    std::string state()      const { return state_; }
-    double      period_sec() const { return period_sec_; }
-    const detail::value_and_error& f_Hz() const { return f_Hz_; }
-    const detail::value_and_error& df()   const { return df_; }
+    
+    double      f0_Hz()      const { return f0_Hz_; }      /// nominal frequency (Hz)
+    std::string state()      const { return state_; }      /// state of the processor
+    double      period_sec() const { return period_sec_; } /// current integration period of the processor (sec)
+    const detail::value_and_error& f_Hz() const { return f_Hz_; } /// estimated frequency (Hz)
+    const detail::value_and_error& df()   const { return df_; }   /// estimated frequency variation w.r.t time (Hz/sec)
 
     virtual std::ostream& dump_header(std::ostream& os) const {
       return os
@@ -95,11 +97,11 @@ public:
       , f_Hz_(f_Hz)
       , df_(df) {}
 
-    const double f0_Hz_;
-    const std::string state_;
-    const double period_sec_;
-    const detail::value_and_error f_Hz_;
-    const detail::value_and_error df_;
+    const double f0_Hz_;      /// nominal frequency (Hz)
+    const std::string state_; /// processor state
+    const double period_sec_; /// processor integration period (sec)
+    const detail::value_and_error f_Hz_; /// estimated frequency (Hz) 
+    const detail::value_and_error df_;   /// estimated frequency variation w.r.t time (Hz/sec)
   } ;
 
   typedef boost::posix_time::time_duration time_duration;
@@ -157,11 +159,11 @@ public:
 protected:
 private:
   const std::string name_;
-  const double      f0_Hz_;                 // initial middle frequency
-  const double      df_Hz_;                 // initial df: [f0+-df]
-  const double      min_df_Hz_;             // max. frequency resolution
-  const size_t      max_history_size_;      // max. phase history size in seconds
-  const size_t      max_num_without_lock_;  // max. number of iterations without lock
+  const double      f0_Hz_;                 /// initial middle frequency
+  const double      df_Hz_;                 /// initial df: [f0+-df]
+  const double      min_df_Hz_;             /// max. frequency resolution
+  const size_t      max_history_size_;      /// max. phase history size in seconds
+  const size_t      max_num_without_lock_;  /// max. number of iterations without lock
   tracking_goertzel_filter::sptr filter_;
 } ;
 /// @}

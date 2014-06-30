@@ -18,9 +18,12 @@ function a2r {
 
 function get_version_string {
     local rel_path=$1
-    svnversion ${rel_path}
-    svn info ${rel_path} | awk '/^Last Changed Author:/ {print $4}'
-    svn info ${rel_path} | awk '/^Last Changed Date:/ {print $4, $5, $6}'
+    local path=""
+    [ XX`uname` == XXDarwin ] && path=/opt/local/bin/
+    echo path=$path
+    ${path}svnversion ${rel_path}
+    ${path}svn info ${rel_path} | awk '/^Last Changed Author:/ {print $4}'
+    ${path}svn info ${rel_path} | awk '/^Last Changed Date:/ {print $4, $5, $6}'
 }
 
 rel_path=`a2r $PWD/ $1/`

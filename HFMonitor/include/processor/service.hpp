@@ -28,6 +28,8 @@
 
 namespace processor {
   
+  /// base class for all @ref processor service objects
+  /// @ref service_base is not copyable and exists only as shared_ptr
   class service_base : private boost::noncopyable {
   public:
     typedef boost::posix_time::ptime ptime;
@@ -36,27 +38,28 @@ namespace processor {
     
     virtual ~service_base() {}
     
-    virtual std::string     id() const = 0;
-    virtual ptime           approx_ptime() const = 0;
-    virtual boost::uint16_t stream_number() const = 0;
-    virtual std::string     stream_name() const = 0;
+    virtual std::string     id()            const = 0; /// id
+    virtual ptime           approx_ptime()  const = 0; /// current time
+    virtual boost::uint16_t stream_number() const = 0; /// number of stream
+    virtual std::string     stream_name()   const = 0; /// name of stream
 
-    virtual void              put_result(result_base::sptr ) = 0;
-    virtual result_base::sptr get_result(std::string ) const = 0;
+    virtual void              put_result(result_base::sptr ) = 0; /// put a @ref result_base::sptr into the environment
+    virtual result_base::sptr get_result(std::string ) const = 0; /// get a @ref result_base::sptr from the environment
   protected:
   private:
   } ;
 
+  /// service for I/Q processors (i.e. deriving from @ref processor::base_iq)
   class service_iq : public service_base {
   public:
     typedef boost::shared_ptr<service_iq> sptr;
     
     virtual ~service_iq() {}
     
-    virtual boost::uint32_t sample_rate_Hz()      const = 0;
-    virtual double          center_frequency_Hz() const = 0;
-    virtual float           offset_ppb()          const = 0;
-    virtual float           offset_ppb_rms()      const = 0;
+    virtual boost::uint32_t sample_rate_Hz()      const = 0; /// sampling rate (Hz)
+    virtual double          center_frequency_Hz() const = 0; /// center frequency (Hz)
+    virtual float           offset_ppb()          const = 0; /// offset used for frequency calibration (ppb)
+    virtual float           offset_ppb_rms()      const = 0; /// rms of offset (ppb)
   } ;
 
 } // namespace processor

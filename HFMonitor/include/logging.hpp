@@ -123,6 +123,7 @@ namespace logging {
 
   struct time_tagger : public boost::mpl::quote1<time_tagger_feature> {};
 
+  /// logger class
   template<typename LevelT = int>
   class severity_timestamp_logger
     : public boost::log::sources::basic_composite_logger<

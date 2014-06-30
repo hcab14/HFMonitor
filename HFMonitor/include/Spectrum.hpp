@@ -29,6 +29,7 @@
 
 #include "logging.hpp"
 
+/// base class for (FFT power) spectrum representation
 class SpectrumBase : private boost::noncopyable {
 public:
   typedef std::complex<double> complex_type;
@@ -39,13 +40,18 @@ public:
     , centerFrequency_(centerFrequency) {}
   virtual ~SpectrumBase() {}
 
+  /// sample rate (Hz)
   double sampleRate() const { return sampleRate_; }
+  /// center freqyency (Hz)
   double centerFrequency() const { return centerFrequency_; }
-
+  
+  /// size in bins
   virtual size_t size()                         const = 0;
   virtual complex_type operator[](size_t index) const = 0;
   virtual double normWindow()                   const = 0;
 
+  /// conversion of frequency (Hz) into bin index
+  /// takes care of the frequency order of FFT
   size_t freq2index(double qrg_Hz) const { // get the nearest bin index
     // clamp to f0 +- fs/2
     qrg_Hz = std::min(qrg_Hz, centerFrequency() + sampleRate()/2);
@@ -57,7 +63,8 @@ public:
     if (i == n/2) i -= 1;
     return (i>=0) ? i : n+i;
   }
-  
+
+  /// conversion of frequenct index to frequency (Hz)
   double index2freq(size_t index) const {
     const int n(size());
     return centerFrequency() + sampleRate() * (int(index) < n/2
@@ -71,6 +78,7 @@ private:
   double centerFrequency_;
 } ;
 
+/// FFT spectrum representation
 template<typename FFT_TYPE>
 class FFTSpectrum : public SpectrumBase {
 public:
@@ -92,6 +100,7 @@ private:
   double centerFrequency_;
 } ;
 
+/// This class represents a part (or all) of a given FFT spectrum
 template<typename T>
 class frequency_vector {
 public:
@@ -135,6 +144,8 @@ public:
   freq_type fmax() const { return fmax_; }
   freq_type deltaf() const { return (v_.size() > 1) ? 0.0 : (fmax() - fmin()) / (size()-1); }
 
+  /// fill the with content from a spectrum
+  /// frequency correction is applied
   template<typename FUNCTION>
   frequency_vector<T>& fill(const SpectrumBase& s, const FUNCTION& func, double offset_ppb=0.) {
     const double correction_factor(1. - 1e-9*offset_ppb);
@@ -172,6 +183,7 @@ public:
     }
     return *this;
   }
+  /// applies a function \c func
   template<typename FUNCTION>
   frequency_vector<T> apply(const FUNCTION& func) {
     BOOST_FOREACH(value_type& x, v_)
@@ -179,6 +191,7 @@ public:
     return *this;
   }
 
+  /// conversion frequency (Hz) to index, optionally throws an exception
   size_t freq2index(freq_type f, bool do_throw=true) const {
     if (do_throw) {
       ASSERT_THROW(f >= fmin_ && f <= fmax_);
@@ -215,7 +228,8 @@ public:
   static bool cmpSecond(const value_type& x1, const value_type& x2) {
     return x1.second < x2.second;
   }
-  // addition
+
+  /// addition
   frequency_vector<T>& operator+=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
@@ -225,13 +239,14 @@ public:
     }
     return *this;
   }
+  /// addition
   friend frequency_vector<T> operator+(const frequency_vector<T>& v1,
                                        const frequency_vector<T>& v2) {
     frequency_vector<T> r(v1); r+=v2;
     return r;
   }
 
-  // subtraction
+  /// subtraction
   frequency_vector<T>& operator-=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() != v.size());
     const_iterator j(v.begin());
@@ -241,35 +256,40 @@ public:
     }
     return *this;
   }
+  /// subtraction
   friend frequency_vector<T> operator-(const frequency_vector<T>& v1,
                                        const frequency_vector<T>& v2) {
     frequency_vector<T> r(v1); r-=v2;
     return r;
   }
 
-  // multiplication/division with scalar factor
+  /// multiplication by scalar factor
   frequency_vector<T>& operator*=(double f) {
     BOOST_FOREACH(value_type& x, v_) x.second *= f;
     return *this;
   }
+  /// division by scalar factor
   frequency_vector<T>& operator/=(double f) {
     BOOST_FOREACH(value_type& x, v_) x.second /= f;
     return *this;
   }
+  /// multiplication by scalar factor
   friend frequency_vector<T> operator*(const frequency_vector<T>& v, double f) {
     frequency_vector<T> r(v); r*=f;
     return r;
   }
+  /// division by scalar factor
   friend frequency_vector<T> operator/(const frequency_vector<T>& v, double f) {
     frequency_vector<T> r(v); r/=f;
     return r;
   }
+  /// multiplication by scalar factor
   friend frequency_vector<T> operator*(double f, const frequency_vector<T>& v) {    
     frequency_vector<T> r(v); r*=f;
     return r;
   }
 
-  // component-wise multiplication 
+  /// component-wise multiplication 
   frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
@@ -279,6 +299,7 @@ public:
     }
     return *this;
   }
+  /// component-wise multiplication 
   friend frequency_vector<T> operator*(const frequency_vector<T>& v1,
                                        const frequency_vector<T>& v2) {
     frequency_vector<T> r(v1); r*=v2;

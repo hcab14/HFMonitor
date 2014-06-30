@@ -39,6 +39,13 @@
  */
 
 /// repack processor
+/// This is a processor working with I/Q data (i.e. it derives from @ref processor::base_iq)
+/// It takes the incoming I/Q samples and splits them into blocks of the same size
+/// The blocks may overlap:
+/// - overlap ==   0:   no  overlap
+/// - overlap ==  50:  50% overlap
+/// - overlap ==  75:  75% overlap
+/// - overlap == -50: -50% overlap, i.e. data is omitted
 template<typename PROCESSOR>
 class repack_processor : public processor::base_iq {
 public:
@@ -78,6 +85,8 @@ public:
   }
   
 // protected:
+  /// service object for the repack processor deriving from @ref processor::service_iq
+  /// it is needed to put the right time stamp on the collected data
   class service_repack : public service {
   public:
     typedef boost::shared_ptr<service_repack> sptr;
@@ -112,8 +121,8 @@ public:
   } ;
 
 public:
-  // called from repack_buffer_type::insert
-  //   * counter is the distance (in samples) from sp_->approx_ptime()
+  /// called from repack_buffer_type::insert
+  ///   * counter is the distance (in samples) from sp_->approx_ptime()
   void process_samples(const_iterator beg, const_iterator end, boost::uint64_t counter) { 
     typename service_repack::sptr sp_repack(service_repack::make(sp_, counter));
     p_.process_iq(sp_repack, beg, end);
@@ -129,4 +138,3 @@ private:
 /// @}
 /// @}
 #endif // _REPACK_PROCESSOR_HPP_cm100818_
-

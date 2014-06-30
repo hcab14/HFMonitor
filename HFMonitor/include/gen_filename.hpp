@@ -25,6 +25,7 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/filesystem.hpp>
 
+/// filename generation according to a time stamp
 class gen_filename : private boost::noncopyable {
 public:
   typedef enum file_period {
@@ -45,6 +46,7 @@ public:
     boost::filesystem::path p(basePath+"/"+tag);
     boost::filesystem::create_directories(p);
     std::stringstream oss;
+    // the created time_facet is owned by \c oss and therefore does not need to be destroyed
     oss.imbue(std::locale(oss.getloc(), 
                           new boost::posix_time::time_facet(make_time_format(filePeriod()).c_str())));
     // compute time modulo 5 minutes

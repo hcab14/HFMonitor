@@ -24,13 +24,15 @@
 
 namespace FFT {  
   namespace WindowFunction {
+    /// rectangular window function
     template<typename T>
     struct Rectangular {
       Rectangular(size_t) {}
       T operator()(size_t) const { return T(1); }
     } ;
+    /// Hanning window function
     template<typename T>
-    class  Hanning {
+    class Hanning {
     public:
       Hanning(size_t n)
         : norm_(1./double(n-1)) {}
@@ -40,6 +42,7 @@ namespace FFT {
     private:
       const double norm_;
     } ;
+    /// Hamming window function
     template<typename T>
     class Hamming {
     public:
@@ -51,6 +54,7 @@ namespace FFT {
     private:
       const double norm_;
     } ;
+    /// Gaussian window function
     template<typename T>
     class Gaussian {
     public:
@@ -64,6 +68,7 @@ namespace FFT {
       const size_t n_;
       const double norm_;
     } ;
+    /// Blackman window function
     template<typename T>
     class Blackman {
     public:
@@ -179,6 +184,7 @@ namespace FFT {
     } ;
   } // namespace Internal
 
+  /// interface to FFTW (double or single precision)
   template<typename T>
   class FFTWTransform : public Internal::FFTWTraits<T> {
   public:    
@@ -215,6 +221,7 @@ namespace FFT {
       destroy_plan(plan_);
     }
 
+    /// resize
     void resize(size_t n) {
       if (n != size()) {
         in_.resize(n);
@@ -225,15 +232,17 @@ namespace FFT {
       }
     }
 
-    // norm of window
+    /// norm of window
     double normWindow() const { return in_.size() * normalizationFactor_; }
 
+    /// transform the input vector \c v using the window function \c window_fcn
     template<typename V,
              template <typename U> class WINDOW_FCN>
     void transformVector(const std::vector<std::complex<V> >& v,
                          const WINDOW_FCN<V>& window_fcn) {
       transformRange(v.begin(), v.end(), window_fcn);
     }
+    /// transform a vector range specified by iterators \c i0 and \c i1 using the window function \c window_fcn
     template<typename V,
              template <typename U> class WINDOW_FCN>
     void transformRange(typename std::vector<std::complex<V> >::const_iterator i0,
@@ -246,17 +255,21 @@ namespace FFT {
       normalizationFactor_= T(1)/in_.norm();
       execute(plan_);
     }
+    /// transform
     void transform() {
       normalizationFactor_= 1;
       execute(plan_);
     }
 
+    /// size of the FFT transform
     size_t size() const { return in_.size(); }
-
-    // corrected for spread due to window function
+    
+    /// get the result of a single bin
+    /// amplitude is corrected for the spread due to the used window function
     std::complex<T> getBin(size_t u) const {
       return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]); 
     }
+    /// get all bins
     std::vector<complex_type> getBins() const {
       std::vector<complex_type> v(size());
       for (size_t u(0); u<size(); ++u) 
@@ -264,26 +277,30 @@ namespace FFT {
       return v;
     }
 
+    /// get the input bin \c u
     std::complex<T> getInBin(size_t u) const { 
       return std::complex<T>(in_[u][0], in_[u][1]);
     }
 
+    /// access for input array (non-const)
     std::complex<T>& in (size_t index) { return reinterpret_cast<std::complex<T>&>(in_[index]); }
+    /// access for output array (non-const)
     std::complex<T>& out(size_t index) { return reinterpret_cast<std::complex<T>&>(out_[index]); }
 
+    /// access for input array (const)
     const std::complex<T>& in (size_t index) const { return reinterpret_cast<const std::complex<T>&>(in_[index]); }
+    /// access for output array (const)
     const std::complex<T>& out(size_t index) const { return reinterpret_cast<const std::complex<T>&>(out_[index]); }
 
   protected:
   private:
-    Internal::FFTWArray<T> in_;
-    Internal::FFTWArray<T> out_;
-    int sign_;
-    unsigned flags_;
-    Plan plan_;
-    T normalizationFactor_;
+    Internal::FFTWArray<T> in_;   /// input FFTW array
+    Internal::FFTWArray<T> out_;  /// output FFTW array
+    int                    sign_; /// sign of transform
+    unsigned              flags_; /// FFTW flags
+    Plan                   plan_; /// FFTW plan
+    T       normalizationFactor_; /// normalization factor (depends on used window function)
   } ;
-
 } // namespace FFT
 
 #ifdef USE_CUDA

@@ -21,11 +21,14 @@
 
 #include <iostream>
 #include <iterator>
+#include <locale>
 #include <string>
+#include <sstream>
 #include <stdexcept>
 
 #include <boost/current_function.hpp>
 #include <boost/format.hpp>
+#include <boost/date_time.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
@@ -55,11 +58,15 @@
 
 namespace db {
   namespace sqlite3 {
- 
+    namespace detail {
+      template<typename T>
+      struct type2type {} ;
+    } // namespace detail
+
    class context {
     public:
       context() { ASSERT_THROW_SQLITE3(sqlite3_initialize()); }
-      ~context() {  ASSERT_THROW_DESTRUCTOR_SQLITE3(sqlite3_shutdown()); }
+      ~context() { ASSERT_THROW_DESTRUCTOR_SQLITE3(sqlite3_shutdown()); }
     protected:
     private:
     } ;
@@ -106,9 +113,14 @@ namespace db {
                                   SQLITE_OPEN_CREATE)) {
         return sptr(new connection(filename, flags));
       }
+
+      virtual boost::int64_t last_insert_rowid() const {
+        return sqlite3_last_insert_rowid(const_cast<impl_type*>(get()));
+      }
       
     protected:
       impl_type* get() { return _db; }
+      const impl_type* get() const { return _db; }
       bool autocommit_mode() const { return (0 != sqlite3_get_autocommit(_db)); }
 
     private:
@@ -123,7 +135,11 @@ namespace db {
 
     class statement {
     public:
-      statement(base::sptr db, std::string query)
+      typedef struct null {} null_type;
+      typedef boost::posix_time::ptime ptime;
+
+      statement(base::sptr  db,
+                std::string query)
         : _db(boost::dynamic_pointer_cast<connection>(db))
         , _stmt(NULL) {
         if (!_db.lock()) throw std::runtime_error("db::sqlite3::statement: non-sqlite3 db sptr passed");
@@ -143,9 +159,10 @@ namespace db {
       // throws on error
       bool step(bool do_rollback_if_error=true) {
         const int result(sqlite3_step(_stmt));
+        std::cout << "step result = " << result << std::endl;
         switch (result) {
         case SQLITE_ROW:
-          return true;
+          return 1;
         case SQLITE_DONE:
           reset();
           return false;
@@ -164,7 +181,12 @@ namespace db {
           return false; // to avoid compiler warning
         }
       }
+      // execute all statements
+      void step_all() {
+        while (step()) ;
+      }
 
+      // perform rollback
       void do_rollback() {
         if (_db.lock()->autocommit_mode())
           return;
@@ -179,48 +201,26 @@ namespace db {
 
       // column access    
       int column_count() const { return sqlite3_column_count(_stmt); }
-      int           column_type  (int icol) const { return sqlite3_column_type  (_stmt, icol); }
-      double        column_double(int icol) const { return sqlite3_column_double(_stmt, icol); }
-      int           column_int   (int icol) const { return sqlite3_column_int   (_stmt, icol); }
-      sqlite3_int64 column_int64 (int icol) const { return sqlite3_column_int64 (_stmt, icol); }
-      int           column_bytes (int icol) const { return sqlite3_column_bytes (_stmt, icol); }
-      const void*   column_blob  (int icol) const { return sqlite3_column_blob  (_stmt, icol); }
-      std::string   column_text  (int icol) const {
-        return std::string(reinterpret_cast<const char*>(  sqlite3_column_text  (_stmt, icol)));
-      }
+      int data_count() const { return sqlite3_data_count(_stmt); }
+      template<typename T>
+      T get_column(int icol) const { return get_columnT(icol, detail::type2type<T>()); }
+      int           column_type (int icol) const { return sqlite3_column_type (_stmt, icol); }
+      int           column_bytes(int icol) const { return sqlite3_column_bytes(_stmt, icol); }
+      const void*   column_blob (int icol) const { return sqlite3_column_blob (_stmt, icol); }
       // sqlite3_column_value()
       // sqlite3_column_text16()
       // sqlite3_column_bytes16()
 
-      // binding
-      statement& bind_double(std::string name, double val) {
-        return bind_double(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
+      template<typename T>
+      statement& bind(std::string name, T val) {
+        std::cout << "bind: " << name << " -> " << val << std::endl;
+        return bind(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
       }
-      statement& bind_double(int index, double val) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_double(_stmt, index, val));
-        return *this;
+      template<typename T>
+      statement& bind(int index, T val=T()) {
+        return bindT(index, val, typename detail::type2type<T>());
       }
-      statement& bind_int(std::string name, int val) {
-        return bind_int(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
-      }
-      statement& bind_int(int index, int val) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_int(_stmt, index, val));
-        return *this;
-      }
-      statement& bind_int64(std::string name, sqlite3_int64 val) {
-        return bind_int64(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
-      }
-      statement& bind_int64(int index, sqlite3_int64 val) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
-        return *this;
-      }
-      statement& bind_null(std::string name) {
-        return bind_null(sqlite3_bind_parameter_index(_stmt, name.c_str()));
-      }
-      statement& bind_null(int index) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_null(_stmt, index));
-        return *this;
-      }
+
       statement& bind_blob(std::string name, const void* data, int n) {
         return bind_blob(sqlite3_bind_parameter_index(_stmt, name.c_str()), data, n);
       }
@@ -228,21 +228,85 @@ namespace db {
         ASSERT_THROW_SQLITE3(sqlite3_bind_blob(_stmt, index, data, n, destructor));
         return *this;
       }
-      statement& bind_text(std::string name, std::string s, void(*destructor)(void*)=SQLITE_TRANSIENT) {
-        return bind_text(sqlite3_bind_parameter_index(_stmt, name.c_str()), s, destructor);
-      }
-      statement& bind_text(int index, std::string s, void(*destructor)(void*)=SQLITE_TRANSIENT) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_text(_stmt, index, s.c_str(), s.size(), destructor));
+
+    private:
+      statement& bindT(int index, double val, detail::type2type<double>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_double(_stmt, index, val));
         return *this;
       }
+      statement& bindT(int index, float val, detail::type2type<float>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_double(_stmt, index, val));
+        return *this;
+      }
+      statement& bindT(int index, int val, detail::type2type<int>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_int(_stmt, index, val));
+        return *this;
+      }
+      statement& bindT(int index, sqlite_int64 val, detail::type2type<sqlite_int64>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
+        return *this;
+      }
+      statement& bindT(int index, std::string s, detail::type2type<std::string>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_text(_stmt, index, s.c_str(), s.size(), SQLITE_TRANSIENT));
+        return *this;
+      }
+      statement& bindT(int index, null_type, detail::type2type<null_type>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_null(_stmt, index));
+        return *this;
+      }
+      statement& bindT(int index, ptime t, detail::type2type<ptime>) {
+        return bind(index, date_time_to_string(t));
+      }
+
+
+      double        get_columnT(int icol, detail::type2type<double>) const {
+        return sqlite3_column_double(_stmt, icol);
+      }
+      float         get_columnT(int icol, detail::type2type<float>) const {
+        return float(sqlite3_column_double(_stmt, icol));
+      }
+      int           get_columnT(int icol, detail::type2type<int>) const {
+        return sqlite3_column_int   (_stmt, icol);
+      }
+      sqlite3_int64 get_columnT(int icol, detail::type2type<sqlite3_int64>) const {
+        return sqlite3_column_int64 (_stmt, icol);
+      }
+      std::string   get_columnT(int icol, detail::type2type<std::string>) const {
+        return std::string(reinterpret_cast<const char*>(sqlite3_column_text(_stmt, icol)));
+      }
+      ptime         get_columnT(int icol, detail::type2type<ptime>) const {
+        return string_to_date_time(get_column<std::string>(icol));
+      }
+
       // int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
       // int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
       // int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
 
+      static std::string date_time_to_string(boost::posix_time::ptime t) {
+        static std::stringstream oss;
+        static bool is_first(true);
+        if (is_first) {
+          oss.imbue
+            (std::locale(oss.getloc(), 
+                         new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S%f")));          
+        }
+        is_first = false;
+        oss.str("");
+        oss << t;
+        return oss.str();
+      }
+      static boost::posix_time::ptime string_to_date_time(std::string s) {
+        static std::stringstream iss;
+        iss.str(s);
+        boost::posix_time::ptime t(boost::posix_time::not_a_date_time);
+        iss >> t;
+        return t;
+      }
+
     protected:
     private:
       boost::weak_ptr<connection> _db;
-      sqlite3_stmt *_stmt;
+      sqlite3_stmt               *_stmt;
     } ;
 
   } // namespace sqlite3
