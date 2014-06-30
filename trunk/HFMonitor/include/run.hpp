@@ -32,6 +32,7 @@
 
 #include "logging.hpp"
 
+/// sets up command-line options
 boost::program_options::variables_map
 process_options(std::string default_config_file,
                 int argc, char* argv[]) {
@@ -68,6 +69,7 @@ process_options(std::string default_config_file,
   return vm;
 }
 
+/// waits for a signal in the destructor
 class wait_for_signal : public boost::noncopyable {
 public:
   wait_for_signal(boost::asio::io_service& service)
@@ -122,14 +124,15 @@ private:
   sigset_t _wait_mask;
 } ;
 
+/// returns a reference to the thread pool (singleton)
 boost::thread_group& get_thread_pool() {
   static boost::thread_group threadpool;
   return threadpool;
 }
 
-// run the io service in a backgroud thread until
-//  - it is stopped
-//  - a signal is caught
+/// run the \c io_service in a backgroud thread until
+///  - it is stopped
+///  - a signal is caught
 void run_in_thread(boost::asio::io_service& io_service) {
   typedef boost::shared_ptr<boost::thread> thread_sptr;
   thread_sptr tp;

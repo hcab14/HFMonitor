@@ -25,6 +25,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/cstdint.hpp>
 
 namespace db {
   // base class for data bases
@@ -32,6 +33,7 @@ namespace db {
   public:
     typedef boost::shared_ptr<base> sptr;
     virtual ~base() {}
+    virtual boost::int64_t last_insert_rowid() const = 0;
   protected:
   private:
   } ;

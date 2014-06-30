@@ -30,7 +30,7 @@
 
 namespace processor {
 
-  // base class for time-stamped named results
+  /// base class for time-stamped named results
   class result_base : private boost::noncopyable {
   public:
     typedef boost::posix_time::ptime ptime;
@@ -38,22 +38,26 @@ namespace processor {
     typedef boost::shared_ptr<result_base> sptr;
     virtual ~result_base() {}
 
-    virtual std::string name() const { return name_; }
-    virtual ptime approx_ptime() const { return t_; }
-    virtual std::string format() const { return "TXT_0000"; }
+    virtual std::string name()   const { return name_; }      /// name of the result
+    virtual ptime approx_ptime() const { return t_; }         /// time stamp
+    virtual std::string format() const { return "TXT_0000"; } /// format of the result
 
-    virtual bool setup_database(db::base::sptr) const { return false; }
-    virtual bool save_to_database(db::base::sptr) const { return false; }
+    virtual bool setup_database(db::base::sptr) const { return false; }    /// preparation for use of @db 
+    virtual bool save_to_database(db::base::sptr) const { return false; }  /// preparation for use of @db 
 
+    /// serialization into string
     virtual std::string to_string() const {
       std::ostringstream oss;      
       dump_data(dump_header(oss));
       return oss.str();
     }
 
+    /// update name of the result !!! to be checked !!!
     void set_name(std::string name) { name_ = name; }
 
+    /// dump header (per file)
     virtual std::ostream& dump_header(std::ostream& os) const { return os;  }
+    /// dump data content (per epoch)
     virtual std::ostream& dump_data(std::ostream& os)   const { return os; }
 
     friend std::ostream& operator<<(std::ostream& os, const result_base& r) {
@@ -65,8 +69,8 @@ namespace processor {
       , t_(t) {}
 
   private:    
-    std::string name_;
-    const ptime t_;
+    std::string name_; /// name (should be unique)
+    const ptime t_;    /// time stamp
   } ;
 
 } // namespace processor

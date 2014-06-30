@@ -30,6 +30,7 @@
 #include "processor.hpp"
 
 namespace processor {
+  /// registry for processors (deriving from @ref processor::base)
   class registry {
   public:
     typedef boost::function<base::sptr(const boost::property_tree::ptree&)> a_factory;
@@ -37,6 +38,7 @@ namespace processor {
 
     registry() {}
 
+    /// construct a processor with configuration \c config accoring to \c key (factory method)
     static base::sptr make(std::string key, const boost::property_tree::ptree& config) {
       map_type::iterator i(map().find(key));
       if (i == map().end())
@@ -44,6 +46,7 @@ namespace processor {
       return i->second(config);
     }
 
+    /// add a processor type to the registry
     template<typename T>
     static void add(std::string key) {
       map()[key] = boost::factory<typename T::sptr>();

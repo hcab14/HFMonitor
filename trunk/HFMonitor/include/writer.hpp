@@ -24,6 +24,7 @@
 #include "gen_filename.hpp"
 #include "processor.hpp"
 
+/// base class for writing into text files
 class writer_txt_base : public gen_filename {
 public:
   typedef boost::shared_ptr<writer_txt_base> sptr;
@@ -41,6 +42,7 @@ public:
   virtual file_period filePeriod()    const { return file_period_; }
   virtual std::string fileExtension() const { return "txt"; }
 
+  /// dumps \c rp into a file
   processor::result_base::sptr dump_result(processor::result_base::sptr rp,
                                            std::string extra_header) {
     if (!rp)
@@ -91,6 +93,7 @@ private:
   std::streampos pos_;
 } ;
 
+/// processor for writing results (@ref processor::result_base) into text files
 class writer_txt : public processor::base, public writer_txt_base {
 public:
   typedef boost::shared_ptr<writer_txt> sptr;
@@ -130,16 +133,20 @@ public:
 
   virtual ~writer_txt() {}
 
+  /// process method
   virtual void process(service::sptr sp,
 		       const_iterator i0,
 		       const_iterator i1) {
+    // when empty input: NOP
     if ( i0 == i1) return;
-    if (*i0 == '#') { // save header line(s)
+    // save header lines (which start with "#")
+    if (*i0 == '#') {
       header_.clear();
       header_.resize(std::distance(i0, i1));
       std::copy(i0, i1, header_.begin());
       return;
     }
+    // else: call @ref dump_result
     std::string data(std::distance(i0, i1), ' ');
     std::copy(i0, i1, data.begin());
     dump_result(result::make(sp->stream_name(), sp->approx_ptime(), header_, data),

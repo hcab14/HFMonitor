@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 
+/// information about the monitoring station (shown in the header of text file results)
 class station_info {
 public:
   station_info(std::string s,
@@ -35,6 +36,7 @@ public:
   }
   
 protected:
+  /// prepends "#" to all lines
   static std::string format(std::string s, std::string line_break) {
     std::stringstream si(s); // input stream
     std::stringstream r;    // result stream

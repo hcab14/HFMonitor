@@ -1,7 +1,7 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
 // $Id$
 //
-// Copyright 2010-2011 Christoph Mayer
+// Copyright 2010-2014 Christoph Mayer
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@
 #include "processor/service.hpp"
 
 namespace processor {
+  /// base class for all processors
+  /// processors cannot be copied and exist as shared_ptr only
+  /// - there are service objects (deriving from @ref processor::service_base) which carry information over the current epoch and the environment
+  /// - so-called results (deriving from @ref processor::result_base) can be inserted into and be obtained from the service object
   class base : public boost::noncopyable {
   public:
     typedef boost::shared_ptr<base> sptr;
@@ -45,14 +49,18 @@ namespace processor {
     typedef boost::property_tree::ptree ptree;
     typedef boost::posix_time::ptime ptime;
 
+    /// constructor
+    /// all configuration is made using @ref ptree
     base(const ptree& c) {}
     virtual ~base() {};
 
+    /// all processing is done by overloading the @process method
     virtual void process(service::sptr, const_iterator, const_iterator) {
       throw std::runtime_error("processor::base::process is not implemented");
     }
   } ;
 
+  /// base class for processors working with I/Q data
   class base_iq : public base {
   public:
     typedef boost::shared_ptr<base_iq> sptr;
@@ -61,27 +69,30 @@ namespace processor {
 
     typedef service_iq service;
 
+    /// constructor
+    /// all configuration is done using @ref ptree
     base_iq(const ptree& config)
       : base(config) {}
 
     virtual ~base_iq() {};
 
+    /// all processing is done by overloading the @process_iq method
     virtual void process_iq(service::sptr, const_iterator, const_iterator) {
       throw std::runtime_error("processor::base_iq::process_iq is not implemented");
     }
   } ;
 
-  class processor_txt : public base {
-  public:
-    typedef boost::shared_ptr<processor_txt> sptr;
-    virtual ~processor_txt() {};
-  } ;
+//   class processor_txt : public base {
+//   public:
+//     typedef boost::shared_ptr<processor_txt> sptr;
+//     virtual ~processor_txt() {};
+//   } ;
 
-  class processor_png : public base {
-  public:
-    typedef boost::shared_ptr<processor_png> sptr;
-    virtual ~processor_png() {};
-  } ;
+//   class processor_png : public base {
+//   public:
+//     typedef boost::shared_ptr<processor_png> sptr;
+//     virtual ~processor_png() {};
+//   } ;
 
 }
 #endif // _PROCESSOR_HPP_cm121221_

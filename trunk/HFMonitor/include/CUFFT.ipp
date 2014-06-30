@@ -31,7 +31,7 @@
 
 namespace FFT {  
   namespace internal {
-    // float precision only for now
+    /// CUDA FFT array (float precision only for now)
     class CUFFTArray {
     public:
       typedef float2 Complex;
@@ -60,14 +60,20 @@ namespace FFT {
       size_t size() const { return in_.size(); }
       double norm() const { return norm_; }
 
+      /// get input array (non-const)
       Complex&       in(size_t n)       { return in_[n]; }
+      /// get input array (const)
       const Complex& in(size_t n) const { return in_[n]; }
 
+      /// get output array (non-const)
       Complex&       out(size_t n)       { return out_[n]; }
+      /// get output array (const)
       const Complex& out(size_t n) const { return out_[n]; }
 
+      /// device vector access
       cufftComplex* device_vec() { return device_vec_.c; }
-
+      
+      /// resize
       void resize(size_t n) {
         in_.resize(n);
         out_.resize(n);
@@ -76,21 +82,25 @@ namespace FFT {
         checkCudaErrors(cudaMalloc(device_vec_.as_vpp(), n*sizeof(Complex)));
       }
 
+      /// tranfer data from host to device (main memory to GPU)
       void host_to_device() {
         cuda_lock_type lock(cuda_mutex::get());
         checkCudaErrors(cudaMemcpy(device_vec_.c, &in_.front(), size()*sizeof(Complex), cudaMemcpyHostToDevice));    
       }
+      /// tranfer data from device to host (GPU to main memory)
       void device_to_host() {
         cuda_lock_type lock(cuda_mutex::get());
         checkCudaErrors(cudaMemcpy(&out_.front(), device_vec_.c, size()*sizeof(Complex), cudaMemcpyDeviceToHost));
       }
   
+      /// fill a vector
       template<typename V,
                template<typename U> class WINDOW_FCN>
       double fill(const std::vector<std::complex<V> >& v,
                   const WINDOW_FCN<V>& window_fcn) {
         return fill(v.begin(), v.end(), window_fcn);
       }
+      /// fill a vector using a range specified by iterators
       template<typename V,
                template<typename U> class WINDOW_FCN>
       double fill(typename std::vector<std::complex<V> >::const_iterator i0,
@@ -124,10 +134,13 @@ namespace FFT {
     } ;
   } // namespace internal
 
+  /// interface to CUDA FFT transform
+  /// same API as for @ref FFTWTransform
   class CUFFTTransform {
   public:
     typedef boost::interprocess::scoped_lock<cuda_mutex::mutex_type> cuda_lock_type;
 
+    /// constructor
     CUFFTTransform(size_t n, int direction, unsigned flags=0 /* not used, compatibility to FFTW*/)
       : vec_(n)
       , normalization_factor_(vec_.norm())
@@ -140,7 +153,7 @@ namespace FFT {
       cuda_lock_type lock(cuda_mutex::get());
       cufftDestroy(plan_);
     }
-    
+    /// resize
     void resize(size_t n) {
       {
         cuda_lock_type lock(cuda_mutex::get());
@@ -150,30 +163,35 @@ namespace FFT {
       }
       vec_.resize(n);
     }
-
+    
+    /// get size of the transform
     size_t size() const { return vec_.size(); }
 
+    /// get bin number \c i, amplitude is corrected for window function
     std::complex<float> getBin(size_t i) const {
       std::complex<float> r(vec_.out(i).x, vec_.out(i).y);
       r *= normalization_factor_;
       return r;
     }
-    // Note: host->device changes in->out
+    /// Note: host->device changes in->out
     std::complex<float>& in(size_t i) { return reinterpret_cast<std::complex<float>& >(vec_.in(i)); }
     const std::complex<float>& in(size_t i) const { return reinterpret_cast<const std::complex<float>& >(vec_.in(i)); }
 
-    // Note: host->device changes in->out
+    /// Note: host->device changes in->out
     std::complex<float>& out(size_t i) { return reinterpret_cast<std::complex<float>& >(vec_.out(i)); }
     const std::complex<float>& out(size_t i) const { return reinterpret_cast<const std::complex<float>& >(vec_.out(i)); }
   
+    /// computes the integral of the used window function
     double normWindow() const { return vec_.size() * normalization_factor_; }
 
+    /// transforms a vector
     template<typename V,
              template <typename U> class WINDOW_FCN>
     void transformVector(const std::vector<std::complex<V> >& v,
                          const WINDOW_FCN<V>& window_fcn) {
       transformRange(v.begin(), v.end(), window_fcn);
     }
+    /// transforms a vector range
     template<typename V,
              template <typename U> class WINDOW_FCN>
     void transformRange(typename std::vector<std::complex<V> >::const_iterator i0,
@@ -187,7 +205,7 @@ namespace FFT {
     
       transform();
     }
-
+    /// transform
     void transform() {
       host_to_device();
       transform_on_device();
