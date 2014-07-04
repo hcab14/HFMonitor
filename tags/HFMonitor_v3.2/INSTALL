@@ -1,0 +1,6 @@
+$Id$
+
+mkdir objdir
+cd objdir
+cmake ../
+make -j4 install
