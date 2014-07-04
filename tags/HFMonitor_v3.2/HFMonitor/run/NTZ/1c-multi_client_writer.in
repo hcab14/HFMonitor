@@ -1,0 +1,5 @@
+#!/bin/bash
+# $Id$
+
+NAME="multi_client_writer_BOS"
+CMD="./bin/multi_client_to_file -c config/multi_client_writer_NTZ_fromBOS.xml"
