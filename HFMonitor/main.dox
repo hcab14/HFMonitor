@@ -70,7 +70,7 @@ make Docs
 
  \section code_guide_sec Guide to the source code
  \subsection over_sec Overview
- HFMonitor has a C++ framework: 
+ HFMonitor contains a C++ framework:
  - all processors derive from @ref processor::base
  - different processing steps are de-coupled using TPC/IP datastreams (using <a href="http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio.html">Boost.Asio</a>)
  - data stream format:  @ref network::protocol

@@ -10,7 +10,7 @@ modular-boost/b2: modular-boost/bootstrap.sh ./setup_boost.sh
 	./setup_boost.sh && cd modular-boost && ./bootstrap.sh && cd ..
 
 modular-boost/bootstrap.sh: | modular-boost.tar.bz2
-	bzip2 -dc modular-boost.tar.bz2 | tar xvf -
+	bzip2 -dc modular-boost.tar.bz2 | tar --exclude "*/doc/*" -xvf -
 
 modular-boost.tar.bz2:
 	wget http://nz23-18.ifj.edu.pl/boost/modular-boost.tar.bz2
