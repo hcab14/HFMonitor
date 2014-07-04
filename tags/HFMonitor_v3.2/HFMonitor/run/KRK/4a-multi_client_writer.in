@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="4a-multi_client_to_file"
-CMD="LD_LIBRARY_PATH=/opt/local/cuda-5.0/lib:/opt/local/lib:$LD_LIBRARY_PATH ./bin/multi_client_to_file -c config/multi_client_writer_KRK.xml"

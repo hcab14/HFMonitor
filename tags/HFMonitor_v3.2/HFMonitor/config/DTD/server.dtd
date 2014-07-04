@@ -1,8 +1,0 @@
-<!-- client configuration -->
-<!-- $Id$ -->
-
-<!-- specification to which broadcaster this client should connect to -->
-<!ELEMENT server EMPTY>
-<!ATTLIST server host        CDATA #REQUIRED> <!-- host name/IP address -->
-<!ATTLIST server port        CDATA #REQUIRED> <!-- TCP port -->
-<!ATTLIST server stream_name CDATA #IMPLIED>  <!-- default: DataIQ -->

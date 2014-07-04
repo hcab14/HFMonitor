@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="2a-multi_client_to_broadcaster"
-CMD="./bin/multi_client_to_broadcaster -c config/multi_client_MUN.xml"
