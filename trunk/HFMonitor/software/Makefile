@@ -4,7 +4,7 @@
 ALL: boost/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
 
 boost/bjam: modular-boost/b2
-	cd modular-boost && ./b2 headers && ./b2 -j4 && cd .. && rm -f boost && ln -s modular-boost boost
+	cd modular-boost && ./b2 headers && ./b2 toolset=gcc -j4 && cd .. && rm -f boost && ln -s modular-boost boost
 
 modular-boost/b2: modular-boost/bootstrap.sh ./setup_boost.sh
 	./setup_boost.sh && cd modular-boost && ./bootstrap.sh && cd ..
