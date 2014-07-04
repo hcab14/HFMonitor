@@ -463,7 +463,8 @@ WARN_LOGFILE           =
 INPUT                  = @PROJECT_SOURCE_DIR@/main.dox \
                          @PROJECT_SOURCE_DIR@/src \
                          @PROJECT_SOURCE_DIR@/include \
-                         @PROJECT_SOURCE_DIR@/config
+                         @PROJECT_SOURCE_DIR@/config \
+                         @PROJECT_SOURCE_DIR@/test/test_client_multi_main.cpp
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
