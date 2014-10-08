@@ -341,13 +341,18 @@ public:
   const detail::value_and_error& estimated_df()   const { return estimated_df_; }  
   double        delta_time_sec() const { return delta_time_sec_; }
 
-  void update(complex_t sample) {
+  bool update(complex_t sample) {
     static size_t ccounter(0);
     ++ccounter;
+
+    // (1) run all Goertzel filters
     for (size_t i(0); i<NUM_GF; ++i)
       filters_updated_ = gfs_[i]->update(sample);
 
-    if (!filters_updated_) return;
+    // (2) if they did not finish return
+    if (!filters_updated_) return false;
+
+    // (3) change the filter according to the measured amplitudes
 
     double ampl[NUM_GF] = { 0 };
     // std::cout << "AMPL: ";    
@@ -358,6 +363,7 @@ public:
     // std::cout << std::endl;
     gfs_[GF_CENTER]->dump(ccounter);
 
+    // compute the frequency
     estimated_f_ = gfs_[GF_CENTER]->compute_f_est();
     delta_time_sec_ = -0.5*double(gfs_[GF_CENTER]->history_size())/fs_;
     if (0.0 == estimated_f_.value())
@@ -452,7 +458,10 @@ public:
         }
         last_state_ = state::REST;
       }
-    }    
+    }
+
+
+    // reset all filters 
     for (size_t i(0); i<NUM_GF; ++i)
       gfs_[i]->reset(gf_id2str(gf_id_t(i)));
 
@@ -460,6 +469,7 @@ public:
     gfs_[GF_CENTER]->set_df(0);
     gfs_[GF_RIGHT] ->set_df(gfs_[GF_CENTER]->kN() - gfs_[GF_RIGHT]->kN());
 
+    // count how many steps there were not in the PEAK state
     if (last_state_ != state::PEAK)
       ++num_without_lock_;
     else
@@ -468,6 +478,7 @@ public:
     if (num_without_lock_ > max_num_without_lock_)
       reset();
 
+    return true;
   }
 
 protected:

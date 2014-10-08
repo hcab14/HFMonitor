@@ -163,17 +163,21 @@ public:
     const unsigned poly_degree(2);
     
     const size_t m(15); // number of fit intervals
-    std::vector<size_t> indices(m+1, 0);
+    std::vector<double> indices(m+1, 0);
     for (size_t i(0); i<m; ++i)
       indices[i] = (i*n)/m;
+
     indices[m] = n-1;
     indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
     indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
 
     polynomial_interval_fit p(poly_degree, indices);
+    std::vector<double> ts(n, 0);
+    for (size_t i(0); i<n; ++i)
+      ts[i] = i;
 
     for (size_t l(0); l<100; ++l) {
-      if (!p.fit(spec_filtered, b)) {
+      if (!p.fit(ts, spec_filtered, b)) {
 	std::cerr << "fit failed" << std::endl;
       }
       size_t nchanged(0);

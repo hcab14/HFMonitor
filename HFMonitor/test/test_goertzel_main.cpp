@@ -22,14 +22,26 @@
 
 int main() {
   LOGGER_INIT("./Log", "test_goertzel");
-  const double fs(1000);
-  std::vector<std::complex<double> > v;
-  const double f0(103);
-  tracking_goertzel_filter::sptr tf(tracking_goertzel_filter::make(fs, 100, 10, 0.1, 500, 5));
+  const double fs(1000); // 1000 Hz
+
+  const double f0(1);
+  tracking_goertzel_filter::sptr tf(tracking_goertzel_filter::make(fs, 1, 4, 0.125, 40, 2));
   for (size_t i=0; i<fs*10000; ++i) {
-    const double f(f0-0.01*i/fs/500);
-    tf->update(exp(std::complex<double>(0, 2*M_PI*i/fs*f)) 
-	       +0.1*std::complex<double>(drand48()-0.5, drand48()-0.5));
+    const double t(i/fs);
+
+    // saw tooth 
+//     const double f(f0 + std::abs(std::fmod(df*t, 0.02)-0.01));
+    const double f(f0 + 0.001*std::cos(t/10000.));
+
+    tf->update( exp(std::complex<double>(0, 2*M_PI*t*f))
+	       +0.9*std::complex<double>(drand48()-0.5, drand48()-0.5));
+    if (tf->state_updated()) {
+      const detail::value_and_error& f_est =  tf->estimated_f_Hz();
+      std::cout << "F " << std::scientific
+                << t << " " << f << " "
+                << t << " " << tf->delta_time_sec() << " " << f_est.value() << " " << f_est.rms_value()
+                << std::endl;
+    }
   }
   return 0;
 }
