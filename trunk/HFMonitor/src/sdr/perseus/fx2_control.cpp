@@ -203,7 +203,7 @@ namespace Perseus {
   protected:
     virtual eeprom_data read_eeprom_lowlevel(boost::uint16_t addr, size_t length) {
       int transferred(0);
-      const EEPROM::cmd cmd = {CMD::eeprom_read, addr, length};
+      const EEPROM::cmd cmd = {CMD::eeprom_read, addr, uint8_t(length)};
       ASSERT_THROW(_usb_control->submit_bulk(EndPoint::cmd,
                                              (unsigned char *)&cmd, sizeof(cmd),
                                              &transferred, FX2::usb_timeout) == 0);

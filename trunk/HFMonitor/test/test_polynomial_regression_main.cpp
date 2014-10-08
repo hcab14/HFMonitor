@@ -29,11 +29,14 @@ int main()
 {
   srand48(getpid());
   const size_t n(50);
+  std::vector<double> t(n, 0);
   std::vector<double> y(n, 0);
-  for (size_t i=0; i<n; ++i)
+  for (size_t i=0; i<n; ++i) {
+    t[i] = i;
     y[i] = 0.5 + 2.*i + drand48();
+  }
 
-  polynomial_regression pr(y, 2);
+  polynomial_regression pr(t, y, 2);
   std::cout << "x[0]= "   << pr.x()(0)   << std::endl;
   std::cout << "x[1]= "   << pr.x()(1)   << std::endl;
   std::cout << "q[0,0]= " << pr.q()(0,0) << std::endl;
