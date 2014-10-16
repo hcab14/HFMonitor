@@ -42,7 +42,7 @@
 class test_cb : public Perseus::callback {
 public:
   enum {
-    BUFFER_SIZE = 16320
+    BUFFER_SIZE = 16320*10
   };
   test_cb()
     : i_(0) {}
@@ -55,7 +55,7 @@ public:
   void operator()(unsigned char* data, size_t length) {
     // std::cout << "BUF: " << i_ << " " << length  << std::endl;
     if (i_ == BUFFER_SIZE) { // buffer is full
-      const std::string s(reinterpret_cast<char*>(data), BUFFER_SIZE);
+      const std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
       i_ = 0;
     }
