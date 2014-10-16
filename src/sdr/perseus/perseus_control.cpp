@@ -75,7 +75,8 @@ namespace Perseus {
       set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
       use_preselector(config.get<bool>("<xmlattr>.use_preselector"));
       set_attenuator(config.get<int>("<xmlattr>.attenuator"));
-      _usb_transfer_size = config.get<int>("<xmlattr>.usb_transfer_size", 16320);
+      _usb_transfer_size = config.get<size_t>("<xmlattr>.usb_transfer_size", 16320);
+      LOG_INFO(str(boost::format("usb_transfer_size=%d") % _usb_transfer_size));
     }
 
     virtual void set_sample_rate(int sample_rate) {
