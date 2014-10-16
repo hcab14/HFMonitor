@@ -42,7 +42,8 @@ namespace Perseus {
     , _frontend_ctl(0xFF)
     , _use_preselector(false)
     , _filter_cutoffs(make_filter_cutoffs())
-    , _sample_rate(-1) {
+    , _sample_rate(-1)
+    , _usb_transfer_size(16320) {
       if (_poll_libusb_thread == 0) {
         _poll_libusb_refcount = 1;
         ASSERT_THROW(pthread_create(&_poll_libusb_thread, NULL, 
@@ -74,6 +75,7 @@ namespace Perseus {
       set_center_freq_hz(config.get<double>("<xmlattr>.fc"));
       use_preselector(config.get<bool>("<xmlattr>.use_preselector"));
       set_attenuator(config.get<int>("<xmlattr>.attenuator"));
+      _usb_transfer_size = config.get<int>("<xmlattr>.usb_transfer_size", 16320);
     }
 
     virtual void set_sample_rate(int sample_rate) {
@@ -90,15 +92,10 @@ namespace Perseus {
       set_sio(b, FPGA::sioctl::CMD::gain_high);
     }
     virtual void start_async_input(callback::sptr callback) {
-#ifdef __APPLE
-      const size_t queue_size(510);
-#else
-      const size_t queue_size(16320);
-#endif        
-      _input_queue = input_queue::make(callback, queue_size, 8,
+      _input_queue = input_queue::make(callback, _usb_transfer_size, 8,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
-                                        (_fx2_control->get_usb_device_handle())->get_device()), 
+                                        (_fx2_control->get_usb_device_handle())->get_device()),
                                        fx2_control::EndPoint::data_in);
       set_sio(true, FPGA::sioctl::CMD::fifo_enable);
     }
@@ -183,6 +180,7 @@ namespace Perseus {
     static int           _poll_libusb_refcount;
     rbs_map              _rbs_map;
     int                  _sample_rate;
+    size_t               _usb_transfer_size;
   } ;
 
   pthread_t receiver_control_impl::_poll_libusb_thread   = 0;

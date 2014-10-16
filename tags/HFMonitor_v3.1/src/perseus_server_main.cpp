@@ -41,19 +41,39 @@
 //  * inserts the data into a buffer
 class test_cb : public Perseus::callback {
 public:
-  test_cb() {}
+  enum {
+    BUFFER_SIZE = 16320
+  };
+  test_cb()
+    : i_(0) {}
   test_cb(buffer<std::string>::sptr buf)
-    : buffer_(buf) {}
+    : i_(0)
+    , buffer_(buf) {}
+
   virtual ~test_cb() { }
+
   void operator()(unsigned char* data, size_t length) {
-    using namespace boost::posix_time;
-    std::string s((char*)(data), length);
-    const ptime t(microsec_clock::universal_time());
-    buffer_->insert(t, s);
+    // std::cout << "BUF: " << i_ << " " << length  << std::endl;
+    if (i_ == BUFFER_SIZE) { // buffer is full
+      const std::string s(reinterpret_cast<char*>(data), BUFFER_SIZE);
+      buffer_->insert(t_, s);
+      i_ = 0;
+    }
+    if (i_ == 0)
+      t_ = boost::posix_time::microsec_clock::universal_time();
+
+    if (i_+length > BUFFER_SIZE)
+      throw std::runtime_error("invalid buffer size");
+
+    std::copy(data, data+length, data_+i_);
+    i_ += length;
   }
 protected:
 private:
+  size_t i_;
   buffer<std::string>::sptr buffer_;
+  boost::posix_time::ptime t_;
+  unsigned char data_[BUFFER_SIZE];
 } ;
 
 // bridge between perseus and the broadcaster
