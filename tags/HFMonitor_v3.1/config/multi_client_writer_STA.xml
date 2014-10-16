@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
+<!-- $Id: multi_client_writer_STA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
+<MultiClient>
+  <StationInfo>
+    Station  = STA
+    Computer = Latitude E6440
+  </StationInfo>
+  <server host="127.0.0.1" port="18001"/>
+  <FileSink filePath="DataSTA" filePeriod="1d"/>
+  <Streams>
+    <Stream pattern="L.*">Writer</Stream>
+    <Stream pattern="M.*">Writer</Stream>
+  </Streams>
+  <Clients>
+    <WriterTXT proc_name="Writer" filePath="DataSTA" filePeriod="1d"/>
+  </Clients>
+</MultiClient>
