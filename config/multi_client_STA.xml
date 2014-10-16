@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
-<!-- $Id: multi_client_BOS.xml 399 2014-05-14 20:43:43Z cmayer $ -->
+<!-- $Id: multi_client_STA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
 <MultiClient>
   <StationInfo>
-    Station  = BOS
-    Computer = Latitude E6430 : N-Series Base
+    Station  = STA
+    Computer = Latitude E6440
   </StationInfo>
   <Broadcaster>
     <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
-          port="19200"/>
+          port="19100"/>
   </Broadcaster>
-  <server host="127.0.0.1" port="19100"/>
-  <FileSink filePath="DataBOS" filePeriod="1d"/>
+  <server host="127.0.0.1" port="18001"/>
+  <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
     <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
@@ -38,7 +38,7 @@
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
   <Clients>
-    <WriterTXT proc_name="WriterText" filePath="DataBOS" filePeriod="1d"/>
+    <WriterTXT proc_name="WriterText" filePath="DataSTA" filePeriod="1d"/>
     <WriterIQ  proc_name="WriterIQ"   filePath="DataIQ"  filePeriod="5m" bitsPerSample="24"/>
 
     <DemodMSK proc_name="DemodMSK_JXN"
