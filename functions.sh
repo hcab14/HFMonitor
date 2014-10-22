@@ -64,6 +64,9 @@ function where_am_I {
 	vlfmonitor)
 	    echo MUN
 	    ;;
+	gifds-st)
+	    echo STA
+	    ;;
 	*)
 	    echo XXX
 	    ;;
