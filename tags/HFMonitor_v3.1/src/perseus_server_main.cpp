@@ -53,9 +53,8 @@ public:
   virtual ~test_cb() { }
 
   void operator()(unsigned char* data, size_t length) {
-    // std::cout << "BUF: " << i_ << " " << length  << std::endl;
     if (i_ == BUFFER_SIZE) { // buffer is full
-      const std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
+      std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
       i_ = 0;
     }

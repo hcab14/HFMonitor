@@ -11,7 +11,7 @@
           maxQueueDelay_Minutes="5"
           port="19100"/>
   </Broadcaster>
-  <server host="127.0.0.1" port="18001"/>
+  <server host="127.0.0.1" port="19000"/>
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>

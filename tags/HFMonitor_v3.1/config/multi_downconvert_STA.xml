@@ -10,7 +10,7 @@
   <Broadcaster>
     <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
-          port="19100"/>
+          port="19000"/>
   </Broadcaster>
   <Repack bufferLength_sec="1"
           overlap_percent="0"/>

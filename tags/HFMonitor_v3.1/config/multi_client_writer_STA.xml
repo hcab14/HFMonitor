@@ -6,7 +6,7 @@
     Station  = STA
     Computer = Latitude E6440
   </StationInfo>
-  <server host="127.0.0.1" port="18001"/>
+  <server host="127.0.0.1" port="19100"/>
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
