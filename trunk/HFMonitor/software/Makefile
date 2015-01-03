@@ -16,17 +16,17 @@ boost_1_57_0/bootstrap.sh: boost_1_57_0
 #	wget http://nz23-18.ifj.edu.pl/boost/boost_1_57_0.tar.bz2
 
 
-fltk/bin/fltk-config: fltk-1.3.2/insted/bin/fltk-config
-	rm -f fltk && ln -s fltk-1.3.2 fltk
+fltk/bin/fltk-config: fltk-1.3.3/insted/bin/fltk-config
+	rm -f fltk && ln -s fltk-1.3.3 fltk
 
-fltk-1.3.2/insted/bin/fltk-config: fltk-1.3.2/Makefile
-	cd fltk-1.3.2 && make -j4 install && cd ..
+fltk-1.3.3/insted/bin/fltk-config: fltk-1.3.3/Makefile
+	cd fltk-1.3.3 && make -j4 install && cd ..
 
-fltk-1.3.2/Makefile: | fltk-1.3.2-source.tar.gz
-	gzip -dc fltk-1.3.2-source.tar.gz  | tar xvf - && cd fltk-1.3.2 && mkdir insted &&./configure --prefix=`pwd`/insted && cd ..
+fltk-1.3.3/Makefile: | fltk-1.3.3-source.tar.gz
+	gzip -dc fltk-1.3.3-source.tar.gz  | tar xvf - && cd fltk-1.3.3 && mkdir insted &&./configure --prefix=`pwd`/insted && cd ..
 
-fltk-1.3.2-source.tar.gz:
-	wget http://fltk.org/pub/fltk/1.3.2/fltk-1.3.2-source.tar.gz
+fltk-1.3.3-source.tar.gz:
+	wget http://fltk.org/pub/fltk/1.3.3/fltk-1.3.3-source.tar.gz
 
 sqlite3/bin/sqlite3: sqlite-autoconf-3080704/configure
 	cd sqlite-autoconf-3080704 && ./configure --prefix=`pwd`/../sqlite3 && make install && cd ../
