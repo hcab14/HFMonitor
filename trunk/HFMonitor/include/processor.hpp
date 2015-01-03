@@ -72,7 +72,7 @@ namespace processor {
     /// constructor
     /// all configuration is done using @ref ptree
     base_iq(const ptree& config)
-      : base(config) {}
+    : base(config) {}
 
     virtual ~base_iq() {};
 

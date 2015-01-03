@@ -40,6 +40,11 @@ public:
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
 
+  polynomial_interval_fit()
+    : poly_degree_(1)
+    , chi2_(0)
+    , dof_(0) {}
+
   polynomial_interval_fit(size_t poly_degree,
 			  const std::vector<double>& t_index_vector)
     : poly_degree_(poly_degree)

@@ -40,6 +40,7 @@ namespace wave {
     }
 
     class header {
+      __attribute__((__packed__));
     public:
       typedef boost::shared_ptr<header> sptr;
       header(std::string id="XXXX",
@@ -60,6 +61,7 @@ namespace wave {
     } ;
     
     class riff : public header {
+      __attribute__((__packed__));
     public:
       typedef boost::shared_ptr<riff> sptr;
       riff(size_t size=0)
@@ -79,6 +81,7 @@ namespace wave {
     } ;
     
     class format : public header {
+      __attribute__((__packed__));
     public:
       typedef boost::shared_ptr<format> sptr;
       format(boost::uint32_t sampleRate=1,
@@ -125,6 +128,7 @@ namespace wave {
     } ;
     
     class rcvr : public header {
+      __attribute__((__packed__));
     public:
       typedef boost::shared_ptr<rcvr> sptr;
       
@@ -144,7 +148,8 @@ namespace wave {
         , bAdcPreamp_(bAdcPreamp)
         , bAdcDither_(bAdcDither)
         , bSpare_(0) {
-        for (size_t i=0; i<16; ++i) rsrvd_[i]=0;
+        for (size_t i(0), n(sizeof(rsrvd_)); i<n; ++i)
+          rsrvd_[i] = 0;
       }
       boost::uint32_t nCenterFrequencyHz() const { return nCenterFrequencyHz_; }
       boost::uint32_t nSamplingRateIdx() const { return nSamplingRateIdx_; }
@@ -168,7 +173,7 @@ namespace wave {
            << " bAdcPreamp=" << int(r.bAdcPreamp())
            << " bAdcDither=" << int(r.bAdcDither())
            << " bSpare=" << int(r.bSpare())
-           << " rsvrd="; std::copy(r.rsrvd_, r.rsrvd_+16, std::ostream_iterator<int>(os, " "));
+           << " rsvrd="; std::copy(r.rsrvd_, r.rsrvd_+sizeof(r.rsrvd_), std::ostream_iterator<int>(os, " "));
         return os;
       }
     private:

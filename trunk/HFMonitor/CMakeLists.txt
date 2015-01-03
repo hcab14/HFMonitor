@@ -20,7 +20,11 @@ SET(CMAKE_BUILD_TYPE Release)
 
 # -malign-double in on 32bit systems incompatible with BOOST
 SET(CMAKE_CXX_FLAGS         "-Wall -Wno-unused-local-typedefs -DSVN_VERSION_STRING=\"\\\"${SVN_VERSION_STRING}\\\"\"")
-SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
+IF(!APPLE)
+	 SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
+ELSE(!APPLE)
+	SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+ENDIF(!APPLE)
 SET(CMAKE_CXX_FLAGS_DEBUG   "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
@@ -43,7 +47,7 @@ SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
 SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.55 REQUIRED COMPONENTS log_setup log filesystem date_time regex program_options system  coroutine thread context )
+FIND_PACKAGE(Boost 1.57 REQUIRED COMPONENTS log_setup log filesystem iostreams date_time regex program_options system  coroutine thread context )
 LIST(APPEND _libs ${Boost_LIBRARIES})
 IF(!APPLE)
   LIST(APPEND _libs rt)
@@ -102,7 +106,7 @@ IF(CUDA_FOUND)
   )
 ENDIF(CUDA_FOUND)
 
-LIST(APPEND _libs "-lrt")
+#LIST(APPEND _libs "-lrt")
 
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
