@@ -100,9 +100,30 @@ private:
   double centerFrequency_;
 } ;
 
-/// This class represents a part (or all) of a given FFT spectrum
 template<typename T>
-class frequency_vector {
+struct set_traits {
+  // void set(std::pair<double, T>& val, double f, double v);
+} ;
+
+template<>
+struct set_traits<double> {
+  void add_pair(std::pair<double, double>& val, double f, double v) {
+    val = std::make_pair(f,v);
+  }
+} ;
+template<>
+struct set_traits<std::deque<double> > {
+  void add_pair(std::pair<double, std::deque<double> >& val, double f, double v) {
+    val.first = f;
+    val.second.push_back(v);
+  }
+} ;
+
+
+/// This class represents a part (or all) of a given FFT spectrum
+/// T can be a POD or a deque
+template<typename T>
+class frequency_vector : public set_traits<T> {
 public:
   typedef double freq_type;
   typedef typename std::pair<freq_type, T> value_type;
@@ -147,7 +168,9 @@ public:
   /// fill the with content from a spectrum
   /// frequency correction is applied
   template<typename FUNCTION>
-  frequency_vector<T>& fill(const SpectrumBase& s, const FUNCTION& func, double offset_ppb=0.) {
+  frequency_vector<T>& fill(const SpectrumBase& s,
+                            const FUNCTION& func,
+                            double offset_ppb=0.) {
     const double correction_factor(1. - 1e-9*offset_ppb);
 
     // find nearest frequency bin
@@ -164,7 +187,8 @@ public:
       for (size_t u(i0); u<=i1; ++u) {
         const double f(s.index2freq(u));
         const size_t ucal(s.freq2index(correction_factor*f));
-        v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+        // v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+        this->add_pair(v_[u -i0    ], f, func(s[ucal]));
       }
     } else {
       const size_t n0(s.size()); // length of FFT spectrum
@@ -173,12 +197,14 @@ public:
       for (size_t u(i0); u<n0; ++u) {
         const double f(s.index2freq(u));
         const size_t ucal(s.freq2index(correction_factor*f));
-        v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+        // v_[u -i0    ] = std::make_pair(f, func(s[ucal]));
+        this->add_pair(v_[u -i0    ], f, func(s[ucal]));
       }
       for (size_t u(0); u<=i1; ++u) {
         const double f(s.index2freq(u));
         const size_t ucal(s.freq2index(correction_factor*f));
-        v_[n0-i0 + u] = std::make_pair(f, func(s[ucal]));
+        // v_[n0-i0 + u] = std::make_pair(f, func(s[ucal]));
+        this->add_pair(v_[n0-i0 + u], f, func(s[ucal]));
       }
     }
     return *this;

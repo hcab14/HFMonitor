@@ -1,19 +1,19 @@
 # -*- mode: Makefile -*-
 # $Id$
 
-ALL: boost/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
+ALL: boost_1_57_0/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
 
-boost/bjam: modular-boost/b2
-	cd modular-boost && ./b2 headers && ./b2 toolset=gcc -j4 && cd .. && rm -f boost && ln -s modular-boost boost
+boost_1_57_0/bjam: boost_1_57_0/b2
+	cd boost_1_57_0 && ./b2 toolset=darwin-4.8 && cd .. && rm -f boost && ln -s boost_1_57_0 boost
 
-modular-boost/b2: modular-boost/bootstrap.sh ./setup_boost.sh
-	./setup_boost.sh && cd modular-boost && ./bootstrap.sh && cd ..
+boost_1_57_0/b2: boost_1_57_0 ./setup_boost.sh
+	./setup_boost.sh && cd boost_1_57_0 && ./bootstrap.sh && cd ..
 
-modular-boost/bootstrap.sh: | modular-boost.tar.bz2
-	bzip2 -dc modular-boost.tar.bz2 | tar --exclude "*/doc/*" -xvf -
+boost_1_57_0/bootstrap.sh: boost_1_57_0
+	bzip2 -dc boost_1_57_0.tar.bz2 | tar --exclude "*/doc/*" -xvf -
 
-modular-boost.tar.bz2:
-	wget http://nz23-18.ifj.edu.pl/boost/modular-boost.tar.bz2
+#boost_1_57_0.tar.bz2:
+#	wget http://nz23-18.ifj.edu.pl/boost/boost_1_57_0.tar.bz2
 
 
 fltk/bin/fltk-config: fltk-1.3.2/insted/bin/fltk-config
@@ -28,14 +28,14 @@ fltk-1.3.2/Makefile: | fltk-1.3.2-source.tar.gz
 fltk-1.3.2-source.tar.gz:
 	wget http://fltk.org/pub/fltk/1.3.2/fltk-1.3.2-source.tar.gz
 
-sqlite3/bin/sqlite3: sqlite-autoconf-3080403/configure
-	cd sqlite-autoconf-3080403 && ./configure --prefix=`pwd`/../sqlite3 && make install && cd ../
+sqlite3/bin/sqlite3: sqlite-autoconf-3080704/configure
+	cd sqlite-autoconf-3080704 && ./configure --prefix=`pwd`/../sqlite3 && make install && cd ../
 
-sqlite-autoconf-3080403/configure: | sqlite-autoconf-3080403.tar.gz
-	gzip -dc sqlite-autoconf-3080403.tar.gz | tar xvf -
+sqlite-autoconf-3080704/configure: | sqlite-autoconf-3080704.tar.gz
+	gzip -dc sqlite-autoconf-3080704.tar.gz | tar xvf -
 
-sqlite-autoconf-3080403.tar.gz:
-	wget https://sqlite.org/2014/sqlite-autoconf-3080403.tar.gz
+sqlite-autoconf-3080704.tar.gz:
+	wget https://sqlite.org/2014/sqlite-autoconf-3080704.tar.gz
 
 CLEAN:
 	rm fltk boost

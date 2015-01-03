@@ -23,10 +23,13 @@
 #include <fstream>
 #include <complex>
 #include <vector>
+#include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
 
 #include "processor.hpp"
 #include "processor/IQBuffer.hpp"
@@ -43,6 +46,13 @@
 
 namespace wave {
   namespace detail { // anonymous 
+    template<typename T>
+    T readT(std::istream& is, size_t n) {
+      T data;
+      is.read((char *)(&data), n);
+      if (!is) throw std::runtime_error("read failed");
+      return data;
+    }
     template<typename T>
     T readT(std::istream& is) {
       T data;
@@ -130,18 +140,35 @@ namespace wave {
       , p_(config)
       , read_riff_(false)
       , read_format_(false)
+      , read_rcvr_(false)
       , read_data_(false)
       , buffer_length_sec_(config.get<double>("<xmlattr>.buffer_length_sec", 1.0))
       , overlap_(config.get<double>("<xmlattr>.overlap", 0.0))
       , iq_buffer_(0, 0.)
+      , start_time_(boost::date_time::not_a_date_time)
       , sample_number_(0) {}
     virtual ~reader_iq_base() {}
 
     bool process_file(std::string filename) {
       std::ifstream ifs(filename.c_str());
-      start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
+      if (start_time_ == boost::date_time::not_a_date_time)
+        start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
       return read_chunks(ifs);
     }
+
+    // this does not work since seekg,tellg is not supported for bz2 compressed streams
+    bool process_file_bz2(std::string filename) {
+      std::ifstream ifs(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+      if (start_time_ == boost::date_time::not_a_date_time)
+        start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
+
+      boost::iostreams::filtering_istream is;
+      is.push(boost::iostreams::bzip2_decompressor());
+      is.push(ifs);
+      
+      return read_chunks(is);
+    }
+
     void finish() {
       // insert one last dummy sample to trigger processing of left over data
       iq_buffer_.insert(this, std::complex<double>(0, 0));
@@ -174,6 +201,7 @@ namespace wave {
     virtual void reset() {
       read_riff_   = false;
       read_format_ = false;
+      read_rcvr_   = false;
       read_data_   = false;
     }
 
@@ -190,13 +218,16 @@ namespace wave {
           read_format_ = true;
           std::cout << format_ << std::endl;
           iq_buffer_.update(size_t(format_.sampleRate()*buffer_length_sec_+0.5), overlap_);
+        } else if (h.id() == "rcvr") {
+          rcvr_       = detail::readT<chunk::rcvr>(is, sizeof(chunk::header)+h.size());
+          read_rcvr_  = true;
+          update_start_time(rcvr_.ptimeStart());
+          std::cout << rcvr_ << " " << sizeof(rcvr_) << std::endl;
         } else if (h.id() == "data") {
           data_      = detail::readT<chunk::data>(is);
           read_data_ = true;
           std::cout << data_ << std::endl;
-          // process data here:
-          // is.seekg(h.size(), std::ios_base::cur);
-          for (size_t i=0; i<h.size(); i+=format_.bytesPerSample()) {
+          for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample()) {
             const double xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
             const double xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
             iq_buffer_.insert(this, std::complex<double>(xi, xq));
@@ -229,10 +260,12 @@ namespace wave {
     PROCESSOR p_;
     bool read_riff_;
     bool read_format_;
+    bool read_rcvr_;
     bool read_data_;
 
     chunk::riff   riff_;
     chunk::format format_;
+    chunk::rcvr   rcvr_;
     chunk::data   data_;
 
     double buffer_length_sec_;
@@ -249,7 +282,7 @@ namespace wave {
     reader_iq(const boost::property_tree::ptree& config)
       : reader_iq_base<PROCESSOR>(config)
       , center_freq_hz_(config.get<double>("<xmlattr>.center_freq_Hz", 0.0)) {
-      update_start_time(boost::posix_time::microsec_clock::universal_time());
+      // update_start_time(boost::posix_time::microsec_clock::universal_time());
     }    
     virtual ~reader_iq() {}
 

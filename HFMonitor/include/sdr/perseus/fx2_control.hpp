@@ -89,7 +89,7 @@ namespace Perseus {
     virtual const Perseus::product_id& get_eeprom_pid(std::string ) = 0;
   protected:
     typedef std::vector<boost::uint8_t> eeprom_data;
-    virtual eeprom_data read_eeprom_lowlevel(boost::uint16_t, size_t) = 0;
+    virtual eeprom_data read_eeprom_lowlevel(boost::uint16_t, uint8_t) = 0;
   } ;
 } // namespace Perseus
 #endif //  _fx2_control_hpp_cm120321_
