@@ -2,12 +2,13 @@
 <!-- $Id$ -->
 
 <!ELEMENT Perseus (rbs+,Broadcaster)>
-<!ATTLIST Perseus sn              CDATA        #REQUIRED> <!-- serial number -->
-<!ATTLIST Perseus fs              CDATA        #REQUIRED> <!-- sampling frequency (Hz) -->
-<!ATTLIST Perseus fc              CDATA        #REQUIRED> <!-- center frequency (Hz) -->
-<!ATTLIST Perseus use_preselector (true|false) #REQUIRED> <!-- preselector -->
-<!ATTLIST Perseus attenuator      CDATA        #REQUIRED> <!-- attenuator -->
-<!ATTLIST Perseus firmware        CDATA        #REQUIRED> <!-- filename with firmware (Intel HEX format) -->
+<!ATTLIST Perseus sn                CDATA        #REQUIRED> <!-- serial number -->
+<!ATTLIST Perseus fs                CDATA        #REQUIRED> <!-- sampling frequency (Hz) -->
+<!ATTLIST Perseus fc                CDATA        #REQUIRED> <!-- center frequency (Hz) -->
+<!ATTLIST Perseus use_preselector   (true|false) #REQUIRED> <!-- preselector -->
+<!ATTLIST Perseus attenuator        CDATA        #REQUIRED> <!-- attenuator -->
+<!ATTLIST Perseus usb_transfer_size (510|16320)  #IMPLIED>  <!-- size of USB block transfers: default is 16320 (full-speed) -->
+<!ATTLIST Perseus firmware          CDATA        #REQUIRED> <!-- filename with firmware (Intel HEX format) -->
 
 <!-- FPGA configuration FPGA (bitstreams) -->
 <!ELEMENT rbs (#PCDATA)>  <!-- filename with FPGA bitstream -->

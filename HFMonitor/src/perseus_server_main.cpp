@@ -54,19 +54,69 @@
 ///  - inserts the data into @ref buffer
 class test_cb : public Perseus::callback {
 public:
-  test_cb() {}
+  typedef boost::posix_time::time_duration time_duration;
+
+  enum {
+    BUFFER_SIZE = 16320*10
+  };
+  test_cb()
+    : i_(0)
+    , n_epochs_(0)
+    , sample_rate_Hz_(1) {}
   test_cb(buffer<std::string>::sptr buf)
-    : buffer_(buf) {}
+    : i_(0)
+    , n_epochs_(0)
+    , sample_rate_Hz_(2e6)
+    , dt0_(0,0,0, int64_t(0.5+time_duration::ticks_per_second()*(1./sample_rate_Hz_)))
+    , buffer_(buf) {}
+
   virtual ~test_cb() { }
+
   void operator()(unsigned char* data, size_t length) {
-    using namespace boost::posix_time;
-    std::string s((char*)(data), length);
-    const ptime t(microsec_clock::universal_time());
-    buffer_->insert(t, s);
+#ifdef AVERAGE_TIMESTAMPS
+     const boost::posix_time::ptime t(boost::posix_time::microsec_clock::universal_time());
+#endif
+    if (i_ == BUFFER_SIZE) { // buffer is full
+#ifdef AVERAGE_TIMESTAMPS
+      if (n_epochs_ != 0) {
+        dt_ /= n_epochs_;
+        std::cout << "t_= " << t_ << " " << (t_+dt_) << " " << dt_ << std::endl;;
+        t_ += dt_;
+      }
+#endif
+      const std::string s(reinterpret_cast<char*>(data_buffer_), BUFFER_SIZE);
+      buffer_->insert(t_, s);
+      i_ = 0;
+    }
+    if (i_ == 0) {
+#ifdef  AVERAGE_TIMESTAMPS
+      t_ = t;
+      dt_ = t_-t; // set to zero
+      n_epochs_ = 0;
+#else
+      t_ = boost::posix_time::microsec_clock::universal_time();
+#endif
+    }
+#ifdef  AVERAGE_TIMESTAMPS
+    dt_ += (t - t_) -  dt0_*(n_epochs_ * length/6);
+    ++n_epochs_;
+#endif
+    if (i_+length > BUFFER_SIZE)
+      throw std::runtime_error("invalid buffer size");
+
+    std::copy(data, data+length, data_buffer_+i_);
+    i_ += length;
   }
 protected:
 private:
+  size_t i_;
+  size_t n_epochs_;
+  double sample_rate_Hz_;
+  time_duration dt_;
+  time_duration dt0_;
   buffer<std::string>::sptr buffer_;
+  boost::posix_time::ptime t_;
+  unsigned char data_buffer_[BUFFER_SIZE]; // buffer were samples are stored
 } ;
 
 //! bridge between perseus and the broadcaster
