@@ -144,6 +144,7 @@ namespace wave {
       , read_data_(false)
       , buffer_length_sec_(config.get<double>("<xmlattr>.buffer_length_sec", 1.0))
       , overlap_(config.get<double>("<xmlattr>.overlap", 0.0))
+      , iq_reversed_(config.get<int>("<xmlattr>.iq_reversed", 0)==1)
       , iq_buffer_(0, 0.)
       , start_time_(boost::date_time::not_a_date_time)
       , sample_number_(0) {}
@@ -230,7 +231,8 @@ namespace wave {
           for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample()) {
             const double xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
             const double xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
-            iq_buffer_.insert(this, std::complex<double>(xi, xq));
+            const std::complex<double> s(xi, xq), sr(xq, xi);
+            iq_buffer_.insert(this, iq_reversed_ ? sr : s);
             ++sample_number_;
           }
         } else if (read_chunk(h, is)) {
@@ -256,7 +258,7 @@ namespace wave {
               && read_data_   && data_.ok());
     }
 
-  private:
+  protected:
     PROCESSOR p_;
     bool read_riff_;
     bool read_format_;
@@ -270,10 +272,12 @@ namespace wave {
 
     double buffer_length_sec_;
     double overlap_;
+    int    iq_reversed_;
     IQBuffer iq_buffer_;
 
     ptime start_time_; // current start time
     boost::int64_t sample_number_; // current sample number
+
   } ;
 
   template<typename PROCESSOR>
@@ -281,7 +285,7 @@ namespace wave {
   public:
     reader_iq(const boost::property_tree::ptree& config)
       : reader_iq_base<PROCESSOR>(config)
-      , center_freq_hz_(config.get<double>("<xmlattr>.center_freq_Hz", 0.0)) {
+      , center_frequency_hz_(config.get<double>("<xmlattr>.center_freq_Hz", 0.0)) {
       // update_start_time(boost::posix_time::microsec_clock::universal_time());
     }    
     virtual ~reader_iq() {}
@@ -291,76 +295,19 @@ namespace wave {
     using reader_iq_base<PROCESSOR>::format;
     using reader_iq_base<PROCESSOR>::start_time;
     using reader_iq_base<PROCESSOR>::update_start_time;
+    using reader_iq_base<PROCESSOR>::read_rcvr_;
+    using reader_iq_base<PROCESSOR>::rcvr_;
 
     virtual typename service::sptr get_service(size_t number_of_samples) const {
       return detail::service_wave_iq::make(start_time(),
                                            "name",
-                                           center_freq_hz_,
+                                           (read_rcvr_ ? double(rcvr_.nCenterFrequencyHz()) : center_frequency_hz_),
                                            format());                                           
     }
 
   private:
-    double center_freq_hz_;
+    double center_frequency_hz_;
   } ;
-#if 0  
-  template<typename PROCESSOR>
-  class reader_perseus : public reader_iq_base<PROCESSOR> {
-  public:
-    typedef boost::posix_time::ptime ptime;
-
-    reader_perseus(PROCESSOR& p,
-                   double buffer_length_sec, 
-                   double overlap)
-      : reader_iq_base<PROCESSOR>(p, buffer_length_sec, overlap)
-      , read_rcvr_(false) {}
-    
-    virtual ~reader_perseus() {}
-
-    using reader_iq_base<PROCESSOR>::reset;
-    using reader_iq_base<PROCESSOR>::read_chunk;
-    using reader_iq_base<PROCESSOR>::chunks_ok;
-    using reader_iq_base<PROCESSOR>::get_service;
-    using reader_iq_base<PROCESSOR>::format;
-    using reader_iq_base<PROCESSOR>::start_time;
-    using reader_iq_base<PROCESSOR>::update_start_time;
-    using reader_iq_base<PROCESSOR>::sample_number;
-
-    virtual processor::service_base::sptr get_service(size_t number_of_samples) const {
-      const protocol::perseus::header h(sample_number(),
-                                        format().sampleRate(),
-                                        rcvr_.nCenterFrequencyHz(),
-                                        number_of_samples,
-                                        rcvr().nSamplingRateIdx(),
-                                        rcvr().wAttenId(),
-                                        rcvr().bAdcPresel(),
-                                        rcvr().bAdcPreamp(),
-                                        rcvr().bAdcDither());                             
-      return processor::service_perseus::sptr(new processor::service_perseus(h));
-    }
-
-  protected:
-    virtual void reset() {
-      reader_iq_base<PROCESSOR>::reset();
-      read_rcvr_ = false;
-    }
-    virtual bool read_chunk(const chunk::header& h,
-                            std::istream& is) { 
-      if (h.id() != "rcvr")
-        return false;
-      rcvr_       = detail::readT<chunk::rcvr>(is);
-      read_rcvr_  = true;
-      update_start_time(rcvr_.ptimeStart());
-      return rcvr_.ok();
-    }
-    virtual bool chunks_ok() const {
-      return reader_iq_base<PROCESSOR>::chunks_ok() && read_rcvr_ && rcvr_.ok();
-    }
-    const chunk::rcvr rcvr() const { return rcvr_; }
-  private:
-    bool read_rcvr_;
-    chunk::rcvr rcvr_;
-  } ;
-#endif
 } // namespace wave
 /// @}
 /// @}
