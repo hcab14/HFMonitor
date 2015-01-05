@@ -49,6 +49,8 @@ public:
     fMax,
     fCur
   } ;
+  typedef std::vector<std::pair<double, double> > zoom_history_type;
+
   spectrum_display(int x, int y, int w, int h)
     : Fl_Double_Window(x, y, w, h)
     , b0_  (  0, h-20,  50, 20, "Min:")
@@ -60,9 +62,12 @@ public:
     , fCur_(500, h-20,  80, 20, "fCur:")
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
     , fTime_(    w-200, h-20, 160, 20, "Current Time:")
-    , init_(true) {
-    sMin_.step(5,5); sMin_.range(-140,0); sMin_.value(-70);
-    sMax_.step(5,5); sMax_.range(-140,0); sMax_.value(-40);
+    , xPush_(-1)
+    , init_(true)
+    , spec_fMin_(0)
+    , spec_fMax_(40e6) {
+    sMin_.step(1,1); sMin_.range(-140,0); sMin_.value(-70);
+    sMax_.step(1,1); sMax_.range(-140,0); sMax_.value(-40);
 
     fMin_.value( 0); fMax_.value(40e3);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
@@ -90,8 +95,8 @@ public:
   }
 
   static void cb(Fl_Widget *w, long u) {
-    spectrum_display *s = (spectrum_display*)w->parent();
-    const double v = ((Fl_Valuator*)(w))->value();
+    spectrum_display* s(dynamic_cast<spectrum_display*>(w->parent()));
+    const double v(((Fl_Valuator*)(w))->value());
     switch (u) {
     case sMin: s->sMax_.minimum(v+2);
       break; 
@@ -116,8 +121,11 @@ public:
   template<typename T>
   void insert_spec(const frequency_vector<T>& spec,
                    const frequency_vector<T>& spec_filtered,
-                   processor::service_iq::sptr sp) {
+                   processor::service_iq::sptr sp,
+                   bool update_window=true) {
 
+    spec_fMin_ = spec.fmin();
+    spec_fMax_ = spec.fmax();
     set_fMin(std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
     set_fMax(std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
 
@@ -147,11 +155,12 @@ public:
       s[j]  = spec         [i].second;
       sf[j] = spec_filtered[i].second;
     }
-    insert_spec(s, sf);
+    insert_spec(s, sf, update_window);
   }
 
   void insert_spec(const std::vector<double>& spec,
-                   const std::vector<double>& spec_filtered) {
+                   const std::vector<double>& spec_filtered,
+                   bool update_window=true) {
     specIndex_--;
     if (specIndex_ < 0) specIndex_ = specM()-1;
 
@@ -207,8 +216,10 @@ public:
       specImg_[j1]   = specImg_[j2]   = svgaPalette(3*colorMapIndex+2)<<2;
       specImg_[j1+1] = specImg_[j2+1] = svgaPalette(3*colorMapIndex+1)<<2;
       specImg_[j1+2] = specImg_[j2+2] = svgaPalette(3*colorMapIndex+0)<<2;
+
     }
-    this->damage(FL_DAMAGE_ALL);
+    if (update_window)
+      this->damage(FL_DAMAGE_ALL);
     init_ = false;
   }
 
@@ -347,13 +358,73 @@ public:
     if (!exists_) return Fl_Double_Window::handle(event);
 //     std::cout << "handle: " << event << " " << this << " " << std::endl;
     switch (event) {
-    case FL_MOVE:
+    case FL_MOVE: {
       fCur_.value(0);
       if (xSpecBeg() < Fl::event_x() && Fl::event_x() < xSpecEnd()) {
  	if ((ySpecBeg()      < Fl::event_y() && Fl::event_y() < ySpecEnd()) ||
  	    (yWaterfallBeg() < Fl::event_y() && Fl::event_y() < yWaterfallEnd()))	  
  	  fCur_.value(xInputFromSpec(Fl::event_x()));
       }
+      return Fl_Double_Window::handle(event);
+    }
+    case FL_PUSH: {
+      if(callback() && (when() & FL_WHEN_CHANGED))
+        do_callback();
+      if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
+          isInWaterfall(Fl::event_x(), Fl::event_y())) {
+        xPush_ = Fl::event_x();
+        std::cout << "handle: FL_PUSH " << event
+                  << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
+        return 1;
+      }
+      return Fl_Double_Window::handle(event);
+    }
+    case FL_RELEASE: {
+      if(callback() && (when() & FL_WHEN_CHANGED))
+        do_callback();
+      if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
+          isInWaterfall(Fl::event_x(), Fl::event_y())) {
+        std::cout << "handle: FL_RELEASE " << event
+                  << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
+        if (Fl::event_x() != xPush_) {
+          double f[2] = {
+            xInputFromSpec(xPush_),
+            xInputFromSpec(Fl::event_x())
+          };
+          std::sort(f, f+2);
+          set_fMin(f[0]);
+          set_fMax(f[1]);
+          std::cout << "x1,x2= " << xPush_ << " " << Fl::event_x() << std::endl;
+          std::cout << "f1,f2= " << f[0] << " " << f[1] << std::endl;
+          zoom_hist_.push_back(std::make_pair(f[0], f[1]));
+        }
+        return 1;
+      }
+      return Fl_Double_Window::handle(event);
+    }
+    case FL_KEYDOWN: {
+      if(callback() && (when() & FL_WHEN_CHANGED))
+        do_callback();
+      if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
+          isInWaterfall(Fl::event_x(), Fl::event_y())) {
+        const char* txt(Fl::event_text());
+        std::cout << "key pressed: " << txt << " '" << txt[0]<< "' len=" << Fl::event_length() << std::endl;
+        if (Fl::event_length()>0 && txt[0] == 'u') {
+          // unzoom
+          if (!zoom_hist_.empty())
+            zoom_hist_.pop_back();
+          if (!zoom_hist_.empty()) {
+            const std::pair<double,double> fr(zoom_hist_.back());
+            set_fMin(fr.first);
+            set_fMax(fr.second);
+          } else {
+            set_fMin(0);
+            set_fMax(40e6);
+          }
+        }
+      }
+      return Fl_Double_Window::handle(event);
+    }
     default:
       return Fl_Double_Window::handle(event);
     }
@@ -397,6 +468,15 @@ protected:
   double xInputFromSpec(int i) const {
     double x = double(i-xSpecBeg())/double(xSpecEnd()-xSpecBeg());
     return (x<0) ? -1 : (x>1) ? -1 : get_fMin() + x * delta_f();
+  }
+
+  bool isInSpec(int x, int y) const {
+    return (x > xSpecBeg() && x < xSpecEnd() &&
+            y > ySpecBeg() && y < ySpecEnd());
+  }
+  bool isInWaterfall(int x, int y) const {
+    return (x > xWaterfallBeg() && x < xWaterfallEnd() &&
+            y > yWaterfallBeg() && y < yWaterfallEnd());
   }
 
   // adapted from palette.c \in linrad
@@ -456,11 +536,15 @@ private:
   Fl_Output           fStreamName_;
   Fl_Output           fTime_;
   int                 specIndex_;
+  int                 xPush_;
   std::vector<double> spec_;
   std::vector<double> spec_fitted_;
   std::vector<uchar>  specImg_;
   bool                init_;
   bool exists_;
+  double              spec_fMin_;
+  double              spec_fMax_;
+  zoom_history_type   zoom_hist_;
 } ;
 
 #endif // _spectrum_display_hpp_cm120516_

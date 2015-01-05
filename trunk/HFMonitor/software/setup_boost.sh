@@ -22,13 +22,27 @@ using python : 2.6 : /usr/bin/python26 : /usr/include/python2.6 : /usr/lib ;
 EOF
 fi
 
-if [ `whoami` == chm ]; then
+if [ `whoami`_`uname` == chm_Darwin ]; then
     echo "CC=$CC"
     if [ X$CC != X ]; then
         ccc=`which $CXX`
 	echo "using $CC $ccc"
 	cat <<EOF >> $user_config
 using darwin : 4.8 : $ccc ; 
+
+EOF
+	
+    fi
+fi
+
+if [ `whoami`_`uname` == chm_Linux ]; then
+    echo "CC=$CC"
+    if [ X$CC != X ]; then
+        ccc=`which $CXX`
+	cc_version=`$CC --version | awk '/gcc/ {print $3}'`
+	echo "using $CC $ccc $cc_version"
+	cat <<EOF >> $user_config
+using gcc : $cc_version : $ccc ; 
 
 EOF
 	

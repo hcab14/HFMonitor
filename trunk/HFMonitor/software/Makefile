@@ -4,16 +4,16 @@
 ALL: boost_1_57_0/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
 
 boost_1_57_0/bjam: boost_1_57_0/b2
-	cd boost_1_57_0 && ./b2 toolset=darwin-4.8 && cd .. && rm -f boost && ln -s boost_1_57_0 boost
+	cd boost_1_57_0 && ./b2 `get_boost_toolset.sh` && cd .. && rm -f boost && ln -s boost_1_57_0 boost
 
-boost_1_57_0/b2: boost_1_57_0 ./setup_boost.sh
-	./setup_boost.sh && cd boost_1_57_0 && ./bootstrap.sh && cd ..
+boost_1_57_0/b2: .extract_boost_1_57_0 ./setup_boost.sh
+	./setup_boost.sh && cd boost_1_57_0 && ./bootstrap.sh && cd .. && touch .extract_boost_1_57_0 
 
-boost_1_57_0/bootstrap.sh: boost_1_57_0
+boost_1_57_0/bootstrap.sh: boost_1_57_0.tar.bz2
 	bzip2 -dc boost_1_57_0.tar.bz2 | tar --exclude "*/doc/*" -xvf -
 
-#boost_1_57_0.tar.bz2:
-#	wget http://nz23-18.ifj.edu.pl/boost/boost_1_57_0.tar.bz2
+boost_1_57_0.tar.bz2:
+	wget http://nz23-18.ifj.edu.pl/boost/boost_1_57_0.tar.bz2
 
 
 fltk/bin/fltk-config: fltk-1.3.3/insted/bin/fltk-config
@@ -23,7 +23,7 @@ fltk-1.3.3/insted/bin/fltk-config: fltk-1.3.3/Makefile
 	cd fltk-1.3.3 && make -j4 install && cd ..
 
 fltk-1.3.3/Makefile: | fltk-1.3.3-source.tar.gz
-	gzip -dc fltk-1.3.3-source.tar.gz  | tar xvf - && cd fltk-1.3.3 && mkdir insted &&./configure --prefix=`pwd`/insted && cd ..
+	gzip -dc fltk-1.3.3-source.tar.gz | tar xvf - && cd fltk-1.3.3 && mkdir insted &&./configure --prefix=`pwd`/insted && cd ..
 
 fltk-1.3.3-source.tar.gz:
 	wget http://fltk.org/pub/fltk/1.3.3/fltk-1.3.3-source.tar.gz
