@@ -16,6 +16,7 @@ MESSAGE("VERSION=${SVN_VERSION_STRING}")
 
 #SET(SVN_VERSION_STRING \"${SVN_VERSION_STRING}\")
 SET(CMAKE_BUILD_TYPE Release)
+#SET(CMAKE_BUILD_TYPE Debug)
 #SET(CMAKE_CXX_FLAGS         "-Wall -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG -DSVN_VERSION_STRING=\"${SVN_VERSION_STRING}\"")
 
 # -malign-double in on 32bit systems incompatible with BOOST
@@ -23,9 +24,9 @@ SET(CMAKE_CXX_FLAGS         "-Wall -Wno-unused-local-typedefs -DSVN_VERSION_STRI
 IF(!APPLE)
 	 SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
 ELSE(!APPLE)
-	SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+	SET(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG")
 ENDIF(!APPLE)
-SET(CMAKE_CXX_FLAGS_DEBUG   "-g")
+SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # where to look first for cmake modules
