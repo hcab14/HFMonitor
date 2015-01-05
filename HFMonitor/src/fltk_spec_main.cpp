@@ -64,8 +64,8 @@ public:
   MyWindow(int w, int h)
     : Fl_Double_Window(w, h, "Spectrum Display")
     , menu_bar_(0,0,w,20)
-    , input_(0, h-30, w, 30, "label")
     , specDisplay_(20, 20, w-40, h-50)
+    , input_(0, h-30, w, 30, "label")
     , counter_(0)
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
@@ -93,8 +93,8 @@ protected:
   }
 private:
   Fl_Menu_Bar menu_bar_;
-  Fl_Input    input_;
   spectrum_display specDisplay_;
+  Fl_Input    input_;
   int         counter_;
   // Fl_Text_Display disp_;
   // Fl_Text_Buffer buff_;
@@ -109,11 +109,14 @@ public:
   typedef FFT::FFTWTransform<double> fft_type;
 #endif
 
+  typedef boost::posix_time::ptime ptime;
+
   test_proc(const boost::property_tree::ptree& config)
     : w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
-    , port_(config.get<std::string>("server.<xmlattr>.port")) {
+    , port_(config.get<std::string>("server.<xmlattr>.port"))
+    , last_update_time_(boost::date_time::not_a_date_time) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
@@ -126,7 +129,7 @@ public:
                   std::vector<std::complex<double> >::const_iterator i0,
                   std::vector<std::complex<double> >::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
-#if 0
+#if 1
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()
@@ -153,7 +156,11 @@ public:
     Fl::lock();
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
-    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
+    const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
+			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,1));
+    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
+    if (update_window)
+      last_update_time_ = sp->approx_ptime();
     static char msg[1024];
     sprintf(msg,"spec_update");
     Fl::awake(msg);
@@ -170,6 +177,7 @@ private:
   Filter::Cascaded<frequency_vector<double> > filter_;
   std::string host_;
   std::string port_;
+  boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
 } ;
 

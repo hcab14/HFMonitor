@@ -16,15 +16,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+#include <cmath>
 #include <deque>
 #include <iostream>
 #include <fstream>
 #include <iterator>
+#include <numeric>
 #include <boost/format.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFT.hpp"
 #include "Spectrum.hpp"
+#include "logging.hpp"
 #include "wave/reader.hpp"
 //#include "polynomial_regression.hpp"
 #include "repack_processor.hpp"
@@ -86,6 +89,8 @@ public:
 
     const time_duration dt(ptime_history_.back()-ptime_history_.front());
     if (dt > max_time_interval_) {
+      static_blanker();
+
       //
       std::cout << "history size: " << dt << std::endl;
       std::ofstream ofs("data", std::ios::out);
@@ -105,7 +110,7 @@ public:
 
         const ssize_t min_index(40); // TODO make it relative to the sample time
         const double threshold_ac(0.8);
-        assert(min_index < ac.size());
+        ASSERT_THROW(min_index < ac.size());
         // search for a peak in the auto-correlation
         std::vector<double>::const_iterator imax(std::max_element(ac.begin()+min_index, ac.end()));
         std::vector<double>::const_iterator imin(std::min_element(ac.begin(),           ac.end()));
@@ -118,6 +123,7 @@ public:
           const size_t period_guess(std::distance(ac.begin(), imax));
           size_t int_period(period_guess);
           for (int i(1); i<100 && period_guess/i>min_index; ++i) {
+            ASSERT_THROW(period_guess/i < ac.size());
             if (ac[period_guess/i] < threshold_ac) continue;
             int_period = period_guess/i;
             std::cout << " --- " << i << " " << period_guess/i << " " << ac[period_guess/i] << std::endl;
@@ -136,22 +142,77 @@ public:
     pop_history();
   }
 
+  void static_blanker() {
+    std::vector<double> sum;
+    for (fv_hist_type::const_iterator
+           i(fv_history_.begin()),
+           ibeg(fv_history_.begin()),
+           iend(fv_history_.end()); i!=iend; ++i) {
+      const double f(i->first);
+      const hist_type& ft(i->second);
+      if (i == ibeg)
+        sum.resize(ft.size(), 0.0);
+
+      std::vector<double>::iterator is(sum.begin());
+      for (hist_type::const_iterator j(ft.begin()), jend(ft.end()); j!=jend; ++j, ++is)
+        *is += *j;
+    }
+
+    // compute mean
+    const double mean
+      (std::accumulate(sum.begin(), sum.end(), 0.0) / (double(fv_history_.size())));
+    
+    std::ofstream ofs("blanker.txt");
+    // 5*mean -> outlier    
+    for (fv_hist_type::iterator i(fv_history_.begin()),
+           ibeg(fv_history_.begin()), iend(fv_history_.end()); i!=iend; ++i) {
+      const double f(i->first);
+      hist_type& ft(i->second);
+
+      std::vector<double>::const_iterator is(sum.begin());
+      for (hist_type::iterator j(ft.begin()+1), jend(ft.end()); j!=jend; ++j, ++is) {
+        if (i == ibeg)
+          ofs << *j << " "
+              << (*j * (*is > 5.*mean)) << " "
+              << *is << " "
+              << mean << std::endl;
+        if (*is > 5.*mean)
+          *j = *(j-1);
+      }
+    }
+  }
+
   std::vector<double> compute_avg_signal(const hist_type& h, double f, double period) {
-    std::vector<double> avg_signal(int(period), 0.0);
+    std::vector<double> avg_signal(1+int(period+0.5), 0.0);
+    std::vector<double> avg_norm  (1+int(period+0.5), 0.0);
 
     std::cout << "compute_avg_signal: period=" << period << std::endl;
     char fn[1024];
     sprintf(fn, "sig_%.0f.txt", f);
     std::ofstream ofs(fn, std::ios::out);
-#if 0
-    const double norm(double(h.size())/period);
-    for (int i(0), n(int(period*int(h.size()/period))); i<n; ++i) {
-      assert(i-int(period*int(i/period)) >= 0);
-      assert(i-int(period*int(i/period)) <  avg_signal.size());
-      avg_signal[i-int(period*int(i/period))] += norm*h[i];
+#if 1
+    const int iquot(int(floor(h.size()/period)));
+    std::cout << "TEST_ "
+              << h.size() << " "
+              << period << " "
+              << iquot << " "
+              << int(iquot*period) << std::endl;
+    for (int i(0), n(int(iquot*period)); i<n; ++i) {
+      const int j(int(std::fmod(double(i), period)));
+      if (j >= avg_signal.size())
+        std::cout << "TEST: "
+                  << i << " " << j << " | "
+                  << h.size() << " " << avg_signal.size() << std::endl;
+//       ASSERT_THROW(j >= 0);
+//       ASSERT_THROW(j <  avg_signal.size());
+//       ASSERT_THROW(i <  h.size());
+      avg_signal[j] += h[i];
+      avg_norm[j]   += 1.;
     }
-    for (int i(0), n(avg_signal.size()); i<n; ++i)
+    for (int i(0), n(avg_signal.size()); i<n; ++i) {
+      avg_signal[i] /= (avg_norm[i] != 0.0 ? avg_norm[i] : 1.0);
       ofs << avg_signal[i] << std::endl;
+    }
     
     //     std::vector<double>::const_iterator im(std::max_element(avg_signal.begin(), avg_signal.end()));
     //     for (std::vector<double>::iterator i(avg_signal.begin()), iend(avg_signal.end()); i!=iend; ++i)
@@ -168,6 +229,7 @@ public:
     double period(-1);
     // loop over all potential peaks
     for (int i=1, m(ac.size()/(1+int_period)); i<m; ++i) {
+      ASSERT_THROW((int_period+1)*i < ac.size());
       std::vector<double>::const_iterator
         im(std::max_element(ac.begin()+(int_period-1)*i,
                             ac.begin()+(int_period+1)*i));
@@ -186,6 +248,7 @@ public:
     std::vector<double> ac(h.size()/2, 0.0);    
     for (size_t i(0), n(h.size()/2); i<n; ++i) {
       for (size_t j(0), n(h.size()/2); j<n; ++j) {
+        ASSERT_THROW(i+j<h.size());
         ac[i] += h[j]*h[i+j];
       }
       if (i!=0 && ac[0]!=0)

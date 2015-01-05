@@ -61,7 +61,7 @@ public:
   }
 
 protected:
-  // inserts valued if it does not exist and returns the id of the value
+  // inserts a value and if it does not exist and returns the id of the value
   template<typename T>
   sqlite3_int64 insert_id(T value,
 			  db::sqlite3::statement& select_statement,
@@ -85,43 +85,43 @@ private:
   static db::sqlite3::connection::sptr setup_tables(db::sqlite3::connection::sptr c) {
     std::vector<std::string> cts;
     cts.push_back // channel_types
-      ("CREATE TABLE IF NOT EXISTS                   \n \
-        channel_types(id INTEGER PRIMARY KEY,        \n \
-                      type VARCHAR(2) UNIQUE,        \n	\
-                      description VARCHAR(20));");
+      ("CREATE TABLE IF NOT EXISTS            \n"
+       "channel_types(id INTEGER PRIMARY KEY, \n"
+       "              type VARCHAR(2) UNIQUE, \n"
+       "              description VARCHAR(20));");
     cts.push_back // channels
-      ("CREATE TABLE IF NOT EXISTS                                     \n \
-        channels(id INTEGER PRIMARY KEY,                               \n \
-                 freq_Hz REAL UNIQUE,                                  \n \
-                 chan_type_id INTEGER,                                 \n \
-                 FOREIGN KEY(chan_type_id) REFERENCES channel_types(id));");
+      ("CREATE TABLE IF NOT EXISTS       \n"
+       "channels(id INTEGER PRIMARY KEY  \n"
+       "         freq_Hz REAL UNIQUE,    \n"
+       "         chan_type_id INTEG      \n"
+       "         FOREIGN KEY(chan_type_id) REFERENCES channel_types(id));");
     cts.push_back // epochs
-      ("CREATE TABLE IF NOT EXISTS                                   \n \
-        epochs(id INTEGER PRIMARY KEY,                               \n	\
-               timestamp UNIQUE NOT NULL DEFAULT CURRENT_TIMESTAMP);");
+      ("CREATE TABLE IF NOT EXISTS     \n"
+       "epochs(id INTEGER PRIMARY KEY  \n"
+       "       timestamp UNIQUE NOT NULL DEFAULT CURRENT_TIMESTAMP);");
     cts.push_back // peaks
-      ("CREATE TABLE IF NOT EXISTS                              \n \
-       peaks(id INTEGER PRIMARY KEY,                            \n \
-             freq_Hz REAL,                                      \n \
-             width_Hz REAL,                                     \n \
-             strength_dB REAL,                                  \n \
-             SN_dB REAL,                                        \n \
-             epoch_id INTEGER,                                  \n \
-             chan_id INTEGER,                                   \n \
-             FOREIGN KEY(epoch_id) REFERENCES epochs(id),       \n \
-             FOREIGN KEY(chan_id)  REFERENCES channels(id));");
+      ("CREATE TABLE IF NOT EXISTS     \n"
+       "peaks(id INTEGER PRIMARY KEY,  \n"
+       "      freq_Hz REAL,            \n"
+       "      width_Hz REAL,           \n"
+       "      strength_dB REAL,        \n"
+       "      SN_dB REAL,              \n"
+       "      epoch_id INTEGER,        \n"
+       "      chan_id INTEGER,         \n"
+       "      FOREIGN KEY(epoch_id) REFERENCES epochs(id), \n"
+       "      FOREIGN KEY(chan_id)  REFERENCES channels(id));");
     cts.push_back // spectra
-      ("CREATE TABLE IF NOT EXISTS                              \n \
-        spectra(id INTEGER PRIMARY KEY,                         \n \
-                fMin_Hz REAL,                                   \n \
-                df_Hz REAL,                                     \n \
-                fMax_Hz REAL,                                   \n \
-                n INTEGER,                                      \n \
-                data BLOB,                                      \n \
-                chan_id INTEGER,                                \n \
-                epoch_id INTEGER,                               \n \
-                FOREIGN KEY(epoch_id) REFERENCES epochs(id),    \n \
-                FOREIGN KEY(chan_id)  REFERENCES channels(id));");
+      ("CREATE TABLE IF NOT EXISTS      \n"
+       "spectra(id INTEGER PRIMARY KEY, \n"
+       "        fMin_Hz REAL,           \n"
+       "        df_Hz REAL,             \n"
+       "        fMax_Hz REAL,           \n"
+       "        n INTEGER,              \n"
+       "        data BLOB,              \n"
+       "        chan_id INTEGER,        \n"
+       "        epoch_id INTEGER,       \n"
+       "        FOREIGN KEY(epoch_id) REFERENCES epochs(id), \n"
+       "        FOREIGN KEY(chan_id)  REFERENCES channels(id));");
     
     BOOST_FOREACH(const std::string& st, cts) {
       db::sqlite3::statement(c, st).step_all();
@@ -131,7 +131,7 @@ private:
   }
 
   const db::sqlite3::context _context;
-  db::sqlite3::mutex   _mutex;
+  db::sqlite3::mutex _mutex;
 
   db::sqlite3::connection::sptr _connection;
 
