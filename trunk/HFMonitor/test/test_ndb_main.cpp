@@ -109,17 +109,17 @@ public:
         const std::vector<double> ac(compute_autocorrelation(ft));
 
         const ssize_t min_index(40); // TODO make it relative to the sample time
-        const double threshold_ac(0.5);
+        // threshold at -4 sigma
+        const double threshold_ac(4./std::sqrt(double(ft.size())));
         ASSERT_THROW(min_index < ac.size());
         // search for a peak in the auto-correlation
         std::vector<double>::const_iterator imax(std::max_element(ac.begin()+min_index, ac.end()));
         std::vector<double>::const_iterator imin(std::min_element(ac.begin(),           ac.end()));
-        const double ratio(ac[0]/(*imin));
         std::cout << "f=" << f << " " 
-                  << ac[0] << " " << *imax << " " << *imin << " " << ratio << " "
+                  << ac[0] << " " << *imax << " " << *imin << " "
                   << std::distance(ac.begin(), imax) << std::endl;
-        if (ratio > 1.5) {
-          // find the minimaxum peak
+        if (*imin < -threshold_ac) {
+          // find the first peak
           const size_t period_guess(std::distance(ac.begin(), imax));
           size_t int_period(period_guess);
           double first_ac(0);
@@ -132,14 +132,17 @@ public:
 
             if (current_ac < threshold_ac) continue;
             
-            if (current_ac/first_ac < 0.9 || current_ac/first_ac > 1.1) continue;
+            if (std::abs(current_ac-first_ac) > 0.2) continue;
 
             int_period = period_guess/i;
             std::cout << " --- " << i << " " << period_guess/i << " " << current_ac << std::endl;
           }
           // period validation
-          const double period(validate_period(ac, int_period, 0.5));//threshold_ac);
+          double period(validate_period(ac, int_period, threshold_ac));
           if (period > 0.) { // validated
+            std::cout << "period = " << period << std::endl;
+            double period_fft = validate_period_fft(ac, period);
+            std::cout << "period (fft) = " << period << std::endl;
             // compute average signal
             const std::vector<double> avg_signal(compute_avg_signal(ft, f, period));
           }
@@ -173,7 +176,7 @@ public:
     std::ofstream sum_ofs("sum.txt");
     sum_ofs << "# " << fv_history_.size() << " " << sum.size() << std::endl;
     
-    for (int i=0; i<sum.size(); ++i)
+    for (size_t i(0), n(sum.size()); i<n; ++i)
       sum_ofs << sum[i] << std::endl;
 
     const double threshold(threshold_factor * mean);
@@ -239,15 +242,16 @@ public:
 
     double period(-1);
     // loop over all potential peaks
-    for (int i=1, m(ac.size()/(1+int_period)); i<m; ++i) {
-      ASSERT_THROW((int_period+1)*i < ac.size());
+    for (int i=1, m(ac.size()/(2+int_period)); i<m; ++i) {
+      ASSERT_THROW((int_period+2)*i < ac.size());
       std::vector<double>::const_iterator
-        im(std::max_element(ac.begin()+(int_period-1)*i,
-                            ac.begin()+(int_period+1)*i));
+        im(std::max_element(ac.begin()+(int_period-2)*i,
+                            ac.begin()+(int_period+2)*i));
       period = (*im < threshold_ac
                 ? -1
                 : double(std::distance(ac.begin(), im))/double(i));      
-      std::cout << "      -- validate_period: " << i << " " << *im << " " << period << std::endl;
+      std::cout << "      -- validate_period: " << i << " " << *im << " " << period << " "
+                << threshold_ac << std::endl;
       if (period < 0.)
         break;
     }
@@ -255,17 +259,44 @@ public:
     return period;
   }
 
+  double validate_period_fft(const std::vector<double>& ac, double estimated_period) const {
+    // fourier analysis of auto-corrlelation
+
+    estimated_period = floor(estimated_period);
+
+    const size_t n_fft(100);
+    // search in -5:0.1:5 bins
+    double p [n_fft+1] = {0}; // periods
+    double xs[n_fft+1] = {0}; // ac.*cos
+    double xc[n_fft+1] = {0}; // ac.*sin
+    double x [n_fft+1] = {0}; // abs(fft)
+    for (ssize_t i(0), n(n_fft+1); i<n; ++i) {
+      p[i] = estimated_period + 4./double(n_fft)*(i - 0.5*n_fft);
+      const double fi(2*M_PI/p[i]);
+      xs[i] = xc[i] = 0.0;
+      for (size_t j(0), m(ac.size()); j<m; ++j) {
+        xs[i] += std::cos(fi*j)*ac[j];
+        xc[i] += std::sin(fi*j)*ac[j];
+      }
+      x[i] = xs[i]*xs[i] + xc[i]*xc[i];
+      std::cout << "validate_period_fft " << p[i] << " " << x[i] << std::endl;
+    }
+    double* im = std::max_element(x, x+n_fft+1);
+    return p[std::distance(x, im)];
+  }
+
   std::vector<double> compute_autocorrelation(const hist_type& h) const {
     std::vector<double> ac(h.size()/2, 0.0);    
+    const double mean(std::accumulate(h.begin(), h.end(), 0.0)/(h.empty() ? 1 : h.size()));
     for (size_t i(0), n(h.size()/2); i<n; ++i) {
       for (size_t j(0), n(h.size()/2); j<n; ++j) {
         ASSERT_THROW(i+j<h.size());
-        ac[i] += h[j]*h[i+j];
+        ac[i] += (h[j]-mean)*(h[i+j]-mean);
       }
       if (i!=0 && ac[0]!=0)
         ac[i] /= ac[0];
     }
-    ac[0] = 1;
+    ac[0] = 1.;
     return ac;
   }
 
