@@ -141,10 +141,11 @@ public:
           double period(validate_period(ac, int_period, threshold_ac));
           if (period > 0.) { // validated
             std::cout << "period = " << period << std::endl;
-            double period_fft = validate_period_fft(ac, period);
-            std::cout << "period (fft) = " << period << std::endl;
+//             double period_fft = validate_period_fft(ac, period);
+//             std::cout << "period (fft) = " << period << std::endl;
             // compute average signal
             const std::vector<double> avg_signal(compute_avg_signal(ft, f, period));
+            decode(avg_signal);
           }
         }
       }
@@ -152,6 +153,141 @@ public:
 
     // check if history is too long and remove old data
     pop_history();
+  }
+  
+  void decode(const std::vector<double>& sig) {
+
+    // determine the threshold iteratively
+
+    std::vector<double>::const_iterator im(std::max_element(sig.begin(), sig.end()));
+
+    double thr[2] = { *im/2, *im/2 };
+    double threshold(*im/2);
+    for (size_t i=0; i<10; ++i) {
+      std::vector<double> s0, s1;
+      for (size_t j=0, n(sig.size()); j<n; ++j) {
+	if (sig[j] == 0.0) continue;
+	if (sig[j] < threshold) s0.push_back(sig[j]);
+	if (sig[j] > threshold) s1.push_back(sig[j]);
+      }
+      std::cout << "decode: thresholds " << i << " "
+		<< thr[0] << " " << thr[1] << " "
+		<< threshold << std::endl;
+      thr[0] = median(s0.begin(), s0.end());
+      thr[1] = median(s1.begin(), s1.end());
+      threshold = 0.5*(thr[0]+thr[1]);
+    }
+
+    std::vector<int> s;
+    std::cout << "decode: ";
+    for (size_t i(0), n(sig.size()); i<n; ++i) {
+      if (sig[i] == 0.0) continue;
+      s.push_back((sig[i] > threshold));
+      std::cout << s.back();
+    }
+    std::cout << std::endl;
+    
+      
+    // find the first 0->1 transition
+    size_t i(1);
+    for (size_t n(s.size()); i<n; ++i)
+      if (s[i-1] == 0 && s[i] == 1) break;
+
+    std::cout << "decode: i=" << i << s[i-1] << s[i] << std::endl;;
+  
+    std::vector<int> bit, bit_len;
+    bit.push_back(1);
+    bit_len.push_back(1);
+    for (size_t j(1), n(s.size()); j<n; ++j) {
+      const size_t k((i+j)%n);
+      if (s[k] == bit.back()) {
+        ++bit_len.back();
+      } else {
+        bit.push_back(s[k]);
+        bit_len.push_back(1);
+      }
+    }
+    std::cout << "decode: ";
+    for (size_t j=0; j<bit.size(); ++j) {
+      std::cout << bit[j] << "," << bit_len[j] << " ";
+    }
+    std::cout << std::endl;
+
+    // find dash and dot length
+    std::vector<double> len_dit, len_dah;
+    const size_t offset(std::distance(bit_len.begin(),
+				      std::max_element(bit_len.begin(), bit_len.end())));
+    for (size_t j(1), m(bit_len.size()); j<m; ++j) {
+      const size_t km((offset+j-1)%m);
+      const size_t k ((offset+j  )%m);
+      if (bit_len[k] >= 2*bit_len[km] ) {
+	len_dit.push_back(bit_len[km]);
+	len_dah.push_back(bit_len[k]);
+      }
+      if (bit_len[km] >= 2*bit_len[k]) {
+	len_dit.push_back(bit_len[k]);
+	len_dah.push_back(bit_len[km]);
+      }
+    }
+    const double ldit(median(len_dit));
+    const double ldah(median(len_dah));
+    std::cout << "decode: " << ldit << " " << ldah << std::endl;
+
+    // check
+    if (ldah/ldit < 2 || ldah/ldit > 4) // not OK
+      return;
+    
+    std::string msg;
+    for (size_t j(1), m(bit_len.size()); j<m; ++j) {
+      const size_t k((offset+j)%m);
+      if (bit[k] == 0) {
+	if (bit_len[k] > 1.333*ldit)
+	  msg.push_back(' ');
+      }
+      if (bit[k] == 1) {
+	if (bit_len[k] < 0.5*(ldit+ldah)) {
+	  msg.push_back('.');
+	} else {
+	  if (bit_len[k] < 1.5*(ldit+ldah))
+	    msg.push_back('-');
+	  else
+	    msg.push_back('_');
+	}
+      }
+    }
+    std::cout << "decode: " << msg << std::endl;
+  }
+  
+  template<typename T>
+  double mean(const T& v) {
+    return mean(v.begin(), v.end());
+  }
+  template<class Iterator>
+  double mean(Iterator beg, Iterator end) {
+    return std::accumulate(beg, end)/(beg==end ? 1. : double(std::distance(beg, end)));
+  }
+
+  template<typename T>
+  double median(const T& v) {
+    T vc(v);
+    return median(vc.begin(), vc.end());
+  }
+  template<class Iterator>
+  double median(Iterator beg, Iterator end) {
+    if (beg == end) return 0.;
+    typedef typename Iterator::value_type value_type;
+    const ssize_t mid(std::distance(beg, end)/2);
+
+    std::nth_element(beg, beg+mid, end);
+    const value_type v(*(beg+mid));
+
+    if ((std::distance(beg,end)%2) == 1)
+      return v;
+
+    std::nth_element(beg, beg+mid-1, end);
+    const value_type v2(*(beg+mid-1));
+
+    return 0.5*double(v+v2);
   }
 
   void static_blanker(double threshold_factor) { // threshold = threshold_factor*mean
