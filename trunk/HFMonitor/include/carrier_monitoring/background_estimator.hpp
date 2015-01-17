@@ -79,7 +79,25 @@ public:
       _spec_db_fitted[i] = 0;
       _b[i] = 1;
     }
+    return do_fit(threshold);
+  }
 
+  bool do_fit(const std::vector<double>& xf,
+	      double threshold = 2.5) {
+    // resize if needed
+    if (_spec_db.size() != xf.size())
+      update(xf.size());
+
+    // initialization
+    for (size_t i(0), n(_spec_db.size()); i<n; ++i) {      
+      _spec_db[i] = 10*log10(xf[i]);    
+      _spec_db_fitted[i] = 0;
+      _b[i] = 1;
+    }
+    return do_fit(threshold);
+  }
+
+  bool do_fit(double threshold) {
     // iterations
     const size_t max_iter(100);
     size_t nchanged(1);

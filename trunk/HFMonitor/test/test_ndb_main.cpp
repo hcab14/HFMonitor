@@ -21,6 +21,7 @@
 #include <iostream>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <numeric>
 #include <boost/format.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -29,9 +30,79 @@
 #include "Spectrum.hpp"
 #include "logging.hpp"
 #include "wave/reader.hpp"
-//#include "polynomial_regression.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
+#include "carrier_monitoring/background_estimator.hpp"
+
+std::ostream& operator<<(std::ostream& os, const std::vector<double>& v) {
+  os << "[";
+  std::copy(v.begin(), v.end(), std::ostream_iterator<double>(os, " "));
+  return os << "]";
+}
+std::ostream& operator<<(std::ostream& os, const std::map<double, double>& v) {
+  os << "[ ";
+  for (std::map<double,double>::const_iterator i(v.begin()), iend(v.end()); i!=iend; ++i)
+    os << "(" << i->first << "," << i->second << ") ";
+  return os << "]";
+}
+
+class k_means {
+public:
+  // period -> weight
+  typedef std::map<double, double> map_type;
+  typedef std::vector<double> vec_type;
+
+  k_means(const vec_type& xm)
+    : xm_(xm)
+    , sse_(0) {}
+
+  const vec_type& xm() const { return xm_; }
+  double sse() const { return sse_; }
+
+  template<typename Iterator>
+  static map_type make_map(Iterator beg, Iterator end) {
+    k_means::map_type map;
+    for (Iterator i(beg); i!=end; ++i)
+      ++map[*i];
+    return map;
+  }
+  
+  double step(const map_type& map) {
+    sse_ = 0.;
+    double sum_weights(0.);
+    vec_type sum_w (xm_.size(), 0.);
+    vec_type sum_wx(xm_.size(), 0.);
+    for (map_type::const_iterator i(map.begin()), iend(map.end()); i!=iend; ++i) {
+      double  min_dist2(0);
+      ssize_t min_index(-1);
+      for (vec_type::iterator jbeg(xm_.begin()), j(jbeg), jend(xm_.end()); j!=jend; ++j) {
+        if (*j == 0.) continue; // ignore invalid centers
+        const double_t dist2((i->first - *j)*(i->first - *j));
+        if (min_index == -1 || dist2 < min_dist2) {
+          min_index = std::distance(jbeg, j);
+          min_dist2 = dist2;
+        }
+      }
+      sum_w [min_index] += i->second;
+      sum_wx[min_index] += i->second*i->first;
+      sum_weights       += i->second;
+      sse_              += i->second*min_dist2;
+    }
+    // update centers
+    for (vec_type::iterator i(xm_.begin()), j(sum_wx.begin()), k(sum_w.begin()), iend(xm_.end()); i!=iend; ++i, ++j, ++k)
+      *i = (*k != 0) ? (*j) / (*k) : 0.;
+
+    sse_ = (sum_weights != 0) ? sse_/sum_weights : 0.;
+
+    return sse_;
+  }
+
+protected:
+private:
+  vec_type xm_; // centers
+  double   sse_;
+} ;
+
 
 class test_proc :  processor::base_iq  {
 public:
@@ -93,18 +164,39 @@ public:
 
       //
       std::cout << "history size: " << dt << std::endl;
-      std::ofstream ofs("data", std::ios::out);
+      std::ofstream ofs_data("data", std::ios::out);
       
-      for (fv_hist_type::const_iterator i(fv_history_.begin()), iend(fv_history_.end()); i!=iend; ++i) {
+      // compute mean spectrum
+      std::vector<double> mean_spectrum(fv_history_.size(), 0.);      
+      for (fv_hist_type::const_iterator ibeg(fv_history_.begin()), i(ibeg), iend(fv_history_.end()); i!=iend; ++i)
+        mean_spectrum[std::distance(ibeg, i)] = mean(i->second.begin(), i->second.end());
+
+      background_estimator bkg_est(fv_history_.size(), 2, 10);
+      bkg_est.do_fit(mean_spectrum, 2.5);
+
+      // save spectrum with fit
+      std::ofstream ofs_spec("spec", std::ios::out);
+
+      const double thr_db(1.5);
+
+      for (fv_hist_type::const_iterator ibeg(fv_history_.begin()), i(ibeg), iend(fv_history_.end()); i!=iend; ++i) {
         const double f(i->first);
         const hist_type& ft(i->second);
-#if 1
+
+        const ssize_t index(std::distance(ibeg, i));
+        ofs_spec << "spec:" << f << " " << bkg_est.spec_db(index) << " " << bkg_est.spec_db_fitted(index) << "\n";
+
+        // save all data
         size_t epoch_counter(0);
         for (hist_type::const_iterator j(ft.begin()), jend(ft.end()); j!=jend; ++j, ++epoch_counter) {
-          ofs << f << " " << epoch_counter << " " << *j << "\n";
+          ofs_data << f << " " << epoch_counter << " " << *j << "\n";
         }
-        ofs << "\n";
-#endif
+        ofs_data << "\n";
+
+        // analyze only channels with peaks in the spectrum
+        if (bkg_est.spec_db(index) - bkg_est.spec_db_fitted(index) < thr_db)
+          continue;
+
         // compute the auto-correlation
         const std::vector<double> ac(compute_autocorrelation(ft));
 
@@ -158,10 +250,9 @@ public:
   void decode(const std::vector<double>& sig) {
 
     // determine the threshold iteratively
-
     std::vector<double>::const_iterator im(std::max_element(sig.begin(), sig.end()));
 
-    double thr[2] = { *im/2, *im/2 };
+    double medians[2] = { *im/2, *im/2 }; // lower, upper median values
     double threshold(*im/2);
     for (size_t i=0; i<10; ++i) {
       std::vector<double> s0, s1;
@@ -171,11 +262,11 @@ public:
 	if (sig[j] > threshold) s1.push_back(sig[j]);
       }
       std::cout << "decode: thresholds " << i << " "
-		<< thr[0] << " " << thr[1] << " "
+		<< medians[0] << " " << medians[1] << " "
 		<< threshold << std::endl;
-      thr[0] = median(s0.begin(), s0.end());
-      thr[1] = median(s1.begin(), s1.end());
-      threshold = 0.5*(thr[0]+thr[1]);
+      medians[0] = median(s0.begin(), s0.end());
+      medians[1] = median(s1.begin(), s1.end());
+      threshold = 0.5*(medians[0]+medians[1]);
     }
 
     std::vector<int> s;
@@ -186,24 +277,23 @@ public:
       std::cout << s.back();
     }
     std::cout << std::endl;
-    
-      
+          
     // find the first 0->1 transition
-    size_t i(1);
-    for (size_t n(s.size()); i<n; ++i)
-      if (s[i-1] == 0 && s[i] == 1) break;
+    std::vector<int>::iterator itr(std::adjacent_find(s.begin(), s.end(), pred_bit_transition_01));
 
-    std::cout << "decode: i=" << i << s[i-1] << s[i] << std::endl;;
+    size_t i(std::distance(s.begin(), itr));
+    std::cout << "decode: i=" << i << s[i-1] << s[i] << std::endl;;  
+
+    std::rotate(s.begin(), itr, s.end());
   
     std::vector<int> bit, bit_len;
     bit.push_back(1);
     bit_len.push_back(1);
     for (size_t j(1), n(s.size()); j<n; ++j) {
-      const size_t k((i+j)%n);
-      if (s[k] == bit.back()) {
+      if (s[j] == bit.back()) {
         ++bit_len.back();
       } else {
-        bit.push_back(s[k]);
+        bit.push_back(s[j]);
         bit_len.push_back(1);
       }
     }
@@ -213,6 +303,42 @@ public:
     }
     std::cout << std::endl;
 
+    // find dash and dot length
+    k_means::map_type hist_bit_len(k_means::make_map(bit_len.begin(), bit_len.end()));
+    std::cout << "hist_bit_len: "<< hist_bit_len << std::endl;
+    
+    k_means::vec_type xm;
+    xm.push_back(2*1);
+    xm.push_back(2*3);
+    xm.push_back(2*7);
+    xm.push_back(hist_bit_len.rbegin()->first);
+    std::cout << "xm= " << xm << std::endl;
+    
+    k_means km(xm);
+    for (size_t i=0; i<10; ++i) {
+      const double sse(km.step(hist_bit_len));
+      std::cout << "i= " << i << " sse= " << sse << " xm= " << km.xm()  << std::endl;
+    }
+    bool redo_kmeans(false);
+    k_means::vec_type xmfit(km.xm());
+    for (k_means::vec_type::iterator iv(xmfit.begin()), ivp(iv+1); ivp!=xmfit.end(); ) {
+      if (std::abs((*ivp) - (*iv)) < 2.5) {
+        *ivp = 0.5*((*ivp) + (*iv));
+        iv = xmfit.erase(iv);
+        ivp = iv+1;
+        redo_kmeans = true;
+      } else {
+        ++iv;
+        ++ivp;
+      }
+    }
+    if (redo_kmeans) {
+      km = k_means(xmfit);
+      for (size_t i=0; i<10; ++i) {
+        const double sse(km.step(hist_bit_len));
+        std::cout << "[redo] i= " << i << " sse= " << sse << " xm= " << km.xm()  << std::endl;
+      }      
+    }
     // find dash and dot length
     std::vector<double> len_dit, len_dah;
     const size_t offset(std::distance(bit_len.begin(),
@@ -258,13 +384,17 @@ public:
     std::cout << "decode: " << msg << std::endl;
   }
   
+  static bool pred_bit_transition_01(int i, int j) {
+    return (i==0 && j==1);
+  }
+
   template<typename T>
   double mean(const T& v) {
     return mean(v.begin(), v.end());
   }
   template<class Iterator>
   double mean(Iterator beg, Iterator end) {
-    return std::accumulate(beg, end)/(beg==end ? 1. : double(std::distance(beg, end)));
+    return std::accumulate(beg, end, typename Iterator::value_type(0))/(beg==end ? 1. : double(std::distance(beg, end)));
   }
 
   template<typename T>
@@ -460,6 +590,28 @@ private:
 
 int main(int argc, char* argv[])
 {
+  const double bit_len[] = {
+    3, 3, 7, 8, 2, 3, 7, 3, 2, 8, 1, 3, 8, 2, 7, 13
+  };
+  k_means::map_type map(k_means::make_map(bit_len, bit_len+sizeof(bit_len)/sizeof(double)));
+  std::cout << "hist: "<< map << std::endl;
+
+  k_means::vec_type xm;
+  xm.push_back(2*1);
+  xm.push_back(2*3);
+  xm.push_back(2*7);
+  xm.push_back(map.rbegin()->first);
+  std::cout << "xm= " << xm << std::endl;
+
+  k_means km(xm);
+
+  for (size_t i=0; i<10; ++i) {
+    const double sse(km.step(map));
+    std::cout << "i= " << i << " sse= " << sse << " xm= " << km.xm()  << std::endl;
+  }
+
+//   return EXIT_SUCCESS;
+
   LOGGER_INIT("./Log", "test_ndb");
   try {
     const boost::program_options::variables_map
