@@ -65,7 +65,7 @@ public:
     if (-1.0 < overlap_ && overlap_ <= 0.0) {
       int dist(0);
       while ((dist=std::distance(beg, end)) > 0) {
-	const size_t n_samples(std::min(int(v_.size()-i_), dist));
+	const ssize_t n_samples(std::min(int(v_.size()-i_), dist));
 	std::copy(beg, beg+n_samples, v_.begin()+i_);
 
 	i_  += n_samples;
@@ -82,9 +82,9 @@ public:
 	i_ %= v_.size();
       }
     } else { // overlap \in [0.5 , 1.0)
-      int dist(0);
+      ssize_t dist(0);
       while ((dist=std::distance(beg, end)) > 0) {
-	int n_samples(std::min(int(n_-i_), dist));
+	ssize_t n_samples(std::min(int(n_-i_), dist));
 	if (n_samples > delta_n_)
 	  n_samples = delta_n_;
 	// nearest index for inserting data
@@ -119,7 +119,7 @@ protected:
 	v_.resize(n_);
 	i_ = 0;
       }
-    } else if (-1.0 < overlap_ && overlap_ < 0.0) {
+    } else if (-1.0 <  overlap_ && overlap_ < 0.0) {
       const size_t nv(size_t(n_/(-overlap_)));
       if (v_.size() != nv) {
 	v_.resize(nv);
@@ -127,15 +127,17 @@ protected:
       }
     } else if ( 0.5 <= overlap_ && overlap_ < 1.0) {
       if (v_.size() != 2*n_) {
-	v_.resize(2*n_);      
-	i_ = 0;
+	v_.resize(2*n_, 0);
+	i_       = 0;
 	delta_n_ = std::max(1, int((1-overlap_)*n_));
 	// delta_n has to divide n_
-	while (n_ % delta_n_) {
+	while ((n_ % delta_n_) && delta_n_ > 1) {
 // 	  std::cout << "DD " << delta_n_ << " " << n_ << " " << (n_ % delta_n_) << std::endl;
 	  --delta_n_;
 	}
-	overlap_ = 1-double(delta_n())/double(n_);
+        // TODO: check that delta_n >= 1
+        assert(detla_n_ > 1);
+	overlap_ = double(1) - double(delta_n())/double(n_);
       }
     } else {
       throw std::runtime_error("repack_buffer::resize invalid overlap");
