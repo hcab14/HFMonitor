@@ -620,7 +620,7 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config);
 
-    wave::reader_iq<repack_processor<test_proc> > r(config.get_child("Test"));
+    wave::reader_iq<test_proc> r(config.get_child("Test"));
     for (int i((argc == 1) ? 1 : 3); i<argc; ++i) {
       std::cout << "processing " << argv[i] << std::endl;
       r.process_file(argv[i]);

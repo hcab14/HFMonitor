@@ -31,9 +31,9 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 
-#include "processor.hpp"
-#include "processor/IQBuffer.hpp"
 #include "network/protocol.hpp"
+#include "processor.hpp"
+#include "repack_processor.hpp"
 #include "wave/definitions.hpp"
 
 /*! \addtogroup processors
@@ -145,7 +145,7 @@ namespace wave {
       , buffer_length_sec_(config.get<double>("<xmlattr>.buffer_length_sec", 1.0))
       , overlap_(config.get<double>("<xmlattr>.overlap", 0.0))
       , iq_reversed_(config.get<int>("<xmlattr>.iq_reversed", 0)==1)
-      , iq_buffer_(0, 0.)
+      , iq_buffer_(config)
       , start_time_(boost::date_time::not_a_date_time)
       , sample_number_(0) {}
     virtual ~reader_iq_base() {}
@@ -157,6 +157,7 @@ namespace wave {
       return read_chunks(ifs);
     }
 
+#if 0
     // this does not work since seekg,tellg is not supported for bz2 compressed streams
     bool process_file_bz2(std::string filename) {
       std::ifstream ifs(filename.c_str(), std::ios_base::in | std::ios_base::binary);
@@ -169,23 +170,25 @@ namespace wave {
       
       return read_chunks(is);
     }
+#endif
 
     void finish() {
       // insert one last dummy sample to trigger processing of left over data
-      iq_buffer_.insert(this, std::complex<double>(0, 0));
+//       iq_buffer_.insert(this, std::complex<double>(0, 0));
     }
 
     // complex_vector_type samples() const { return iq_buffer_.samples(); }
+
     
-    void procIQ(const_iterator i0,
-                const_iterator i1) {
-      using namespace boost::posix_time;
-      p_.process_iq(get_service(std::distance(i0, i1)), i0, i1);
-      start_time_ += time_duration(0, 0, 0,
-                                   boost::int64_t(double(std::distance(i0, i1))
-                                                  /double(format_.sampleRate())
-                                                  *time_duration::ticks_per_second()+0.5));
-    }
+//     void procIQ(const_iterator i0,
+//                 const_iterator i1) {
+//       using namespace boost::posix_time;
+//       p_.process_iq(get_service(std::distance(i0, i1)), i0, i1);
+//       start_time_ += time_duration(0, 0, 0,
+//                                    boost::int64_t(double(std::distance(i0, i1))
+//                                                   /double(format_.sampleRate())
+//                                                   *time_duration::ticks_per_second()+0.5));
+//     }
 
     void process_iq(service::sptr service,
                     const_iterator i0, 
@@ -218,7 +221,7 @@ namespace wave {
           format_      = detail::readT<chunk::format>(is);
           read_format_ = true;
           std::cout << format_ << std::endl;
-          iq_buffer_.update(size_t(format_.sampleRate()*buffer_length_sec_+0.5), overlap_);
+//           iq_buffer_.update(size_t(format_.sampleRate()*buffer_length_sec_+0.5), overlap_);
         } else if (h.id() == "rcvr") {
           rcvr_       = detail::readT<chunk::rcvr>(is, sizeof(chunk::header)+h.size());
           read_rcvr_  = true;
@@ -228,13 +231,29 @@ namespace wave {
           data_      = detail::readT<chunk::data>(is);
           read_data_ = true;
           std::cout << data_ << std::endl;
-          for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample()) {
+          const size_t bufferSize(2500);
+          std::vector<std::complex<double> > samples(bufferSize);
+          
+          size_t counter(0), last_sample_number_(0);
+          for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample(), ++sample_number_, ++counter) {
+            if (i != 0 && (counter%bufferSize) == 0) {
+              iq_buffer_.process_iq(get_service(last_sample_number_),
+                                    samples.begin(), samples.end());
+              last_sample_number_ = sample_number_;
+            }
+
             const double xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
             const double xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
             const std::complex<double> s(xi, xq), sr(xq, xi);
-            iq_buffer_.insert(this, iq_reversed_ ? sr : s);
-            ++sample_number_;
+            samples[counter%bufferSize] = (iq_reversed_ ? sr : s);
+            
           }
+          // process remaining samples
+          if ((counter%bufferSize) != 0) {
+            iq_buffer_.process_iq(get_service(last_sample_number_),
+                                  samples.begin(), samples.begin()+(counter%bufferSize));
+          }
+
         } else if (read_chunk(h, is)) {
           // further types of chunks can be read in a derived class
         } else {
@@ -273,7 +292,7 @@ namespace wave {
     double buffer_length_sec_;
     double overlap_;
     int    iq_reversed_;
-    IQBuffer iq_buffer_;
+    repack_processor<PROCESSOR> iq_buffer_;
 
     ptime start_time_; // current start time
     boost::int64_t sample_number_; // current sample number
@@ -299,10 +318,15 @@ namespace wave {
     using reader_iq_base<PROCESSOR>::rcvr_;
 
     virtual typename service::sptr get_service(size_t number_of_samples) const {
-      return detail::service_wave_iq::make(start_time(),
-                                           "name",
-                                           (read_rcvr_ ? double(rcvr_.nCenterFrequencyHz()) : center_frequency_hz_),
-                                           format());                                           
+      typedef boost::posix_time::time_duration time_duration;
+      const time_duration dt(0, 0, 0,
+                             boost::int64_t(double(number_of_samples)/double(format().sampleRate())
+                                            *time_duration::ticks_per_second()+0.5));
+      return detail::service_wave_iq::make
+        (start_time() + dt,
+         "name",
+         (read_rcvr_ ? double(rcvr_.nCenterFrequencyHz()) : center_frequency_hz_),
+         format());                                           
     }
 
   private:

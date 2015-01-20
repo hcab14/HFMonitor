@@ -92,7 +92,7 @@ public:
     typedef boost::shared_ptr<service_repack> sptr;
     virtual ~service_repack() {}
 
-    static sptr make(service::sptr sp, boost::uint64_t counter) {
+    static sptr make(service::sptr sp, boost::int64_t counter) {
       return sptr(new service_repack(sp, counter));
     }
     virtual std::string     id()                  const { return sp_->id(); }
@@ -111,7 +111,7 @@ public:
   private:
     typedef boost::posix_time::time_duration time_duration;
     // counter is the distance (in samples) from sp_->approx_ptime()
-    service_repack(service::sptr sp, boost::uint64_t counter)
+    service_repack(service::sptr sp, boost::int64_t counter)
       : sp_(sp)
       , t_(sp->approx_ptime() +
            time_duration(0,0,0,
@@ -123,8 +123,10 @@ public:
 public:
   /// called from repack_buffer_type::insert
   ///   * counter is the distance (in samples) from sp_->approx_ptime()
-  void process_samples(const_iterator beg, const_iterator end, boost::uint64_t counter) { 
-    typename service_repack::sptr sp_repack(service_repack::make(sp_, counter));
+  void process_samples(const_iterator beg, const_iterator end, boost::int64_t counter) { 
+    typename service_repack::sptr sp_repack
+      (service_repack::make
+       (sp_, counter - boost::int64_t(bufferLengthSec_*sp_->sample_rate_Hz())));
     p_.process_iq(sp_repack, beg, end);
   }
 
