@@ -160,7 +160,7 @@ public:
 
     const time_duration dt(ptime_history_.back()-ptime_history_.front());
     if (dt > max_time_interval_) {
-//       static_blanker(3.);
+      static_blanker(3.);
 
       //
       std::cout << "history size: " << dt << std::endl;
@@ -397,6 +397,18 @@ public:
     return std::accumulate(beg, end, typename Iterator::value_type(0))/(beg==end ? 1. : double(std::distance(beg, end)));
   }
 
+  template<class Iterator>
+  double mean_notzero(Iterator beg, Iterator end) {
+    double sum_1(0), sum_x(0);
+    for (Iterator i(beg); i!=end; ++i) {
+      if (*i) {
+        sum_1 += 1;
+        sum_x += *i;
+      }
+    }
+    return sum_1 != 0 ? sum_x/sum_1 : 0.;
+  }
+
   template<typename T>
   double median(const T& v) {
     T vc(v);
@@ -421,6 +433,7 @@ public:
   }
 
   void static_blanker(double threshold_factor) { // threshold = threshold_factor*mean
+    // compute the sum over frequencies
     std::vector<double> sum;
     for (fv_hist_type::const_iterator
            i(fv_history_.begin()),
@@ -436,8 +449,7 @@ public:
     }
 
     // compute mean
-    const double mean
-      (std::accumulate(sum.begin(), sum.end(), 0.0) / (double(sum.size())));
+    const double mean_value(mean(sum.begin(), sum.end()));
 
     std::ofstream sum_ofs("sum.txt");
     sum_ofs << "# " << fv_history_.size() << " " << sum.size() << std::endl;
@@ -445,12 +457,12 @@ public:
     for (size_t i(0), n(sum.size()); i<n; ++i)
       sum_ofs << sum[i] << std::endl;
 
-    const double threshold(threshold_factor * mean);
+    const double threshold(threshold_factor * mean_value);
     
     std::ofstream ofs("blanker.txt");
     // 5*mean -> outlier    
-    for (fv_hist_type::iterator i(fv_history_.begin()),
-           ibeg(fv_history_.begin()), iend(fv_history_.end()); i!=iend; ++i) {
+    for (fv_hist_type::iterator ibeg(fv_history_.begin()), i(ibeg), iend(fv_history_.end());
+         i!=iend; ++i) {
       hist_type& ft(i->second);
 
       std::vector<double>::const_iterator is(sum.begin());
@@ -459,9 +471,9 @@ public:
           ofs << *j << " "
               << (*j * (*is > threshold)) << " "
               << *is << " "
-              << mean << std::endl;
-        if (*is > threshold) // for now: use the last value
-          *j = *(j-1);
+              << mean_value << std::endl;
+        if (*is > threshold) 
+          *j = 0;// *(j-1); // set to zero (or use the last value)
       }
     }
   }
@@ -553,11 +565,11 @@ public:
 
   std::vector<double> compute_autocorrelation(const hist_type& h) const {
     std::vector<double> ac(h.size()/2, 0.0);    
-    const double mean(std::accumulate(h.begin(), h.end(), 0.0)/(h.empty() ? 1 : h.size()));
+    const double mean_value(mean(h.begin(), h.end()));
     for (size_t i(0), n(h.size()/2); i<n; ++i) {
       for (size_t j(0), n(h.size()/2); j<n; ++j) {
         ASSERT_THROW(i+j<h.size());
-        ac[i] += (h[j]-mean)*(h[i+j]-mean);
+        ac[i] += (h[j]-mean_value)*(h[i+j]-mean_value);
       }
       if (i!=0 && ac[0]!=0)
         ac[i] /= ac[0];
