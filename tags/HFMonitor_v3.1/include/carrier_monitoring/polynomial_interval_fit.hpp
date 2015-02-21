@@ -39,31 +39,47 @@ public:
   typedef boost::numeric::ublas::slice slice;
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
-  typedef std::vector<size_t> index_vector_type;
 
-  polynomial_interval_fit(size_t poly_degree,
-			  const std::vector<size_t>& index_vector)
-    : poly_degree_(poly_degree)
-    , indices_(index_vector)
+  polynomial_interval_fit()
+    : poly_degree_(1)
     , chi2_(0)
     , dof_(0) {}
 
-  size_t poly_degree() const { return poly_degree_; }
-  index_vector_type index_vector() const { return indices_; }
-
-  bool fit(const std::vector<double>& y) {
-    return fit(y, std::vector<size_t>(y.size(), 1));
+  polynomial_interval_fit(size_t poly_degree,
+			  const std::vector<double>& t_index_vector)
+    : poly_degree_(poly_degree)
+    , t_indices_(t_index_vector)
+    , chi2_(0)
+    , dof_(0) {
+    assert(std::is_sorted(t_indices_));
+    assert(t_indices_.size() >= 2);
+    assert(t_indices_.size() >= 2);
   }
-  bool fit(const std::vector<double>& y,
-	   const std::vector<size_t>& b) {
-    
+
+  size_t poly_degree() const { return poly_degree_; }
+
+  bool fit(const std::vector<double>& t,
+	   const std::vector<double>& y) {
+    // by default use all measurements
+    const std::vector<size_t> default_b(y.size(), 1);
+    return fit(t, y, default_b);
+  }
+  bool fit(const std::vector<double>& t,
+	   const std::vector<double>& y,
+	   const std::vector<size_t>& b) {    
+    assert(t.size() == y.size());
+    assert(t.size() == b.size());
+    assert(std::is_sorted(t));
     if (b != b_) {
       typedef std::not_equal_to<size_t> neq_functor;
       const size_t length_y(std::count_if(b.begin(), b.end(),
 					  std::binder1st<neq_functor>(neq_functor(), 0)));
+#if 0
+      std::cout << "TT " << length_y << std::endl;
+#endif
       b_        = b;
-      t_        = yf_ = y_ = vector_type(length_y, 0);
-      make_slices_y(indices_, y, b);
+      t_        = yf_  = y_ = vector_type(length_y, 0);
+      make_slices_y(t, y, b);
       slices_x_ = make_slices_x(poly_degree_, slices_y_.size());
       x_        = vector_type((poly_degree_+1)*slices_y_.size(), 0);
       q_        = matrix_type(x_.size(), x_.size(), 0);
@@ -80,10 +96,17 @@ public:
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0), n(sy.size()); j<n; ++j) {
-	const double x(t_(sy(j)) - indices_[slice_counter]);
+	const double x(t_(sy(j)) - t_indices_[slice_counter]);
+#if 0
+	std::cout << str(boost::format("T %3d %3d %5.2f %5.2f %5.2f\n")
+			 % j % sy(j) % t_(sy(j)) % y_(sy(j)) % x);
+#endif
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
+#if 0
+      std::cout << str(boost::format("T_ %3d\n") % y_.size());
+#endif
       const slice& sx(slices_x_[slice_counter++]);
       vector_type _v(sx.size(), 0);
       matrix_type _m(sx.size(), sx.size(), 0);
@@ -97,7 +120,7 @@ public:
     const size_t nc_total(poly_degree_>1 ? 2*nc : nc);
     matrix_type ac(nc_total, nx, 0);
     for (size_t i(0); i<nc; ++i) {
-      const double dx(indices_[i+1] - indices_[i]);
+      const double dx(t_indices_[i+1] - t_indices_[i]);
       for (size_t j(0); j<poly_degree_plus_1; ++j)
 	ac(i,i*poly_degree_plus_1+j) = (j==0) ? 1 : dx*ac(i,i*poly_degree_plus_1+j-1);
       ac(i,(i+1)*poly_degree_plus_1) = -1;
@@ -105,11 +128,11 @@ public:
 
     if (poly_degree_>1) {
       for (size_t i(0); i<nc; ++i) {
-	const double dx(indices_[i+1] - indices_[i]);
+	const double dx(t_indices_[i+1] - t_indices_[i]);
      	for (size_t j(1); j<poly_degree_plus_1; ++j)
      	  ac(nc+i,i*poly_degree_plus_1+j) = (j==1) ? 1 : dx*j/(j-1)*ac(nc+i,i*poly_degree_plus_1+j-1);
      	ac(nc+i,(i+1)*poly_degree_plus_1+1) = -1;
-      }      
+      }
     }
 
     // fill atac=(ata + constrains)
@@ -133,7 +156,7 @@ public:
     BOOST_FOREACH(const slice& sy, slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0), n(sy.size()); j<n; ++j) {
-	const double x(t_(sy(j)) - indices_[slice_counter]);
+	const double x(t_(sy(j)) - t_indices_[slice_counter]);
 	for (size_t k(0); k<poly_degree_plus_1; ++k)
 	  a(j,k) = (k==0) ? 1 : x*a(j,k-1);
       }
@@ -149,6 +172,7 @@ public:
     return true;
   }
 
+  const std::vector<double>& t_indices() const { return t_indices_; }
   const vector_type& t()  const { return t_;  }
   const vector_type& y()  const { return y_;  }
   const vector_type& yf() const { return yf_; }
@@ -171,7 +195,7 @@ public:
 
 protected:
   vector_type make_a(double t, size_t i) const {
-    const double dt(t-indices_[i]);
+    const double dt(t-t_indices_[i]);
     const size_t n(slices_x_[i].size());
     vector_type a(n, 0);
     for (size_t j(0); j<n; ++j)
@@ -179,31 +203,44 @@ protected:
     return a;
   }
   size_t find_index(double t) const {
-    return ((t >= indices_.back())
-	    ? indices_.size()-2
-	    : ((t <= indices_.front())
+    return ((t >= t_indices_.back())
+	    ? t_indices_.size()-2
+	    : ((t <= t_indices_.front())
 	       ? 0
-	       : std::distance(indices_.begin(), std::lower_bound(indices_.begin(), indices_.end(), t))-1));
+	       : std::distance
+	       (t_indices_.begin(),
+		std::lower_bound(t_indices_.begin(), t_indices_.end(), t))-1));
   }
 
-  void make_slices_y(const index_vector_type& iv,
+  // slices for the measurements
+  void make_slices_y(const std::vector<double>& t,
 		     const std::vector<double>& y,
 		     const std::vector<size_t>& b) {
     assert(iv.size()>0);
-    slices_y_ = std::vector<slice>(iv.size()-1);
-    for (size_t i(1), ib(0), it(0), n(iv.size()); i<n; ++i) {
+    assert(t.size() == y.size());
+    assert(t.size() == b.size());
+
+    size_t counter(0);  // counts measurements t,y,b
+
+    // skip measurements before the first interval 
+    while (t[counter] < t_indices_[0])
+      ++counter;
+
+    slices_y_ = std::vector<slice>(t_indices_.size()-1);
+    for (size_t i(1), ib(0), it(0), n(t_indices_.size()); i<n; ++i) {
       size_t nb(0);
-      for (size_t j(iv[i-1]), m(iv[i]); j<m; ++j) {
-	if (b[j]) {
+      for (; t[counter] < t_indices_[i] && counter<y.size(); ++counter) {
+	if (b[counter] != 0) {
 	  ++nb;
-	  t_[it]   = j;//-iv[i-1];
-	  y_[it++] = y[j];
+ 	  t_[it]   = t[counter];
+	  y_[it++] = y[counter];
 	}
       }
       slices_y_[i-1] = slice(ib, 1, nb);
       ib += nb;
     }
   }
+  // slices for the model parameters
   static std::vector<slice> make_slices_x(size_t poly_degree, size_t num_slices) {
     std::vector<slice> sv(num_slices);
     for (size_t i(0); i<num_slices; ++i)
@@ -212,18 +249,18 @@ protected:
   }
 
 private:
-  size_t poly_degree_;
-  index_vector_type indices_;
-  vector_type t_;
-  vector_type y_;
-  vector_type yf_;
-  std::vector<size_t> b_;
-  std::vector<slice> slices_y_;
-  std::vector<slice> slices_x_;
-  vector_type x_;
-  matrix_type q_;
-  double chi2_;
-  size_t dof_;
+  size_t poly_degree_;            // degree of polynomials
+  std::vector<double> t_indices_; // interval boundaries (times)
+  vector_type t_;                 // time of used measurements
+  vector_type y_;                 // used measurements
+  vector_type yf_;                // fitted values of used measurements
+  std::vector<size_t> b_;         // b!=0 -> measurements is used
+  std::vector<slice> slices_y_;   // slices for each interval
+  std::vector<slice> slices_x_;   // slices for each set of polynomial pararameters
+  vector_type x_;                 // esimated polynomial parameters
+  matrix_type q_;                 // esimated convariances of polynomial parameters
+  double chi2_;                   // chi^2 of fit
+  size_t dof_;                    // number of degrees of freedom
 } ;
 
 #endif //POLYNOMIAL_INTERVAL_FIT_HPP_cm131005_
