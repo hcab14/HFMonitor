@@ -47,14 +47,25 @@
 #include <vector>
 #include <cmath>
 
+/*! \addtogroup executables
+ *  @{
+ * \addtogroup fltk_spec fltk_spec
+ * fltk_spec
+ * - GUI spectrum display
+ * - reads an I/Q data stream (TPC/IP) and displays the FFT spectrum
+ * - configuration: command-line
+ * 
+ * @{
+ */
 
+/// FLTK window holding the spectrum display
 class MyWindow : public Fl_Double_Window {
 public:
   MyWindow(int w, int h)
     : Fl_Double_Window(w, h, "Spectrum Display")
     , menu_bar_(0,0,w,20)
-    , input_(0, h-30, w, 30, "label")
     , specDisplay_(20, 20, w-40, h-50)
+    , input_(0, h-30, w, 30, "label")
     , counter_(0)
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
@@ -82,13 +93,14 @@ protected:
   }
 private:
   Fl_Menu_Bar menu_bar_;
-  Fl_Input    input_;
   spectrum_display specDisplay_;
+  Fl_Input    input_;
   int         counter_;
   // Fl_Text_Display disp_;
   // Fl_Text_Buffer buff_;
 } ;
 
+/// processor for computing FFT and inserting the data into @ref MyWindow
 class test_proc {
 public:
 #ifdef USE_CUDA      
@@ -97,11 +109,14 @@ public:
   typedef FFT::FFTWTransform<double> fft_type;
 #endif
 
+  typedef boost::posix_time::ptime ptime;
+
   test_proc(const boost::property_tree::ptree& config)
     : w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
-    , port_(config.get<std::string>("server.<xmlattr>.port")) {
+    , port_(config.get<std::string>("server.<xmlattr>.port"))
+    , last_update_time_(boost::date_time::not_a_date_time) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
@@ -114,7 +129,7 @@ public:
                   std::vector<std::complex<double> >::const_iterator i0,
                   std::vector<std::complex<double> >::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
-#if 0
+#if 1
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()
@@ -141,7 +156,11 @@ public:
     Fl::lock();
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
-    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp);
+    const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
+			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,1));
+    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
+    if (update_window)
+      last_update_time_ = sp->approx_ptime();
     static char msg[1024];
     sprintf(msg,"spec_update");
     Fl::awake(msg);
@@ -158,11 +177,13 @@ private:
   Filter::Cascaded<frequency_vector<double> > filter_;
   std::string host_;
   std::string port_;
+  boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
 } ;
 
 int main(int argc, char* argv[])
 {
+  // set up command-line options
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -197,6 +218,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   
+  // logger initialization
   LOGGER_INIT("./Log", "fltk_spec");
 
   try {
@@ -210,9 +232,12 @@ int main(int argc, char* argv[])
     config.put("<xmlattr>.fMax_kHz", vm["fMax_kHz"].as<double>());
     config.put("<xmlattr>.sMin_dB", vm["sMin_dB"].as<double>());
     config.put("<xmlattr>.sMax_dB", vm["sMax_dB"].as<double>());
+
+    // FLTK initialization
     Fl::visual(FL_RGB);
     Fl::lock();
 
+    // connect to server
     const std::string stream_name(vm["stream"].as<std::string>());
     network::client::client<network::iq_adapter<repack_processor<test_proc> > > c(config);
 
@@ -222,13 +247,13 @@ int main(int argc, char* argv[])
     else
       throw std::runtime_error(str(boost::format("stream '%s' is not available")
                                    % stream_name));
+    // start client
+    c.start();
+
     // run io_service in a thread
     boost::asio::io_service& io_service(network::get_io_service());
     typedef boost::shared_ptr<boost::thread> thread_sptr;
     thread_sptr tp(new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service)));
-
-    // start client
-    c.start();
 
     // FLTK event loop
     while (Fl::wait() > 0) {
@@ -248,3 +273,6 @@ int main(int argc, char* argv[])
   }
   return 0;
 }
+/*! @} 
+ *  @} 
+ */
