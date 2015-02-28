@@ -24,18 +24,20 @@
 
 class polynomial_regression : public polynomial_interval_fit {
 public:
-   polynomial_regression(const std::vector<double>& v,
-                         unsigned poly_degree)
-     : polynomial_interval_fit(poly_degree, make_single_interval(v)) {
-     ASSERT_THROW(fit(v) == true);
-   }
-
+  polynomial_regression(const std::vector<double>& t,
+                        const std::vector<double>& v,
+                        unsigned poly_degree)
+    : polynomial_interval_fit(poly_degree, make_single_interval(v)) {
+    ASSERT_THROW(t.size() == v.size());
+    ASSERT_THROW(fit(t,v) == true);
+  }
+  
   virtual ~polynomial_regression() {}
-
+  
 private:
-  static const index_vector_type& make_single_interval(const std::vector<double>& v) {
+  static const std::vector<double>& make_single_interval(const std::vector<double>& v) {
     ASSERT_THROW(not v.empty());
-    static index_vector_type iv(2);
+    static std::vector<double> iv(2);
     iv[0] = 0;
     iv[1] = v.size()-1;
     return iv;
