@@ -30,39 +30,53 @@
 void test1() {
   srand48(getpid());
   const size_t n(100);
+  std::vector<double> t(n);
   std::vector<double> v(n);
   std::vector<size_t> b(n, 1);
+  size_t counter(0), c2(0);
   for (size_t i(0); i<n; ++i) {
-    v[i] = 1+0.99*drand48() + cos(2*0.01*i*2*M_PI);
-    b[i] = (i%4 == 0);
-    if ((i%4) ==0)
-      v[i] += 5;
+    if ((i%7) == 0) continue;
+    b[counter] = ((i%4) != 0);
+    c2 += (b[counter] != 0);
+    t[counter] = i;
+    v[counter] = 1+0.99*drand48() + cos(2*0.01*i*2*M_PI);
+    std::cout << str(boost::format("_ %3d %d %.2f %.2f\n") % i % b[counter] % t[counter] % v[counter]);
+//     if ((i%4) ==0)
+//       v[counter] += 5;
+    ++counter;
   }
+  std::cout << "TTT " << c2 << " " << counter << std::endl;
 
-  std::vector<size_t> indices;
-  indices.push_back( 0);
-  indices.push_back(25);
-  indices.push_back(50);
-  indices.push_back(75);
-  indices.push_back(99);  
+  b.resize(counter);
+  t.resize(counter);
+  v.resize(counter);
+
+  std::vector<double> indices;
+  indices.push_back(0.00*n);
+  indices.push_back(0.25*n);
+  indices.push_back(0.50*n);
+  indices.push_back(0.75*n);
+  indices.push_back(0.90*n);  
 
   const unsigned poly_degree(3);
 
   polynomial_interval_fit p(poly_degree, indices);
   
-  if (!p.fit(v, b)) {
+  if (!p.fit(t, v, b)) {
     std::cerr << "fit failed" << std::endl;
     return;
   }
   
-  for (int i=0; i<100; ++i) {
-     const std::pair<double,double> vf(p.eval(i));
-     std::cout << "E " << i << " " << v[i] << " " << vf.first << " " << vf.second << std::endl;
+  for (size_t i(0); i<counter; ++i) {
+     const std::pair<double,double> vf(p.eval(t[i]));
+     std::cout << str(boost::format("E %3d %5.2f %5.2f %5.2f %5.2f\n")
+                      % i % t[i] % v[i] % vf.first % vf.second);
   }
 
-  for (size_t i=0; i<p.y().size(); ++i) {
+  for (size_t i(0), n(p.y().size()); i<n; ++i) {
     const std::pair<double,double> vf(p.eval(p.t()(i)));
-    std::cout << "X " << p.t()(i) << " " << p.y()(i) << " " << p.yf()(i) << " " << vf.first << " " << vf.second << std::endl;
+    std::cout << str(boost::format("X %3d %5.2f %5.2f %5.2f %5.2f %5.2f\n")
+                                   % i % p.t()(i) % p.y()(i) % p.yf()(i) % vf.first % vf.second);
   }
   std::cout << "Chi2/dof = " << p.chi2() << " / " << p.dof() << std::endl;
 }
@@ -71,15 +85,17 @@ void test2() {
   std::ifstream ifs("test/spec.dat");
 
   const size_t n(1000);
+  std::vector<double> t(n);
   std::vector<double> v(n);
   std::vector<size_t> b(n, 1);
   double f(0), dummy(0);
   for (size_t i(0); i<n; ++i) {
+    t[i] = i;
     ifs >> f >> dummy >> v[i] >> dummy;
     std::cout << "S " << i << " " << f <<  " " << v[i] << " "<< b[i] << std::endl;
   }
 
-  std::vector<size_t> indices;
+  std::vector<double> indices;
   for (size_t i=0; i<10; ++i)
     indices.push_back((i*n)/10);
   indices.push_back(n-1);
@@ -92,7 +108,7 @@ void test2() {
   polynomial_interval_fit p(poly_degree, indices);
 
   for (size_t l(0); l<2000; ++l) {
-    if (!p.fit(v, b)) {
+    if (!p.fit(t, v, b)) {
       std::cerr << "fit failed" << std::endl;
       return;
     }
@@ -120,6 +136,6 @@ void test2() {
 int main()
 {
    LOGGER_INIT("./Log", "test_pif");
-//    test1();
-   test2();
+    test1();
+//    test2();
 }
