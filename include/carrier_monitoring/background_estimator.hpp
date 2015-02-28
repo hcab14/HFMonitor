@@ -28,15 +28,18 @@ public:
   typedef frequency_vector<double> fvector;
   typedef fvector::iterator fvector_iterator;
   typedef fvector::const_iterator fvector_const_iterator;
-  typedef polynomial_interval_fit::index_vector_type index_vector_type;
+  typedef std::vector<double> index_vector_type;
 
   background_estimator(size_t length,
 		       size_t poly_degree,
 		       size_t num_intervals)
     : _pif(poly_degree, make_indices(num_intervals, length))
+    , _xs(length, 0)
     , _spec_db(length, 0)
     , _spec_db_fitted(length, 0)
     , _b(length, 1) {
+    for (size_t i(0), n(_xs.size()); i<n; ++i)
+      _xs[i] = i;
   }
   ~background_estimator() {}
 
@@ -50,12 +53,15 @@ public:
 
   void update(size_t length) {
     const size_t poly_degree(_pif.poly_degree());
-    const index_vector_type iv(_pif.index_vector());
+    const index_vector_type& iv(_pif.t_indices());
     std::vector<double> intervals(iv.size(), 0); // interval definitions [0..1]
     for (size_t i(0), n(iv.size()); i<n; ++i)
       intervals[i] = double(iv[i])/double(_spec_db.size());
 
     _pif = polynomial_interval_fit(poly_degree, make_indices(intervals, length));
+    _xs.resize(length, 0);
+    for (size_t i(0), n(_xs.size()); i<n; ++i)
+      _xs[i] = i;
     _spec_db.resize(length, 0);
     _spec_db_fitted.resize(length, 0);
     _b.resize(length, 1);
@@ -68,17 +74,35 @@ public:
       update(xf.size());
 
     // initialization
-    for (size_t i(0), n(_spec_db.size()); i<n; ++i) {
+    for (size_t i(0), n(_spec_db.size()); i<n; ++i) {      
       _spec_db[i] = 10*log10(xf[i].second);    
       _spec_db_fitted[i] = 0;
       _b[i] = 1;
     }
+    return do_fit(threshold);
+  }
 
+  bool do_fit(const std::vector<double>& xf,
+	      double threshold = 2.5) {
+    // resize if needed
+    if (_spec_db.size() != xf.size())
+      update(xf.size());
+
+    // initialization
+    for (size_t i(0), n(_spec_db.size()); i<n; ++i) {      
+      _spec_db[i] = 10*log10(xf[i]);    
+      _spec_db_fitted[i] = 0;
+      _b[i] = 1;
+    }
+    return do_fit(threshold);
+  }
+
+  bool do_fit(double threshold) {
     // iterations
     const size_t max_iter(100);
     size_t nchanged(1);
     for (size_t l(0); l<max_iter && nchanged; ++l) {
-      if (!_pif.fit(_spec_db, _b)) {
+      if (!_pif.fit(_xs, _spec_db, _b)) {
 	std::cerr << "fit failed" << std::endl;
 	break;
       }
@@ -138,6 +162,7 @@ protected:
 
 private:
   polynomial_interval_fit _pif;
+  std::vector<double>     _xs;              // 
   std::vector<double>     _spec_db;         // spectrum in db
   std::vector<double>     _spec_db_fitted;  // fitted spectrum
   std::vector<size_t>     _b;               // b[i] == 1 (0) --> point is (not) used in fit
