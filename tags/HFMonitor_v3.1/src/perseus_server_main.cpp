@@ -45,9 +45,11 @@ public:
     BUFFER_SIZE = 16320*10
   };
   test_cb()
-    : i_(0) {}
-  test_cb(buffer<std::string>::sptr buf)
     : i_(0)
+    , dt_sec_expected_(0) {}
+  test_cb(buffer<std::string>::sptr buf, int sample_rate)
+    : i_(0)
+    , dt_sec_expected_(BUFFER_SIZE/6./double(sample_rate))
     , buffer_(buf) {}
 
   virtual ~test_cb() { }
@@ -58,9 +60,14 @@ public:
       buffer_->insert(t_, s);
       i_ = 0;
     }
-    if (i_ == 0)
-      t_ = boost::posix_time::microsec_clock::universal_time();
-
+    if (i_ == 0) {
+      boost::posix_time::ptime t(boost::posix_time::microsec_clock::universal_time());
+      if (!t_.is_not_a_date_time()) {
+        const double dt(1e-3*(t-t_).total_milliseconds());
+        if (dt < 0.9*dt_sec_expected_ || dt > 1.1*dt_sec_expected_ ) throw std::runtime_error("too low/high callback rate");
+      }
+      t_ = t;
+    }
     if (i_+length > BUFFER_SIZE)
       throw std::runtime_error("invalid buffer size");
 
@@ -70,6 +77,7 @@ public:
 protected:
 private:
   size_t i_;
+  double dt_sec_expected_; // expected time difference
   buffer<std::string>::sptr buffer_;
   boost::posix_time::ptime t_;
   unsigned char data_[BUFFER_SIZE];
@@ -204,9 +212,9 @@ int main(int argc, char* argv[])
         buf = buffer<std::string>::make_buffer(1024*1000, boost::posix_time::seconds(1));
 
         // set up receiver
-        Perseus::callback::sptr cb(new test_cb(buf));
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
+        Perseus::callback::sptr cb(new test_cb(buf, rec->get_sample_rate()));
 
         const size_t thread_pool_size(config_broadcaster.get<size_t>("<xmlattr>.threadPoolSize"));
         for (std::size_t i(0); i<thread_pool_size; ++i) {

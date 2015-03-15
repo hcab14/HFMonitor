@@ -5,7 +5,7 @@
 	 fs="500000"
 	 fc="220e3"
 	 use_preselector="true"
-	 attenuator="0"
+	 attenuator="1"
 	 usb_transfer_size="510"
 	 firmware="config/perseus/perseus.hex">
   <rbs fs="125000">config/perseus/perseus125k.rbs</rbs>
