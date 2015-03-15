@@ -4,9 +4,9 @@
 <MultiClient>
   <StationInfo>
     Station  = NTZ
-    Computer = Latitude E6430 : N-Series Base
+    Computer = Latitude E6440 : N-Series Base
   </StationInfo>
-  <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40026"/>
+  <server host="gifds-st.stanford.edu.de" port="443"/>
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>

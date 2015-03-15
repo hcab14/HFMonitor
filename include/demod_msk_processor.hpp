@@ -228,7 +228,7 @@ public:
       signal_present_ = 0;
     }
 
-    demod_msk_->update_ppb(sp->offset_ppb(),
+    demod_msk_->update_ppb(offset_ppb,
                            -(fc_Hz() - sp->center_frequency_Hz()) + offset_Hz,
                            0.5*fm_Hz());
 //     std::vector<complex_type> samples2(length, complex_type(0));

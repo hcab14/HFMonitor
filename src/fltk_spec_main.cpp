@@ -129,7 +129,7 @@ public:
                   std::vector<std::complex<double> >::const_iterator i0,
                   std::vector<std::complex<double> >::const_iterator i1) {
     const size_t length(std::distance(i0, i1));
-#if 1
+#if 0
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()

@@ -172,7 +172,8 @@ public:
   multi_downconvert_processor(const ptree& config)
     : base_iq(config)
     , overlap_save_(config.get<size_t>("<xmlattr>.l"),
-                    config.get<size_t>("<xmlattr>.m")) {
+                    config.get<size_t>("<xmlattr>.m"))
+    , offset_(0) {
     // Filters
     BOOST_FOREACH(const ptree::value_type& filt, config.get_child("Filters")) {
       if (filt.first == "FIR") {
@@ -202,19 +203,44 @@ public:
       processor_map_[input] = pp;
     }
     // Calibration
-    const ptree& cal_config(config.get_child("Calibration"));
-    const std::string cal_algo(cal_config.get<std::string>("<xmlattr>.algorithm"));
-    if (cal_algo != "WeightedMean")
-      LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-    BOOST_FOREACH(const ptree::value_type& p, cal_config) { 
-      if (p.first != "Key") {
-        LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
-        continue;
+    BOOST_FOREACH(const ptree::value_type& p, config.get_child("Calibration")) {
+      if (p.first  == "Algorithm") {
+        const std::string cal_algo(p.second.get<std::string>("<xmlattr>.algorithm"));
+        if (cal_algo != "WeightedMean")
+          LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
+        BOOST_FOREACH(const ptree::value_type& pp, p.second) { 
+          if (pp.first != "Key") {
+            LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % pp.first));
+            continue;
+          }
+          const std::string cal_key(pp.second.get<std::string>(""));
+          LOG_INFO(str(boost::format("adding calibration key '%s'") % cal_key));
+          calibration_keys_.push_back(cal_key);
+        }
+      } else if (p.first == "FixedOffset") {
+        offset_ = p.second.get<double>("<xmlattr>.offset", 0.0);
+        LOG_INFO(str(boost::format("fixed offset = %e") % offset_));
+      } else {
+        // Error
+        LOG_ERROR("ERROR");
       }
-      const std::string cal_key(p.second.get<std::string>(""));
-      LOG_INFO(str(boost::format("adding calibration key '%s'") % cal_key));
-      calibration_keys_.push_back(cal_key);
     }
+
+    // const std::string cal_algo(cal_config.get<std::string>("<xmlattr>.algorithm", "NO_ALGORITHM"));
+    // if (cal_algo != "NO_ALGORITHM") {
+    //   if (cal_algo == "WeightedMean")
+    //     LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
+    //   BOOST_FOREACH(const ptree::value_type& p, cal_config) { 
+    //     if (p.first != "Key") {
+    //       LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
+    //       continue;
+    //     }
+    //     const std::string cal_key(p.second.get<std::string>(""));
+    //     LOG_INFO(str(boost::format("adding calibration key '%s'") % cal_key));
+    //     calibration_keys_.push_back(cal_key);
+    //   }
+    // }
+    // offset_ = cal_config.get<double>("<xmlattr>.offset", 0.0);
   }
 
   virtual ~multi_downconvert_processor() {}
@@ -290,6 +316,9 @@ private:
 
   //        (ppb, ppb_rms)
   std::pair<double, double> calibration_offset_ppb() const {
+    if (calibration_keys_.empty())
+      return std::make_pair(1e9*offset_, 0.0);
+
     double sum_wx(0), sum_w(0);
     BOOST_FOREACH(const std::string& key, calibration_keys_) {
       tracking_goertzel_processor::result::sptr
@@ -321,6 +350,7 @@ private:
   processor_map     processor_map_;
   result_map        result_map_;
   calibration_keys  calibration_keys_;
+  double            offset_; // fixed offset (used when calibration_keys.empty())
 } ;
 
 #endif // _MULTI_DOWNCONVERT_PROCESSOR_HPP_cm130115_
