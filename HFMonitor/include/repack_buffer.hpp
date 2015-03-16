@@ -63,9 +63,9 @@ public:
 
     // -1.0 < overlap  <= 0.0
     if (-1.0 < overlap_ && overlap_ <= 0.0) {
-      int dist(0);
+      size_t dist(0);
       while ((dist=std::distance(beg, end)) > 0) {
-	const ssize_t n_samples(std::min(int(v_.size()-i_), dist));
+	const ssize_t n_samples(std::min(v_.size()-i_, dist));
 	std::copy(beg, beg+n_samples, v_.begin()+i_);
 
 	i_  += n_samples;
@@ -82,13 +82,13 @@ public:
 	i_ %= v_.size();
       }
     } else { // overlap \in [0.5 , 1.0)
-      ssize_t dist(0);
+      size_t dist(0);
       while ((dist=std::distance(beg, end)) > 0) {
-	ssize_t n_samples(std::min(int(n_-i_), dist));
+	ssize_t n_samples(std::min(n_-i_, dist));
 	if (n_samples > delta_n_)
 	  n_samples = delta_n_;
 	// nearest index for inserting data
-	const int decision(delta_n_*((i_+n_samples)/delta_n_) - i_);	
+	const ssize_t decision(delta_n_*((i_+n_samples)/delta_n_) - i_);	
 	if (decision > 0) // inside the current samples
 	  n_samples = std::min(n_samples,  decision);
 
@@ -148,7 +148,7 @@ private:
   double overlap_;
   int    delta_n_;
   vector_type v_;
-  int         i_; // current index
+  ssize_t i_; // current index
 } ;
 
 #endif // _REPACK_BUFFER_HPP_cm130710_

@@ -389,16 +389,16 @@ public:
   }
 
   template<typename T>
-  double mean(const T& v) {
+  double mean(const T& v) const {
     return mean(v.begin(), v.end());
   }
   template<class Iterator>
-  double mean(Iterator beg, Iterator end) {
+  double mean(Iterator beg, Iterator end) const {
     return std::accumulate(beg, end, typename Iterator::value_type(0))/(beg==end ? 1. : double(std::distance(beg, end)));
   }
 
   template<class Iterator>
-  double mean_notzero(Iterator beg, Iterator end) {
+  double mean_notzero(Iterator beg, Iterator end) const {
     double sum_1(0), sum_x(0);
     for (Iterator i(beg); i!=end; ++i) {
       if (*i) {
@@ -410,12 +410,12 @@ public:
   }
 
   template<typename T>
-  double median(const T& v) {
+  double median(const T& v) const {
     T vc(v);
     return median(vc.begin(), vc.end());
   }
   template<class Iterator>
-  double median(Iterator beg, Iterator end) {
+  double median(Iterator beg, Iterator end) const {
     if (beg == end) return 0.;
     typedef typename Iterator::value_type value_type;
     const ssize_t mid(std::distance(beg, end)/2);

@@ -41,8 +41,7 @@ namespace netpbm {
 
     pgm_writer(size_t width,
                boost::filesystem::fstream& os) 
-      : file_exists_(true)
-      , os_(os)
+      : os_(os)
       , width_(width)
       , height_(0)
       , need_height_update_(false) {}
@@ -106,7 +105,6 @@ namespace netpbm {
       return success;
     }
 
-    const bool file_exists_;
     boost::filesystem::fstream& os_;
     const size_t width_;
     size_t height_;

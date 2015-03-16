@@ -17,7 +17,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #ifndef _FFT_RESULT_FSK_STRENGTH_HPP_cm101118_
-#define _FFT_RESULT_FSK_PEAK_STRENGTH_cm101118_
+#define _FFT_RESULT_FSK_STRENGTH_HPP_cm101118_
 
 #include <string>
 #include <boost/lexical_cast.hpp>
@@ -91,4 +91,4 @@ namespace Result {
   } ;
 } // namespace Result
 
-#endif // _FFT_RESULT_FSK_PEAK_STRENGTH_cm101118_
+#endif // _FFT_RESULT_FSK_STRENGTH_HPP_cm101118_
