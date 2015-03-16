@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="3a-multi_client_to_file"
-CMD="./bin/multi_client_to_file -c config/multi_client_writer_MUN.xml"

@@ -1,8 +1,0 @@
-<!-- I/Q file writer configuration -->
-<!-- $Id$ -->
-
-<!ELEMENT WriterIQ EMPTY>
-<!ATTLIST WriterIQ proc_name     CDATA         #REQUIRED> <!-- processor name -->
-<!ATTLIST WriterIQ filePath      CDATA         #REQUIRED> <!-- path name -->
-<!ATTLIST WriterIQ filePeriod    (1d|1h|5m|1m) #REQUIRED> <!-- time periods -->
-<!ATTLIST WriterIQ bitsPerSample (32|24|16|8)  #REQUIRED> <!-- number of bits per (real) sample -->

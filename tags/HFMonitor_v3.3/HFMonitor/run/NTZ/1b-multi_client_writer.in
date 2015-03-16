@@ -1,5 +1,0 @@
-#!/bin/bash
-# $Id$
-
-NAME="multi_client_writer_NTZ"
-CMD="./bin/multi_client_to_file -c config/${NAME}_fromKRK.xml"
