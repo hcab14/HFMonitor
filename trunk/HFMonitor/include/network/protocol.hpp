@@ -30,8 +30,7 @@ namespace network {
     // -----------------------------------------------------------------------------
     // generic header for any type of data
     //
-    class header {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) header {
     public:
       typedef boost::posix_time::ptime ptime;
       typedef boost::posix_time::time_duration time_duration;
@@ -78,8 +77,7 @@ namespace network {
     // -----------------------------------------------------------------------------
     // header for sampled I/Q data
     //
-    class iq_info {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) iq_info {
     public:
       iq_info(boost::uint32_t sample_rate_Hz=1,
               double          center_frequency_Hz=0.,
@@ -147,8 +145,7 @@ namespace network {
       //                                                            total: 24b
     } ;
 
-    class directory_entry {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) directory_entry {
     public:
       directory_entry(boost::uint32_t stream_number,
                       boost::uint32_t length_of_name)

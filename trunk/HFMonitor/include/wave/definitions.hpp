@@ -39,8 +39,7 @@ namespace wave {
       return data;
     }
 
-    class header {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) header {      
     public:
       typedef boost::shared_ptr<header> sptr;
       header(std::string id="XXXX",
@@ -60,8 +59,7 @@ namespace wave {
       boost::uint32_t size_;
     } ;
     
-    class riff : public header {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) riff : public header {      
     public:
       typedef boost::shared_ptr<riff> sptr;
       riff(size_t size=0)
@@ -80,8 +78,7 @@ namespace wave {
       boost::uint8_t id2_[4]; 
     } ;
     
-    class format : public header {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) format : public header {      
     public:
       typedef boost::shared_ptr<format> sptr;
       format(boost::uint32_t sampleRate=1,
@@ -127,8 +124,7 @@ namespace wave {
       boost::uint16_t bitsPerSample_;
     } ;
     
-    class rcvr : public header {
-      __attribute__((__packed__));
+    class __attribute__((__packed__)) rcvr : public header {      
     public:
       typedef boost::shared_ptr<rcvr> sptr;
       

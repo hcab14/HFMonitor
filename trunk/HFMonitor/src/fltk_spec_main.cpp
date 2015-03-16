@@ -66,7 +66,6 @@ public:
     , menu_bar_(0,0,w,20)
     , specDisplay_(20, 20, w-40, h-50)
     , input_(0, h-30, w, 30, "label")
-    , counter_(0)
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
     menu_bar_.add("File/Quit", FL_CTRL+'q', Quit_CB);
@@ -95,7 +94,6 @@ private:
   Fl_Menu_Bar menu_bar_;
   spectrum_display specDisplay_;
   Fl_Input    input_;
-  int         counter_;
   // Fl_Text_Display disp_;
   // Fl_Text_Buffer buff_;
 } ;
