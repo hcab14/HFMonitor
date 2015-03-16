@@ -1,0 +1,10 @@
+<!---*- xml -*--->
+<!-- $Id$ -->
+<?xml version="1.0" encoding="utf-8"?>
+<TrackingGoertzel name="TGF_DCF77"
+                  input="DC_077500_DCF"
+                  f0_Hz="0.0e3"
+                  df_Hz="5.0"
+                  minDf_Hz=".1"
+                  maxHistorySize="120">
+</TrackingGoertzel>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiDownConverter SYSTEM "DTD/multi_downconvert.dtd"> 
+<!-- $Id$ -->
+<MultiDownConverter l="500000"
+                    m="125001">
+  <StationInfo>
+    Station  = MUN 
+    Computer = vlfmonitor-workstation 2.6.32-431.el6.x86_64 
+  </StationInfo>
+  <Broadcaster>
+    <Data maxQueueSize_MB="50"
+          maxQueueDelay_Minutes="5"
+          port="19003"/>
+    <Ctrl port="19004"/>
+  </Broadcaster>
+  <Repack bufferLength_sec="1"
+          overlap_percent="0"/>
+  <server host="127.0.0.1"
+	  port="18001"/>
+  <Calibration>
+    <Algorithm type="WeightedMean">
+      <Key>TGF_MSF</Key>
+      <Key>TGF_DCF77</Key>
+    </Algorithm>
+  </Calibration>
+  <Processors>
+    <TrackingGoertzel name="TGF_MSF"
+                      input="DC_060000_MSF"
+                      f0_Hz="60.0e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="100"
+                      maxNumWithoutLock="5"/>
+    <TrackingGoertzel name="TGF_DCF77"
+                      input="DC_077500_DCF"
+                      f0_Hz="77.5e3"
+                      df_Hz="5.0"
+                      minDf_Hz=".1"
+                      maxHistorySize="100"
+                      maxNumWithoutLock="5"/>
+  </Processors>
+  <Filters>
+    <FIR name="DC_016400_JXN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 16.40e3" decim="100"/>
+    <FIR name="DC_019600_GQD"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.60e3" decim="100"/>
+    <FIR name="DC_019800_NWC"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.80e3" decim="100"/>
+    <FIR name="DC_020270_ICV"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 20.27e3" decim="100"/>
+    <FIR name="DC_021750_HWU"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 21.75e3" decim="100"/>
+    <FIR name="DC_022100_GQD"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 22.10e3" decim="100"/>
+    <FIR name="DC_023400_DHO"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 23.40e3" decim="100"/>
+    <FIR name="DC_024000_NAA"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 24.00e3" decim="100"/>
+    <FIR name="DC_026000_XXX"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 26.00e3" decim="100"/>
+    <FIR name="DC_026700_TBB"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 26.70e3" decim="100"/>
+    <FIR name="DC_037500_NRK"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 37.50e3" decim="100"/>
+    <FIR name="DC_045900_NSY"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 45.90e3" decim="100"/>
+    <FIR name="DC_049000_SXA"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 49.00e3" decim="100"/>
+    <FIR name="DC_057400_GXH"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 57.40e3" decim="100"/>
+    <FIR name="DC_060000_MSF"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 60.00e3" decim="100"/>
+    <FIR name="DC_063850_FTA"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 63.85e3" decim="100"/>
+    <FIR name="DC_065800_FUE"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 65.80e3" decim="100"/>
+    <FIR name="DC_077500_DCF"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 77.50e3" decim="100"/>
+    <FIR name="DC_081000_GYN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 81.00e3" decim="100"/>
+    <FIR name="DC_132000_EFR"  type="lowpass" cutoff="0.036" centerFrequency_Hz="132.00e3" decim=" 25"/>
+    <FIR name="DC_283500_DGPS" type="lowpass" cutoff="0.009" centerFrequency_Hz="283.50e3" decim="100"/>
+    <FIR name="DC_308000_DGPS" type="lowpass" cutoff="0.009" centerFrequency_Hz="308.00e3" decim="100"/>
+    <FIR name="DC_020000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 20.00e3" decim=" 50"/>
+    <FIR name="DC_030000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 30.00e3" decim=" 50"/>
+    <FIR name="DC_040000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 40.00e3" decim=" 50"/>
+    <FIR name="DC_050000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 50.00e3" decim=" 50"/>
+    <FIR name="DC_060000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 60.00e3" decim=" 50"/>
+    <FIR name="DC_070000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 70.00e3" decim=" 50"/>
+    <FIR name="DC_080000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 80.00e3" decim=" 50"/>
+  </Filters>
+</MultiDownConverter>
