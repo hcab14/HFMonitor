@@ -205,7 +205,7 @@ public:
     // Calibration
     BOOST_FOREACH(const ptree::value_type& p, config.get_child("Calibration")) {
       if (p.first  == "Algorithm") {
-        const std::string cal_algo(p.second.get<std::string>("<xmlattr>.algorithm"));
+        const std::string cal_algo(p.second.get<std::string>("<xmlattr>.type"));
         if (cal_algo != "WeightedMean")
           LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
         BOOST_FOREACH(const ptree::value_type& pp, p.second) { 
