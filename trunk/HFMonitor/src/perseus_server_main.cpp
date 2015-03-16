@@ -54,69 +54,56 @@
 ///  - inserts the data into @ref buffer
 class test_cb : public Perseus::callback {
 public:
-  typedef boost::posix_time::time_duration time_duration;
-
   enum {
     BUFFER_SIZE = 16320*10
   };
   test_cb()
     : i_(0)
-    , n_epochs_(0)
-    , sample_rate_Hz_(1) {}
-  test_cb(buffer<std::string>::sptr buf)
+    , error_counter_(0)
+    , dt_sec_expected_(0) {}
+  test_cb(buffer<std::string>::sptr buf, int sample_rate)
     : i_(0)
-    , n_epochs_(0)
-    , sample_rate_Hz_(2e6)
-    , dt0_(0,0,0, int64_t(0.5+time_duration::ticks_per_second()*(1./sample_rate_Hz_)))
+    , error_counter_(0)
+    , dt_sec_expected_(BUFFER_SIZE/6./double(sample_rate))
     , buffer_(buf) {}
 
   virtual ~test_cb() { }
 
   void operator()(unsigned char* data, size_t length) {
-#ifdef AVERAGE_TIMESTAMPS
-     const boost::posix_time::ptime t(boost::posix_time::microsec_clock::universal_time());
-#endif
     if (i_ == BUFFER_SIZE) { // buffer is full
-#ifdef AVERAGE_TIMESTAMPS
-      if (n_epochs_ != 0) {
-        dt_ /= n_epochs_;
-        std::cout << "t_= " << t_ << " " << (t_+dt_) << " " << dt_ << std::endl;;
-        t_ += dt_;
-      }
-#endif
-      const std::string s(reinterpret_cast<char*>(data_buffer_), BUFFER_SIZE);
+      std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
       i_ = 0;
     }
     if (i_ == 0) {
-#ifdef  AVERAGE_TIMESTAMPS
+      boost::posix_time::ptime t(boost::posix_time::microsec_clock::universal_time());
+      if (!t_.is_not_a_date_time()) {
+        const double dt(1e-3*(t-t_).total_milliseconds());
+        if (dt < 0.8*dt_sec_expected_ || dt > 1.2*dt_sec_expected_ ) {
+          LOG_ERROR(str(boost::format("test_cb: dt=%f dt_expected=%f") % dt % dt_sec_expected_));
+          if (error_counter_ > 5)
+            throw std::runtime_error("too low/high callback rate");
+          ++error_counter_;
+        } else {
+          error_counter_ = 0;
+        }
+      }
       t_ = t;
-      dt_ = t_-t; // set to zero
-      n_epochs_ = 0;
-#else
-      t_ = boost::posix_time::microsec_clock::universal_time();
-#endif
     }
-#ifdef  AVERAGE_TIMESTAMPS
-    dt_ += (t - t_) -  dt0_*(n_epochs_ * length/6);
-    ++n_epochs_;
-#endif
     if (i_+length > BUFFER_SIZE)
       throw std::runtime_error("invalid buffer size");
 
-    std::copy(data, data+length, data_buffer_+i_);
+    std::copy(data, data+length, data_+i_);
     i_ += length;
   }
 protected:
 private:
   size_t i_;
-  size_t n_epochs_;
-  double sample_rate_Hz_;
-  time_duration dt_;
-  time_duration dt0_;
+  size_t error_counter_;
+  double dt_sec_expected_; // expected time difference
   buffer<std::string>::sptr buffer_;
   boost::posix_time::ptime t_;
-  unsigned char data_buffer_[BUFFER_SIZE]; // buffer were samples are stored
+  unsigned char data_[BUFFER_SIZE];
 } ;
 
 //! bridge between perseus and the broadcaster
@@ -256,9 +243,9 @@ int main(int argc, char* argv[])
         buf = buffer<std::string>::make_buffer(1024*1000, boost::posix_time::seconds(1));
 
         // set up the receiver
-        Perseus::callback::sptr cb(new test_cb(buf));
         rec = Perseus::receiver_control::make(index);
         rec->init(config_perseus);
+        Perseus::callback::sptr cb(new test_cb(buf, rec->get_sample_rate()));
 
         // thread pool setup
         const size_t thread_pool_size(config_broadcaster.get<size_t>("<xmlattr>.threadPoolSize"));

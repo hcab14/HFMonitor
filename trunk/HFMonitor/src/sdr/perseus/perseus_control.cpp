@@ -77,7 +77,7 @@ namespace Perseus {
       ASSERT_THROW(config_presel == "true" || config_presel == "false");
       use_preselector(config_presel == "true");
       set_attenuator(config.get<int>("<xmlattr>.attenuator"));
-      _usb_transfer_size = config.get<int>("<xmlattr>.usb_transfer_size", 16320);
+      _usb_transfer_size = config.get<size_t>("<xmlattr>.usb_transfer_size", 16320);
       LOG_INFO(str(boost::format("usb_transfer_size=%d") % _usb_transfer_size));
     }
 
@@ -98,7 +98,7 @@ namespace Perseus {
       _input_queue = input_queue::make(callback, _usb_transfer_size, 8,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
-                                        (_fx2_control->get_usb_device_handle())->get_device()), 
+                                        (_fx2_control->get_usb_device_handle())->get_device()),
                                        fx2_control::EndPoint::data_in);
       set_sio(true, FPGA::sioctl::CMD::fifo_enable);
     }

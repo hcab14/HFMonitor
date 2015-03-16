@@ -22,9 +22,13 @@
 %server-DTD;
 
 <!-- frequency calibration configuration -->
-<!ELEMENT Calibration (Key+)>
-<!ATTLIST Calibration algorithm (WeightedMean) #REQUIRED> <!-- for now only weighted mean algorithm is available -->
+<!ELEMENT Calibration (Algorithm|FixedOffset)>            <!-- No Key specified = no calibration (e.g. when using rb normal -->
+<!ELEMENT Algorithm (Key+)>
+<!ATTLIST Algorithm type (WeightedMean) #REQUIRED>        <!-- for now only weighted mean algorithm is available -->
 <!ELEMENT Key (#PCDATA)>                                  <!-- keys referencing processors specified below -->
+
+<!ELEMENT FixedOffset EMPTY>
+<!ATTLIST FixedOffset offset CDATA #REQUIRED>             <!-- use this for specifying a fixed offset -->
 
 <!-- calibration processor configuration -->
 <!ELEMENT Processors (TrackingGoertzel+)>

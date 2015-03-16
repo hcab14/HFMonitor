@@ -18,6 +18,7 @@ function start {
 date >> log_$name.txt
 $cmd >> log_$name.txt 2>&1 &
 echo \$! > .pid_$name
+sleep 1s
 EOF
 }
 
@@ -63,6 +64,9 @@ function where_am_I {
 	    ;;
 	vlfmonitor)
 	    echo MUN
+	    ;;
+	gifds-st)
+	    echo STA
 	    ;;
 	*)
 	    echo XXX

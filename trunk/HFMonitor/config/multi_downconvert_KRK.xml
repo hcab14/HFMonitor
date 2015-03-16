@@ -14,9 +14,11 @@
   </Broadcaster>
   <Repack bufferLength_sec="1" overlap_percent="0"/>
   <server host="nz23-18.ifj.edu.pl" port="19090" stream_name="DC_0220000_LW"/>
-  <Calibration algorithm="WeightedMean">
-    <Key>TGF_MSF</Key>
-    <Key>TGF_DCF77</Key>
+  <Calibration>
+    <Algorithm type="WeightedMean">
+      <Key>TGF_MSF</Key>
+      <Key>TGF_DCF77</Key>
+    </Algorithm>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_MSF"
