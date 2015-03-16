@@ -19,6 +19,7 @@
 #ifndef _REPACK_BUFFER_HPP_cm130710_
 #define _REPACK_BUFFER_HPP_cm130710_
 
+#include <cassert>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -136,7 +137,7 @@ protected:
 	  --delta_n_;
 	}
         // TODO: check that delta_n >= 1
-        assert(detla_n_ > 1);
+        assert(delta_n_ >= 1);
 	overlap_ = double(1) - double(delta_n())/double(n_);
       }
     } else {

@@ -212,10 +212,10 @@ public:
                   << std::distance(ac.begin(), imax) << std::endl;
         if (*imin < -threshold_ac) {
           // find the first peak
-          const size_t period_guess(std::distance(ac.begin(), imax));
+          const ssize_t period_guess(std::distance(ac.begin(), imax));
           size_t int_period(period_guess);
           double first_ac(0);
-          for (int i(1); i<100 && period_guess/i>min_index; ++i) {
+          for (ssize_t i(1); i<100 && period_guess/i > min_index; ++i) {
             ASSERT_THROW(period_guess/i < ac.size());
 
             const double current_ac(ac[period_guess/i]);

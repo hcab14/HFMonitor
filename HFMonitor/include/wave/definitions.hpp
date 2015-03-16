@@ -43,13 +43,13 @@ namespace wave {
     public:
       typedef boost::shared_ptr<header> sptr;
       header(std::string id="XXXX",
-             size_t size=0)
+             boost::uint32_t size=0)
         : size_(size) {
         std::copy(id.begin(), id.begin()+std::min(size_t(4), id.size()), &id_[0]);
       }      
       std::string      id() const   { return std::string(id_, id_+4); }
       boost::uint32_t  size() const { return size_; }
-      boost::uint32_t& size()       { return size_; }
+      boost::uint32_t& size()       { return (boost::uint32_t&)size_; }
 
       friend std::ostream& operator<<(std::ostream& os, const header& h) {
         return os << "id=" << h.id() << " size=" << h.size();

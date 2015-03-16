@@ -16,8 +16,10 @@
           overlap_percent="0"/>
   <server host="127.0.0.1"
 	  port="18001"/>
-  <Calibration algorithm="WeightedMean">
-    <Key>TGF_WWVB</Key>
+  <Calibration>
+    <Algorithm type="WeightedMean">
+      <Key>TGF_WWVB</Key>
+    </Algorithm>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_WWVB"

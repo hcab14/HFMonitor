@@ -39,15 +39,21 @@ namespace network {
              ptime           approx_ptime=boost::posix_time::not_a_date_time,
              boost::uint32_t stream_number=0,
              boost::uint32_t length=0)
-        : approx_ptime_(approx_ptime)
-        , stream_number_(stream_number)
+        : stream_number_(stream_number)
         , length_(length) {
+        std::copy(reinterpret_cast<char*>(&approx_ptime),
+                  reinterpret_cast<char*>(&approx_ptime)+sizeof(ptime),
+                  approx_ptime_);
         ASSERT_THROW(id.size() == 8);
         std::copy(id.begin(), id.end(), id_);
       }
 
       std::string     id()            const { return std::string(id_, id_+8); }
-      ptime           approx_ptime()  const { return approx_ptime_; }
+      ptime           approx_ptime()  const {
+        ptime result;
+        std::copy(approx_ptime_, approx_ptime_+sizeof(ptime), reinterpret_cast<char*>(&result));
+        return result; 
+      }
       boost::uint32_t stream_number() const { return stream_number_; }
       boost::uint32_t length()        const { return length_; }
 
@@ -67,11 +73,11 @@ namespace network {
 
     protected:
     private:
-      char            id_[8];         // 8-byte identifier         | 8b
-      ptime           approx_ptime_;  // approximate time tag      | 8b
-      boost::uint32_t stream_number_; // stream number             | 4b
-      boost::uint32_t length_;        // length of following data  | 4b
-      //                                                     total: 24b
+      char                 id_[8];         // 8-byte identifier         |  8b
+      boost::uint8_t       approx_ptime_[sizeof(ptime)];  // approximate time tag  | 8b (12b)
+      boost::uint32_t      stream_number_; // stream number             |  4b
+      boost::uint32_t      length_;        // length of following data  |  4b
+      //                                                          total:  24b (28b)
     } ;
 
     // -----------------------------------------------------------------------------
