@@ -6,7 +6,7 @@
     Station  = NTZ
     Computer = Latitude E6440 : N-Series Base
   </StationInfo>
-  <server host="gifds-st.stanford.edu.de" port="443"/>
+  <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40029"/>
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
