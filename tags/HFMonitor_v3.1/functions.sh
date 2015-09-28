@@ -14,12 +14,18 @@ function start {
     local name=$1; shift
     local cmd=$@;
     local pid_file=.pid_$name    
-    at now <<EOF
-date >> log_$name.txt
-$cmd >> log_$name.txt 2>&1 &
-echo \$! > .pid_$name
-sleep 1s
-EOF
+#    at now <<EOF
+#date >> log_$name.txt
+#$cmd >> log_$name.txt 2>&1 &
+#echo \$! > .pid_$name
+#sleep 1s##
+#
+#EOF
+
+    date >> log_$name.txt
+    nohup $cmd >> log_$name.txt 2>&1 &
+    echo $! > .pid_$name
+    sleep 1s
 }
 
 ## returns 

@@ -69,7 +69,7 @@
               name="MSK_UNID" fc_Hz="55.50e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NAU"
-              name="MSK_NAU" fc_Hz="40.80e3" fm_Hz="200.0"
+              name="MSK_NAU" fc_Hz="40.75e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_CKN"
               name="MSK_CKN" fc_Hz="76200" fm_Hz="300.0"
