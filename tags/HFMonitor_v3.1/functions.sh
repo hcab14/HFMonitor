@@ -98,8 +98,7 @@ function start_all {
 	status=`check_running $NAME`
 	if [ $status == STOPPED ] || [ $status == DEAD ]; then
 	    echo "## start $NAME failed: check for error messages in ./Log and in log_$NAME.txt:"
-	    cat log_$NAME.txt
-	    break;
+	    tail -10 log_$NAME.txt
 	fi
     done
 }
