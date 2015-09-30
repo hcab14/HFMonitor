@@ -23,7 +23,7 @@ function start {
 #EOF
 
     date >> log_$name.txt
-    nohup $cmd >> log_$name.txt 2>&1 &
+    nohup $cmd >> log_$name.txt 2>&1 200>&- &
     echo $! > .pid_$name
     sleep 1s
 }
