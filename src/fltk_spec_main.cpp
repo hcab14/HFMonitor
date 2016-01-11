@@ -32,6 +32,8 @@
 #include "run.hpp"
 #include "Spectrum.hpp"
 
+#include "filter/iir.hpp"
+
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
@@ -101,7 +103,7 @@ private:
 } ;
 
 /// processor for computing FFT and inserting the data into @ref MyWindow
-class test_proc {
+class test_proc : public processor::base_iq {
 public:
 #ifdef USE_CUDA      
   typedef FFT::CUFFTTransform fft_type;
@@ -112,11 +114,13 @@ public:
   typedef boost::posix_time::ptime ptime;
 
   test_proc(const boost::property_tree::ptree& config)
-    : w_(1200,400)
+    : processor::base_iq(config)
+    , w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
-    , last_update_time_(boost::date_time::not_a_date_time) {
+    , last_update_time_(boost::date_time::not_a_date_time)
+    , filter_nb_(0.01, 500e3) {
     filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
@@ -125,9 +129,7 @@ public:
     w_.set_sMax(config.get<double>("<xmlattr>.sMax_dB"));
   }
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
+  void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     const size_t length(std::distance(i0, i1));
 #if 0
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
@@ -137,11 +139,28 @@ public:
               << " " << sp->center_frequency_Hz()
               << " " << sp->offset_ppb()
 	      << " length=" << length
+	      << " " << filter_nb_.get()
               << std::endl;
 #endif
-    if (length != fftw_.size())
+    const bool isFirst = (length != fftw_.size());
+    if (isFirst) {
       fftw_.resize(length);
+      filter_nb_.init(0.05, sp->sample_rate_Hz());
+    }
+#if 0    
+    std::vector<std::complex<double> > zf(length, 0);
+    std::vector<std::complex<double> >::iterator izf(zf.begin());
+    for (const_iterator i=i0; i!=i1; ++i, ++izf) {
+      const double x = std::abs(*i);
+      const bool useSample =  (isFirst || x < 10.*filter_nb_.get());
+      if (useSample)
+     	filter_nb_.process(std::abs(*i));
+      *izf = (useSample ? 1. : 0.) * (*i);
+    }
+    fftw_.transformRange(zf.begin(), zf.end(), FFT::WindowFunction::Blackman<double>(length));
+#else
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+#endif
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
@@ -179,6 +198,7 @@ private:
   std::string port_;
   boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
+  filter::iir_lowpass_1pole<double, double> filter_nb_;
 } ;
 
 int main(int argc, char* argv[])
