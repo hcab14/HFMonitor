@@ -1,6 +1,6 @@
 # -*- mode: cmake -*-
 # $Id$
- 
+
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 
