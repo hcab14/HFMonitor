@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="0a-perseus_server"
-CMD="sudo LD_LIBRARY_PATH=/opt/local/cuda-5.0/lib:/opt/local/lib:$LD_LIBRARY_PATH ./bin/perseus_server -c config/perseus_server_KRK.xml"
+CMD="./bin/perseus_server -c config/perseus_server_KRK.xml"

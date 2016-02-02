@@ -6,6 +6,9 @@ LOCK_FILE="/tmp/HFMonitor_new.lock"
 
 trap "exit" SIGINT SIGQUIT SIGTERM
 
+SUDO="sudo"
+[ X`whoami` == Xroot ] && SUDO=""
+
 function last_status {
     [ -f ${LOG_STATUS} ] && { tail -1 ${LOG_STATUS} | awk '{print $2}'; } || echo FAIL;
 }
@@ -14,12 +17,11 @@ function start {
     local name=$1; shift
     local cmd=$@;
     local pid_file=.pid_$name    
-    at now <<EOF
-date >> log_$name.txt
-$cmd >> log_$name.txt 2>&1 &
-echo \$! > .pid_$name
-sleep 1s
-EOF
+
+    date >> log_$name.txt
+    nohup $cmd >> log_$name.txt 2>&1 200>&- &
+    echo $! > .pid_$name
+    sleep 1s
 }
 
 ## returns 
@@ -39,11 +41,11 @@ function stop {
     local name=$1
     local pid=`check_running $name`
     [ $pid == DEAD ] && { rm -f .pid_$name; return; }
-    sudo kill $pid
+    $SUDO kill $pid
     sleep 10s
     pid=`check_running $name`
     [ $pid == DEAD ] && { rm -f .pid_$name; return; }
-    sudo kill -9 $pid
+    $SUDO kill -9 $pid
     sleep 5s
     pid=`check_running $name`
     [ $pid == DEAD ] && { rm -f .pid_$name; return; }
@@ -59,7 +61,7 @@ function where_am_I {
 	gifds-nz)
 	    echo NTZ
 	    ;;
-	chm)
+	root)
 	    echo KRK
 	    ;;
 	vlfmonitor)
@@ -92,8 +94,7 @@ function start_all {
 	status=`check_running $NAME`
 	if [ $status == STOPPED ] || [ $status == DEAD ]; then
 	    echo "## start $NAME failed: check for error messages in ./Log and in log_$NAME.txt:"
-	    cat log_$NAME.txt
-	    break;
+	    tail -10 log_$NAME.txt
 	fi
     done
 }

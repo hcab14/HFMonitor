@@ -319,6 +319,9 @@ public:
       else 
         sprintf(label, "%.3f", fi/1000);
       const double labelWidth = fl_width(label);
+      // int _dx(0), _dy(0), _w0(0), _h0(0);
+      // fl_text_extents(label, _dx, _dy, _w0, _h0);
+      // const double labelHeight(_h0);
       if (xl-labelWidth/2 <= xSpecBeg()) continue;
       if (xl+labelWidth/2 >= xSpecEnd()) continue;
       if (xl-labelWidth/2 < last_x) continue;
