@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="3a-multi_client_to_broadcaster"
-CMD="LD_LIBRARY_PATH=/opt/local/cuda-5.0/lib:/opt/local/lib:$LD_LIBRARY_PATH ./bin/multi_client_to_broadcaster -c config/multi_client_KRK.xml"
+CMD="./bin/multi_client_to_broadcaster -c config/multi_client_KRK.xml"

@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="0b-cuda_mutex"
-CMD="LD_LIBRARY_PATH=/opt/local/cuda-5.0/lib:/opt/local/lib:$LD_LIBRARY_PATH ./bin/cuda_mutex"
+CMD="./bin/cuda_mutex"
