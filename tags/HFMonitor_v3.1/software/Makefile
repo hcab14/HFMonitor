@@ -3,17 +3,17 @@
 
 ALL: boost/bjam fltk/bin/fltk-config sqlite3/bin/sqlite3
 
-boost/bjam: modular-boost/b2
-	cd modular-boost && ./b2 -j4 && cd .. && rm -f boost && ln -s modular-boost boost
+boost/bjam: boost_1_60_0/b2
+	cd boost_1_60_0 && ./b2 -j4 && cd .. && rm -f boost && ln -s modular-boost boost
 
-modular-boost/b2: modular-boost/bootstrap.sh ./setup_boost.sh
-	./setup_boost.sh && cd modular-boost && ./bootstrap.sh && cd ..
+boost_1_60_0/b2: boost_1_60_0/bootstrap.sh
+	cd boost_1_60_0 && ./bootstrap.sh && cd ..
 
-modular-boost/bootstrap.sh: | modular-boost.tar.bz2
-	bzip2 -dc modular-boost.tar.bz2 | tar xvf -
+boost_1_60_0/bootstrap.sh: boost_1_60_0.tar.bz2 
+	bzip2 -dc boost_1_60_0.tar.bz2 | tar xvf -
 
 modular-boost.tar.bz2:
-	wget http://nz23-18.ifj.edu.pl/boost/modular-boost.tar.bz2
+	wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2
 
 
 fltk/bin/fltk-config: fltk-1.3.2/insted/bin/fltk-config
