@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="perseus_server"
-CMD="sudo LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/${NAME}_BOS.xml"
+CMD="sudo LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/${NAME}_STA.xml"
