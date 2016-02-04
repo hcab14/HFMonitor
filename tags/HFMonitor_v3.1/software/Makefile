@@ -12,7 +12,7 @@ boost_1_60_0/b2: boost_1_60_0/bootstrap.sh
 boost_1_60_0/bootstrap.sh: boost_1_60_0.tar.bz2 
 	bzip2 -dc boost_1_60_0.tar.bz2 | tar xvf -
 
-modular-boost.tar.bz2:
+boost_1_60_0.tar.bz2:
 	wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2
 
 
