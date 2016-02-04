@@ -32,6 +32,7 @@ SET(CMAKE_INSTALL_PREFIX ${CMAKE_HOME_DIRECTORY}/bin)
 # List of libraries
 SET(_libs)
 
+
 # Setup FFTW3
 FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
@@ -43,17 +44,13 @@ IF (APPLE)
 ELSE(APPLE)
   EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
   SET(Boost_NO_SYSTEM_PATHS ON)
-  SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost)
-  SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
+  SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/boost_1_60_0)
+  SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost_1_60_0/stage/lib)
 ENDIF(APPLE)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.55 REQUIRED COMPONENTS log_setup log filesystem date_time regex program_options system  coroutine thread context )
+FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS log_setup log filesystem date_time regex program_options system  coroutine thread context )
 LIST(APPEND _libs ${Boost_LIBRARIES})
-IF(!APPLE)
-  LIST(APPEND _libs rt)
-  LIST(APPEND _libs pthread)
-ENDIF(!APPLE)
 
 # Setup libperseus-sdr
 #FIND_PACKAGE(PerseusSDR REQUIRED)
@@ -103,6 +100,9 @@ IF(CUDA_FOUND)
     ${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc
   )
 ENDIF(CUDA_FOUND)
+
+LIST(APPEND _libs rt)
+LIST(APPEND _libs pthread)
 
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
