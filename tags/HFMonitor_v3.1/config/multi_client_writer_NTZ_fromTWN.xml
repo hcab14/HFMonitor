@@ -6,7 +6,7 @@
     Station  = NTZ
     Computer = Latitude E6440 : N-Series Base
   </StationInfo>
-  <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40029999"/>
+  <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40044"/>
   <FileSink filePath="DataTWN" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
