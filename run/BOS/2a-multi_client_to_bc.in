@@ -3,4 +3,4 @@
 
 NAME="multi_client_to_broadcaster"
 LD_LIBRARY_PATH=/opt/local/lib
-CMD="./bin/$NAME -c config/multi_client_STA.xml"
+CMD="./bin/$NAME -c config/multi_client_BOS.xml"
