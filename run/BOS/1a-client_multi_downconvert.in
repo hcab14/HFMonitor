@@ -2,5 +2,6 @@
 # $Id$
 
 NAME="client_multi_downconvert"
-CMD="LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/multi_downconvert_BOS.xml"
+LD_LIBRARY_PATH=/opt/local/lib
+CMD="./bin/$NAME -c config/multi_downconvert_STA.xml"
 
