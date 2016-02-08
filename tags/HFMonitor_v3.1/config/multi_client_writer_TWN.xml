@@ -7,12 +7,12 @@
     Computer = Latitude E6440
   </StationInfo>
   <server host="127.0.0.1" port="19100"/>
-  <FileSink filePath="DataSTA" filePeriod="1d"/>
+  <FileSink filePath="DataTWN" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
   </Streams>
   <Clients>
-    <WriterTXT proc_name="Writer" filePath="DataSTA" filePeriod="1d"/>
+    <WriterTXT proc_name="Writer" filePath="DataTWN" filePeriod="1d"/>
   </Clients>
 </MultiClient>
