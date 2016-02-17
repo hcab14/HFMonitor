@@ -3,7 +3,7 @@
 <!-- $Id: multi_client_STA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
 <MultiClient>
   <StationInfo>
-    Station  = STA
+    Station  = TWN
     Computer = Latitude E6440
   </StationInfo>
   <Broadcaster>
@@ -12,7 +12,7 @@
           port="19100"/>
   </Broadcaster>
   <server host="127.0.0.1" port="19000"/>
-  <FileSink filePath="DataSTA" filePeriod="1d"/>
+  <FileSink filePath="DataTWN" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
     <Stream pattern="DC_017000_VTX2">DemodMSK_VTX2</Stream>
@@ -32,8 +32,8 @@
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
   <Clients>
-    <WriterTXT proc_name="WriterText" filePath="DataSTA"   filePeriod="1d"/>
-    <WriterIQ  proc_name="WriterIQ"   filePath="DataSTAIQ" filePeriod="5m" bitsPerSample="24"/>
+    <WriterTXT proc_name="WriterText" filePath="DataTWN"   filePeriod="1d"/>
+    <WriterIQ  proc_name="WriterIQ"   filePath="DataTWNIQ" filePeriod="5m" bitsPerSample="24"/>
 
     <DemodMSK proc_name="DemodMSK_VTX2"
               name="MSK_VTX2" fc_Hz="17.00e3" fm_Hz="200.0"

@@ -2,4 +2,5 @@
 # $Id$
 
 NAME="multi_client_to_broadcaster"
-CMD="LD_LIBRARY_PATH=/opt/local/lib ./bin/$NAME -c config/multi_client_BOS.xml"
+LD_LIBRARY_PATH=/opt/local/lib
+CMD="./bin/$NAME -c config/multi_client_BOS.xml"

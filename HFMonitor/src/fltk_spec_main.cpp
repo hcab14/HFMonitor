@@ -33,6 +33,8 @@
 #include "run.hpp"
 #include "Spectrum.hpp"
 
+#include "filter/iir.hpp"
+
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
@@ -116,7 +118,8 @@ public:
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
-    , last_update_time_(boost::date_time::not_a_date_time) {
+    , last_update_time_(boost::date_time::not_a_date_time)
+    , filter_nb_(0.01, 500e3) {
     filter_.add(Filter::LowPass<frequency_vector<float> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
@@ -135,11 +138,15 @@ public:
               << " " << sp->center_frequency_Hz()
               << " " << sp->offset_ppb()
 	      << " length=" << length
+	      << " " << filter_nb_.get()
               << std::endl;
 #endif
-    if (length != fftw_.size())
+    const bool isFirst = (length != fftw_.size());
+    if (isFirst) {
       fftw_.resize(length);
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
+      filter_nb_.init(0.05, sp->sample_rate_Hz());
+    }
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
@@ -177,6 +184,7 @@ private:
   std::string port_;
   boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
+  filter::iir_lowpass_1pole<double, double> filter_nb_;
 } ;
 
 int main(int argc, char* argv[])
