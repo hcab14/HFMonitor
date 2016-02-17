@@ -1,0 +1,17 @@
+// -*- C++ -*-
+// VERTEX SHADER
+
+#version 410
+
+layout(location=0) in vec2 pos2d;
+layout(location=1) in vec2 tex2d;
+
+uniform mat4 MVP;
+
+out vec2 texcoord;
+
+void main(void)
+{
+  texcoord    = tex2d;
+  gl_Position = MVP * vec4(pos2d, 0.0, 1.0);  
+}
