@@ -70,6 +70,9 @@ function where_am_I {
 	gifds-st)
 	    echo STA
 	    ;;
+	gifds-tw)
+	    echo TWN
+	    ;;
 	*)
 	    echo XXX
 	    ;;
