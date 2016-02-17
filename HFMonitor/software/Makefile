@@ -1,7 +1,13 @@
 # -*- mode: Makefile -*-
 # $Id$
 
-ALL: boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
+ALL: install/bin/volk_profile #boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
+
+install/bin/volk_profile: volk
+	cd volk && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../install ../ && make -j4 install
+
+volk:
+	git clone -b v1.2.1 https://github.com/gnuradio/volk.git volk
 
 boost_1_57_0/bjam: boost_1_57_0/b2
 	cd boost_1_57_0 && ./b2 `get_boost_toolset.sh` && cd .. && rm -f boost && ln -s boost_1_57_0 boost
