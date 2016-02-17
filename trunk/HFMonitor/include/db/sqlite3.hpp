@@ -138,6 +138,9 @@ namespace db {
       typedef struct null {} null_type;
       typedef boost::posix_time::ptime ptime;
 
+      statement()
+        : _stmt(NULL) {}
+
       statement(base::sptr  db,
                 std::string query)
         : _db(boost::dynamic_pointer_cast<connection>(db))
@@ -152,6 +155,20 @@ namespace db {
       ~statement() {
         ASSERT_THROW_DESTRUCTOR_SQLITE3(sqlite3_finalize(_stmt));
       }
+
+      statement& init(base::sptr  db,
+                      std::string query) {
+        _db = boost::dynamic_pointer_cast<connection>(db);
+        _stmt = NULL;
+        if (!_db.lock()) throw std::runtime_error("db::sqlite3::statement: non-sqlite3 db sptr passed");
+        ASSERT_THROW_SQLITE3(sqlite3_prepare_v2(_db.lock()->get(),
+                                                query.c_str(),
+                                                -1,//query.size(),
+                                                &_stmt,
+                                                NULL));      
+        return *this;
+      }
+
       void reset() {
         ASSERT_THROW_SQLITE3(sqlite3_reset(_stmt));
       }
@@ -213,7 +230,7 @@ namespace db {
 
       template<typename T>
       statement& bind(std::string name, T val) {
-        std::cout << "bind: " << name << " -> " << val << std::endl;
+//         std::cout << "bind: " << name << " -> " << val << std::endl;
         return bind(sqlite3_bind_parameter_index(_stmt, name.c_str()), val);
       }
       template<typename T>
@@ -275,7 +292,7 @@ namespace db {
         return std::string(reinterpret_cast<const char*>(sqlite3_column_text(_stmt, icol)));
       }
       ptime         get_columnT(int icol, detail::type2type<ptime>) const {
-        return string_to_date_time(get_column<std::string>(icol));
+        return boost::posix_time::time_from_string(get_column<std::string>(icol));
       }
 
       // int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
@@ -288,20 +305,30 @@ namespace db {
         if (is_first) {
           oss.imbue
             (std::locale(oss.getloc(), 
-                         new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S%f")));          
+                         new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f")));
         }
         is_first = false;
         oss.str("");
         oss << t;
         return oss.str();
       }
-      static boost::posix_time::ptime string_to_date_time(std::string s) {
-        static std::stringstream iss;
-        iss.str(s);
-        boost::posix_time::ptime t(boost::posix_time::not_a_date_time);
-        iss >> t;
-        return t;
-      }
+//       static boost::posix_time::ptime string_to_date_time(std::string s) {
+//         std::cout << "s=" <<s << std::endl;
+//         static std::stringstream iss;
+// //         static bool is_first(true);
+// //         if (is_first) {
+// //           iss.imbue
+// //             (std::locale(iss.getloc(), 
+// //                          new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f")));
+// //         }
+// //         is_first = false;
+//         iss.str(s);
+//         boost::posix_time::ptime t(boost::posix_time::not_a_date_time);
+//         iss >> t;
+//         t = boost::posix_time::time_from_string(s);
+//         std::cout << "t=" << t << " "<< boost::posix_time::to_simple_string(t) << std::endl;
+//         return t;
+//       }
 
     protected:
     private:

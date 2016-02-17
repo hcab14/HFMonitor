@@ -28,10 +28,12 @@
 
 #include "boost/cstdint.hpp"
 
+#include "aligned_vector.hpp"
+
 template<typename T>
 class repack_buffer {
 public:
-  typedef typename std::vector<T> vector_type;
+  typedef aligned_vector<T> vector_type;
   typedef typename vector_type::iterator iterator;
   typedef typename vector_type::const_iterator const_iterator;
 

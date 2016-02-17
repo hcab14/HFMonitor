@@ -34,14 +34,15 @@
 #include "FFTProcessor/Proxy.hpp"
 
 namespace Action {
-  class PhaseDifferentiation : public Base {
+  template<typename T>
+  class PhaseDifferentiation : public Base<T> {
   public:
     typedef Filter::WithRMS<double, frequency_vector> filter_type;
     typedef filter_type::vector_type PhaseSpectrum;
     typedef boost::posix_time::ptime ptime;
 
     PhaseDifferentiation(const boost::property_tree::ptree& config)
-      : Base("SpectrumInterval")
+      : Base<T>("SpectrumInterval")
       , ps_(config.get<double>("fMin"), 
             config.get<double>("fMax"))
       , filterDiffPhase_(Filter::LowPass<PhaseSpectrum>::make(1.0, config.get<double>("Filter.TimeConstant")),
@@ -58,7 +59,7 @@ namespace Action {
       return ((x>1.) ? x-1. :
               (x<0.) ? x+1. : x);
     }
-    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
+    virtual void perform(Proxy::Base& p, const T& s) {
       using namespace boost::posix_time;
       try {
         const double dt(  double((p.getApproxPTime() - t_).ticks())
@@ -92,7 +93,7 @@ namespace Action {
 
     // this method can be overwritten
     virtual void proc(Proxy::Base& p, 
-                      const SpectrumBase& s,
+                      const T& s,
                       const PhaseSpectrum& ps,
                       const PhaseSpectrum& psrms,
                       double dt) {

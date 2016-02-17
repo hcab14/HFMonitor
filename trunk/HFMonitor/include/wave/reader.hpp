@@ -55,9 +55,8 @@ namespace wave {
     }
     template<typename T>
     T readT(std::istream& is) {
-      T data;
-      is.read((char *)(&data), sizeof(T));
-      if (!is) throw std::runtime_error("read failed");
+      static T data;      
+      if (!is.read((char *)(&data), sizeof(T))) throw std::runtime_error("read failed");
       return data;
     }
     chunk::header read_header(std::istream& is) {
@@ -232,7 +231,7 @@ namespace wave {
           read_data_ = true;
           std::cout << data_ << std::endl;
           const size_t bufferSize(2500);
-          std::vector<std::complex<double> > samples(bufferSize);
+          static aligned_vector<std::complex<float> > samples(bufferSize);
           
           size_t counter(0), last_sample_number_(0);
           for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample(), ++sample_number_, ++counter) {
@@ -242,10 +241,10 @@ namespace wave {
               last_sample_number_ = sample_number_;
             }
 
-            const double xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
-            const double xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
-            const std::complex<double> s(xi, xq), sr(xq, xi);
-            samples[counter%bufferSize] = (iq_reversed_ ? sr : s);
+            const float xi(detail::read_real_sample(is, format_.bitsPerSample())); // real
+            const float xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
+            const std::complex<float> s[2] = { std::complex<float>(xi, xq), std::complex<float>(xq, xi) };
+            samples[counter%bufferSize] = s[iq_reversed_];
             
           }
           // process remaining samples

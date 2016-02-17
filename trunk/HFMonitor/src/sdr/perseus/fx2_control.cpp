@@ -208,8 +208,8 @@ namespace Perseus {
                                              (unsigned char *)&cmd, sizeof(cmd),
                                              &transferred, FX2::usb_timeout) == 0);
       const size_t max_length(10*1024);
+//       ASSERT_THROW(length < max_length);
       EEPROM::reply<max_length> reply;
-      ASSERT_THROW(length < max_length);
       ASSERT_THROW(_usb_control->submit_bulk(EndPoint::status,
                                              (unsigned char *)&reply, 
                                              sizeof(EEPROM::reply_header) + length,

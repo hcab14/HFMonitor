@@ -193,7 +193,7 @@ namespace detail {
       if (phase_vector_.empty())
         return;
       
-      const value_and_error f_est(compute_f_est());
+//       const value_and_error f_est(compute_f_est());
       // std::cout << "f_est = " << ccounter << " " << f_est << std::endl;
     }
 
@@ -254,6 +254,8 @@ namespace detail {
     }
 
   protected:
+    bool inhibit_reset() const { return inhibit_reset_; }
+    
   private:
     gf_with_phase_hist(std::string name, double kN, size_t period, size_t max_hist_size)
       : name_(name)
@@ -482,6 +484,8 @@ public:
   }
 
 protected:
+  size_t state_counter() const { return state_counter_; }
+  size_t history_size() const { return history_size_; }
 private:
   tracking_goertzel_filter(double fs,            // sampling frequency (Hz)
 			   double f0,            // center frequency (Hz)

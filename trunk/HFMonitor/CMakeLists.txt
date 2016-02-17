@@ -23,7 +23,7 @@ SET(CMAKE_CXX_FLAGS         "-Wall -DSVN_VERSION_STRING=\"\\\"${SVN_VERSION_STRI
 IF(!APPLE)
 	 SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
 ELSE(!APPLE)
-	SET(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG")
+	SET(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG -DBOOST_LOG_DYN_LINK -Wno-unused-local-typedefs")
 ENDIF(!APPLE)
 SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
@@ -52,9 +52,9 @@ LIST(APPEND _libs ${FFTW3_LIBRARIES})
 #  SET(BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/software/boost/stage/lib)
 #ENDIF(APPLE)
 
-SET(Boost_USE_STATIC_LIBS   ON)
+#SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.57 REQUIRED COMPONENTS log_setup log filesystem iostreams date_time regex program_options system  coroutine thread context )
+FIND_PACKAGE(Boost 1.57 REQUIRED COMPONENTS log log_setup filesystem iostreams date_time regex program_options system  coroutine thread context )
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")
@@ -106,6 +106,18 @@ IF(CUDA_FOUND)
     ${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc
   )
 ENDIF(CUDA_FOUND)
+
+#volk
+FIND_PACKAGE(volk REQUIRED)
+IF(VOLK_FOUND)
+  LIST(APPEND _libs ${VOLK_LIBRARIES})
+  INCLUDE_DIRECTORIES(${VOLK_INCLUDE_DIRS})
+ENDIF(VOLK_FOUND)
+
+
+IF (NOT APPLE)
+  LIST(APPEND _libs "-lrt")
+ENDIF (NOT APPLE)
 
 # Setup clFFT
 FIND_PACKAGE(clFFT)

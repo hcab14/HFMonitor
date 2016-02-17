@@ -28,6 +28,7 @@
 #include <complex>
 #include <vector>
 
+#include "aligned_vector.hpp"
 #include "FFT.hpp"
 
 struct delta_time {
@@ -48,7 +49,7 @@ struct delta_time {
 
 #if 1
 void test_fftw() {
-  typedef double FFTType;
+  typedef float FFTType;
   const size_t n(FFT_SIZE);
   std::vector<std::complex<FFTType> > in(n);
   { delta_time dt("init: ");

@@ -25,6 +25,7 @@
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "aligned_vector.hpp"
 #include "FFT.hpp"
 
 //
@@ -36,8 +37,8 @@ namespace filter {
     class overlap_save {
     public:  
       typedef std::complex<T> complex_type;
-      typedef std::vector<T> real_vector_type;
-      typedef std::vector<complex_type> complex_vector_type;
+      typedef aligned_vector<T> real_vector_type;
+      typedef aligned_vector<complex_type> complex_vector_type;
       typedef FFT::FFTWTransform<T> small_fft_type;
 #ifdef USE_CUDA      
       typedef FFT::CUFFTTransform large_fft_type;

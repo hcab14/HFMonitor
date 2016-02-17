@@ -133,13 +133,13 @@ int main(int argc, char* argv[])
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+//     processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<tracking_goertzel_processor>("TrackingGoertzel");
 
     const std::string stream_name(config.get<std::string>
                                   ("MultiDownConverter.server.<xmlattr>.stream_name", "DataIQ"));
 
-    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<double> > > >
+    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<float> > > >
       c(config.get_child("MultiDownConverter"));
         
     const std::set<std::string> streams(c.ls());

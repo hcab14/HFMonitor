@@ -28,6 +28,7 @@
 #include "network.hpp"
 #include "network/client.hpp"
 #include "network/iq_adapter.hpp"
+#include "processor.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
 #include "Spectrum.hpp"
@@ -99,23 +100,24 @@ private:
 } ;
 
 /// processor for computing FFT and inserting the data into @ref MyWindow
-class test_proc {
+class test_proc : public processor::base_iq {
 public:
 #ifdef USE_CUDA      
   typedef FFT::CUFFTTransform fft_type;
 #else
-  typedef FFT::FFTWTransform<double> fft_type;
+  typedef FFT::FFTWTransform<float> fft_type;
 #endif
 
   typedef boost::posix_time::ptime ptime;
 
   test_proc(const boost::property_tree::ptree& config)
-    : w_(1200,400)
+    : base_iq(config)
+    , w_(1200,400)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
     , last_update_time_(boost::date_time::not_a_date_time) {
-    filter_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
+    filter_.add(Filter::LowPass<frequency_vector<float> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
@@ -123,9 +125,7 @@ public:
     w_.set_sMax(config.get<double>("<xmlattr>.sMax_dB"));
   }
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
+  void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     const size_t length(std::distance(i0, i1));
 #if 1
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
@@ -139,17 +139,17 @@ public:
 #endif
     if (length != fftw_.size())
       fftw_.resize(length);
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
-    frequency_vector<double> ps(f_min, f_max, s, std::abs<double>, sp->offset_ppb());
+    frequency_vector<float> ps(f_min, f_max, s, std::abs<float>, sp->offset_ppb());
     if (filter_.x().empty())
       filter_.init(sp->approx_ptime(), ps);
     else
       filter_.update(sp->approx_ptime(), ps);
 
-    frequency_vector<double> xf(filter_.x());
+    frequency_vector<float> xf(filter_.x());
 
     Fl::lock();
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
@@ -172,7 +172,7 @@ private:
   } ;
   MyWindow w_;
   fft_type fftw_;
-  Filter::Cascaded<frequency_vector<double> > filter_;
+  Filter::Cascaded<frequency_vector<float> > filter_;
   std::string host_;
   std::string port_;
   boost::posix_time::ptime last_update_time_;

@@ -41,7 +41,7 @@ namespace network {
       } samples;
     } iq_sample;
 
-    typedef std::vector<std::complex<double> > complex_vector_type;
+    typedef processor::base_iq::vector_type complex_vector_type;
 
   public:
     typedef boost::shared_ptr<iq_adapter > sptr;
@@ -89,7 +89,7 @@ namespace network {
             i = xi.first;
             const std::pair<const_iterator, double> xq(wave::detail::read_real_sample(i, 8*bytes_per_sample));
             i = xq.first;
-            iqs_[counter++] = std::complex<double>(xi.second, xq.second);
+            iqs_[counter++] = processor::base_iq::complex_type(xi.second, xq.second);
           }
         }
 

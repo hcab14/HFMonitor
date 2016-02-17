@@ -24,13 +24,12 @@
 #include "repack_processor.hpp"
 #include "run.hpp"
 
-class test_proc {
+class test_proc : public processor::base_iq {
 public:
-  test_proc(const boost::property_tree::ptree&) {}
+  test_proc(const boost::property_tree::ptree& config)
+    : base_iq(config) {}
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
+  void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()

@@ -46,6 +46,8 @@
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
 
+#include "FFTProcessor/FFTActionFactory.hpp"
+
 /*! \addtogroup processors
  *  @{
  * \addtogroup FFTProcessor FFTProcessor
@@ -68,6 +70,8 @@ public:
   typedef typename FFT::FFTWTransform<FFTFloat> fft_type;
 #endif
 
+  typedef FFTSpectrum<fft_type> fft_spec_type;
+
   typedef std::string LevelKey;
   typedef class ActionKey {
   public:
@@ -86,7 +90,7 @@ public:
     std::string name_;
     size_t number_;
   } ActionKey;
-  typedef std::map<ActionKey, Action::Handle> ActionMap;
+  typedef std::map<ActionKey, typename Action::Base<fft_spec_type>::Handle> ActionMap;
   typedef std::map<LevelKey, ActionMap> LevelMap;
 
   typedef std::string ResultKey;
@@ -144,7 +148,7 @@ public:
       BOOST_FOREACH(const ptree::value_type& action, level.second) {
         const ActionKey actionKey(action.first, counter++);
         LOG_INFO(str(boost::format(" +--- Action: %s") % actionKey));
-        actions_[level.first][actionKey] = Action::Factory::makeAction(actionKey.name(), action.second);
+        actions_[level.first][actionKey] = Action::Factory::makeAction<fft_spec_type>(actionKey.name(), action.second);
       }
     }
   }

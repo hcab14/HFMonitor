@@ -24,31 +24,35 @@
 #include <stdexcept>
 #include <vector>
 
+#include "aligned_vector.hpp"
 #include <boost/noncopyable.hpp>
 #include <boost/foreach.hpp>
 
 #include "logging.hpp"
 
-/// base class for (FFT power) spectrum representation
-class SpectrumBase : private boost::noncopyable {
-public:
-  typedef std::complex<double> complex_type;
-
-  SpectrumBase(double sampleRate,
-               double centerFrequency)
+/// FFT spectrum representation
+template<typename FFT_TYPE>
+class FFTSpectrum {
+public:  
+  typedef typename FFT_TYPE::value_type value_type;
+  typedef std::complex<value_type> complex_type;
+  FFTSpectrum(const FFT_TYPE& fftw,
+              double sampleRate,
+              double centerFrequency)
     : sampleRate_(sampleRate)
-    , centerFrequency_(centerFrequency) {}
-  virtual ~SpectrumBase() {}
+    , centerFrequency_(centerFrequency)
+    , fftw_(fftw) {}
+  ~FFTSpectrum() {}
+
+  size_t size() const { return fftw_.size(); }
+  complex_type operator[](size_t index) const { return fftw_.getBin(index); }  
+  double normWindow() const { return fftw_.normWindow(); }
 
   /// sample rate (Hz)
   double sampleRate() const { return sampleRate_; }
+
   /// center freqyency (Hz)
   double centerFrequency() const { return centerFrequency_; }
-  
-  /// size in bins
-  virtual size_t size()                         const = 0;
-  virtual complex_type operator[](size_t index) const = 0;
-  virtual double normWindow()                   const = 0;
 
   /// conversion of frequency (Hz) into bin index
   /// takes care of the frequency order of FFT
@@ -71,33 +75,16 @@ public:
                                                ?    int(index)
                                                : -n+int(index))/double(n);
   }  
-private:
-  static int round(double d) { return int(d+((d>=0.0) ? .5 : -.5)); }
-
-  double sampleRate_;
-  double centerFrequency_;
-} ;
-
-/// FFT spectrum representation
-template<typename FFT_TYPE>
-class FFTSpectrum : public SpectrumBase {
-public:
-  FFTSpectrum(const FFT_TYPE& fftw,
-              double sampleRate,
-              double centerFrequency)
-    : SpectrumBase(sampleRate, centerFrequency)
-    , fftw_(fftw) {}
-  virtual ~FFTSpectrum() {}
-
-  virtual size_t size() const { return fftw_.size(); }
-  virtual complex_type operator[](size_t index) const { return fftw_.getBin(index); }  
-  virtual double normWindow() const { return fftw_.normWindow(); }
 
 protected:
 private:
-  const FFT_TYPE& fftw_;
+  static int round(double d) {
+    return int(d+((d>=0.0) ? .5 : -.5));
+  }
+
   double sampleRate_;
   double centerFrequency_;
+  const FFT_TYPE& fftw_;
 } ;
 
 template<typename T>
@@ -112,8 +99,21 @@ struct set_traits<double> {
   }
 } ;
 template<>
+struct set_traits<float> {
+  void add_pair(std::pair<double, float>& val, double f, double v) {
+    val = std::make_pair(f,v);
+  }
+} ;
+template<>
 struct set_traits<std::deque<double> > {
   void add_pair(std::pair<double, std::deque<double> >& val, double f, double v) {
+    val.first = f;
+    val.second.push_back(v);
+  }
+} ;
+template<>
+struct set_traits<std::deque<float> > {
+  void add_pair(std::pair<double, std::deque<float> >& val, double f, double v) {
     val.first = f;
     val.second.push_back(v);
   }
@@ -135,7 +135,7 @@ public:
                    freq_type fmax=freq_type(1))
     : fmin_(fmin), fmax_(fmax) {}
   
-  frequency_vector(freq_type fmin, freq_type fmax, size_t size, const T& value)
+  frequency_vector(freq_type fmin, freq_type fmax, size_t size, const T& value=T(0))
     : fmin_(fmin),
       fmax_(fmax),
       v_(size) {
@@ -143,9 +143,10 @@ public:
       v_[u]= std::make_pair(fmin+(fmax-fmin)/(size-1)*u, value);
   }
   
-  template<typename FUNCTION>
+  template<typename FUNCTION,
+           typename SPEC_TYPE>
   frequency_vector(freq_type fmin, freq_type fmax,
-                   const SpectrumBase& s, FUNCTION func, double offset_ppb=0.)
+                   const SPEC_TYPE& s, FUNCTION func, double offset_ppb=0.)
     : fmin_(fmin), fmax_(fmax) { fill(s, func, offset_ppb); }
 
   frequency_vector(const frequency_vector& f) 
@@ -163,12 +164,13 @@ public:
  
   freq_type fmin() const { return fmin_; }
   freq_type fmax() const { return fmax_; }
-  freq_type deltaf() const { return (v_.size() > 1) ? 0.0 : (fmax() - fmin()) / (size()-1); }
+  freq_type deltaf() const { return (v_.size() > 1) ? (fmax() - fmin()) / (size()-1) : 0.0; }
 
   /// fill the with content from a spectrum
   /// frequency correction is applied
-  template<typename FUNCTION>
-  frequency_vector<T>& fill(const SpectrumBase& s,
+  template<typename FUNCTION,
+           typename SPEC_TYPE>
+  frequency_vector<T>& fill(const SPEC_TYPE& s,
                             const FUNCTION& func,
                             double offset_ppb=0.) {
     const double correction_factor(1. - 1e-9*offset_ppb);
@@ -211,7 +213,7 @@ public:
   }
   /// applies a function \c func
   template<typename FUNCTION>
-  frequency_vector<T> apply(const FUNCTION& func) {
+  frequency_vector<T>& apply(const FUNCTION& func) {
     BOOST_FOREACH(value_type& x, v_)
       x.second= func(x.second);
     return *this;
@@ -228,6 +230,7 @@ public:
   }
   
   const value_type& operator[](unsigned index) const { return v_[index]; }
+  value_type& operator[](unsigned index) { return v_[index]; }
 
   void clear() { v_.clear(); }
 

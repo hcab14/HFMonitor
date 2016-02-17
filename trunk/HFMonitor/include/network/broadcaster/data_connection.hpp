@@ -92,6 +92,8 @@ namespace network {
         close();
       }
   
+      boost::asio::io_service& get_service() { return io_service_; }
+
       std::string stream_name() const {
         if (status_ == status_configured) {
           std::ostringstream oss;

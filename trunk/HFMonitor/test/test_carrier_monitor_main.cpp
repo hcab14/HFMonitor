@@ -138,6 +138,7 @@ protected:
     return a.second < b.second;
   }
 
+  size_t spec_counter() const { return spec_counter_; }
 private:
   single_channel_carrier_monitor(std::string type, double fCenter_kHz, double fMin_kHz, double fMax_kHz)
     : type_(type)

@@ -112,6 +112,8 @@ public:
 #endif
   }
 
+  boost::asio::io_service& get_service() { return _service; }
+  
   wait_for_signal& add_signal(int s) {
     sigaddset(&_wait_mask, s);
     return *this;

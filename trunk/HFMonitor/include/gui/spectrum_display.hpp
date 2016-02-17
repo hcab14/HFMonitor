@@ -19,6 +19,7 @@
 #ifndef _spectrum_display_hpp_cm120516_
 #define _spectrum_display_hpp_cm120516_
 
+#include "aligned_vector.hpp"
 #include "carrier_monitoring/polynomial_interval_fit.hpp"
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
@@ -138,8 +139,8 @@ public:
       oss << sp->approx_ptime();
       fTime_.value(oss.str().c_str());
     }
-    std::vector<double> s(specN(),  0);
-    std::vector<double> sf(specN(), 0);
+    std::vector<T> s(specN(),  0);
+    std::vector<T> sf(specN(), 0);
     std::vector<int>    counters(specN(), 0);
     for (size_t i(0), n(spec.size()); i<n; ++i) {
       const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
@@ -158,8 +159,9 @@ public:
     insert_spec(s, sf, update_window);
   }
 
-  void insert_spec(const std::vector<double>& spec,
-                   const std::vector<double>& spec_filtered,
+  template<typename T>
+  void insert_spec(const std::vector<T>& spec,
+                   const std::vector<T>& spec_filtered,
                    bool update_window=true) {
     specIndex_--;
     if (specIndex_ < 0) specIndex_ = specM()-1;

@@ -107,7 +107,7 @@ private:
 class test_proc :  processor::base_iq  {
 public:
   typedef boost::shared_ptr<test_proc> sptr;
-  typedef FFT::FFTWTransform<double> fft_type;
+  typedef FFT::FFTWTransform<float> fft_type;
   typedef boost::shared_ptr<fft_type> fft_sptr;
   typedef frequency_vector<double> fv_type;
   // frequency -> deques with history
@@ -126,9 +126,7 @@ public:
     , do_process_(true)
   {}
 
-  void process_iq(processor::service_iq::sptr sp,
-                  std::vector<std::complex<double> >::const_iterator i0,
-                  std::vector<std::complex<double> >::const_iterator i1) {
+  void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     if (!do_process_) return;
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
@@ -151,11 +149,11 @@ public:
       std::cout << "FFTW resized" << std::endl;
     }
     
-    fftw_->transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+    fftw_->transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(*fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double offset_ppb(sp->offset_ppb());
 //     const fv_type ps(f_min_Hz_, f_max_Hz_, s, std::abs<double>, offset_ppb);
-    fv_history_.fill(s, std::abs<double>, offset_ppb);
+    fv_history_.fill(s, std::abs<float>, offset_ppb);
     ptime_history_.push_back(sp->approx_ptime());
 
     const time_duration dt(ptime_history_.back()-ptime_history_.front());

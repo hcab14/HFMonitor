@@ -34,19 +34,27 @@
 #include "FFTProcessor/Action/SpectrumInterval.hpp"
 
 namespace Action {
-  class AverageDensity : public SpectrumInterval {
+  template<typename T>
+  class AverageDensity : public SpectrumInterval<T> {
   public:
+    using SpectrumInterval<T>::name_;
+    using SpectrumInterval<T>::resultKey;
+    using SpectrumInterval<T>::useCalibration;
+    using SpectrumInterval<T>::calibrationKey;
+    using SpectrumInterval<T>::plotSpectrum;
+    typedef typename SpectrumInterval<T>::PowerSpectrum PowerSpectrum;
+
     AverageDensity(const boost::property_tree::ptree& config)
-      : SpectrumInterval(addKeysToConfig(config,
-                                         config.get<double>("<xmlattr>.fRef_Hz"),
-                                         config.get<double>("<xmlattr>.bandwidth_Hz")))
+      : SpectrumInterval<T>(addKeysToConfig(config,
+                                            config.get<double>("<xmlattr>.fRef_Hz"),
+                                            config.get<double>("<xmlattr>.bandwidth_Hz")))
       , fReference_(config.get<double>("<xmlattr>.fRef_Hz"))
       , bandwidth_ (config.get<double>("<xmlattr>.bandwidth_Hz")) {
       name_ = "FindPeak";
     }
     
     virtual void proc(Proxy::Base& p, 
-                      const SpectrumBase& s,
+                      const T& s,
                       const PowerSpectrum& ps) {
       try {
         Result::SpectrumPowerInInterval::Handle 
