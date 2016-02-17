@@ -32,6 +32,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/foreach.hpp>
 
+#include "aligned_vector.hpp"
 #include "filter/fir.hpp"
 #include "filter/fir/overlap_save.hpp"
 #include "logging.hpp"

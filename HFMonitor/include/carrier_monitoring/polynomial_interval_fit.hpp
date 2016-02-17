@@ -58,14 +58,16 @@ public:
 
   size_t poly_degree() const { return poly_degree_; }
 
-  bool fit(const std::vector<double>& t,
-	   const std::vector<double>& y) {
+  template<typename T, typename U>
+  bool fit(const std::vector<T>& t,
+	   const std::vector<U>& y) {
     // by default use all measurements
     const std::vector<size_t> default_b(y.size(), 1);
     return fit(t, y, default_b);
   }
-  bool fit(const std::vector<double>& t,
-	   const std::vector<double>& y,
+  template<typename T, typename U>
+  bool fit(const std::vector<T>& t,
+	   const std::vector<U>& y,
 	   const std::vector<size_t>& b) {    
     assert(t.size() == y.size());
     assert(t.size() == b.size());
@@ -213,8 +215,9 @@ protected:
   }
 
   // slices for the measurements
-  void make_slices_y(const std::vector<double>& t,
-		     const std::vector<double>& y,
+  template<typename T, typename U>
+  void make_slices_y(const std::vector<T>& t,
+		     const std::vector<U>& y,
 		     const std::vector<size_t>& b) {
     assert(iv.size()>0);
     assert(t.size() == y.size());

@@ -38,12 +38,20 @@
 #include "FFTProcessor/Action/SpectrumInterval.hpp"
 
 namespace Action {
-  class FSKStrength : public SpectrumInterval {
+  template<typename T>
+  class FSKStrength : public SpectrumInterval<T> {
   public:
+    using SpectrumInterval<T>::name_;
+    using SpectrumInterval<T>::resultKey;
+    using SpectrumInterval<T>::useCalibration;
+    using SpectrumInterval<T>::calibrationKey;
+    using SpectrumInterval<T>::plotSpectrum;
+    typedef typename SpectrumInterval<T>::PowerSpectrum PowerSpectrum;
+
     FSKStrength(const boost::property_tree::ptree& config)
-      : SpectrumInterval(addKeysToConfig(config,
-                                         config.get<double>("<xmlattr>.fRef_Hz"),
-                                         config.get<double>("<xmlattr>.fShift_Hz")))
+      : SpectrumInterval<T>(addKeysToConfig(config,
+                                            config.get<double>("<xmlattr>.fRef_Hz"),
+                                            config.get<double>("<xmlattr>.fShift_Hz")))
       , fRef_(config.get<double>("<xmlattr>.fRef_Hz"))
       , fShift_(config.get<double>("<xmlattr>.fShift_Hz"))
       , minRatio_dB_(config.get<double>("<xmlattr>.minRatio_db")) {
@@ -52,7 +60,7 @@ namespace Action {
 
     virtual ~FSKStrength() {}
     virtual void proc(Proxy::Base& p, 
-                      const SpectrumBase& s,
+                      const T& s,
                       const PowerSpectrum& ps) {
       try {
         const Proxy::Base::ptime t(p.getApproxPTime());

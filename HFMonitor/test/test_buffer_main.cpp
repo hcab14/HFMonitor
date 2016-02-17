@@ -2,12 +2,13 @@
 // $Id$
 
 #include <iostream>
+#include "aligned_vector.hpp"
 #include "repack_buffer.hpp"
 
 template<typename T>
 struct dummy_processor {
-  void process_samples(typename std::vector<T>::const_iterator beg,
-		       typename std::vector<T>::const_iterator end,
+  void process_samples(typename aligned_vector<T>::const_iterator beg,
+		       typename aligned_vector<T>::const_iterator end,
 		       boost::uint64_t counter) {
     std::cout << "counter= " << counter << " | ";
     typedef typename std::ostream_iterator<T> ostream_iterator_T;

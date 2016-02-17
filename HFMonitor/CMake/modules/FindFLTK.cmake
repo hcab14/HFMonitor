@@ -33,14 +33,14 @@ if(FLTK_CONFIG_EXECUTABLE)
   set(FLTK_FOUND 1)
 
   execute_process(
-    COMMAND ${FLTK_CONFIG_EXECUTABLE} --cxxflags
+    COMMAND ${FLTK_CONFIG_EXECUTABLE} --use-gl --cxxflags
     OUTPUT_VARIABLE _fltk_config_cxxflags
     RESULT_VARIABLE _fltk_config_failed)
   string(REGEX REPLACE "[\r\n]" " " FLTK_CXXFLAGS "${_fltk_config_cxxflags}")
   string(REGEX REPLACE " $" "" FLTK_CXXFLAGS "${FLTK_CXXFLAGS}")
 
   execute_process(
-    COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldflags
+    COMMAND ${FLTK_CONFIG_EXECUTABLE} --use-gl --ldflags
     OUTPUT_VARIABLE _fltk_config_ldflags
     RESULT_VARIABLE _fltk_config_failed)
   string(REGEX REPLACE "[\r\n]" " " FLTK_LDFLAGS "${_fltk_config_ldflags}")

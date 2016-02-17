@@ -239,7 +239,7 @@ namespace FiFiSDR {
     bool have_abpf_;
     std::vector<boost::uint16_t> abpf_;
     boost::uint32_t num_abpf_;
-    bool abpf_enabled_;
+//     bool abpf_enabled_;
   } ;
 
   receiver_control::sptr receiver_control::make(usb_device_handle::sptr usb_device) {

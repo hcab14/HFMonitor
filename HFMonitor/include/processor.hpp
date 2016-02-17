@@ -29,6 +29,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "processor/service.hpp"
+#include "aligned_vector.hpp"
 
 namespace processor {
   /// base class for all processors
@@ -64,8 +65,10 @@ namespace processor {
   class base_iq : public base {
   public:
     typedef boost::shared_ptr<base_iq> sptr;
-    typedef std::complex<double> complex_type;
-    typedef std::vector<complex_type >::const_iterator const_iterator;
+    typedef std::complex<float> complex_type;
+    // typedef std::vector<complex_type >::const_iterator const_iterator;
+    typedef aligned_vector<complex_type> vector_type;
+    typedef vector_type::const_iterator const_iterator;
 
     typedef service_iq service;
 

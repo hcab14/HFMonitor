@@ -19,7 +19,7 @@ function a2r {
 function get_version_string {
     local rel_path=$1
     local path=""
-    [ XX`uname` == XXDarwin ] && path=/opt/local/bin/
+#    [ XX`uname` == XXDarwin ] && path=/opt/local/bin/
     echo path=$path
     ${path}svnversion ${rel_path}
     ${path}svn info ${rel_path} | awk '/^Last Changed Author:/ {print $4}'

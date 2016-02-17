@@ -94,6 +94,7 @@ namespace FFT {
 #define MAKE_TRAITS(P, T)                                               \
     template<>                                                          \
     struct FFTWTraits<T> {                                              \
+      typedef T value_type;                                             \
       typedef FFTW_CONCAT(P,_complex) complex_type;                     \
       typedef FFTW_CONCAT(P,_plan) Plan;                                \
                                                                         \
@@ -146,16 +147,17 @@ namespace FFT {
       const complex_type& operator[](size_t n) const { return a_[n]; }
       
       template<typename V,
-               template<typename U> class WINDOW_FCN>
-      double fill(const std::vector<std::complex<V> >& v,
+               template<typename U> class VECTOR,
+               template<typename W> class WINDOW_FCN>
+      double fill(const VECTOR<std::complex<V> >& v,
                   const WINDOW_FCN<V>& window_fcn) {
         return fill(v.begin(), v.end(), window_fcn);
       }
-      template<typename V,
-               template<typename U> class WINDOW_FCN>
-      double fill(typename std::vector<std::complex<V> >::const_iterator i0,
-                  typename std::vector<std::complex<V> >::const_iterator i1,
-                  const WINDOW_FCN<V>& window_fcn) {
+      template<typename IT,
+               typename W>
+      double fill(IT i0,
+                  IT  i1,
+                  const W& window_fcn) {
         const size_t length(std::distance(i0, i1));
         if (length != n_) resize(length);
         norm_= 0;
@@ -237,17 +239,17 @@ namespace FFT {
 
     /// transform the input vector \c v using the window function \c window_fcn
     template<typename V,
-             template <typename U> class WINDOW_FCN>
-    void transformVector(const std::vector<std::complex<V> >& v,
-                         const WINDOW_FCN<V>& window_fcn) {
+             typename W>
+    void transformVector(const V& v,
+                         const W& window_fcn) {
       transformRange(v.begin(), v.end(), window_fcn);
     }
     /// transform a vector range specified by iterators \c i0 and \c i1 using the window function \c window_fcn
-    template<typename V,
-             template <typename U> class WINDOW_FCN>
-    void transformRange(typename std::vector<std::complex<V> >::const_iterator i0,
-                        typename std::vector<std::complex<V> >::const_iterator i1,
-                        const WINDOW_FCN<V>& window_fcn) {
+    template<typename IT,
+             typename W>
+    void transformRange(IT i0,
+                        IT i1,
+                        const W& window_fcn) {
       const size_t length(std::distance(i0, i1));
       if (length != size())
         resize(length);

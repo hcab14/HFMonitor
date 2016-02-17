@@ -35,12 +35,13 @@
 #include "logging.hpp"
 
 namespace Action {
-  class SpectrumInterval : public Base {
+  template<typename T>
+  class SpectrumInterval : public Base<T> {
   public:
     typedef frequency_vector<double> PowerSpectrum;
     typedef Filter::Cascaded<PowerSpectrum> filter_type;
     SpectrumInterval(const boost::property_tree::ptree& config)
-      : Base("SpectrumInterval")
+      : Base<T>("SpectrumInterval")
       , fMin_(config.get<double>("<xmlattr>.fMin_Hz"))
       , fMax_(config.get<double>("<xmlattr>.fMax_Hz"))
       , resultKey_(config.get<std::string>("<xmlattr>.name"))
@@ -67,7 +68,7 @@ namespace Action {
     std::string calibrationKey() const { return calibrationKey_; }
     bool plotSpectrum() const { return plotSpectrum_; }
 
-    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
+    virtual void perform(Proxy::Base& p, const T& s) {
       try {
         const PowerSpectrum ps(fMin_, fMax_, s, std::abs<double>);        
         if (filter_.x().empty()) {
@@ -86,7 +87,7 @@ namespace Action {
 
     // this method is overwritten by, e.g., FindPeak, see below
     virtual void proc(Proxy::Base& p, 
-                      const SpectrumBase& s,
+                      const T& s,
                       const PowerSpectrum& ps) = 0;
     
   protected:

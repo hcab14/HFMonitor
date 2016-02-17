@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+//     processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<network::iq_adapter<demod_msk_processor  > >("DemodMSK");
     processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
     processor::registry::add<network::iq_adapter<tracking_goertzel_processor> >("TrackingGoertzel");

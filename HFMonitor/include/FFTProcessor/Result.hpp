@@ -41,6 +41,7 @@ namespace Result {
     typedef boost::shared_ptr<Base> Handle;
     typedef boost::weak_ptr<Base> WeakHandle;
     typedef std::deque<Handle> HandleVector;
+    typedef std::complex<float> complex_type;
 
     Base(std::string name, ptime time)
       : processor::result_base(name, time)

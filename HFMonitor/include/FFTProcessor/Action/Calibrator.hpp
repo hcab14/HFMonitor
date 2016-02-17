@@ -34,10 +34,11 @@
 #include "FFTProcessor/Action.hpp"
 
 namespace Action {
-  class Calibrator : public Base {
+  template<typename T>
+  class Calibrator : public Base<T> {
   public:
     Calibrator(const boost::property_tree::ptree& config)
-      : Base("Calibrator")
+      : Base<T>("Calibrator")
       , resultKey_(config.get<std::string>("<xmlattr>.name"))
       , offsetMax_(config.get<double>("<xmlattr>.maxOffset_Hz")) 
       , ppmMax_   (config.get<double>("<xmlattr>.maxCorrectionFactor_ppm")) {
@@ -53,7 +54,7 @@ namespace Action {
       }
     }
     virtual ~Calibrator() {}
-    virtual void perform(Proxy::Base& p, const SpectrumBase& s) {
+    virtual void perform(Proxy::Base& p, const T& s) {
       // count data
       std::vector<Result::SpectrumPeak::Handle> peaks;
       BOOST_FOREACH(const std::string& input, inputs_) {

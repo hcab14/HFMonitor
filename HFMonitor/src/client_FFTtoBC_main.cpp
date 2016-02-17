@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 
     // connect to DataIQ stream
     const std::string stream_name("DataIQ");
-    network::client::client<network::iq_adapter<repack_processor<FFTProcessorToBC<double> > > >
+    network::client::client<network::iq_adapter<repack_processor<FFTProcessorToBC<float> > > >
       c(config.get_child("FFTProcessor"));
 
     const std::set<std::string> streams(c.ls());

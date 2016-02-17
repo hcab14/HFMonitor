@@ -30,10 +30,10 @@
 class fft_calibration : public processor::base_iq {
 public:
   typedef boost::shared_ptr<fft_calibration> sptr;
-  typedef FFT::FFTWTransform<double> fft_type;
-  typedef frequency_vector<double> fv_type;
+  typedef FFT::FFTWTransform<float> fft_type;
+  typedef frequency_vector<float> fv_type;
   // frequency -> deques with history
-  typedef frequency_vector<std::deque<double> > fv_phase_hist_type;
+  typedef frequency_vector<std::deque<float> > fv_phase_hist_type;
   typedef std::deque<int> fmax_index_hist_type;
   typedef boost::shared_ptr<polynomial_interval_fit> pif_sptr;
   typedef boost::posix_time::time_duration time_duration;
@@ -103,17 +103,17 @@ public:
 
     // f_shift_Hz_ += 0.0116+1./6.;
     // const double df_shift = -0.0001;
-    std::vector<std::complex<double> > sv(length, 0);
+    std::vector<std::complex<float> > sv(length, 0);
     for (ssize_t i(0); i<length; ++i) {
       const double t(sample_counter_++/double(sp->sample_rate_Hz()));
-      sv[i] = *(i0+i) * std::exp(std::complex<double>(0,2*M_PI*f_shift_Hz_*t));
+      sv[i] = *(i0+i) * std::exp(std::complex<float>(0,2*M_PI*f_shift_Hz_*t));
     }
     // sample_counter_ %= 3*length;
-    fftw_.transformRange(sv.begin(), sv.end(), FFT::WindowFunction::Blackman<double>(length));
+    fftw_.transformRange(sv.begin(), sv.end(), FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double offset_ppb(0); // to be determined
     const fv_type ps(f_min_Hz_, f_max_Hz_, s, std::abs<double>, offset_ppb);
-    phase_history_.fill(s, std::arg<double>, offset_ppb);
+    phase_history_.fill(s, std::arg<float>, offset_ppb);
 
     if (fmax_index_history_.empty()) {
       // const time_duration dt(0,0,0, int64_t(0.5 + time_duration::ticks_per_second()*0.5*delta_t_sec_));
@@ -171,7 +171,7 @@ public:
           //                  % b[i]
           //                  );
         }
-        const std::pair<double, double> ff(pif_->eval(f_history_.size()));
+//         const std::pair<double, double> ff(pif_->eval(f_history_.size()));
         // std::cout << str(boost::format("fit: %+5.3f %3d (%.5e+-%.5e) (%.5e+-%.5e) (%.5e+-%.5e) chi2/dof = %.2e/%d (%.5e+-%.5e)\n" )
         //                  % shift_
         //                  % counter

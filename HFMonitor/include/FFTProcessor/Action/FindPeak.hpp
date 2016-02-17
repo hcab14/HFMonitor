@@ -36,17 +36,25 @@
 #include "FFTProcessor/Action/SpectrumInterval.hpp"
 
 namespace Action {
-  class FindPeak : public SpectrumInterval {
+  template<typename T>
+  class FindPeak : public SpectrumInterval<T> {
   public:
+    using SpectrumInterval<T>::name_;
+    using SpectrumInterval<T>::resultKey;
+    using SpectrumInterval<T>::useCalibration;
+    using SpectrumInterval<T>::calibrationKey;
+    using SpectrumInterval<T>::plotSpectrum;
+    typedef typename SpectrumInterval<T>::PowerSpectrum PowerSpectrum;
+
     FindPeak(const boost::property_tree::ptree& config)
-      : SpectrumInterval(config)
+      : SpectrumInterval<T>(config)
       , fReference_(config.get<double>("<xmlattr>.fRef_Hz"))
       , minRatio_(config.get<double>("<xmlattr>.minRatio")) {
       name_ = "FindPeak";
     }
     virtual ~FindPeak() {}
     virtual void proc(Proxy::Base& p, 
-                      const SpectrumBase& s,
+                      const T& s,
                       const PowerSpectrum& ps) {
       try {
         const Proxy::Base::ptime t(p.getApproxPTime());

@@ -46,15 +46,17 @@ namespace Result {
       , strengthRMS_(1.)
       , ratio_(1.) {}
 
+    template<typename T>
     bool findPeak(const Proxy::Base& p,
-                  const SpectrumBase& s,
+                  const T& s,
                   const PowerSpectrum& ps,
                   double minRatio) {
       return ps.empty() ? false : findPeak(p, s, ps, ps.front().first, ps.back().first, minRatio);
     }
     // find a peak in the range [fMin, fMax] (including fMax)
+    template<typename T>
     bool findPeak(const Proxy::Base& p,
-                  const SpectrumBase& s,
+                  const T& s,
                   const PowerSpectrum& ps,
                   double fMin, double fMax,
                   double minRatio) {

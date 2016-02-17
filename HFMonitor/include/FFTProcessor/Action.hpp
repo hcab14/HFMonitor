@@ -32,21 +32,18 @@
 #include "FFTProcessor/Proxy.hpp"
 
 namespace Action {
+  template<typename T>
   class Base : private boost::noncopyable {
   public:
     Base(std::string name)
       : name_(name) {}
     virtual ~Base() {}
     std::string name() const { return name_; }
-    virtual void perform(Proxy::Base& p, const SpectrumBase& s) = 0;
+    virtual void perform(Proxy::Base& p, const T& s) = 0;
+
+    typedef boost::shared_ptr<Base> Handle;
   protected:
     std::string name_;
-  } ;
-
-  typedef boost::shared_ptr<Base> Handle;
-
-  struct Factory {
-    static Handle makeAction(std::string name, const boost::property_tree::ptree& pt);
   } ;
 } // namespace Action
 
