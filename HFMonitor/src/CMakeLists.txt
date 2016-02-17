@@ -4,7 +4,6 @@
 ADD_SUBDIRECTORY(libportaudio)
 ADD_SUBDIRECTORY(libusb1.0)
 ADD_SUBDIRECTORY(sdr)
-ADD_SUBDIRECTORY(FFTProcessor)
 
 ADD_LIBRARY(logging_cpp logging.cpp)
 TARGET_LINK_LIBRARIES(logging_cpp ${Boost_LIBRARIES})
