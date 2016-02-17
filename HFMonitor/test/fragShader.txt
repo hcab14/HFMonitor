@@ -1,0 +1,19 @@
+// -*- C++ -*-
+//FRAGMENT SHADER
+
+#version 410
+
+in  vec2 texcoord;
+
+uniform float     sMin;
+uniform float     sMax;
+uniform sampler2D spec;
+uniform sampler2D colLUT;
+
+layout(location = 0) out vec4 fragColor;
+
+void main(void)
+{
+  vec4 t = texture(spec, texcoord);
+  fragColor = texture(colLUT, vec2(clamp(sMin+t.r*(sMax-sMin), 0,1), 0));
+}
