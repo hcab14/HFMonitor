@@ -1,7 +1,7 @@
 # -*- mode: Makefile -*-
 # $Id$
 
-ALL: install/share/clFFT/examples install/bin/volk_profile #boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
+ALL: install/share/clFFT/examples install/bin/volk_profile install/bin/fltk-config #boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
 
 install/share/clFFT/examples: clFFT
 	cd clFFT && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../install ../src && make -j4 install
@@ -23,15 +23,10 @@ boost_1_60_0.tar.bz2:
 	wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2
 
 
-fltk/insted/bin/fltk-config: fltk-1.3.3/insted/bin/fltk-config
-	rm -f fltk && ln -s fltk-1.3.3 fltk
-fltk-1.3.3/insted/bin/fltk-config: fltk-1.3.3/Makefile
-	cd fltk-1.3.3 && make -j4 install && cd ..
-fltk-1.3.3/Makefile: fltk-1.3.3-source.tar.gz
-	gzip -dc fltk-1.3.3-source.tar.gz | tar xvf - && cd fltk-1.3.3 && mkdir -p insted &&./configure --prefix=`pwd`/insted && cd .. && touch fltk-1.3.3/Makefile
-fltk-1.3.3-source.tar.gz:
-	wget http://fltk.org/pub/fltk/1.3.3/fltk-1.3.3-source.tar.gz && touch fltk-1.3.3-source.tar.gz
-
+install/bin/fltk-config: fltk-1.3.x-r11157
+	cd fltk-1.3.x-r11157 && ./autogen.sh --prefix=`pwd`/../install && make -j4 install
+fltk-1.3.x-r11157:
+	wget http://fltk.org/pub/fltk/snapshots/fltk-1.3.x-r11157.tar.bz2 -O - | tar xvf -
 
 sqlite3/bin/sqlite3: sqlite-autoconf-3080704/configure
 	cd sqlite-autoconf-3080704 && ./configure --prefix=`pwd`/../sqlite3 && make install && cd ../
