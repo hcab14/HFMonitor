@@ -1,11 +1,16 @@
 # -*- mode: Makefile -*-
 # $Id$
 
-ALL: install/bin/volk_profile #boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
+ALL: install/share/clFFT/examples install/bin/volk_profile #boost_1_57_0/bjam fltk/insted/bin/fltk-config sqlite3/bin/sqlite3
+
+install/share/clFFT/examples: clFFT
+	cd clFFT && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../install ../src && make -j4 install
+clFFT:
+	git clone -b v2.10.0 https://github.com/clMathLibraries/clFFT.git
+
 
 install/bin/volk_profile: volk
 	cd volk && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../install ../ && make -j4 install
-
 volk:
 	git clone -b v1.2.1 https://github.com/gnuradio/volk.git volk
 
