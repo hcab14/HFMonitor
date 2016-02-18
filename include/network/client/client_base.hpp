@@ -19,6 +19,8 @@
 #ifndef _CLIENT_BASE_HPP_cm121230_
 #define _CLIENT_BASE_HPP_cm121230_
 
+#include <stdlib.h>
+
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -264,7 +266,13 @@ namespace network {
           socket_.connect(*endpoint_iterator++, error);
           LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
         }
-        return (!error) || (endpoint_iterator != end);
+        if (error) {
+          tcp::endpoint tcp(boost::asio::ip::address::from_string(server_name), atoi(server_port.c_str()));
+          socket_.close();
+          socket_.connect(tcp, error);
+          LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
+        }
+        return (!error);// || (endpoint_iterator != end);
       }
 
       static data_buffer_type& data_buffer() {
