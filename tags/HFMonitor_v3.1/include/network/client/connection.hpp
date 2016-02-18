@@ -19,6 +19,8 @@
 #ifndef _CLIENT_CONNECTION_HPP_cm140509_
 #define _CLIENT_CONNECTION_HPP_cm140509_
 
+#include <stdlib.h>
+
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
@@ -168,7 +170,13 @@ namespace network {
           socket_.connect(*endpoint_iterator++, error);
           LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
         }
-        return (!error) || (endpoint_iterator != end);
+        if (error) {
+          tcp::endpoint tcp(boost::asio::ip::address::from_string(name), atoi(port.c_str()));
+          socket_.close();
+          socket_.connect(tcp, error);
+          LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
+        }
+        return (!error);// || (endpoint_iterator != end);
       }
 
       // data processing
