@@ -152,16 +152,19 @@ namespace network {
         , tick_buffer_('a')
         , deadline_(io_service)
         , heartbeat_timer_(io_service) {
-        ASSERT_THROW(true == connect_socket(host, port));
+        if (!connect_socket(host, port, boost::asio::ip::resolver_query_base::flags()) &&
+            !connect_socket(host, port, boost::asio::ip::resolver_query_base::numeric_service))
+          throw std::runtime_error("connect failed");
       }
 
     private:    
       // blocking connect
       bool connect_socket(std::string host,
-                          std::string port) {
+                          std::string port,
+                          boost::asio::ip::resolver_query_base::flags flags) {
         using boost::asio::ip::tcp;
         tcp::resolver resolver(io_service());
-        const tcp::resolver::query query(host, port);
+        const tcp::resolver::query query(host, port, flags);
         tcp::resolver::iterator endpoint_iterator(resolver.resolve(query));
         tcp::resolver::iterator end;
         boost::system::error_code error(boost::asio::error::host_not_found);
@@ -170,7 +173,7 @@ namespace network {
           socket_.connect(*endpoint_iterator++, error);
           LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
         }
-        if (error) {
+        if (error || endpoint_iterator == end) {
           tcp::endpoint tcp(boost::asio::ip::address::from_string(name), atoi(port.c_str()));
           socket_.close();
           socket_.connect(tcp, error);
