@@ -56,7 +56,11 @@ namespace network {
         , tick_buffer_('a')
         , timer_(io_service, boost::posix_time::seconds(1)) {
         if (!connect_socket(config.get<std::string>("server.<xmlattr>.host"),
-                            config.get<std::string>("server.<xmlattr>.port")))
+                            config.get<std::string>("server.<xmlattr>.port"),
+                            boost::asio::ip::resolver_query_base::flags()) &&
+            !connect_socket(config.get<std::string>("server.<xmlattr>.host"),
+                              config.get<std::string>("server.<xmlattr>.port"),
+                            boost::asio::ip::resolver_query_base::numeric_service))
           throw std::runtime_error("connect failed");
       }
 
@@ -254,10 +258,11 @@ namespace network {
 
       // blocking connect
       bool connect_socket(std::string server_name,
-                          std::string server_port) {
+                          std::string server_port,
+                          boost::asio::ip::resolver_query_base::flags flags) {
         using boost::asio::ip::tcp;
         tcp::resolver resolver(get_io_service());
-        tcp::resolver::query    query(server_name, server_port);
+        tcp::resolver::query    query(server_name, server_port, flags);
         tcp::resolver::iterator endpoint_iterator(resolver.resolve(query));
         tcp::resolver::iterator end;
         boost::system::error_code error = boost::asio::error::host_not_found;
@@ -266,13 +271,7 @@ namespace network {
           socket_.connect(*endpoint_iterator++, error);
           LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
         }
-        if (error) {
-          tcp::endpoint tcp(boost::asio::ip::address::from_string(server_name), atoi(server_port.c_str()));
-          socket_.close();
-          socket_.connect(tcp, error);
-          LOG_INFO(str(boost::format("error(connect)= '%s'") % error));
-        }
-        return (!error);// || (endpoint_iterator != end);
+        return (!error || (endpoint_iterator != end));
       }
 
       static data_buffer_type& data_buffer() {
