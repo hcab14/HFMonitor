@@ -130,7 +130,7 @@ public:
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     const size_t length(std::distance(i0, i1));
-#if 1
+#if 0
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()

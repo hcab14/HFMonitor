@@ -30,6 +30,7 @@
 // #include <FL/Fl_draw.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
+#include <FL/Fl_Menu_Window.H>
 #include <FL/Fl_Simple_Counter.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Output.H>
@@ -39,7 +40,48 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+
+class popup_window : public Fl_Menu_Window {
+public:
+  popup_window()
+    : Fl_Menu_Window(10,10)
+    , output_(0, 0, w(), h()) {
+    output_.box(FL_UP_BOX);
+    end();
+    hide();
+    border(0);
+    output_.align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE);
+    output_.label("No text defined");
+    SizeToText();
+  }
+  virtual ~popup_window() {}
+
+  // Change text in box
+  void text(const char*s) {
+    output_.label(s);
+    SizeToText();
+  }
+  // Pop up window at current mouse position
+  void popup() {
+    position(Fl::event_x_root(), Fl::event_y_root());
+    show();
+  }
+
+protected:
+  // Size window to just fit output's label text
+  void SizeToText() {
+    int W=0, H=0;
+    fl_font(output_.labelfont(), output_.labelsize());
+    fl_measure(output_.label(), W, H, 0);
+    resize(x(), y(), W+10, H+10);
+    output_.resize(0, 0, W+10, H+10);
+  }
+
+private:
+  Fl_Box output_;
+};
 
 class spectrum_display : public Fl_Double_Window {
 public:
@@ -63,7 +105,10 @@ public:
     , fCur_(500, h-20,  80, 20, "fCur:")
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
     , fTime_(    w-200, h-20, 160, 20, "Current Time:")
+    , popup_()
+    , popupText_("")
     , xPush_(-1)
+    , xPushPeak_(-1)
     , init_(true)
     , spec_fMin_(0)
     , spec_fMax_(40e6) {
@@ -138,10 +183,98 @@ public:
                             new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S")));
       oss << sp->approx_ptime();
       fTime_.value(oss.str().c_str());
+
+      // peak finding
+      if (xPushPeak_ != -1) {
+        const double fPush = xInputFromSpec(xPushPeak_);
+        const int    iPush = spec_filtered.freq2index(fPush);
+        const double sPush = spec_filtered[iPush].second;
+        if (iPush > 0 && iPush+1 < spec_filtered.size()) {
+          bool dir[3] =  {
+            sPush > spec_filtered[iPush+1].second,
+            sPush > spec_filtered[iPush-1].second,
+            false
+          };
+#if 0
+          std::cout << "=== ["
+                    << spec_filtered[iPush-1].second << " "
+                    << spec_filtered[iPush  ].second << " "
+                    << spec_filtered[iPush+1].second << "] dir="
+                    << dir[0] << dir[1] << std::endl;
+#endif
+          int ip[3] = { -1, -1, -1 };
+          for (int i=iPush; i+1<spec_filtered.size(); ++i) {
+            ip[0] = i;
+            if (dir[0] != (spec_filtered[i].second > spec_filtered[i+1].second))
+              break;            
+          }
+          // ++ip[0];
+          for (int i=iPush; i>1; --i) {
+            ip[1] = i;
+            if (dir[1] != (spec_filtered[i].second > spec_filtered[i-1].second))
+              break;
+          }
+          // --ip[1];
+          // sort
+          if (spec_filtered[ip[0]].second < spec_filtered[ip[1]].second) {
+            std::swap(ip[0],  ip[1]);
+            std::swap(dir[0], dir[1]);
+          }
+          if (ip[0] < ip[1]) {
+            for (int i=ip[0]; i>1; --i) {
+              ip[2] = i;
+              if (spec_filtered[i].second < spec_filtered[i-1].second)
+                break;
+            }
+            // --ip[2];
+          } else {
+            for (int i=ip[0]; i<spec_filtered.size(); ++i) {
+              ip[2] = i;
+              if (spec_filtered[i].second < spec_filtered[i+1].second)
+                break;
+            }
+            // ++ip[2];
+          }
+
+          std::sort(ip, ip+3);
+          const int dist = std::min(3, std::min(ip[1]-ip[0], ip[2]-ip[1]));
+          const int range[2] = {
+            ip[1]-dist,
+            ip[1]+dist
+          };
+          double sum_w=0, sum_wx=0;
+          for (int i=range[0]; i<=range[1]; ++i) {
+            const double w = std::pow(10.0, 0.1*spec_filtered[i].second);
+            sum_w  += w ;
+            sum_wx += w*spec_filtered[i].first;
+            // std::cout << "--- " << i << " " << spec_filtered[i].first << " " << spec_filtered[i].second << " " << w << std::endl;
+          }
+#if 0
+          std::cout << "fPush= " << fPush << " " << spec_filtered[iPush].first
+                    << " dir= " << dir[0] << dir[1] << dir[2]
+                    << " f= "
+                    << spec_filtered[ip[0]].first << " "
+                    << spec_filtered[ip[1]].first << " "
+                    << spec_filtered[ip[2]].first << " s="
+                    << spec_filtered[ip[0]].second << " "
+                    << spec_filtered[ip[1]].second << " "
+                    << spec_filtered[ip[2]].second << " ===> " << sum_wx/sum_w
+                    << std::endl;
+#endif
+          popupText_ = boost::str(boost::format("%.1f (%d)") % (sum_wx/sum_w) % dist);
+          if (update_window)
+            popup_.text(popupText_.c_str());
+        } else {
+          if (update_window) {
+            popupText_ = "";
+            popup_.hide();
+          }
+        }
+      }
     }
     std::vector<T> s(specN(),  0);
     std::vector<T> sf(specN(), 0);
-    std::vector<int>    counters(specN(), 0);
+    std::vector<int> counters(specN(), 0);
     for (size_t i(0), n(spec.size()); i<n; ++i) {
       const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
       s[j]  = (0 == counters[j]) ? spec[i].second          : std::max(s[j],  spec[i].second);
@@ -377,9 +510,15 @@ public:
         do_callback();
       if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
           isInWaterfall(Fl::event_x(), Fl::event_y())) {
-        xPush_ = Fl::event_x();
-        std::cout << "handle: FL_PUSH " << event
-                  << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
+        if (Fl::event_button() == FL_LEFT_MOUSE) {
+          xPush_ = Fl::event_x();
+          // std::cout << "handle: FL_PUSH " << event
+          //           << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
+        }
+        if (Fl::event_button() == FL_RIGHT_MOUSE) {
+          xPushPeak_ = Fl::event_x();
+          popup_.popup();
+        }
         return 1;
       }
       return Fl_Double_Window::handle(event);
@@ -389,19 +528,24 @@ public:
         do_callback();
       if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
           isInWaterfall(Fl::event_x(), Fl::event_y())) {
-        std::cout << "handle: FL_RELEASE " << event
-                  << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
-        if (Fl::event_x() != xPush_) {
-          double f[2] = {
-            xInputFromSpec(xPush_),
-            xInputFromSpec(Fl::event_x())
-          };
-          std::sort(f, f+2);
-          set_fMin(f[0]);
-          set_fMax(f[1]);
-          std::cout << "x1,x2= " << xPush_ << " " << Fl::event_x() << std::endl;
-          std::cout << "f1,f2= " << f[0] << " " << f[1] << std::endl;
-          zoom_hist_.push_back(std::make_pair(f[0], f[1]));
+        if (Fl::event_button() == FL_LEFT_MOUSE) {
+          // std::cout << "handle: FL_RELEASE " << event
+          //           << " x,y= " << Fl::event_x() << " " << Fl::event_y() << std::endl;
+          if (Fl::event_x() != xPush_) {
+            double f[2] = {
+              xInputFromSpec(xPush_),
+              xInputFromSpec(Fl::event_x())
+            };
+            std::sort(f, f+2);
+            set_fMin(f[0]);
+            set_fMax(f[1]);
+            // std::cout << "x1,x2= " << xPush_ << " " << Fl::event_x() << std::endl;
+            // std::cout << "f1,f2= " << f[0] << " " << f[1] << std::endl;
+            zoom_hist_.push_back(std::make_pair(f[0], f[1]));
+          }
+        }
+        if (Fl::event_button() == FL_RIGHT_MOUSE) {
+          //          popup_.hide();
         }
         return 1;
       }
@@ -413,7 +557,7 @@ public:
       if (isInSpec     (Fl::event_x(), Fl::event_y()) ||
           isInWaterfall(Fl::event_x(), Fl::event_y())) {
         const char* txt(Fl::event_text());
-        std::cout << "key pressed: " << txt << " '" << txt[0]<< "' len=" << Fl::event_length() << std::endl;
+        // std::cout << "key pressed: " << txt << " '" << txt[0]<< "' len=" << Fl::event_length() << std::endl;
         if (Fl::event_length()>0 && txt[0] == 'u') {
           // unzoom
           if (!zoom_hist_.empty())
@@ -540,8 +684,11 @@ private:
   Fl_Value_Output     fCur_;
   Fl_Output           fStreamName_;
   Fl_Output           fTime_;
+  popup_window        popup_;
+  std::string         popupText_;
   int                 specIndex_;
   int                 xPush_;
+  int                 xPushPeak_;
   std::vector<double> spec_;
   std::vector<double> spec_fitted_;
   std::vector<uchar>  specImg_;
