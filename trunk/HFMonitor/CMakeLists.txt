@@ -62,7 +62,10 @@ EXECUTE_PROCESS(COMMAND "make" WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/softwar
 
 #SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED ON)
-FIND_PACKAGE(Boost 1.57 REQUIRED COMPONENTS log log_setup filesystem iostreams date_time regex program_options system  coroutine thread context )
+SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/install)
+SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
+SET(Boost_NO_SYSTEM_PATHS ON)
+FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS log log_setup filesystem iostreams date_time regex program_options system coroutine thread)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")

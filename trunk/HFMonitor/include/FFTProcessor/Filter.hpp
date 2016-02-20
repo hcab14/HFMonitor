@@ -197,6 +197,8 @@ namespace Filter {
     Cascaded() {}
     virtual ~Cascaded() {}
 
+    bool empty() const { return filters_.empty(); }
+
     void add(typename Base<T>::sptr fp) {
       filters_.push_back(fp);
     }

@@ -30,7 +30,7 @@
 // #include <FL/Fl_draw.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
-#include <FL/Fl_Menu_Window.H>
+//#include <FL/Fl_Menu_Window.H>
 #include <FL/Fl_Simple_Counter.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Output.H>
@@ -43,10 +43,10 @@
 #include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-class popup_window : public Fl_Menu_Window {
+class popup_window : public Fl_Double_Window {
 public:
   popup_window()
-    : Fl_Menu_Window(10,10)
+    : Fl_Double_Window(10,10)
     , output_(0, 0, w(), h()) {
     output_.box(FL_UP_BOX);
     end();
@@ -106,12 +106,14 @@ public:
     , fStreamName_(700, h-20, 150, 20, "Stream Name:")
     , fTime_(    w-200, h-20, 160, 20, "Current Time:")
     , popup_()
-    , popupText_("")
     , xPush_(-1)
     , xPushPeak_(-1)
     , init_(true)
     , spec_fMin_(0)
     , spec_fMax_(40e6) {
+
+    popupText_[0] = 0;
+
     sMin_.step(1,1); sMin_.range(-140,0); sMin_.value(-70);
     sMax_.step(1,1); sMax_.range(-140,0); sMax_.value(-40);
 
@@ -228,7 +230,7 @@ public:
             }
             // --ip[2];
           } else {
-            for (int i=ip[0]; i<spec_filtered.size(); ++i) {
+            for (int i=ip[0]; i<spec_filtered.size()-1; ++i) {
               ip[2] = i;
               if (spec_filtered[i].second < spec_filtered[i+1].second)
                 break;
@@ -261,12 +263,12 @@ public:
                     << spec_filtered[ip[2]].second << " ===> " << sum_wx/sum_w
                     << std::endl;
 #endif
-          popupText_ = boost::str(boost::format("%.1f (%d)") % (sum_wx/sum_w) % dist);
+          sprintf(popupText_, "%.1f (%d)", sum_wx/sum_w, dist);
           if (update_window)
-            popup_.text(popupText_.c_str());
+            popup_.text(popupText_);
         } else {
           if (update_window) {
-            popupText_ = "";
+            popupText_[0] = 0;
             popup_.hide();
           }
         }
@@ -685,7 +687,7 @@ private:
   Fl_Output           fStreamName_;
   Fl_Output           fTime_;
   popup_window        popup_;
-  std::string         popupText_;
+  char                popupText_[1024];
   int                 specIndex_;
   int                 xPush_;
   int                 xPushPeak_;

@@ -120,7 +120,6 @@ public:
     , port_(config.get<std::string>("server.<xmlattr>.port"))
     , last_update_time_(boost::date_time::not_a_date_time)
     , filter_nb_(0.01, 500e3) {
-    filter_.add(Filter::LowPass<frequency_vector<float> >::make(1.0, 15));
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
@@ -146,6 +145,9 @@ public:
       fftw_.resize(length);
       filter_nb_.init(0.05, sp->sample_rate_Hz());
     }
+    if (filter_.empty()) {
+      filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
+    }
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
@@ -162,7 +164,7 @@ public:
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
     const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
-			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,1));
+			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,2));
     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
     if (update_window)
       last_update_time_ = sp->approx_ptime();
