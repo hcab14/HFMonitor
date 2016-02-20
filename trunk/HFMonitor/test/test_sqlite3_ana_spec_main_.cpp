@@ -35,14 +35,16 @@
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Select_Browser.H>
 
+#include <FL/Fl_Gl_Window.H>
 /* Ensure we are using opengl's core profile only */
 #define GL3_PROTOTYPES 1
-#include <FL/Fl_Gl_Window.H>
-#include <FL/gl.h>
 // #include <FL/glu.h>
 #if defined(__APPLE__)
 #  include <OpenGL/gl3.h> // defines OpenGL 3.0+ functions
+#else
+#  include <GLES3/gl3.h>
 #endif
+#include <FL/gl.h>
 
 #include "Spectrum.hpp"
 #include "logging.hpp"
@@ -56,7 +58,7 @@ class ShaderSource {
 public:
   ShaderSource(std::string fileName)
     : _count(0) {
-    std::ifstream ifs(fileName);
+    std::ifstream ifs(fileName.c_str());
     std::string line;
     _str.clear();
     while (std::getline(ifs, line)) {

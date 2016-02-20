@@ -263,6 +263,10 @@ namespace db {
         ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
         return *this;
       }
+      statement& bindT(int index, long int val, detail::type2type<long int>) {
+        ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
+        return *this;
+      }
       statement& bindT(int index, std::string s, detail::type2type<std::string>) {
         ASSERT_THROW_SQLITE3(sqlite3_bind_text(_stmt, index, s.c_str(), s.size(), SQLITE_TRANSIENT));
         return *this;
