@@ -110,8 +110,14 @@ protected:
                      std::string     stream_name,
                      boost::uint32_t sample_rate_Hz,
                      double          center_frequency_Hz) {
-      return sptr(new service_dc(pp, sp, stream_name,
-                                 sample_rate_Hz, center_frequency_Hz));
+      return sptr(new service_dc(pp, sp,
+                                 stream_name, sample_rate_Hz, center_frequency_Hz));
+    }
+    static sptr make(multi_downconvert_processor<FFTFloat>* pp, service::sptr sp) {
+      return sptr(new service_dc(pp, sp,
+                                 sp->stream_name(),
+                                 sp->sample_rate_Hz(),
+                                 sp->center_frequency_Hz()));
     }
     virtual ~service_dc() {}
 
@@ -254,7 +260,7 @@ public:
                           const_iterator i0,
                           const_iterator i1) {
     // (0) possibly broadcast also the incoming data stream
-    dump(sp, i0, i1);
+    dump(service_dc::make(this, sp), i0, i1);
 
     // (1) initialize filters
     BOOST_FOREACH(filter_param& fp, filter_params_) {
