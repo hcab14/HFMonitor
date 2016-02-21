@@ -45,14 +45,14 @@
               name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_JJI_1"
-           name="MSK_JJI_1" fc_Hz="20.2e3" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_JJI_1" fc_Hz="20.2e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NPM"
-           name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_JJI_2"
-              name="MSK_JJI_2" fc_Hz="22.20e3" fm_Hz="200.0"
-              dwl_Hz=".1" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="120"/>
+              name="MSK_JJI_2" fc_Hz="22200.5893" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NAA"
               name="MSK_NAA" fc_Hz="24.00e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
