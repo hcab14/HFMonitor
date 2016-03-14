@@ -19,12 +19,15 @@
 #ifndef _FIR_FILTER_HPP_cm131117_
 #define _FIR_FILTER_HPP_cm131117_
 
+#include <volk/volk.h>
+
+#include "aligned_vector.hpp"
 #include "filter/fir.hpp"
 
 class fir_filter {
 public:
-  typedef std::complex<double> complex_type;
-  typedef filter::fir::lowpass<double> fir_type;
+  typedef std::complex<float> complex_type;
+  typedef filter::fir::lowpass<float> fir_type;
 
   fir_filter(size_t n,
              double f,
@@ -79,25 +82,17 @@ public:
   bool is_shifted() const { return shift_ != 0.; }
 
   void insert(complex_type sample) {
+    ++sample_counter_;
+    sample_counter_ %= phases_.size();
     for (size_t i(n_-1); i!=0; --i)
       history_[i] = history_[i-1];
-    history_[0] = sample;
-    sample_counter_++;
+    history_[0] = phases_[sample_counter_] * sample;
   }
-  complex_type process() {
+  complex_type process() const {
     complex_type result(0);
-    if (is_shifted()) {
-      for (size_t i(0); i<n_; ++i)
-        result += history_[i] * phases_[i] * b_[i];
-    } else {
-      for (size_t i(0); i<n_; ++i)
-        result += history_[i] * b_[i];
-    }
-    if (is_shifted()) {
-      sample_counter_ %= phases_.size();
+    volk_32fc_32f_dot_prod_32fc(&result, history_, b_, n_);
+    if (is_shifted())
       result *= std::conj(phases_[sample_counter_]);
-      // sample_counter_ = (sample_counter_ == 0) ? n_-1 : sample_counter_
-    }
     return result;
   }
   complex_type process(complex_type sample) {
@@ -107,13 +102,13 @@ public:
 
 protected:
 private:
-  size_t n_;                          // filter size
-  double f_;                          // cutoff frequency (normalized)
+  size_t n_;                             // filter size
+  double f_;                             // cutoff frequency (normalized)
   double shift_;
   size_t sample_counter_;
-  std::vector<double> b_;             // fir coefficients
-  std::vector<complex_type> phases_;  // phases for frequency shift
-  std::vector<complex_type> history_; // filter history
+  aligned_vector<float> b_;              // fir coefficients
+  aligned_vector<complex_type> phases_;  // phases for frequency shift
+  aligned_vector<complex_type> history_; // filter history
 } ;
 
 #endif // _FIR_FILTER_HPP_cm131117_

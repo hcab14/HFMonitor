@@ -25,6 +25,8 @@
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <volk/volk.h>
+
 #include "aligned_vector.hpp"
 #include "FFT.hpp"
 
@@ -115,7 +117,7 @@ namespace filter {
             ifft_.in(i%nd) += complex_multiplication_optimized
               (fft.out((n()+i-shift())%n()), h_[i]*norm);
           }
-#else
+//#else
           // optimized loops
           const size_t m(n()/nd);
           for (size_t j(0); j<nd; ++j) {
@@ -125,6 +127,19 @@ namespace filter {
                 (fft.out((n()+j+i*nd-shift())%n()), norm*h_[j+i*nd]);
             }
             ifft_.in(j) = ci;
+          }
+#else
+          // optimized loops
+          const size_t m(n()/nd);
+          aligned_vector<complex_type> x(m), a(m);
+          for (size_t j(0); j<nd; ++j) {
+            for (size_t i(0); i<m; ++i) {
+              x[i] = fft.out((n()+j+i*nd-shift())%n());
+              a[i] = h_[j+i*nd];
+            }
+            complex_type ci(0);
+            volk_32fc_x2_dot_prod_32fc(&ci, x, a, m);
+            ifft_.in(j) = norm*ci;
           }
 #endif
           ifft_.transform();

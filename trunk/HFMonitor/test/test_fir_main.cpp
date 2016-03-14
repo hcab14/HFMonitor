@@ -24,7 +24,7 @@
 
 int main()
 {
-  typedef double float_type;
+  typedef float float_type;
   typedef filter::fir::lowpass<float_type> fir_type;
   typedef filter::fir::overlap_save<float_type> os_type;
   const size_t m(125001);
@@ -36,18 +36,18 @@ int main()
 
   os_type os(l, m);
   size_t decim(10);
-  std::pair<size_t, double> r(os.add_filter(fir.coeff(), 0.1, decim));
+  std::pair<size_t, float> r(os.add_filter(fir.coeff(), 0.1, decim));
   std::cout << "#offset = " << r.second << " (" << 0.1 << ")" << std::endl;
   os_type::complex_vector_type buffer(l);
 
   
-  FFT::FFTWTransform<double> t1(l,       FFTW_FORWARD, FFTW_ESTIMATE);
-  FFT::FFTWTransform<double> t2(l/decim, FFTW_FORWARD, FFTW_ESTIMATE);
+  FFT::FFTWTransform<float> t1(l,       FFTW_FORWARD, FFTW_ESTIMATE);
+  FFT::FFTWTransform<float> t2(l/decim, FFTW_FORWARD, FFTW_ESTIMATE);
 
   size_t counter(0);
   for (size_t i=0; i<5; ++i) {
     for (size_t j=0; j<l; ++j, ++counter) {
-      buffer[j]  = 0.*os_type::complex_type(drand48()-0.5, drand48()-0.5);
+      buffer[j]  = float(0)*os_type::complex_type(drand48()-0.5, drand48()-0.5);
       buffer[j] += std::exp(os_type::complex_type(0., 2*M_PI*0.10*counter));
     }
     os.proc(buffer);
@@ -55,8 +55,8 @@ int main()
 
     if (i>1) {
       const os_type::complex_vector_type& out(os.get_filter(r.first)->result());
-      t1.transformVector(buffer, FFT::WindowFunction::Blackman<double>(l));
-      t2.transformVector(out, FFT::WindowFunction::Blackman<double>(l/decim));
+      t1.transformVector(buffer, FFT::WindowFunction::Blackman<float>(l));
+      t2.transformVector(out, FFT::WindowFunction::Blackman<float>(l/decim));
       for (size_t j=0; j<l; ++j) {
         std::cout << "O " << j << " " 
                   << std::scientific << " " 
