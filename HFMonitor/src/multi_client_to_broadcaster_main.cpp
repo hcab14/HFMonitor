@@ -22,6 +22,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "FFTProcessor.hpp"
+#include "demod_alpha_processor.hpp"
 #include "demod_fsk_processor.hpp"
 #include "demod_msk_processor.hpp"
 #include "network.hpp"
@@ -130,6 +131,7 @@ int main(int argc, char* argv[])
     processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<network::iq_adapter<demod_msk_processor  > >("DemodMSK");
     processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
+    processor::registry::add<network::iq_adapter<demod_alpha_processor> >("DemodALPHA");
 
     network::client::multi_client_to_broadcaster c(config_multi_client);
 
