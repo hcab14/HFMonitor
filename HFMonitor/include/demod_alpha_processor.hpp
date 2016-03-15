@@ -25,6 +25,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "logging.hpp"
+#include "FFT.hpp"
 #include "filter/goertzel.hpp"
 
 
@@ -167,7 +168,7 @@ public:
     for (const_iterator i=i0; i!=i1; ++i) {      
       ++sample_counter_;
       for (int j=0; j<3; ++j)
-        gf_[j].update(*i);
+        gf_[j].update((*i) * FFT::WindowFunction::Hamming<float>(period_)(sample_counter_));
 
       if (sample_counter_ == period_) {
         sample_counter_ = 0;
@@ -203,7 +204,7 @@ public:
       if (state_ == LOCKED) {
         ++counterPhase_;
         for (int j=0; j<3; ++j)
-          gfPhase_[j].update(*i);
+          gfPhase_[j].update((*i) * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
 
         if (counterPhase_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
