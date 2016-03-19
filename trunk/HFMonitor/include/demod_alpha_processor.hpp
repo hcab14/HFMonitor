@@ -116,7 +116,9 @@ public:
     , periodSlot_(1)
     , counterPhase_(0)
     , counterSlot_(0)
-    , counterCarrier_(0) {}
+    , counterCarrier_(0)
+    , alpha_(0.5)
+    , s_last_(1) {}
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
 
@@ -162,17 +164,23 @@ public:
 
       counterSlot_ = counterPhase_ = counterCarrier_ = 0;
 
+      alpha_ = 1./(1.+sp->sample_rate_Hz() * 0.4);
+      s_last_ = 0.01;
+
       state_ = INITIALIZED;
     }
     
     for (const_iterator i=i0; i!=i1; ++i) {      
       ++sample_counter_;
+      const bool b = abs(*i) < 8.*s_last_;
+      s_last_ = (1.-alpha_)*s_last_ + b*alpha_*std::abs(*i) + (1-b)*alpha_*s_last_;
+      const std::complex<float> s(b ? *i  : std::complex<float>(0));
       for (int j=0; j<3; ++j)
-        gf_[j].update((*i) * FFT::WindowFunction::Hamming<float>(period_)(sample_counter_));
+        gf_[j].update(s * FFT::WindowFunction::Hamming<float>(period_)(sample_counter_));
 
       if (sample_counter_ == period_) {
         sample_counter_ = 0;
-        const double alpha=0.15;
+        const double alpha=0.25;
         for (int j=0; j<3; ++j) {
           buf_[j][buf_counter_] = (1-alpha)*buf_[j][buf_counter_] + alpha*std::abs(gf_[j].x());
           gf_[j].reset();
@@ -193,7 +201,8 @@ public:
               sig_[j][4] << "," << 
               sig_[j][5] << ")" << std::endl;
           }
-          if (offset[0] == offset[1] &&
+          if (//state_ != LOCKED &&
+              offset[0] == offset[1] &&
               offset[0] == offset[2]) {
             state_ = LOCKED;
             counterPhase_ = -offset[0] * sp->sample_rate_Hz() * dt_;
@@ -204,7 +213,7 @@ public:
       if (state_ == LOCKED) {
         ++counterPhase_;
         for (int j=0; j<3; ++j)
-          gfPhase_[j].update((*i) * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
+          gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
 
         if (counterPhase_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
@@ -315,4 +324,6 @@ private:
   float         sig_[3][6];
   float         phases_[3][6];
 
+  float         alpha_;
+  float         s_last_;
 } ;

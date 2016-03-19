@@ -153,6 +153,16 @@ namespace wave {
       std::ifstream ifs(filename.c_str());
       if (start_time_ == boost::date_time::not_a_date_time)
         start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
+
+      if (sample_number_) {
+        using namespace boost::posix_time;
+        const time_duration dt(0, 0, 0,
+                               boost::int64_t(double(sample_number_)/double(format().sampleRate())
+                                              *time_duration::ticks_per_second()+0.5));
+        start_time_ += dt;
+        sample_number_ = 0;
+      }
+      std::cout << "SSS " << start_time_ << std::endl;
       return read_chunks(ifs);
     }
 
