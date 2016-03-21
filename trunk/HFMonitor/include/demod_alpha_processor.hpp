@@ -87,14 +87,14 @@ public:
                  ptime  t,
                  float bkgd,
                  float sig[6],
-                 float phases[6],
+                 float phases[12],
                  int   offset)
       : result_base(name, t)
       , bkgd_(s2db(bkgd))
       , locked_(offset!=-1) {
       for (int i=0; i<6; ++i) {
         const int j = (locked_ ? ((i+offset)%6) : i);
-        sig_[i]  = s2db(sig[j]);
+        sig_[i]    = s2db(sig[j]);
         phases_[i] = phases[j];
       }
     }
@@ -233,14 +233,14 @@ public:
         
         if (++counterPhaseMeasurement_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
-            phases_[j][(6+counterSlot_)%6] = pmPi(std::arg(gfPhase_[j].x()) -
-                                                  counterCarrier_*2*M_PI*df[j]*3.6 +
-                                                  counterPhaseShifts_/24000.0*17*2*M_PI);
+            const int k = ((6+counterSlot_)%6);
+            phases_[j][k]    = pmPi(std::arg(gfPhase_[j].x()) -
+                                    counterCarrier_*2*M_PI*df[j]*3.6 +
+                                    counterPhaseShifts_/24000.0*17*2*M_PI);
           }
             
-          if (++counterSlot_ == 6) {
+          if (++counterSlot_ == 6)
             counterSlot_ = 0;
-          }
 
           if (++counterSlotSynchronized_ == 6) {
             counterSlotSynchronized_ = 0;
@@ -253,7 +253,7 @@ public:
               for (int j=0; j<3; ++j) {
                 const time_duration
                   dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-                const time_duration dt2(0,0,0, (-7.2+off*0.6+0.2)*time_duration::ticks_per_second());
+                const time_duration dt2(0,0,0, -(0.4+(6-off)*0.6)*time_duration::ticks_per_second());
                 result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], counterSlot_);
                 std::cout << rp->approx_ptime() << " " << rp->name() << " ";
                 rp->dump_data(std::cout);
