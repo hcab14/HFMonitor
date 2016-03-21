@@ -124,6 +124,7 @@ public:
     , periodSlot_(1)
     , counterPhaseMeasurement_(0)
     , counterSlot_(0)
+    , counterSlotSynchronized_(0)
     , counterCarrier_(0)
     , counterPhaseShifts_(0)
     , alpha_(0.5)
@@ -171,7 +172,11 @@ public:
       periodPhase_ = size_t(0.5 + sp->sample_rate_Hz() * 0.4);
       periodSlot_  = size_t(0.5 + sp->sample_rate_Hz() * 0.6);
 
-      counterSlot_ = counterPhaseMeasurement_ = counterCarrier_ = counterPhaseShifts_ = 0;
+      counterSlot_             = 0;
+      counterSlotSynchronized_ = 0;
+      counterPhaseMeasurement_ = 0;
+      counterCarrier_          = 0;
+      counterPhaseShifts_      = 0;
 
       alpha_ = 1./(1.+sp->sample_rate_Hz() * 0.4);
       s_last_ = 0.01;
@@ -180,14 +185,13 @@ public:
     }
     
     for (const_iterator i=i0; i!=i1; ++i) {      
-      ++sample_counter_;
       const bool b = abs(*i) < 8*s_last_;
       s_last_ = (1.-alpha_)*s_last_ + b*alpha_*std::abs(*i) + (1-b)*alpha_*s_last_;
       const std::complex<float> s(b ? *i  : std::complex<float>(0));
       for (int j=0; j<3; ++j)
         gf_[j].update(s * FFT::WindowFunction::Hamming<float>(period_)(sample_counter_));
 
-      if (sample_counter_ == period_) {
+      if (++sample_counter_ == period_) {
         sample_counter_ = 0;
         const double alpha=0.1;
         for (int j=0; j<3; ++j) {
@@ -195,8 +199,7 @@ public:
           gf_[j].reset();
         }
 
-        ++buf_counter_;
-        if (buf_counter_ == buf_size_) {
+        if (++buf_counter_ == buf_size_) {
           buf_counter_ = 0;
           int offset[3];
           for (int j=0; j<3; ++j) {
@@ -221,43 +224,44 @@ public:
           }
         }
       }    
-
+      
       if (state_ == LOCKED) {
         if (counterPhaseMeasurement_ >= 0) {
           for (int j=0; j<3; ++j)
             gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhaseMeasurement_));
         }
-        ++counterPhaseMeasurement_;
         
-        if (counterPhaseMeasurement_ == periodPhase_) {
+        if (++counterPhaseMeasurement_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
-            phases_[j][counterSlot_] = pmPi(std::arg(gfPhase_[j].x()) -
-                                            counterCarrier_*2*M_PI*df[j]*3.6 +
-                                            counterPhaseShifts_/24000.0*17*2*M_PI);
-            // std::cout << "j=" << j
-            //           << " slot="  << counterSlot_
-            //           << " phase= " << phases_[j][counterSlot_] << " " << std::abs(gfPhase_[j].x())
-            //           << std::endl;
+            phases_[j][(6+counterSlot_)%6] = pmPi(std::arg(gfPhase_[j].x()) -
+                                                  counterCarrier_*2*M_PI*df[j]*3.6 +
+                                                  counterPhaseShifts_/24000.0*17*2*M_PI);
           }
-          ++counterSlot_;
-
-          if (counterSlot_ == 6) {
+            
+          if (++counterSlot_ == 6) {
             counterSlot_ = 0;
+          }
+
+          if (++counterSlotSynchronized_ == 6) {
+            counterSlotSynchronized_ = 0;
 
             // synchronize
             const int off = find_stations();
-            // std::cout << "find_stations off = " << off << std::endl;
-            for (int j=0; j<3; ++j) {
-              const time_duration
-                dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-              const time_duration dt2(0,0,0, (-3.6+off*0.6+0.2)*time_duration::ticks_per_second());
-              result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], off);
-              std::cout << rp->approx_ptime() << " " << rp->name() << " ";
-              rp->dump_data(std::cout);
-              sp->put_result(rp);
-              std::cout << std::endl;
+            if (counterSlot_ != off) {
+              counterSlotSynchronized_ = -off;
+            } else {
+              for (int j=0; j<3; ++j) {
+                const time_duration
+                  dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
+                const time_duration dt2(0,0,0, (-3.6+off*0.6+0.2)*time_duration::ticks_per_second());
+                result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], counterSlot_);
+                std::cout << rp->approx_ptime() << " " << rp->name() << " ";
+                rp->dump_data(std::cout);
+                sp->put_result(rp);
+                std::cout << std::endl;
             }
-            // TBD
+              // TBD
+            }
           }
         }
         if (counterPhaseMeasurement_ == periodSlot_) {
@@ -393,6 +397,7 @@ private:
   int           periodSlot_;              // 0.6 sec
   int           counterPhaseMeasurement_; // [0..periodSlot-1]
   int           counterSlot_;             // [0..5]
+  int           counterSlotSynchronized_; // [0..5] with station synchronization
   goertzel_type gfPhase_[3];              // Goertzel filters for phase measurement (0.4 sec)
   int           counterCarrier_;          // [0-7] phase advance in 3.6 sec
   int           counterPhaseShifts_;      // [0-23999] phase progression of 102*2pi/24h = 17*24/4h
