@@ -29,8 +29,8 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # where to look first for cmake modules
-#SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules;${CMAKE_HOME_DIRECTORY}/software/install/lib/cmake/volk")
-SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules")
+SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules;${CMAKE_HOME_DIRECTORY}/software/install/lib/cmake/volk")
+#SET(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/CMake/modules")
 
 SET(CMAKE_PREFIX_PATH "${CMAKE_HOME_DIRECTORY}/software/install/")
 

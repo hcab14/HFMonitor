@@ -122,9 +122,10 @@ public:
     , buf_size_(1)
     , periodPhase_(1)
     , periodSlot_(1)
-    , counterPhase_(0)
+    , counterPhaseMeasurement_(0)
     , counterSlot_(0)
     , counterCarrier_(0)
+    , counterPhaseShifts_(0)
     , alpha_(0.5)
     , s_last_(1) {}
 
@@ -170,7 +171,7 @@ public:
       periodPhase_ = size_t(0.5 + sp->sample_rate_Hz() * 0.4);
       periodSlot_  = size_t(0.5 + sp->sample_rate_Hz() * 0.6);
 
-      counterSlot_ = counterPhase_ = counterCarrier_ = 0;
+      counterSlot_ = counterPhaseMeasurement_ = counterCarrier_ = counterPhaseShifts_ = 0;
 
       alpha_ = 1./(1.+sp->sample_rate_Hz() * 0.4);
       s_last_ = 0.01;
@@ -215,22 +216,24 @@ public:
               offset[0] == offset[1] &&
               offset[0] == offset[2]) {
             state_ = LOCKED;
-            counterPhase_ = -offset[0] * int(sp->sample_rate_Hz()) * dt_;
-            // std::cout << "counterPhase=" << counterPhase_ << " " << periodPhase_ << std::endl;
+            counterPhaseMeasurement_ = -offset[0] * int(sp->sample_rate_Hz()) * dt_;
+            // std::cout << "counterPhaseMeasurement=" << counterPhaseMeasurement_ << " " << periodPhase_ << std::endl;
           }
         }
       }    
 
       if (state_ == LOCKED) {
-        if (counterPhase_ >= 0) {
+        if (counterPhaseMeasurement_ >= 0) {
           for (int j=0; j<3; ++j)
-            gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
+            gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhaseMeasurement_));
         }
-        ++counterPhase_;
+        ++counterPhaseMeasurement_;
         
-        if (counterPhase_ == periodPhase_) {
+        if (counterPhaseMeasurement_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
-            phases_[j][counterSlot_] = pmPi(std::arg(gfPhase_[j].x()) - counterCarrier_*2*M_PI*df[j]*3.6);
+            phases_[j][counterSlot_] = pmPi(std::arg(gfPhase_[j].x()) -
+                                            counterCarrier_*2*M_PI*df[j]*3.6 +
+                                            counterPhaseShifts_/24000.0*17*2*M_PI);
             // std::cout << "j=" << j
             //           << " slot="  << counterSlot_
             //           << " phase= " << phases_[j][counterSlot_] << " " << std::abs(gfPhase_[j].x())
@@ -257,10 +260,14 @@ public:
             // TBD
           }
         }
-        if (counterPhase_ == periodSlot_) {
+        if (counterPhaseMeasurement_ == periodSlot_) {
           counterCarrier_ += 1;
-          //          counterCarrier_ %= 7;
-          counterPhase_ = 0;
+          counterCarrier_ %= 7;
+
+          counterPhaseShifts_ += 1;
+          counterPhaseShifts_ %= 24000;
+
+          counterPhaseMeasurement_ = 0;
           for (int j=0; j<3; ++j)
             gfPhase_[j].reset();
         }
@@ -375,24 +382,25 @@ public:
 private:
   int           state_;
   size_t        sample_counter_;
-  size_t        period_;
-  double        dt_;
-  goertzel_type gf_[3];  
+  size_t        period_;                  // dt_ samples 
+  double        dt_;                      // 0.05 sec used for pulse synchronization
+  goertzel_type gf_[3];                   // Goertzel filters for pulse synchronization
   size_t        buf_counter_;
-  size_t        buf_size_;
-  std::vector<float> buf_[3];
+  size_t        buf_size_;                // 3.6 sec / dt_
+  std::vector<float> buf_[3];             // average field strength in last 3.6 sec interval
 
-  int           periodPhase_;
-  int           periodSlot_;     // [0-5]
-  int           counterPhase_;
-  int           counterSlot_;
-  goertzel_type gfPhase_[3];  
-  int           counterCarrier_; // [0-7]
+  int           periodPhase_;             // 0.4 sec
+  int           periodSlot_;              // 0.6 sec
+  int           counterPhaseMeasurement_; // [0..periodSlot-1]
+  int           counterSlot_;             // [0..5]
+  goertzel_type gfPhase_[3];              // Goertzel filters for phase measurement (0.4 sec)
+  int           counterCarrier_;          // [0-7] phase advance in 3.6 sec
+  int           counterPhaseShifts_;      // [0-23999] phase progression of 102*2pi/24h = 17*24/4h
 
-  float         bkgd_[3];
-  float         sig_[3][6];
-  float         phases_[3][6];
+  float         bkgd_[3];         // background
+  float         sig_[3][6];       // signal in F123 in 6 slots each
+  float         phases_[3][6];    // phases in F123 in 6 slots each
 
-  float         alpha_;
-  float         s_last_;
+  float         alpha_;     // low-pass filter parameter (static crashes)
+  float         s_last_;    // low-pass filter state
 } ;

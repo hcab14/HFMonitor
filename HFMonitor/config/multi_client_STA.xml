@@ -15,6 +15,7 @@
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
+    <Stream pattern="DC_013500_ALPHA">DemodALPHA</Stream>
     <Stream pattern="DC_017000_VTX2">DemodMSK_VTX2</Stream>
     <Stream pattern="DC_018200_VTX3">DemodMSK_VTX3</Stream>
     <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
@@ -35,6 +36,7 @@
     <WriterTXT proc_name="WriterText" filePath="DataSTA"   filePeriod="1d"/>
     <WriterIQ  proc_name="WriterIQ"   filePath="DataSTAIQ" filePeriod="5m" bitsPerSample="24"/>
 
+    <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
     <DemodMSK proc_name="DemodMSK_VTX2"
               name="MSK_VTX2" fc_Hz="17.00e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>

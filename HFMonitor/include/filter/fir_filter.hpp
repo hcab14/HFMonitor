@@ -58,7 +58,7 @@ public:
   }
 
   void reset() {
-    sample_counter_= 0;//n_-1;
+    sample_counter_= n_-1;
     for (size_t i(0), n(history_.size()); i<n; ++i)
       history_[i] = 0;    
   }
@@ -73,7 +73,8 @@ public:
     if (is_shifted()) {
       const double two_pi_f0(2*M_PI*shift_);
       for (size_t i(0); i<n_; ++i)
-        phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
+        phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
+        // phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
     }
     return shift_;
   }
