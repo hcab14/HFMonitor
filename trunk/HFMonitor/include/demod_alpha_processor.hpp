@@ -254,7 +254,7 @@ public:
                 const time_duration
                   dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
                 const time_duration dt2(0,0,0, -(0.4+3.6)*time_duration::ticks_per_second());
-                result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], counterSlot_+1);
+                result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], counterSlot_);
                 std::cout << rp->approx_ptime() << " " << rp->name() << " ";
                 rp->dump_data(std::cout);
                 sp->put_result(rp);
