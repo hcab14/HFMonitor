@@ -191,7 +191,8 @@ public:
         const double fPush = xInputFromSpec(xPushPeak_);
         const int    iPush = spec_filtered.freq2index(fPush);
         const double sPush = spec_filtered[iPush].second;
-        if (iPush > 0 && iPush+1 < spec_filtered.size()) {
+        const int    sfSize = spec_filtered.size();
+        if (iPush > 0 && iPush+1 < sfSize) {
           bool dir[3] =  {
             sPush > spec_filtered[iPush+1].second,
             sPush > spec_filtered[iPush-1].second,
@@ -205,7 +206,7 @@ public:
                     << dir[0] << dir[1] << std::endl;
 #endif
           int ip[3] = { -1, -1, -1 };
-          for (int i=iPush; i+1<spec_filtered.size(); ++i) {
+          for (int i=iPush; i+1<sfSize; ++i) {
             ip[0] = i;
             if (dir[0] != (spec_filtered[i].second > spec_filtered[i+1].second))
               break;            
@@ -230,7 +231,7 @@ public:
             }
             // --ip[2];
           } else {
-            for (int i=ip[0]; i<spec_filtered.size()-1; ++i) {
+            for (int i=ip[0]; i<sfSize-1; ++i) {
               ip[2] = i;
               if (spec_filtered[i].second < spec_filtered[i+1].second)
                 break;
