@@ -6,11 +6,12 @@
     Station  = TWN
     Computer = Latitude E6440
   </StationInfo>
-  <server host="127.0.0.1" port="19100"/>
+  <server host="127.0.0.1" port="19101"/>
   <FileSink filePath="DataTWN" filePeriod="1d"/>
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
+    <Stream pattern="A.*">Writer</Stream>
   </Streams>
   <Clients>
     <WriterTXT proc_name="Writer" filePath="DataTWN" filePeriod="1d"/>

@@ -28,7 +28,6 @@
 #include "FFT.hpp"
 #include "filter/goertzel.hpp"
 
-
 std::ostream& operator<<(std::ostream& os, const std::vector<float>& v) {
   os << "[";
   std::copy(v.begin(), v.end(), std::ostream_iterator<float>(os, " "));
@@ -58,8 +57,9 @@ public:
                      ptime t,
                      float bkgd,
                      float sig[6],
-                     float phases[6]) {
-      return sptr(new result_alpha(name, t, bkgd, sig, phases));
+                     float phases[6],
+                     int   offset) {
+      return sptr(new result_alpha(name, t, bkgd, sig, phases, offset));
     }
 
 
@@ -68,11 +68,13 @@ public:
         << "# Time_UTC bkgd[dB] Amplitudes[dB] Phases[rad] ";
     }
     virtual std::ostream& dump_data(std::ostream& os) const {
-      os << boost::format("%7.2f ") % s2db(bkgd_);
+      const float threshold_db = 1.4;
+      os << boost::format("%6.2f ") % bkgd_;
       for (int i=0; i<6; ++i)
-        os << boost::format("%7.2f ") % s2db(sig_[i]);
+        os << boost::format("%5.2f ") % (sig_[i] > threshold_db ? sig_[i]    : 0.0);
       for (int i=0; i<6; ++i)
-        os << boost::format("%6.3f ") % (s2db(sig_[i]) > 1.4 ? phases_[i] : 0.0);
+        os << boost::format("%6.3f ") % (sig_[i] > threshold_db ? phases_[i] : 0.0);
+      os << (locked_ ? " STN_LOCKED" : " STN_UNLOCKED");
       return os;
     }
     
@@ -85,16 +87,22 @@ public:
                  ptime  t,
                  float bkgd,
                  float sig[6],
-                 float phases[6])
+                 float phases[6],
+                 int   offset)
       : result_base(name, t)
-      , bkgd_(bkgd) {
-      std::copy(sig,    sig   +6, sig_);
-      std::copy(phases, phases+6, phases_);
+      , bkgd_(s2db(bkgd))
+      , locked_(offset!=-1) {
+      for (int i=0; i<6; ++i) {
+        const int j = (locked_ ? ((i+offset)%6) : i);
+        sig_[i]  = s2db(sig[j]);
+        phases_[i] = phases[j];
+      }
     }
     
     float bkgd_;
     float sig_[6];
     float phases_[6];
+    bool  locked_;
   } ; 
 
 
@@ -121,7 +129,7 @@ public:
     , s_last_(1) {}
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
-
+#if 0
     std::cout << "process_iq nS=" << std::distance(i0, i1) 
               << " " << sp->id()
               << " " << sp->approx_ptime()
@@ -129,7 +137,7 @@ public:
               << " " << sp->center_frequency_Hz()
               << " " << sp->offset_ppb()
               << std::endl;
-
+#endif
 //     const ssize_t length(std::distance(i0, i1));
 
     const std::string names[3] = { "F1", "F2", "F3" };
@@ -150,11 +158,11 @@ public:
       buf_size_    = int(0.5+3.6/dt_);
       
       for (int i=0; i<3; ++i) {
-        std::cout << "f[" << i << "] " << f[i] << std::endl;
+        // std::cout << "f[" << i << "] " << f[i] << std::endl;
         gf_[i].set_parameter(-(f[i]-sp->center_frequency_Hz())/sp->sample_rate_Hz());
         gfPhase_[i].set_parameter(-(f[i]-sp->center_frequency_Hz())/sp->sample_rate_Hz());
         buf_[i].resize(buf_size_);
-        for (int j=0; j<buf_size_; ++j)
+        for (size_t j=0; j<buf_size_; ++j)
           buf_[i][j] = 0;
       }
 
@@ -172,7 +180,7 @@ public:
     
     for (const_iterator i=i0; i!=i1; ++i) {      
       ++sample_counter_;
-      const bool b = abs(*i) < 8.*s_last_;
+      const bool b = abs(*i) < 8*s_last_;
       s_last_ = (1.-alpha_)*s_last_ + b*alpha_*std::abs(*i) + (1-b)*alpha_*s_last_;
       const std::complex<float> s(b ? *i  : std::complex<float>(0));
       for (int j=0; j<3; ++j)
@@ -180,7 +188,7 @@ public:
 
       if (sample_counter_ == period_) {
         sample_counter_ = 0;
-        const double alpha=0.25;
+        const double alpha=0.1;
         for (int j=0; j<3; ++j) {
           buf_[j][buf_counter_] = (1-alpha)*buf_[j][buf_counter_] + alpha*std::abs(gf_[j].x());
           gf_[j].reset();
@@ -191,48 +199,59 @@ public:
           buf_counter_ = 0;
           int offset[3];
           for (int j=0; j<3; ++j) {
-//             std::cout << "buf[" << j << "]  " << buf_[j] << std::endl;
             offset[j] = check_lock(buf_[j], sig_[j], bkgd_[j]);
+#if 0
             std::cout << "buf[" << j << "]  " << offset[j] << " (" <<
               sig_[j][0] << "," << 
               sig_[j][1] << "," << 
               sig_[j][2] << "," << 
               sig_[j][3] << "," << 
               sig_[j][4] << "," << 
-              sig_[j][5] << ")" << std::endl;
+              sig_[j][5] << ")"
+                      << " state="<< state_ << std::endl;
+#endif
           }
-          if (//state_ != LOCKED &&
+          if (state_ != LOCKED &&
               offset[0] == offset[1] &&
               offset[0] == offset[2]) {
             state_ = LOCKED;
-            counterPhase_ = -offset[0] * sp->sample_rate_Hz() * dt_;
+            counterPhase_ = -offset[0] * int(sp->sample_rate_Hz()) * dt_;
+            // std::cout << "counterPhase=" << counterPhase_ << " " << periodPhase_ << std::endl;
           }
         }
       }    
 
       if (state_ == LOCKED) {
+        if (counterPhase_ >= 0) {
+          for (int j=0; j<3; ++j)
+            gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
+        }
         ++counterPhase_;
-        for (int j=0; j<3; ++j)
-          gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhase_));
-
+        
         if (counterPhase_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
             phases_[j][counterSlot_] = pmPi(std::arg(gfPhase_[j].x()) - counterCarrier_*2*M_PI*df[j]*3.6);
-            std::cout << "j=" << j
-                      << " slot="  << counterSlot_
-                      << " phase= " << phases_[j][counterSlot_] << " " << std::abs(gfPhase_[j].x())
-                      << std::endl;
+            // std::cout << "j=" << j
+            //           << " slot="  << counterSlot_
+            //           << " phase= " << phases_[j][counterSlot_] << " " << std::abs(gfPhase_[j].x())
+            //           << std::endl;
           }
           ++counterSlot_;
 
           if (counterSlot_ == 6) {
             counterSlot_ = 0;
+
+            // synchronize
+            const int off = find_stations();
+            // std::cout << "find_stations off = " << off << std::endl;
             for (int j=0; j<3; ++j) {
               const time_duration
                 dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-              result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt, bkgd_[j], sig_[j], phases_[j]);
+              const time_duration dt2(0,0,0, (-3.6+off*0.6+0.2)*time_duration::ticks_per_second());
+              result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], off);
               std::cout << rp->approx_ptime() << " " << rp->name() << " ";
               rp->dump_data(std::cout);
+              sp->put_result(rp);
               std::cout << std::endl;
             }
             // TBD
@@ -240,15 +259,62 @@ public:
         }
         if (counterPhase_ == periodSlot_) {
           counterCarrier_ += 1;
-          counterCarrier_ %= 7;
+          //          counterCarrier_ %= 7;
           counterPhase_ = 0;
           for (int j=0; j<3; ++j)
             gfPhase_[j].reset();
         }
-
       }
+    }    
+  }
 
-    }      
+  int find_stations() const {
+    const float threshold_db = 1.4;
+    bool b[3][6];
+    for (int i=0; i<3; ++i)
+      for (int j=0; j<6; ++j)
+        b[i][j] = 10*std::log10(sig_[i][j]) > threshold_db;
+
+    // for (int i=0; i<3; ++i)
+    //   std::cout << "find_stations "
+    //             << b[i][0] << b[i][1] << b[i][2] << b[i][3] << b[i][4] << b[i][5] << std::endl;
+
+    const bool no[3][6] = { {1,0,0,0,0,0},
+                            {0,1,0,0,0,0},
+                            {0,0,1,0,0,0} };
+    
+    const bool kr[3][6] = { {0,0,1,0,0,0},
+                            {0,0,0,1,0,0},
+                            {1,0,0,0,0,0} };
+    
+    const bool kh[3][6] = { {0,0,0,1,0,0},
+                            {0,0,1,0,0,0},
+                            {0,1,0,0,0,0} };
+    
+    int off[6] = { 0,0,0, 0,0,0 };
+    find_stations_offset(b, no, off);
+    find_stations_offset(b, kr, off);
+    find_stations_offset(b, kh, off);
+
+    int *max = std::max_element(off, off+6);
+    return (*max == 0
+            ? -1
+            : std::distance(off, max));
+  }
+
+  void find_stations_offset(const bool b[3][6], const bool s[3][6], int off[6]) const {
+    int f[6] = { 0,0,0, 0,0,0 };
+    for (int offset=0; offset<6; ++offset) {
+      for (int i=0; i<3; ++i)
+        for (int j=0; j<6; ++j)
+          f[offset] += (b[i][(j+offset)%6] & s[i][j]);
+    }
+#if 0
+    std::cout << "find_stations_offset "
+              << f[0] << " " << f[1] << " " << f[2] << " " << f[3] << " " << f[4] << " " << f[5] << " "  << std::endl;
+#endif
+    for (int i=0; i<6; ++i)
+      off[i] += (f[i] == 3);
   }
 
   // x -> [-pi..pi)
@@ -261,13 +327,15 @@ public:
   }
 
   int check_lock(const std::vector<float>& buf, float sig[6], float &bkgd) const {
-    const int len_0 = int(0.5+0.4/dt_);
-    const int len_2 = int(0.5+0.6/dt_);
+    const size_t len_0 = size_t(0.5+0.4/dt_);
+    const size_t len_2 = size_t(0.5+0.6/dt_);
+
+    // std::cout << "check_lock: " << buf << std::endl;
     
     const int n = buf.size();
     std::vector<float> corr(buf.size(), 0);
-    for (int i=0; i<buf.size(); ++i)
-      for (int j=0; j<buf.size(); ++j)
+    for (size_t i=0; i<buf.size(); ++i)
+      for (size_t j=0; j<buf.size(); ++j)
         corr[i] += buf[(i+j)%n] * ((j%len_2) < len_0);
     
     std::vector<float>::iterator im = std::max_element(corr.begin(), corr.end());
@@ -282,12 +350,13 @@ public:
 
     for (int i=0; i<n; ++i) {
       const int j = ((offset+i)%n);
-      const bool is_bkgd((j%len_2) >= len_0);
-      const bool is_sig ((j%len_2) <  len_0);
+      const bool is_bkgd((i%len_2) >= len_0);
+      const bool is_sig ((i%len_2) <  len_0);
       n_bkgd         += is_bkgd;
-      bkgd           += is_bkgd * buf[i];
-      n_sig[j/len_2] += is_sig;
-      sig[j/len_2]   += is_sig  * buf[i];
+      bkgd           += is_bkgd * buf[j];
+      n_sig[i/len_2] += is_sig;
+      sig[i/len_2]   += is_sig  * buf[j];
+      // std::cout << "CCC " << i << " " << j << " " << is_sig << " " << is_bkgd << " " << buf[j] << std::endl;
     }
 
     bkgd /= n_bkgd;
@@ -313,8 +382,8 @@ private:
   size_t        buf_size_;
   std::vector<float> buf_[3];
 
-  size_t        periodPhase_;
-  size_t        periodSlot_;     // [0-5]
+  int           periodPhase_;
+  int           periodSlot_;     // [0-5]
   int           counterPhase_;
   int           counterSlot_;
   goertzel_type gfPhase_[3];  
