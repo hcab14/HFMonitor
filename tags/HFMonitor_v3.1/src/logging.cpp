@@ -63,6 +63,8 @@ namespace logging {
       boost::log::keywords::rotation_size = 10 * 1024 * 1024,
       boost::log::keywords::time_based_rotation = boost::log::sinks::file::rotation_at_time_point(0, 0, 0)));
 
+    backend->auto_flush(true);
+
     typedef boost::log::sinks::synchronous_sink< boost::log::sinks::text_file_backend > sink_t;
     boost::shared_ptr< sink_t > sink(new sink_t(backend));
 

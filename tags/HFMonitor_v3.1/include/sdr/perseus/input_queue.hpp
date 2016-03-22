@@ -161,8 +161,10 @@ namespace Perseus {
       case LIBUSB_TRANSFER_COMPLETED: {
         if (td->idx == td->iq->idx_expected()) {
           if (transfer->actual_length == transfer->length) {
-            if (td->iq->_cb)
-              td->iq->_cb->operator()(transfer->buffer, transfer->length);
+            if (td->iq->_cb) {
+              const bool success(td->iq->_cb->operator()(transfer->buffer, transfer->length));
+              td->iq->_cancelling = !success;
+            }
           }
         }
       } break;

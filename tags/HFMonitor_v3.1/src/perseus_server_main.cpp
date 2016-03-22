@@ -46,15 +46,17 @@ public:
   };
   test_cb()
     : i_(0)
-    , dt_sec_expected_(0) {}
+    , dt_sec_expected_(0)
+    , error_counter_(0) {}
   test_cb(buffer<std::string>::sptr buf, int sample_rate)
     : i_(0)
     , dt_sec_expected_(BUFFER_SIZE/6./double(sample_rate))
-    , buffer_(buf) {}
+    , buffer_(buf)
+    , error_counter_(0) {}
 
   virtual ~test_cb() { }
 
-  void operator()(unsigned char* data, size_t length) {
+  bool operator()(unsigned char* data, size_t length) throw() {
     if (i_ == BUFFER_SIZE) { // buffer is full
       std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
@@ -64,15 +66,25 @@ public:
       boost::posix_time::ptime t(boost::posix_time::microsec_clock::universal_time());
       if (!t_.is_not_a_date_time()) {
         const double dt(1e-3*(t-t_).total_milliseconds());
-        if (dt < 0.9*dt_sec_expected_ || dt > 1.1*dt_sec_expected_ ) throw std::runtime_error("too low/high callback rate");
+        if (dt < 0.9*dt_sec_expected_ || dt > 1.1*dt_sec_expected_ ) {
+          ++error_counter_;
+          LOG_ERROR(str(boost::format("perseus callback error counter %d/10") % error_counter_));
+          if (error_counter_ == 10)
+            return false;
+        } else {
+          error_counter_ = 0;
+        }
       }
       t_ = t;
     }
-    if (i_+length > BUFFER_SIZE)
-      throw std::runtime_error("invalid buffer size");
+    if (i_+length > BUFFER_SIZE) {
+      LOG_ERROR("invalid buffer size");
+      return false;
+    }
 
     std::copy(data, data+length, data_+i_);
     i_ += length;
+    return true;
   }
 protected:
 private:
@@ -81,6 +93,7 @@ private:
   buffer<std::string>::sptr buffer_;
   boost::posix_time::ptime t_;
   unsigned char data_[BUFFER_SIZE];
+  int error_counter_;
 } ;
 
 // bridge between perseus and the broadcaster
