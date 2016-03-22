@@ -66,7 +66,7 @@ namespace Perseus {
     typedef boost::shared_ptr<callback> sptr;
     virtual ~callback() {}
     
-    virtual void operator()(unsigned char* data, size_t length) {}
+    virtual bool operator()(unsigned char* data, size_t length) throw() { return true; }
   } ;
 
   class receiver_control : private boost::noncopyable {
