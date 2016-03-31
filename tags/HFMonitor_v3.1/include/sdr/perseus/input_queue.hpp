@@ -123,8 +123,9 @@ namespace Perseus {
         usleep(100*1000);
       LOG_INFO("... cancelled");
       // !!! TO BE CHECKED !!!
-      while (not is_completed()) {
-        LOG_INFO("EXTRA WAITING");
+      const int max_tries = 100;
+      for (int i=0; i<max_tries && not is_completed(); ++i) {
+        LOG_INFO(str(boost::format("EXTRA WAITING %3d/%d") % i % max_tries));
         usleep(100*1000); 
       }
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
