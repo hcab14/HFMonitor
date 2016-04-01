@@ -65,7 +65,7 @@ SET(Boost_USE_MULTITHREADED ON)
 SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(Boost_NO_SYSTEM_PATHS ON)
-FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS log log_setup filesystem iostreams date_time regex program_options system coroutine thread)
+FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS atomic chrono context log log_setup filesystem iostreams date_time regex program_options system coroutine thread)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")
