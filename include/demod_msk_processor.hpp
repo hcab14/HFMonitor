@@ -632,8 +632,9 @@ public:
                             std::abs(delta_f) < 5 &&
                             (std::abs(baud-100) < 5 ||
                              std::abs(baud-200) < 5));
-    
-    for (const_iterator i(samples.begin()); i!=samples.end(); ++i) {
+
+    size_t sample_counter = 0;
+    for (const_iterator i(samples.begin()); i!=samples.end(); ++i, ++sample_counter) {
       const complex_type sample(*i);
       demod_msk_->process(sample);
       
@@ -669,7 +670,7 @@ public:
           //           << " " << fc_Hz() - sp->center_frequency_Hz()
           //           << std::endl;
           const time_duration
-            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
+            dt(0,0,0, sample_counter*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
           result_phase::sptr r(result_phase::make(name_, sp->approx_ptime()+dt, fc_Hz(), fm_Hz_, amplitude, sn_db, phase_));
           sp->put_result(r);
         }
@@ -679,7 +680,7 @@ public:
       if (not is_first_call && demod_msk_->bit_available()) {
         if (not result_bits_) {
           const time_duration
-            dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
+            dt(0,0,0, sample_counter*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
           result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
         }
         result_bits_->push_back(demod_msk_->current_bit());
