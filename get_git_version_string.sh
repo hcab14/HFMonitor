@@ -1,5 +1,7 @@
 #!/bin/bash
 # $Id$
 
-git show -s --pretty=format:%h
+cd $1
+git show -s --pretty=format:"%H %aD %cn"
+echo
 
