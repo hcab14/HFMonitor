@@ -737,7 +737,7 @@ protected:
     if (!found_plus) return false;
 
     try {
-      const int ip[2] = {
+      const size_t ip[2] = {
         s.freq2index(f_minus),
         s.freq2index(f_plus)
       };
