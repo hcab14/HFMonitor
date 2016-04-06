@@ -172,7 +172,7 @@ public:
     const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
     const bool  filter_on        = w_.filter_on();
     const float filter_threshold = w_.filter_threshold();
-    std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
+    // std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
     for (const_iterator i=i0; i!=i1; ++i, ++is) {
       const bool b = abs(*i) < filter_threshold*s_last_;
       s_last_ = (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_;
