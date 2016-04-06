@@ -221,35 +221,30 @@ public:
     // offset due to the perseus oscillator
     const double offset_ppb(sp->offset_ppb());
     double offset_Hz((fc_Hz() + delta_f_Hz()) * offset_ppb*1e-9);
-    offset_Hz = sp->center_frequency_Hz() * offset_ppb*1e-9;
 
     // set up a new filter
     bool is_first_call(demod_msk_ == 0);
 
     if (is_first_call) {
+      // FIR filter design:
+      //   0.05 = 250/sp->sample_rate_Hz() for 200 baud
+      filter_.design(1601, 1.25*fm_Hz_/sp->sample_rate_Hz());
+
       // difference between filter center frequency and samples center frequency
       const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
-      std::cout << "f_shift0_Hz " << f_shift0_Hz << "\n";
+      LOG_INFO(str(boost::format("%s f_shift0_Hz=%f") % name_ % f_shift0_Hz));
 
       // shift of the FIR filter including quantization
       const double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
-      std::cout << "f_shift_Hz " << f_shift_Hz << "\n";
-      std::cout << "fc_Hz " << fc_Hz() << "\n";
+      LOG_INFO(str(boost::format("%s f_shift_Hz=%f") % name_ % f_shift_Hz));
 
       // difference between set center frequency and true center frequency TBD
       delta_f_Hz_ = sp->center_frequency_Hz() + f_shift_Hz - fc_Hz();
-      std::cout << "fc_Hz " << fc_Hz() << " " << delta_f_Hz() << "\n";
-
-      // FIR filter design:
-      //   0.05 = 250/sp->sample_rate_Hz() for 200 baud
-      filter_.design(1601, 1.05*fm_Hz_/sp->sample_rate_Hz());
+      LOG_INFO(str(boost::format("%s delta_f_Hz=%f") % name_ % delta_f_Hz()));
 
       // update the offset due to the perseus oscillator
       offset_Hz = (fc_Hz() + delta_f_Hz()) * offset_ppb*1e-9;
-      std::cout << "offset_Hz " << offset_Hz << " "
-                << fc_Hz() << " " << filter_.get_shift()*sp->sample_rate_Hz() << " " << offset_ppb << "\n";
-      offset_Hz = sp->center_frequency_Hz() * offset_ppb*1e-9;
-      std::cout << "offset_Hz " << offset_Hz << "\n";
+      LOG_INFO(str(boost::format("%s offset_Hz=%f fc_Hz=%f offset_ppb=%f") % name_ % offset_Hz % fc_Hz() % offset_ppb));
 
       // compute the downscaling factor
       const size_t length(std::distance(i0, i1));
@@ -257,15 +252,12 @@ public:
       for (; downscale_factor_> 1 && std::fmod(double(length), double(downscale_factor_))!=0.0; --downscale_factor_)
         ;
       // downscale_factor_ = 1;
-      std::cout << "downscale_factor= " << downscale_factor_ << std::endl;
+      LOG_INFO(str(boost::format("%s downscale_factor=%d") % name_ % downscale_factor_));
 
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz()/downscale_factor_, // sampling frequency
                                     delta_f_Hz() + offset_Hz,               // center frequency relative to freq.-shifted FIR filter outpu
                                     0.5*fm_Hz(),                            // baud/2
                                     dwl_Hz_, period_Sec_);
-      std::cout << "shift: " << fc_Hz() << " " << sp->center_frequency_Hz() << " "
-                << f_shift0_Hz << " " << f_shift_Hz
-                << std::endl;
 
       filter_amp_pm_.reset(-1);
       filter_amp_center_.reset(-1);
@@ -297,23 +289,20 @@ public:
         *k++ = sample*sample;
       }
     }
-    std::cout << "TEST " << length << " == "
-              << std::distance(samples.begin(), j) << " == "
-              << std::distance(samples2.begin(), k) 
-              << std::endl;
 
+#if 0
     {
-      // fftw_.transformRange(samples.begin(), samples.end(), FFT::WindowFunction::Blackman<float>(samples.size()));
-      // const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz()/downscale_factor_, -2.*delta_f_Hz());
+      fftw_.transformRange(samples.begin(), samples.end(), FFT::WindowFunction::Blackman<float>(samples.size()));
+      const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz()/downscale_factor_, -2.*delta_f_Hz());
       
-      // for (int i=0; i<s.size(); ++i)
-      //   std::cout << "SPEC: " << " " << s.index2freq(i) << " " << std::abs(s[i]) << std::endl;
+      for (int i=0; i<s.size(); ++i)
+        std::cout << "SPEC: " << " " << s.index2freq(i) << " " << std::abs(s[i]) << std::endl;
 
-      // for (int i=0; i<samples2.size(); ++i)
-      //   std::cout << "SIG: " << samples[i].real() << " " << samples[i].imag() << std::endl;
+      for (int i=0; i<samples2.size(); ++i)
+        std::cout << "SIG: " << samples[i].real() << " " << samples[i].imag() << std::endl;
 
     }
-
+#endif
     double baud(0), delta_f(0), sn(0);
     const bool is_signal = (detect_msk(sp, samples2.begin(), samples2.end(), baud, delta_f, sn) &&
                             sn > min_SN_db_       &&
@@ -398,12 +387,13 @@ protected:
                   double &delta_f,
                   double &sn) {
     const size_t length(std::distance(i0, i1));
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(std::distance(i0, i1)));
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz()/downscale_factor_, 2.*delta_f_Hz());
-    
+#if 0
     std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2) 
-              << " minus " << fc_Hz() << " " <<  filter_.get_shift()*sp->sample_rate_Hz() << " " << sp->center_frequency_Hz() << std::endl;
-    
+              << " minus " << fc_Hz() << " " <<  filter_.get_shift()*sp->sample_rate_Hz() << " " << sp->center_frequency_Hz() << " "
+              << sp->sample_rate_Hz() << " " << downscale_factor_ << std::endl;
+#endif
     const frequency_vector<double> ps_plus(-250., -40., s, std::abs<float>);
     if (filter_minus_.x().empty())
       filter_minus_.init(sp->approx_ptime(), ps_plus);
@@ -425,11 +415,11 @@ protected:
     if (!found_plus) return false;
 
     try {
+#if 0
       const size_t ip[2] = {
         s.freq2index(f_minus),
         s.freq2index(f_plus)
       };
-
       for (int i=-3; i<4; ++i) {
         std::cout << "detect_msk: " << i << " "
                   << s.index2freq(i+ip[0]) << " "
@@ -439,10 +429,11 @@ protected:
                   << std::abs(fftw_.getBin(i+ip[1])) << " "
                   << std::endl;
       }
+#endif
       sn      = 0.5*(sn_minus + sn_plus);
       delta_f = 0.5* (f_plus + f_minus);
       baud    = f_plus - f_minus;
-      std::cout << "ps: " << delta_f << " " << sn << " " << baud << std::endl;
+      // std::cout << "ps: " << delta_f << " " << sn << " " << baud << std::endl;
     } catch (const std::exception& e) {
       LOG_ERROR(e.what());
       return false;
@@ -470,7 +461,7 @@ protected:
     }
     f  = sum_wx/sum_w;
     sn = i_max->second/sum*psf.size();
-    std::cout << " --- " << f << " (" << sn << ") " << std::endl;
+    // std::cout << " --- " << f << " (" << sn << ") " << std::endl;
     return true;
   }
 private:

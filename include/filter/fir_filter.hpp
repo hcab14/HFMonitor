@@ -19,6 +19,7 @@
 #ifndef _FIR_FILTER_HPP_cm131117_
 #define _FIR_FILTER_HPP_cm131117_
 
+#include <boost/math/special_functions/round.hpp>
 #include <volk/volk.h>
 
 #include "aligned_vector.hpp"
@@ -66,16 +67,14 @@ public:
   // shift by frequency f0 (normalized)
   // returns the true, quantized shift frequency
   double shift(double f0) { 
-    long int shift(lround(f0*n_));
+    long int shift(boost::math::lround(f0*n_));
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;
     shift_ = double(shift)/double(n_);
     if (is_shifted()) {
       const double two_pi_f0(2*M_PI*shift_);
-      for (size_t i(0); i<n_; ++i) {
+      for (size_t i(0); i<n_; ++i)
         phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
-        //phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
-      }
     }
     return shift_;
   }
@@ -93,8 +92,6 @@ public:
   complex_type process() const {
     complex_type result(0);
     volk_32fc_32f_dot_prod_32fc(&result, history_, b_, n_);
-    // if (is_shifted())
-    //   result *= std::conj(phases_[sample_counter_]);
     return result;
   }
   complex_type process(complex_type sample) {

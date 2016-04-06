@@ -159,6 +159,7 @@ public:
     : base_iq(config)
     , name_(config.get<std::string>("<xmlattr>.name"))
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
+    , fc_shifted_Hz_(0.0)
     , fs_Hz_(config.get<double>("<xmlattr>.fs_Hz"))
     , baud_(config.get<double>("<xmlattr>.baud"))
     , is_initialized_(false)
@@ -179,6 +180,7 @@ public:
   virtual ~demod_fsk_processor() {}
 
   double fc_Hz() const { return fc_Hz_; }
+  double fc_shifted_Hz() const { return fc_shifted_Hz_; }
   double fs_Hz() const { return fs_Hz_; }
   double baud()  const { return baud_; }
 
@@ -201,9 +203,6 @@ public:
       // measurements per bit
       period_ = size_t(0.5+sp->sample_rate_Hz()/baud()/10);
 
-      const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
-      double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
-      fc_Hz_ -= f_shift_Hz;
 #if 0
       std::cout << "SHIFTs ({f_shift0,f_shift,fc}_Hz): " << f_shift0_Hz << " " << f_shift_Hz << " " << fc_Hz() << std::endl;
 #endif
@@ -214,6 +213,10 @@ public:
 
       // filter +- baud()
       filter_.design(401, 2*baud()/sp->sample_rate_Hz());
+
+      const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
+      double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
+      fc_shifted_Hz_ = fc_Hz_ - f_shift_Hz;
 
       // downconversion to 5*baud Hz
       dc_factor_ = size_t(0.5+sp->sample_rate_Hz()/(5.*baud()));
@@ -233,7 +236,7 @@ public:
       std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " " 
                 << sp->sample_rate_Hz() << " " 
                 << sp->center_frequency_Hz() << " "
-                << early_late_synch_.period() << " fc_Hz= " << fc_Hz() << std::endl;
+                << early_late_synch_.period() << " fc_Hz= " << fc_shifted_Hz() << std::endl;
 #if 0
       std::cout << "a= "; std::copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, ", "));
       std::cout << std::endl;
@@ -247,8 +250,8 @@ public:
     }
 
     const double fs(double(sp->sample_rate_Hz()) / dc_factor_);
-    const double f_mark ((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
-    const double f_space((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
+    const double f_mark ((fc_shifted_Hz() + fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
+    const double f_space((fc_shifted_Hz() - fs_Hz() - sp->center_frequency_Hz()+offset_Hz)/fs);
     for (const_iterator i(i0); i!=i1; ++i, ++sample_counter_) {
       if ((sample_counter_ % dc_factor_) != 0) {
         filter_.insert(*i);
@@ -280,7 +283,7 @@ public:
               const double dt_sec(-1.5*early_late_synch_.period() / fs);
               const time_duration
                 dt(0,0,0, boost::int64_t(0.5 + (std::distance(i0, i)/double(sp->sample_rate_Hz()) - 11.*length/baud_ + dt_sec)*time_duration::ticks_per_second()));
-#if 0              
+#if 0
               std::cout << "EFR: len,dt,fs,dt_sec,dt_len_sec = "
                         << length << " "
                         << std::distance(i0, i)/double(sp->sample_rate_Hz()) << " "
@@ -312,8 +315,9 @@ public:
 protected:
 private:
   const std::string name_;
-  double            fc_Hz_;     // center frequency
-  const double      fs_Hz_;     // shift frequency
+  const double      fc_Hz_;         // center frequency
+  double            fc_shifted_Hz_; // shifter center frequency
+  const double      fs_Hz_;         // shift frequency
   const double      baud_;
   bool              is_initialized_;
   size_t            period_;
