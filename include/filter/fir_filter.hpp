@@ -72,9 +72,10 @@ public:
     shift_ = double(shift)/double(n_);
     if (is_shifted()) {
       const double two_pi_f0(2*M_PI*shift_);
-      for (size_t i(0); i<n_; ++i)
+      for (size_t i(0); i<n_; ++i) {
         phases_[i] = std::exp(complex_type(0., two_pi_f0*i));
-        // phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
+        //phases_[i] = std::exp(-complex_type(0., two_pi_f0*i));
+      }
     }
     return shift_;
   }
@@ -92,8 +93,8 @@ public:
   complex_type process() const {
     complex_type result(0);
     volk_32fc_32f_dot_prod_32fc(&result, history_, b_, n_);
-    if (is_shifted())
-      result *= std::conj(phases_[sample_counter_]);
+    // if (is_shifted())
+    //   result *= std::conj(phases_[sample_counter_]);
     return result;
   }
   complex_type process(complex_type sample) {

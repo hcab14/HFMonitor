@@ -218,36 +218,40 @@ public:
       return;
     }
 
-    // compute downscale factor
+    // offset due to the perseus oscillator
+    const double offset_ppb(sp->offset_ppb());
+    double offset_Hz((fc_Hz() + delta_f_Hz()) * offset_ppb*1e-9);
+    offset_Hz = sp->center_frequency_Hz() * offset_ppb*1e-9;
+
     // set up a new filter
     bool is_first_call(demod_msk_ == 0);
 
-    const double offset_ppb(sp->offset_ppb());
-    double offset_Hz((fc_Hz() + delta_f_Hz()) * offset_ppb*1e-9);
-
-    // const size_t len=std::distance(i0,i1);
-    // std::vector<std::complex<float> > phases(len);
-    // for (int i=0; i<len; ++i) {
-    //   phases[i] = std::exp(std::complex<float>(0,i*float(2*M_PI)*(fc_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz()));
-    // }
-
-    if (not demod_msk_) {
+    if (is_first_call) {
+      // difference between filter center frequency and samples center frequency
       const double f_shift0_Hz(fc_Hz() - sp->center_frequency_Hz());
       std::cout << "f_shift0_Hz " << f_shift0_Hz << "\n";
-      double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
-       //double f_shift_Hz(f_shift0_Hz);
+
+      // shift of the FIR filter including quantization
+      const double f_shift_Hz(filter_.shift(f_shift0_Hz/sp->sample_rate_Hz())*sp->sample_rate_Hz());
       std::cout << "f_shift_Hz " << f_shift_Hz << "\n";
       std::cout << "fc_Hz " << fc_Hz() << "\n";
+
+      // difference between set center frequency and true center frequency TBD
       delta_f_Hz_ = sp->center_frequency_Hz() + f_shift_Hz - fc_Hz();
       std::cout << "fc_Hz " << fc_Hz() << " " << delta_f_Hz() << "\n";
 
-      // 0.05 = 250/sp->sample_rate_Hz() for 200 baud
-      filter_.design(401, 1.05*fm_Hz_/sp->sample_rate_Hz());
+      // FIR filter design:
+      //   0.05 = 250/sp->sample_rate_Hz() for 200 baud
+      filter_.design(1601, 1.05*fm_Hz_/sp->sample_rate_Hz());
 
+      // update the offset due to the perseus oscillator
       offset_Hz = (fc_Hz() + delta_f_Hz()) * offset_ppb*1e-9;
       std::cout << "offset_Hz " << offset_Hz << " "
                 << fc_Hz() << " " << filter_.get_shift()*sp->sample_rate_Hz() << " " << offset_ppb << "\n";
+      offset_Hz = sp->center_frequency_Hz() * offset_ppb*1e-9;
+      std::cout << "offset_Hz " << offset_Hz << "\n";
 
+      // compute the downscaling factor
       const size_t length(std::distance(i0, i1));
       downscale_factor_ = std::max(1, int(0.25*sp->sample_rate_Hz()/(1.25*fm_Hz_)));
       for (; downscale_factor_> 1 && std::fmod(double(length), double(downscale_factor_))!=0.0; --downscale_factor_)
@@ -255,9 +259,9 @@ public:
       // downscale_factor_ = 1;
       std::cout << "downscale_factor= " << downscale_factor_ << std::endl;
 
-      demod_msk_ = demod::msk::make(sp->sample_rate_Hz()/downscale_factor_,
-                                    delta_f_Hz() + offset_Hz,
-                                    0.5*fm_Hz(), // baud/2
+      demod_msk_ = demod::msk::make(sp->sample_rate_Hz()/downscale_factor_, // sampling frequency
+                                    delta_f_Hz() + offset_Hz,               // center frequency relative to freq.-shifted FIR filter outpu
+                                    0.5*fm_Hz(),                            // baud/2
                                     dwl_Hz_, period_Sec_);
       std::cout << "shift: " << fc_Hz() << " " << sp->center_frequency_Hz() << " "
                 << f_shift0_Hz << " " << f_shift_Hz
@@ -285,7 +289,6 @@ public:
       j(samples.begin()),
       k(samples2.begin());
     for (const_iterator i(i0); i!=i1; ++i) {
-      // filter_.insert(phases[std::distance(i0, i)]* (*i));
       filter_.insert(*i);
       if (downscale_factor_ == 1 ||
           (std::distance(i0, i) % downscale_factor_) == 0) {
@@ -343,7 +346,7 @@ public:
           ++signal_present_;
           
           const double delta_phase_rad(demod_msk_->delta_phase_rad()
-                                       + 2*M_PI*demod_msk_->period_sec() * (delta_f_Hz() - offset_Hz));
+                                       - 2*M_PI*demod_msk_->period_sec() * (delta_f_Hz() + offset_Hz));
           phase_ += delta_phase_rad;
           while (phase_ >= M_PI) phase_ -= 2*M_PI;
           while (phase_ < -M_PI) phase_ += 2*M_PI;
@@ -452,7 +455,7 @@ protected:
     double max(-1);
     double sum(0);
     for (frequency_vector<double>::const_iterator i(psf.begin()), end(psf.end()); i!=end; ++i) {
-      std::cout << "find_peak ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+      // std::cout << "find_peak ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
       sum += i->second;
       if (i->second > max) {
         max = i->second;
@@ -461,7 +464,7 @@ protected:
     }
     double sum_w(0), sum_wx(0);
     for (frequency_vector<double>::const_iterator i(i_max-3); i!=(i_max+4) && i!=psf.end(); ++i) {
-      std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
+      // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
       sum_w += i->second;
       sum_wx += i->first * i->second;
     }
