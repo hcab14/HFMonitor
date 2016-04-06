@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// $Id$
+// $Id: fltk_spec_main.cpp 504 2016-04-06 10:45:38Z cmayer $
 //
 // Copyright 2010-2014 Christoph Mayer
 //
@@ -22,6 +22,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <stdlib.h>
+
 #include "FFT.hpp"
 #include "FFTProcessor/Filter.hpp"
 #include "gui/spectrum_display.hpp"
@@ -36,10 +38,12 @@
 #include "filter/iir.hpp"
 
 #include <FL/Fl.H>
-#include <FL/Fl_Double_Window.H>
-#include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Box.H>
+#include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Float_Input.H>
+#include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Input.H>
+#include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Text_Display.H>
 
 #include <boost/format.hpp>
@@ -68,11 +72,16 @@ public:
     : Fl_Double_Window(w, h, "Spectrum Display")
     , menu_bar_(0,0,w,20)
     , specDisplay_(20, 20, w-40, h-50)
-    , input_(0, h-30, w, 30, "label")
+    , input_        (w-200, h-30, 200, 30, "label")
+    , filter_switch_   ( 0, h-30,  70, 30, "filter")
+    , filter_alpha_    (120, h-30, 40, 30, "alpha")
+    , filter_threshold_(210, h-30, 40, 30, "thr")
     // , disp_(20, 40, w-40, h-40, "Display") 
   {
     menu_bar_.add("File/Quit", FL_CTRL+'q', Quit_CB);
     end();
+    filter_alpha_.value("0.4");
+    filter_threshold_.value("8");
     this->callback(Quit_CB);
   }
   virtual ~MyWindow() {}
@@ -82,6 +91,10 @@ public:
 
   void set_sMin(double sMin) { specDisplay_.set_sMin(sMin); }
   void set_sMax(double sMax) { specDisplay_.set_sMax(sMax); }
+
+  bool   filter_on()        const { return filter_switch_.value() == 1; }
+  double filter_alpha()     const { return atof(filter_alpha_.value()); }
+  double filter_threshold() const { return atof(filter_threshold_.value()); }
 
   spectrum_display& get_spec_display() { return specDisplay_; }
 
@@ -97,6 +110,9 @@ private:
   Fl_Menu_Bar menu_bar_;
   spectrum_display specDisplay_;
   Fl_Input    input_;
+  Fl_Check_Button filter_switch_;
+  Fl_Float_Input  filter_alpha_;
+  Fl_Float_Input  filter_threshold_;
   // Fl_Text_Display disp_;
   // Fl_Text_Buffer buff_;
 } ;
@@ -119,7 +135,8 @@ public:
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
     , last_update_time_(boost::date_time::not_a_date_time)
-    , filter_nb_(0.01, 500e3) {
+    , filter_nb_(0.01, 500e3)
+    , s_last_(0.01) {
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
@@ -144,11 +161,25 @@ public:
     if (isFirst) {
       fftw_.resize(length);
       filter_nb_.init(0.05, sp->sample_rate_Hz());
+      s_last_ = 0.1;
     }
     if (filter_.empty()) {
       filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
     }
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+
+    std::vector<std::complex<double> > sf(length);
+    std::vector<std::complex<double> >::iterator is=sf.begin();
+    const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
+    const bool  filter_on        = w_.filter_on();
+    const float filter_threshold = w_.filter_threshold();
+    std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
+    for (const_iterator i=i0; i!=i1; ++i, ++is) {
+      const bool b = abs(*i) < filter_threshold*s_last_;
+      s_last_ = (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_;
+      *is = ((b || !filter_on) ? *i  : std::complex<float>(0));
+    } 
+
+    fftw_.transformRange(sf.begin(), sf.end(), FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
@@ -187,6 +218,7 @@ private:
   boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
   filter::iir_lowpass_1pole<double, double> filter_nb_;
+  float s_last_;
 } ;
 
 int main(int argc, char* argv[])
