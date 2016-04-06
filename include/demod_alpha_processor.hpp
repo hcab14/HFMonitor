@@ -1,5 +1,5 @@
 // -*- mode: C++; c-basic-offset: 2; indent-tabs-mode: nil  -*-
-// $Id$
+// $Id: demod_alpha_processor.hpp 504 2016-04-06 10:45:38Z cmayer $
 //
 // Copyright 2010-2014 Christoph Mayer
 //
@@ -127,6 +127,7 @@ public:
     , counterSlotSynchronized_(0)
     , counterCarrier_(0)
     , counterPhaseShifts_(0)
+    , phasesReset_(true)
     , alpha_(0.5)
     , s_last_(1) {}
 
@@ -177,6 +178,7 @@ public:
       counterPhaseMeasurement_ = 0;
       counterCarrier_          = 0;
       counterPhaseShifts_      = 0;
+      phasesReset_             = true;
 
       alpha_ = 1./(1.+sp->sample_rate_Hz() * 0.4);
       s_last_ = 0.01;
@@ -234,9 +236,16 @@ public:
         if (++counterPhaseMeasurement_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
             const int k = ((6+counterSlot_)%6);
-            phases_[j][k]    = pmPi(std::arg(gfPhase_[j].x()) -
-                                    counterCarrier_*2*M_PI*df[j]*3.6 +
+            phases_[j][k] = pmPi(std::arg(gfPhase_[j].x()) -
+                                    counterCarrier_*2*M_PI*df[j]*3.6 +                                    
                                     counterPhaseShifts_/24000.0*17*2*M_PI);
+
+            if (phasesReset_) {
+              phasesOffset_[j][k] = phases_[j][k];
+              phasesReset_ = false;
+            }
+
+            phases_[j][k] =  pmPi(phases_[j][k] - 0*phasesOffset_[j][k]);
           }
             
           if (++counterSlot_ == 6)
@@ -402,10 +411,13 @@ private:
   int           counterCarrier_;          // [0-7] phase advance in 3.6 sec
   int           counterPhaseShifts_;      // [0-23999] phase progression of 102*2pi/24h = 17*24/4h
 
-  float         bkgd_[3];         // background
-  float         sig_[3][6];       // signal in F123 in 6 slots each
-  float         phases_[3][6];    // phases in F123 in 6 slots each
+  float         bkgd_[3];                 // background
+  float         sig_[3][6];               // signal in F123 in 6 slots each
+  float         phases_[3][6];            // phases in F123 in 6 slots each
 
-  float         alpha_;     // low-pass filter parameter (static crashes)
-  float         s_last_;    // low-pass filter state
+  float         phasesReset_;             // 
+  float         phasesOffset_[3][6];      // start phases
+
+  float         alpha_;                   // low-pass filter parameter (static crashes)
+  float         s_last_;                  // low-pass filter state
 } ;
