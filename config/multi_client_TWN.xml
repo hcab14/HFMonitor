@@ -9,14 +9,14 @@
   <Broadcaster>
     <Data maxQueueSize_MB="20"
           maxQueueDelay_Minutes="5"
-          port="19101"/>
+          port="19100"/>
   </Broadcaster>
   <server host="127.0.0.1" port="19000"/>
   <FileSink filePath="DataTWN" filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
     <Stream pattern="DC_013500_ALPHA">DemodALPHA</Stream>
-    <Stream pattern="DC_018200_VTX3">DemodMSK_VTX3</Stream>
+    <Stream pattern="DC_016300_VTX1">DemodMSK_VTX1</Stream>
     <Stream pattern="DC_018200_VTX3">DemodMSK_VTX3</Stream>
     <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
     <Stream pattern="DC_021400_NPM">DemodMSK_NPM</Stream>
@@ -35,8 +35,8 @@
     <WriterIQ  proc_name="WriterIQ"   filePath="DataTWNIQ" filePeriod="5m" bitsPerSample="24"/>
 
     <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
-    <DemodMSK proc_name="DemodMSK_VTX3"
-              name="MSK_VTX3" fc_Hz="18.20e3" fm_Hz="200.0"
+    <DemodMSK proc_name="DemodMSK_VTX1"
+              name="MSK_VTX1" fc_Hz="16.30e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_VTX3"
               name="MSK_VTX3" fc_Hz="18.20e3" fm_Hz="200.0"
