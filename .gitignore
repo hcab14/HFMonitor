@@ -1,0 +1,9 @@
+Log/
+bin/
+DataTWN/
+DataTWNIQ/
+build
+log_*
+.pid*
+*~
+**/*~
