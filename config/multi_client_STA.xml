@@ -36,6 +36,8 @@
     <WriterTXT proc_name="WriterText" filePath="DataSTA"   filePeriod="1d"/>
     <WriterIQ  proc_name="WriterIQ"   filePath="DataSTAIQ" filePeriod="5m" bitsPerSample="24"/>
 
+    <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
+
     <DemodMSK proc_name="DemodMSK_VTX2"
               name="MSK_VTX2" fc_Hz="17.00e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
@@ -46,11 +48,11 @@
               name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_JJI_1"
-           name="MSK_JJI_1" fc_Hz="20.2e3" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_JJI_1" fc_Hz="20.2e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NPM"
-           name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_JJI_2"
               name="MSK_JJI_2" fc_Hz="22200.5893" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="600"/>
@@ -78,8 +80,6 @@
     <DemodMSK proc_name="DemodMSK_CKN_2"
               name="MSK_CKN_2" fc_Hz="124e3" fm_Hz="300.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
-
-    <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
 
     <FFT_Processor proc_name="FFT_Processor" type="FFTProcessor_DOUBLE" name="FFTProcessor"
                    windowFunction="Blackman"
