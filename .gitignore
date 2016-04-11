@@ -1,7 +1,6 @@
 Log/
 bin/
-DataTWN/
-DataTWNIQ/
+Data*/
 build
 log_*
 .pid*
