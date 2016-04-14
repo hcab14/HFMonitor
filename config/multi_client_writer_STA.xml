@@ -11,6 +11,7 @@
   <Streams>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
+    <Stream pattern="A.*">Writer</Stream>
   </Streams>
   <Clients>
     <WriterTXT proc_name="Writer" filePath="DataSTA" filePeriod="1d"/>
