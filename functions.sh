@@ -4,6 +4,8 @@
 LOG_STATUS="log_status.txt"
 LOCK_FILE="/tmp/HFMonitor.lock"
 
+source setup.sh
+
 trap "exit" SIGINT SIGQUIT SIGTERM
 
 SUDO="sudo"
