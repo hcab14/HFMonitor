@@ -129,7 +129,8 @@ public:
     , counterPhaseShifts_(0)
     , phasesReset_(true)
     , alpha_(0.5)
-    , s_last_(1) {}
+    , s_last_(1)
+    , counterBlanker_(0) {}
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
 #if 0
@@ -180,15 +181,22 @@ public:
       counterPhaseShifts_      = 0;
       phasesReset_             = true;
 
-      alpha_ = 1./(1.+sp->sample_rate_Hz() * 0.4);
-      s_last_ = 0.01;
+      alpha_          = 1./(1.+sp->sample_rate_Hz() * 0.4);
+      s_last_         = 0.01;
+      counterBlanker_ = 0;
 
       state_ = INITIALIZED;
     }
-    
+
+    const float filter_threshold = 8;
+    const int   maxBlanker       = 0.005*sp->sample_rate_Hz(); // 5ms
     for (const_iterator i=i0; i!=i1; ++i) {      
-      const bool b = abs(*i) < 8*s_last_;
-      s_last_ = (1.-alpha_)*s_last_ + b*alpha_*std::abs(*i) + (1-b)*alpha_*s_last_;
+      bool b = abs(*i) < filter_threshold*s_last_;
+      b = (b ? b : counterBlanker_ >= maxBlanker);
+      counterBlanker_ = (b ? 0 : 1+counterBlanker_);
+      s_last_ = (counterBlanker_ < maxBlanker
+                 ? (1.-alpha_)*s_last_ + b*alpha_*std::abs(*i) + (1-b)*alpha_*s_last_
+                 : 1e-3);
       const std::complex<float> s(b ? *i  : std::complex<float>(0));
       for (int j=0; j<3; ++j)
         gf_[j].update(s * FFT::WindowFunction::Hamming<float>(period_)(sample_counter_));
@@ -420,4 +428,5 @@ private:
 
   float         alpha_;                   // low-pass filter parameter (static crashes)
   float         s_last_;                  // low-pass filter state
+  int           counterBlanker_;          // 
 } ;

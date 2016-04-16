@@ -136,7 +136,8 @@ public:
     , port_(config.get<std::string>("server.<xmlattr>.port"))
     , last_update_time_(boost::date_time::not_a_date_time)
     , filter_nb_(0.01, 500e3)
-    , s_last_(0.01) {
+    , s_last_(1e-3)
+    , counterBlanker_(0) {
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
@@ -172,10 +173,15 @@ public:
     const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
     const bool  filter_on        = w_.filter_on();
     const float filter_threshold = w_.filter_threshold();
+    const int maxBlanker         = 0.005*sp->sample_rate_Hz();
     // std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
     for (const_iterator i=i0; i!=i1; ++i, ++is) {
-      const bool b = abs(*i) < filter_threshold*s_last_;
-      s_last_ = (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_;
+      bool b = abs(*i) < filter_threshold*s_last_;
+      b = (b ? b : counterBlanker_ >= maxBlanker);
+      counterBlanker_ = (b ? 0 : 1+counterBlanker_);
+      s_last_ = (counterBlanker_ < maxBlanker
+                 ? (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_
+                 : 1e-3);
       *is = ((b || !filter_on) ? *i  : std::complex<float>(0));
     } 
 
@@ -219,6 +225,7 @@ private:
 //   boost::mutex mutex_;
   filter::iir_lowpass_1pole<double, double> filter_nb_;
   float s_last_;
+  int   counterBlanker_;
 } ;
 
 int main(int argc, char* argv[])
