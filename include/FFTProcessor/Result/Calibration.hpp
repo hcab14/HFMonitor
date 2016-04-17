@@ -97,6 +97,14 @@ namespace Result {
     const Vector& x() const { return x_; } // polynomial coefficients
     const Matrix& q() const { return q_; } // variance-covariance matrix for x
 
+    virtual void updateTime(ptime t) {
+      // if the offset or ppm values are out of the normal (withWorstCaseCov) update the time
+      if ((std::sqrt(q()(0,0)) >= offsetMax_) ||
+          (std::sqrt(q()(1,1)) >= 1e-6*ppmMax_)) {
+        set_approx_ptime(t);
+      }
+    }
+
     // return a handle with a "worst-case" covariance matrix
     Base::Handle withWorstCaseCov(std::string name) const {
       Matrix q(2,2);

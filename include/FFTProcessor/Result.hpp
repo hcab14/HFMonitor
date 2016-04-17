@@ -51,6 +51,7 @@ namespace Result {
     virtual std::string toString() const { return name(); }
 
     ptime time() const { return approx_ptime(); }
+    virtual void updateTime(ptime t) {} // is overwritten by Result::Calibration
 
     void push_back(const Handle& h) { handles_.push_back(h); }
 

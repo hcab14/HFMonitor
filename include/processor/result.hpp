@@ -54,6 +54,7 @@ namespace processor {
 
     /// update name of the result !!! to be checked !!!
     void set_name(std::string name) { name_ = name; }
+    void set_approx_ptime(ptime t) { t_ = t; }
 
     /// dump header (per file)
     virtual std::ostream& dump_header(std::ostream& os) const { return os;  }
@@ -70,7 +71,7 @@ namespace processor {
 
   private:    
     std::string name_; /// name (should be unique)
-    const ptime t_;    /// time stamp
+    ptime t_;          /// time stamp
   } ;
 
 } // namespace processor

@@ -182,11 +182,13 @@ public:
     ResultMap resultMap;
     // set default calibration from the last epoch
     // it will be overwritten with the new calibration
-    if (calibrationHandle_ != 0)
+    if (calibrationHandle_ != 0) {
+      calibrationHandle_->updateTime(sp->approx_ptime());
       resultMap[calibrationKey_] = calibrationHandle_;
-    else
+    } else {
       resultMap[calibrationKey_] = Result::Calibration::makeDefault(sp->approx_ptime(), calibrationKey_);
-      
+    }
+ 
     BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
       BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
         FFTProxy proxy(sp, level.first, resultMap);
