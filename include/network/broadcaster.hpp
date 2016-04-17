@@ -96,10 +96,10 @@ namespace network {
                  data_type id,
                  data_type data,
                  data_type preamble="") {
-      {
+#if 0
         const ptime now(boost::posix_time::microsec_clock::universal_time());
         LOG_INFO(str(boost::format("t=%s now=%s path=%s") % t % now % path));
-      }
+#endif
       // status of broadcaster -> log file
       log_status(t);
 
