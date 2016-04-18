@@ -161,9 +161,24 @@ namespace Perseus {
       case LIBUSB_TRANSFER_COMPLETED: {
         if (td->idx == td->iq->idx_expected()) {
           if (transfer->actual_length == transfer->length) {
-            if (td->iq->_cb)
-              td->iq->_cb->operator()(transfer->buffer, transfer->length);
+            if (td->iq->_cb) {
+              const bool success = td->iq->_cb->operator()(transfer->buffer, transfer->length);
+              if (!success) {
+                LOG_ERROR("callback failed");
+                td->iq->_cancelling= true;
+                td->cancelled = true;
+                return;
+              }
+            }
+          } else {
+            LOG_ERROR(str(boost::format("transfer actual length != treander length (%d != %d)")
+                          % transfer->actual_length
+                          % transfer->length));
           }
+        } else {
+          LOG_ERROR(str(boost::format("transfer idx != idx_expected (%d != %d)")
+                        % td->idx
+                        % td->iq->idx_expected()));
         }
       } break;
       case LIBUSB_TRANSFER_TIMED_OUT:

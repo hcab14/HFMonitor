@@ -69,7 +69,7 @@ public:
 
   virtual ~test_cb() { }
 
-  void operator()(unsigned char* data, size_t length) {
+  bool  operator()(unsigned char* data, size_t length) throw () {
     if (i_ == BUFFER_SIZE) { // buffer is full
       std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
@@ -81,8 +81,10 @@ public:
         const double dt(1e-3*(t-t_).total_milliseconds());
         if (dt < 0.8*dt_sec_expected_ || dt > 1.2*dt_sec_expected_ ) {
           LOG_ERROR(str(boost::format("test_cb: dt=%f dt_expected=%f") % dt % dt_sec_expected_));
-          if (error_counter_ > 5)
-            throw std::runtime_error("too low/high callback rate");
+          if (error_counter_ > 100) {
+            LOG_ERROR("too low/high callback rate - aborting");
+            return false;
+          }
           ++error_counter_;
         } else {
           error_counter_ = 0;
@@ -90,11 +92,15 @@ public:
       }
       t_ = t;
     }
-    if (i_+length > BUFFER_SIZE)
-      throw std::runtime_error("invalid buffer size");
+    if (i_+length > BUFFER_SIZE) {
+      LOG_ERROR("invalid buffer size - aborting");
+      return false;      
+    }
 
     std::copy(data, data+length, data_+i_);
     i_ += length;
+
+    return true;
   }
 protected:
 private:
@@ -282,9 +288,9 @@ int main(int argc, char* argv[])
   } catch (const std::exception &e) {
     LOG_ERROR(e.what()); 
     std::cerr << e.what() << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
 /*! @} */
 /*! @} */
