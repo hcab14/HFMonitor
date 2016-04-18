@@ -22,6 +22,7 @@
 #include <iterator>
 #include <numeric>
 #include <boost/format.hpp>
+#include <boost/math/special_functions/round.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "logging.hpp"
@@ -58,8 +59,9 @@ public:
                      float bkgd,
                      float sig[6],
                      float phases[6],
+                     float phaseOffset,
                      int   offset) {
-      return sptr(new result_alpha(name, t, bkgd, sig, phases, offset));
+      return sptr(new result_alpha(name, t, bkgd, sig, phases, phaseOffset, offset));
     }
 
 
@@ -88,6 +90,7 @@ public:
                  float bkgd,
                  float sig[6],
                  float phases[12],
+                 float phaseOffset,
                  int   offset)
       : result_base(name, t)
       , bkgd_(s2db(bkgd))
@@ -95,7 +98,7 @@ public:
       for (int i=0; i<6; ++i) {
         const int j = (locked_ ? ((i+offset)%6) : i);
         sig_[i]    = s2db(sig[j]);
-        phases_[i] = phases[j];
+        phases_[i] = pmPi(phases[j] - phaseOffset);
       }
     }
     
@@ -130,7 +133,13 @@ public:
     , phasesReset_(true)
     , alpha_(0.5)
     , s_last_(1)
-    , counterBlanker_(0) {}
+    , counterBlanker_(0)
+  {
+    for (int i=0; i<3; ++i) {
+      phaseOffsets_[i] = 0;
+      lastResultTime_[i] = boost::date_time::not_a_date_time;
+    }
+  }
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
 #if 0
@@ -186,6 +195,11 @@ public:
       counterBlanker_ = 0;
 
       state_ = INITIALIZED;
+
+      for (int i=0; i<3; ++i) {
+        phaseOffsets_[i] = 0;
+        lastResultTime_[i] = boost::date_time::not_a_date_time;
+      }
     }
 
     const float filter_threshold = 8;
@@ -245,9 +259,9 @@ public:
           for (int j=0; j<3; ++j) {
             const int k = ((6+counterSlot_)%6);
             phases_[j][k] = pmPi(std::arg(gfPhase_[j].x()) -
-                                    counterCarrier_*2*M_PI*df[j]*3.6 +                                    
-                                    counterPhaseShifts_/24000.0*17*2*M_PI);
-
+                                 counterCarrier_*2*M_PI*df[j]*3.6 +                                    
+                                 counterPhaseShifts_/24000.0*17*2*M_PI);
+            
             if (phasesReset_) {
               phasesOffset_[j][k] = phases_[j][k];
               phasesReset_ = false;
@@ -267,17 +281,28 @@ public:
             if (counterSlot_ != off) {
               counterSlotSynchronized_ = -off;
             } else {
+              const float deltaPhaseMidnight[3] = {
+                4./7.*2*M_PI,
+                6./7.*2*M_PI,
+                5./7.*2*M_PI
+              };
               for (int j=0; j<3; ++j) {
                 const time_duration
                   dt(0,0,0, std::distance(i0, i)*time_duration::ticks_per_second()/sp->sample_rate_Hz());
-                const time_duration dt2(0,0,0, -(0.4+3.6)*time_duration::ticks_per_second());
-                result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j],sp->approx_ptime()+dt+dt2, bkgd_[j], sig_[j], phases_[j], counterSlot_);
+                const time_duration dt2(0,0,0, -3.6*time_duration::ticks_per_second());
+                const ptime timeOfResult(sp->approx_ptime()+dt+dt2);
+                if (lastResultTime_[j] != boost::date_time::not_a_date_time &&
+                    boost::math::lround(1e-3*lastResultTime_[j].time_of_day().total_milliseconds()/3.6) == 20999 &&
+                    boost::math::lround(1e-3*timeOfResult.time_of_day().total_milliseconds()/3.6)      == 21000) {
+                  phaseOffsets_[j] = pmPi(phaseOffsets_[j] + deltaPhaseMidnight[j]);
+                }
+                lastResultTime_[j] = timeOfResult;
+                result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j], timeOfResult, bkgd_[j], sig_[j], phases_[j], phaseOffsets_[j], counterSlot_);
                 std::cout << rp->approx_ptime() << " " << rp->name() << " ";
                 rp->dump_data(std::cout);
                 sp->put_result(rp);
                 std::cout << std::endl;
-            }
-              // TBD
+              }
             }
           }
         }
@@ -423,10 +448,14 @@ private:
   float         sig_[3][6];               // signal in F123 in 6 slots each
   float         phases_[3][6];            // phases in F123 in 6 slots each
 
-  float         phasesReset_;             // 
+  bool          phasesReset_;             // 
   float         phasesOffset_[3][6];      // start phases
 
   float         alpha_;                   // low-pass filter parameter (static crashes)
   float         s_last_;                  // low-pass filter state
   int           counterBlanker_;          // 
+
+  ptime         lastResultTime_[3];       //
+  float         phaseOffsets_[3];         // to be updated at 21UTC = midnight Moscow Standard Time
+  
 } ;
