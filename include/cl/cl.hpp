@@ -211,15 +211,25 @@ namespace CL {
       ASSERT_THROW_CL(clRetainContext(_context));
     }
     ~context() {
-      clReleaseContext(_context);
+      ASSERT_THROW_CL(clReleaseContext(_context));
     }
-    context& operator=(const context& p) {
-      _context = p._context;
+    context& operator=(const context& c) {
+      if (&c == this)
+	return *this;
+      ASSERT_THROW_CL(clReleaseContext(_context));
+      _context = c._context;
       ASSERT_THROW_CL(clRetainContext(_context));
       return *this;
     }
 
     operator cl_context() const { return _context; }
+
+    cl_uint ref_count() const {
+      cl_uint count(0);
+      ASSERT_THROW_CL
+	(clGetContextInfo(_context, CL_CONTEXT_REFERENCE_COUNT, sizeof(count), &count, NULL));
+      return count;
+    }
 
   protected:
     static cl_context make(const platform& p,
@@ -271,12 +281,22 @@ namespace CL {
       clReleaseProgram(_program);
     }
     program& operator=(const program& p) {
+      if (&p == this)
+	return *this;
+      ASSERT_THROW_CL(clReleaseProgram(_program));
       _program = p._program;
       ASSERT_THROW_CL(clRetainProgram(_program));
       return *this;
     }
 
     operator cl_program() const { return _program; }
+
+    cl_uint ref_count() const {
+      cl_uint count(0);
+      ASSERT_THROW_CL
+	(clGetProgramInfo(_program, CL_PROGRAM_REFERENCE_COUNT, sizeof(count), &count, NULL));
+      return count;
+    }
 
     void build(std::string options) {
       std::vector<device> device_list;
@@ -344,12 +364,21 @@ namespace CL {
     ~kernel() {
       clReleaseKernel(_kernel);
     }
-    kernel& operator=(const kernel& p) {
-      _kernel = p._kernel;
+    kernel& operator=(const kernel& k) {
+      if (&k == this)
+	return *this;
+      ASSERT_THROW_CL(clReleaseKernel(_kernel));
+      _kernel = k._kernel;
       ASSERT_THROW_CL(clRetainKernel(_kernel));
       return *this;
     }
-
+ 
+    cl_uint ref_count() const {
+      cl_uint count(0);
+      ASSERT_THROW_CL
+	(clGetKernelInfo(_kernel, CL_KERNEL_REFERENCE_COUNT, sizeof(count), &count, NULL));
+      return count;
+    }
     std::string name() const {
       char name[1024];
       size_t n(0);
@@ -422,12 +451,22 @@ namespace CL {
       clReleaseEvent(_event);
     }
     event& operator=(const event& e) {
+      if (&e == this)
+	return *this;
+      ASSERT_THROW_CL(clReleaseEvent(_event));
       _event = e._event;
       ASSERT_THROW_CL(clRetainEvent(_event));
       return *this;
     }
 
     operator cl_event() const { return _event; }
+
+    cl_uint ref_count() const {
+      cl_uint count(0);
+      ASSERT_THROW_CL
+	(clGetEventInfo(_event, CL_EVENT_REFERENCE_COUNT, sizeof(count), &count, NULL));
+      return count;
+    }
   protected:
   private:
     cl_event _event;

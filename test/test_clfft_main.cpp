@@ -22,6 +22,8 @@ int main() {
 		   "Hainan");
 
   CL::context ctx(CL::Global::platform(), CL::Global::device());
+  CL::context ctx3 = ctx;
+  ctx = ctx3;
   CL::queue queue(ctx, CL::Global::device());
 
   std::ifstream t("test/test.cl");
