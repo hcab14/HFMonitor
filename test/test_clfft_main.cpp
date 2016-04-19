@@ -5,6 +5,7 @@
 
 #include <boost/current_function.hpp>
 #include <boost/format.hpp>
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <clFFT.h>
 
 #include "FFT.hpp"
@@ -135,7 +136,6 @@ namespace CL {
 namespace CL {
   class device {
   public:
-
     device(cl_device_id id=0)
       : _id(id) {}
     
@@ -169,7 +169,7 @@ namespace CL {
 
     static std::vector<platform> get() {
       cl_platform_id ids[128];
-      cl_uint n = 0;
+      cl_uint n(0);
       ASSERT_THROW_CL(clGetPlatformIDs(128, ids, &n));
       std::vector<platform> vp(n);
       for (cl_uint i=0; i<n; ++i)
@@ -179,7 +179,7 @@ namespace CL {
 
     std::vector<device> get_devices(cl_device_type device_type=CL_DEVICE_TYPE_DEFAULT) const {
       cl_device_id ids[128];
-      cl_uint n=0;
+      cl_uint n(0);
       ASSERT_THROW_CL(clGetDeviceIDs(_id, device_type, 128, ids, &n));
       std::vector<device> vd(n);
       for (cl_uint i=0; i<n; ++i)
@@ -261,7 +261,6 @@ namespace CL {
 	void resize(size_t n) {
 	  if (_v.size() == n)
 	    return;
-
 	  clReleaseMemObject(_buf);
 	  _v.resize(n, complex_type(0));
 	  cl_int err(CL_SUCCESS);
@@ -298,18 +297,14 @@ namespace CL {
 	  ASSERT_THROW_CL(clFinish(q));
 	}
 	
-	template<typename V,
-		 template<typename U> class WINDOW_FCN>
-	float fill(const std::vector<std::complex<V> >& v,
-		   const WINDOW_FCN<V>& window_fcn) {
+	template<typename V, typename W>
+	float fill(const V& v,
+		   const W& window_fcn) {
 	  return fill(v.begin(), v.end(), window_fcn);
 	}
 
-	template<typename V,
-		 template<typename U> class WINDOW_FCN>
-	float fill(typename std::vector<std::complex<V> >::const_iterator i0,
-		   typename std::vector<std::complex<V> >::const_iterator i1,
-		   const WINDOW_FCN<V>& window_fcn) {
+	template<typename IT, typename W>
+	float fill(IT i0, IT i1, W window_fcn) {
 	  const ssize_t length(std::distance(i0, i1));
 	  if (length != _v.size())
 	    resize(length);
@@ -337,7 +332,6 @@ namespace CL {
 	ASSERT_THROW_CL(clfftInitSetupData(&_fftSetup));
 	ASSERT_THROW_CL(clfftSetup(&_fftSetup));
       }
-
       ~setup() {
 	ASSERT_THROW_CL(clfftTeardown());
       }
@@ -373,13 +367,12 @@ namespace CL {
 	  ASSERT_THROW_CL(clfftDestroyPlan(&_planHandle));
 	ASSERT_THROW_CL(clfftCreateDefaultPlan(&_planHandle, ctx, dim, clLengths));
 	
-	ASSERT_THROW_CL(clfftSetPlanPrecision(_planHandle, CLFFT_SINGLE));
-	ASSERT_THROW_CL(clfftSetLayout(_planHandle, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED));
-	ASSERT_THROW_CL(clfftSetResultLocation(_planHandle, CLFFT_INPLACE));
+	ASSERT_THROW_CL(clfftSetPlanPrecision (_planHandle, CLFFT_SINGLE));
+	ASSERT_THROW_CL(clfftSetLayout        (_planHandle, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED));
+	ASSERT_THROW_CL(clfftSetResultLocation(_planHandle, CLFFT_OUTOFPLACE));
 	
 	cl_command_queue qs[1] = { q };
 	ASSERT_THROW_CL(clfftBakePlan(_planHandle, 1, qs, NULL, NULL));
-	
       }
       
       internal::Array::complex_type& in(size_t i) { return _in[i]; }
@@ -396,8 +389,8 @@ namespace CL {
       
     protected:
       void transform_on_device(const CL::queue& q) {
-	cl_command_queue qs[1]     = { q };
-	cl_mem           ms_in[1]  = { _in };
+	cl_command_queue qs[1]     = { q    };
+	cl_mem           ms_in[1]  = { _in  };
 	cl_mem           ms_out[1] = { _out };
 	ASSERT_THROW_CL(clfftEnqueueTransform(_planHandle, _dir, 1, qs, 0, NULL, NULL, ms_in, ms_out, NULL));
 	ASSERT_THROW_CL(clFinish(q));
@@ -417,7 +410,7 @@ struct CL_Global {
   static void setup(std::string p="NVIDIA CUDA",
 		    std::string d="GeForce 9800 GT") {    
     const std::vector<CL::platform> ps = CL::platform::get();
-    size_t i=0;
+    size_t i(0);
     bool found(false);
     for (found=false; i<ps.size() && !found; ++i)
       found = (ps[i].info() == p);
@@ -432,8 +425,7 @@ struct CL_Global {
     CL_Global::platform() = ps[i];
 
     const std::vector<CL::device> ds = ps[i].get_devices(CL_DEVICE_TYPE_ALL);
-    size_t j=0;
-    
+    size_t j(0);    
     for (found=false; j<ds.size() && !found; ++j)
       found = (ds[j].name() == d);
 
@@ -444,7 +436,6 @@ struct CL_Global {
     --j;
     std::cout << "devices: " << j << " " << ds[j].name() << std::endl;
     CL_Global::device() = ds[j];
-    
   }
   
   static CL::platform& platform() {
@@ -455,8 +446,7 @@ struct CL_Global {
   static CL::device& device() {
     static CL::device device_;
     return device_;
-  }
-  
+  }  
 } ;
 
 int main() {  
@@ -468,34 +458,27 @@ int main() {
   for (size_t i=0; i<ds.size(); ++i)
     std::cout << "dev[" << i <<"] '" << ds[i].name() << "'" << std::endl;
 
-  CL_Global::setup();
+  CL_Global::setup("AMD Accelerated Parallel Processing",
+		   "Hainan");
 
   CL::context ctx(CL_Global::platform(), CL_Global::device());
   CL::queue queue(ctx, CL_Global::device());
 
   CL::FFT::setup setup;
 
-  // CL::FFT::internal::Array in(ctx, 1024*1024*10);
-  // std::cout << "A\n";
-  // in.host_to_device(queue);
-  // std::cout << "A\n";
-  // in.device_to_host(queue);
-  // std::cout << "A\n";
-
-  const size_t n=8000;
+  const size_t n=16;
   CL::FFT::clFFT fft(ctx, queue, n);
 
   FFT::FFTWTransform<float> fftw(n, FFTW_FORWARD, FFTW_ESTIMATE);
 
-  for (int i=0; i<n; ++i) {
-    fftw.in(i) = fft.in(i) = std::complex<float>(cos(10.*float(i)/float(n)*2*M_PI),
-						 sin(-10.*float(i)/float(n)*2*M_PI));
+  for (size_t i=0; i<n; ++i) {
+    fftw.in(i) = fft.in(i) = std::complex<float>(i, 3*i);
   }
   fft.transform(queue);
   fftw.transform();
 
-  for (int i=0; i<1024; ++i) {
-    std::cout << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
+  for (size_t i=0; i<n; ++i) {
+    std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
   }
 
   return EXIT_SUCCESS;  
