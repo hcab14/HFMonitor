@@ -421,10 +421,36 @@ namespace CL {
       ASSERT_THROW_CL(clReleaseMemObject(_mem));
     }
 
+    mem& operator=(const mem& m) {
+      if (&m == this)
+	return *this;
+      const CL::context  ctx(get_context());
+      const size_t       s(get_size());
+      const cl_mem_flags f(get_flags());
+      ASSERT_THROW_CL(clReleaseMemObject(_mem));
+      _mem = make(ctx, s, f);
+    }
+
     operator cl_mem() const { return _mem; }
 
+    CL::context get_context() const {
+      cl_context ctx;
+      ASSERT_THROW_CL(clGetMemObjectInfo(_mem, CL_MEM_CONTEXT, sizeof(ctx), &ctx, NULL));
+      return CL::context(ctx);
+    }
+    cl_mem_flags get_flags() const {
+      cl_mem_flags flags(CL_MEM_READ_WRITE);
+      ASSERT_THROW_CL(clGetMemObjectInfo(_mem, CL_MEM_FLAGS, sizeof(flags), &flags, NULL));
+      return flags;      
+    }
+    size_t get_size() const {
+      size_t size(0);
+      ASSERT_THROW_CL(clGetMemObjectInfo(_mem, CL_MEM_SIZE, sizeof(size), &size, NULL));
+      return size;      
+    }
+
   protected:
-    static cl_mem make(const context &ctx, size_t size, cl_mem_flags flags) {
+    static cl_mem make(const CL::context &ctx, size_t size, cl_mem_flags flags) {
       cl_int err(CL_SUCCESS);
       cl_mem m(clCreateBuffer(ctx, flags, size, NULL, &err));
       ASSERT_THROW_CL(err);
@@ -432,7 +458,6 @@ namespace CL {
     }
   private:
     mem(const mem& );
-    mem& operator=(const mem& );
     cl_mem _mem;
   } ;
 
@@ -490,6 +515,9 @@ namespace CL {
     void enqueueBarrier() {
       ASSERT_THROW_CL(clEnqueueBarrier(_queue));
     }
+    void finish() {
+      ASSERT_THROW_CL(clFinish(_queue));
+    }
     void enqueueWaitForEvents(const std::vector<CL::event>& wait_list) {
       const std::vector<cl_event> event_list(make_vector(wait_list));
       ASSERT_THROW_CL
@@ -499,27 +527,27 @@ namespace CL {
     // device -> host
     void enqueueReadBuffer(const mem& m, size_t len, void *ptr, size_t offset=0) {
       ASSERT_THROW_CL
-	(clEnqueueReadBuffer(_queue, m, false, offset, len, ptr, 0, NULL, NULL));
+	(clEnqueueReadBuffer(_queue, m, CL_TRUE, offset, len, ptr, 0, NULL, NULL));
     }
     CL::event enqueueReadBuffer(const mem& m, size_t len, void *ptr, size_t offset,
 				const std::vector<CL::event>& wait_list) {
       const std::vector<cl_event> event_list(make_vector(wait_list));
       cl_event e;
       ASSERT_THROW_CL
-	(clEnqueueReadBuffer(_queue, m, false, offset, len, ptr, event_list.size(), &event_list[0], &e));
+	(clEnqueueReadBuffer(_queue, m, CL_FALSE, offset, len, ptr, event_list.size(), &event_list[0], &e));
       return CL::event(e);
     }
     // host -> device
     void enqueueWriteBuffer(const mem& m, size_t len, const void *ptr, size_t offset=0) {
       ASSERT_THROW_CL
-	(clEnqueueWriteBuffer(_queue, m, false, offset, len, ptr, 0, NULL, NULL));
+	(clEnqueueWriteBuffer(_queue, m, CL_TRUE, offset, len, ptr, 0, NULL, NULL));
     }
     CL::event enqueueWriteBuffer(const mem& m, size_t len, const void *ptr, size_t offset,
 				 const std::vector<CL::event>& wait_list) {
       const std::vector<cl_event> event_list(make_vector(wait_list));
       cl_event e;
       ASSERT_THROW_CL
-	(clEnqueueWriteBuffer(_queue, m, false, offset, len, ptr, event_list.size(), &event_list[0], &e));
+	(clEnqueueWriteBuffer(_queue, m, CL_FALSE, offset, len, ptr, event_list.size(), &event_list[0], &e));
       return CL::event(e);
     }
     // device -> device

@@ -19,37 +19,22 @@ namespace CL {
 	
 	Array(const CL::context& ctx,
 	      size_t n)
-	  : _v(n,complex_type(0))
-	  , _norm(n) {
-	  cl_int err(CL_SUCCESS);
-	  _buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, n*sizeof(complex_type), NULL, &err);
-	  ASSERT_THROW_CL(err);
-	}
-	~Array() {
-	  ASSERT_THROW_CL(clReleaseMemObject(_buf));
+	  : _mem(ctx, sizeof(complex_type)*n)
+	  , _v(n,complex_type(0))
+	  , _norm(n) {}
+
+	operator cl_mem() const {
+	  return _mem;
 	}
 
 	void resize(size_t n) {
-	  if (_v.size() == n)
+	  if (_v.size()*sizeof(complex_type) == n)
 	    return;
-	  clReleaseMemObject(_buf);
 	  _v.resize(n, complex_type(0));
-	  cl_int err(CL_SUCCESS);
-	  _buf = clCreateBuffer(context(), CL_MEM_READ_WRITE, n*sizeof(complex_type), NULL, &err);
-	  ASSERT_THROW_CL(err);
+	  _mem = CL::mem(_mem.get_context(), sizeof(complex_type)*n);
 	  _norm = n;
 	}
 
-	CL::context context() const {
-	  cl_context ctx;
-	  size_t n(0);
-	  ASSERT_THROW_CL(clGetMemObjectInfo(_buf, CL_MEM_CONTEXT, sizeof(ctx), &ctx, &n));
-	  ASSERT_THROW(n == sizeof(ctx));
-	  return CL::context(ctx);
-	}
-	
-	operator cl_mem() { return _buf; }
-	
 	size_t size() const { return _v.size(); }
 	float norm() const { return _norm; }
 	
@@ -59,13 +44,11 @@ namespace CL {
 	complex_type& operator[](size_t i) { return _v[i]; }
 	const complex_type& operator[](size_t i) const { return _v[i]; }
 	
-	void host_to_device(const CL::queue& q) {
-	  ASSERT_THROW_CL(clEnqueueWriteBuffer(q, _buf, CL_TRUE, 0, _v.size()*sizeof(complex_type), &_v[0], 0, NULL, NULL));
-	  ASSERT_THROW_CL(clFinish(q));
+	void host_to_device(CL::queue& q) {
+	  q.enqueueWriteBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
 	}
-	void device_to_host(const CL::queue& q) {
-	  ASSERT_THROW_CL(clEnqueueReadBuffer(q, _buf, CL_TRUE, 0, _v.size()*sizeof(complex_type), &_v[0], 0, NULL, NULL ));
-	  ASSERT_THROW_CL(clFinish(q));
+	void device_to_host(CL::queue& q) {
+	  q.enqueueReadBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
 	}
 	
 	template<typename V, typename W>
@@ -90,7 +73,7 @@ namespace CL {
 	
       protected:
       private:
-	cl_mem _buf;
+	CL::mem _mem;
 	std::vector<complex_type> _v;
 	float _norm;
       } ;
@@ -114,7 +97,7 @@ namespace CL {
     class clFFT {
     public:
       clFFT(const CL::context& ctx,
-	    const CL::queue& q,
+	    CL::queue& q,
 	    size_t n,	    
 	    clfftDirection dir=CLFFT_FORWARD)
 	: _in(ctx, n)
@@ -128,7 +111,7 @@ namespace CL {
       }
       
       void resize(const CL::context& ctx,
-		  const CL::queue& q,
+		  CL::queue& q,
 		  size_t n,
 		  bool destroyPlan=true) {
 	const clfftDim dim = CLFFT_1D;
@@ -152,19 +135,19 @@ namespace CL {
       internal::Array::complex_type& out(size_t i) { return _out[i]; }
       const internal::Array::complex_type& out(size_t i) const { return _out[i]; }
       
-      void transform(const CL::queue& q) {
+      void transform(CL::queue& q) {
 	_in.host_to_device(q);
 	transform_on_device(q);
 	_out.device_to_host(q);
       }
       
     protected:
-      void transform_on_device(const CL::queue& q) {
+      void transform_on_device(CL::queue& q) {
 	cl_command_queue qs[1]     = { q    };
 	cl_mem           ms_in[1]  = { _in  };
 	cl_mem           ms_out[1] = { _out };
 	ASSERT_THROW_CL(clfftEnqueueTransform(_planHandle, _dir, 1, qs, 0, NULL, NULL, ms_in, ms_out, NULL));
-	ASSERT_THROW_CL(clFinish(q));
+	q.finish();
       }
       
     private:

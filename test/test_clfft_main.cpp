@@ -22,10 +22,9 @@ int main() {
 		   "Hainan");
 
   CL::context ctx(CL::Global::platform(), CL::Global::device());
-  CL::context ctx3 = ctx;
-  ctx = ctx3;
   CL::queue queue(ctx, CL::Global::device());
 
+#if 1
   std::ifstream t("test/test.cl");
   std::stringstream buffer;
   buffer << t.rdbuf();
@@ -50,25 +49,28 @@ int main() {
   event_list.push_back(event);
   CL::Global::waitForEvents(event_list);
 
+  queue.finish();
+
   for (int i=0; i<10; ++i)
     std::cout << "vv1,2 =" << vv1[i] << " " << vv2[i] << std::endl;
+#endif
+  {
+    CL::FFT::setup setup;
+    
+    const size_t n=16;
+    CL::FFT::clFFT fft(ctx, queue, n);
 
-  CL::FFT::setup setup;
+    FFT::FFTWTransform<float> fftw(n, FFTW_FORWARD, FFTW_ESTIMATE);
+    
+    for (size_t i=0; i<n; ++i)
+      fftw.in(i) = fft.in(i) = std::complex<float>(i, 3*i);
 
-  const size_t n=16;
-  CL::FFT::clFFT fft(ctx, queue, n);
+    fft.transform(queue);
+    fftw.transform();
 
-  FFT::FFTWTransform<float> fftw(n, FFTW_FORWARD, FFTW_ESTIMATE);
+    for (size_t i=0; i<n; ++i)
+      std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
 
-  for (size_t i=0; i<n; ++i) {
-    fftw.in(i) = fft.in(i) = std::complex<float>(i, 3*i);
   }
-  fft.transform(queue);
-  fftw.transform();
-
-  for (size_t i=0; i<n; ++i) {
-    std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
-  }
-
   return EXIT_SUCCESS;  
 }
