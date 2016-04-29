@@ -162,7 +162,6 @@ namespace Perseus {
                 LOG_ERROR("callback failed");
                 td->iq->_cancelling= true;
                 td->cancelled = true;
-                throw std::exception(); // temporary
                 return;
               }
             }
