@@ -99,6 +99,8 @@ namespace Perseus {
       set_sio(b, FPGA::sioctl::CMD::gain_high);
     }
     virtual void start_async_input(callback::sptr callback) {
+      // check that input is not already enabled
+      ASSERT_THROW(_input_queue == false);
       _input_queue = input_queue::make(callback, _usb_transfer_size, 8,
                                        libusb::device_handle::get_cached_handle
                                        (boost::static_pointer_cast<libusb::special_handle>
