@@ -31,6 +31,7 @@
 #include <boost/thread.hpp>
 
 #include "logging.hpp"
+#include "process.hpp"
 
 /// sets up command-line options
 boost::program_options::variables_map
@@ -100,6 +101,10 @@ public:
           std::cout << "_service.stopped()\n";
           return; 
         }
+        BOOST_FOREACH(process::sptr p, _processes) {
+          if (!p || !p->is_running())
+            return;
+        }
       case EINTR: // interrupted by a signal other than in _wait_mask: ignore
         break;
       case EINVAL: // invalid timeout
@@ -118,12 +123,18 @@ public:
     sigaddset(&_wait_mask, s);
     return *this;
   }
+  wait_for_signal& add_process(process::sptr p) {
+    _processes.push_back(p);
+    return *this;
+  }
+
 protected:
 private:
   boost::asio::io_service& _service;
   sigset_t _new_mask;
   sigset_t _old_mask;
   sigset_t _wait_mask;
+  std::vector<process::sptr> _processes;
 } ;
 
 /// returns a reference to the thread pool (singleton)

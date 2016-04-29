@@ -23,6 +23,7 @@
 
 #include "libusb1.0/libusb1.hpp"
 #include "logging.hpp"
+#include "process.hpp"
 
 namespace Perseus {
 
@@ -69,10 +70,14 @@ namespace Perseus {
     virtual bool operator()(unsigned char* data, size_t length) throw () { return true; }
   } ;
 
-  class receiver_control : private boost::noncopyable {
+  class receiver_control : public process {
   public:
     typedef boost::shared_ptr<receiver_control> sptr;
+    receiver_control()
+      : process() {}
     virtual ~receiver_control() {}
+
+    virtual bool is_running() const = 0;
 
     // get number of available perseus
     static size_t get_num_perseus();

@@ -270,7 +270,9 @@ int main(int argc, char* argv[])
 
         // start receiver callback
         rec->start_async_input(cb);
-        
+
+        w.add_process(rec);
+
       } // here the destructor of wait_for_signal waits for a signal
 
       rec->stop_async_input();

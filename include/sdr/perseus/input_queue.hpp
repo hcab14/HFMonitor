@@ -122,11 +122,6 @@ namespace Perseus {
       for (size_t i=0; i<50 && not is_completed(); ++i)
         usleep(100*1000);
       LOG_INFO("... cancelled");
-      // !!! TO BE CHECKED !!!
-      while (not is_completed()) {
-        LOG_INFO("EXTRA WAITING");
-        usleep(100*1000); 
-      }
       BOOST_FOREACH(transfer_data::sptr& td, _queue)
         libusb_free_transfer(td->t);
       LOG_INFO("~input_queue end");
@@ -167,18 +162,25 @@ namespace Perseus {
                 LOG_ERROR("callback failed");
                 td->iq->_cancelling= true;
                 td->cancelled = true;
+                throw std::exception(); // temporary
                 return;
               }
             }
           } else {
-            LOG_ERROR(str(boost::format("transfer actual length != treander length (%d != %d)")
+            LOG_ERROR(str(boost::format("transfer actual length != transfer length (%d != %d)")
                           % transfer->actual_length
                           % transfer->length));
+            td->iq->_cancelling= true;
+            td->cancelled = true;
+            return;
           }
         } else {
           LOG_ERROR(str(boost::format("transfer idx != idx_expected (%d != %d)")
                         % td->idx
                         % td->iq->idx_expected()));
+          td->iq->_cancelling= true;
+          td->cancelled = true;
+          return;
         }
       } break;
       case LIBUSB_TRANSFER_TIMED_OUT:
@@ -189,7 +191,7 @@ namespace Perseus {
         td->cancelled = true;
         td->iq->check_completed();
         return;
-      }      
+      }
       td->iq->increment_idx_expected();
       libusb_submit_transfer(transfer);
     }

@@ -63,6 +63,10 @@ namespace Perseus {
       }
     }
 
+    virtual bool is_running() const {
+      return _input_queue;
+    }
+
     virtual void init(const boost::property_tree::ptree& config) {
       _rbs_map.clear();
       BOOST_FOREACH(const boost::property_tree::ptree::value_type& v, config) {
@@ -101,10 +105,16 @@ namespace Perseus {
                                         (_fx2_control->get_usb_device_handle())->get_device()),
                                        fx2_control::EndPoint::data_in);
       set_sio(true, FPGA::sioctl::CMD::fifo_enable);
+      ASSERT_THROW(pthread_create(&_input_queue_monitor_thread, NULL, 
+                                  &input_queue_monitor_thread_fn, this) == 0);
+
     }
     virtual void stop_async_input() {
-      set_sio(false, FPGA::sioctl::CMD::fifo_enable);
-      _input_queue.reset();
+      if (_input_queue) {
+        set_sio(false, FPGA::sioctl::CMD::fifo_enable);
+        _input_queue.reset();
+        pthread_join(_input_queue_monitor_thread, NULL);
+      }
     }
     virtual void use_preselector(bool b) {
       if (_use_preselector == b) return;
@@ -153,6 +163,22 @@ namespace Perseus {
       _fx2_control->fpga_sio(_sio_ctl.set_ctl(b ? (_sio_ctl.ctl | c) : (_sio_ctl.ctl & (~c))));
     }
 
+    static void* input_queue_monitor_thread_fn(void* arg) {
+      receiver_control_impl *p = (receiver_control_impl *)arg;
+      bool run(true);
+      while (run) {
+        usleep(1000*1000);
+        std::cout << "input_queue_monitor_thread_fn " << bool(p->_input_queue) << std::endl;
+        run = p->_input_queue;
+        if (run) {
+          run = !(p->_input_queue->check_completed());
+          std::cout << "input_queue_monitor_thread_fn run=" << run  << std::endl;
+          if (!run)
+            p->_input_queue.reset();
+        }
+      }
+      return NULL;
+    }
     static void* poll_libusb_thread_fn(void*) {
 #if 1
       int maxpri(0);
@@ -184,6 +210,7 @@ namespace Perseus {
     rbs_map              _rbs_map;
     int                  _sample_rate;
     size_t               _usb_transfer_size;
+    pthread_t            _input_queue_monitor_thread;
   } ;
 
   pthread_t receiver_control_impl::_poll_libusb_thread   = 0;
