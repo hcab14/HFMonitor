@@ -125,6 +125,8 @@ int main(int argc, char* argv[])
       spm.insert(std::make_pair(s.second.get<std::string>("<xmlattr>.pattern"), s.second.get<std::string>("")));
     }
 
+    FFT::FFTWInitThreads fftwInit;
+
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq>     >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");

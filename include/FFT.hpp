@@ -104,6 +104,8 @@ namespace FFT {
       static void free(complex_type* a) { FFTW_CONCAT(P,_free)(a); }    \
       static Plan plan_dft_1d(size_t n, complex_type* in, complex_type* out, \
                               int sign, unsigned flags) {               \
+        const int nthreads(4);                                          \
+        fftw_plan_with_nthreads(nthreads);                              \
         return FFTW_CONCAT(P,_plan_dft_1d)(n, in, out, sign, flags);    \
       }                                                                 \
       static void execute(Plan p) {                                     \
@@ -303,6 +305,19 @@ namespace FFT {
     Plan                   plan_; /// FFTW plan
     T       normalizationFactor_; /// normalization factor (depends on used window function)
   } ;
+
+  class FFTWInitThreads {
+  public:
+    FFTWInitThreads() {
+      fftw_init_threads();
+    }
+    ~FFTWInitThreads() {
+      fftw_cleanup_threads();
+    }
+  protected:
+  private:
+  } ;
+
 } // namespace FFT
 
 #ifdef USE_CUDA

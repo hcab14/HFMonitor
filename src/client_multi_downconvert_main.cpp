@@ -130,6 +130,8 @@ int main(int argc, char* argv[])
     boost::property_tree::ptree config;
     read_xml(vm["config"].as<std::string>(), config, boost::property_tree::xml_parser::no_comments);
 
+    FFT::FFTWInitThreads fftwInit;
+
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
