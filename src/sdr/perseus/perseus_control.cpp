@@ -168,11 +168,11 @@ namespace Perseus {
       bool run(true);
       while (run) {
         usleep(1000*1000);
-        std::cout << "input_queue_monitor_thread_fn " << bool(p->_input_queue) << std::endl;
+        LOG_INFO(str(boost::format("input_queue_monitor_thread_fn %d") % bool(p->_input_queue)));
         run = p->_input_queue;
         if (run) {
           run = !(p->_input_queue->check_completed());
-          std::cout << "input_queue_monitor_thread_fn run=" << run  << std::endl;
+          LOG_INFO(str(boost::format("input_queue_monitor_thread_fn run=%d") % run));
           if (!run)
             p->_input_queue.reset();
         }
