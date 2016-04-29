@@ -81,7 +81,7 @@ public:
         const double dt(1e-3*(t-t_).total_milliseconds());
         if (dt < 0.8*dt_sec_expected_ || dt > 1.2*dt_sec_expected_ ) {
           LOG_ERROR(str(boost::format("test_cb: dt=%f dt_expected=%f") % dt % dt_sec_expected_));
-          if (error_counter_ > 100) {
+          if (error_counter_ > 50) {
             LOG_ERROR("too low/high callback rate - aborting");
             return false;
           }
