@@ -104,10 +104,11 @@ namespace Perseus {
 
     bool check_completed() {
       BOOST_FOREACH(const transfer_data::sptr& td, _queue) {
-        // std::cerr << "check_completed " << (td->cancelled ? "cancelled" : "ok") << std::endl;
-        if (not td->cancelled) return false;
+        if (td->cancelled) {
+          _completed = true;
+          break;
+        }
       }
-      _completed= true;
       return _completed;
     }
     bool is_cancelling() const { return _cancelling; }
