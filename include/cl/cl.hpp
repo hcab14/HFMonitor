@@ -137,7 +137,7 @@ namespace CL {
   class device {
   public:
     typedef cl_device_id id_type;
-    device(cl_device_id id=0)
+    explicit device(cl_device_id id=0)
       : _id(id) {}
 
     operator cl_device_id() const { return _id; }
@@ -157,7 +157,7 @@ namespace CL {
 
   class platform {
   public:
-    platform(cl_platform_id id=0)
+    explicit platform(cl_platform_id id=0)
       : _id(id) {}
 
     operator cl_platform_id() const { return _id; }
@@ -199,13 +199,14 @@ namespace CL {
 
   class context {
   public:
-    context(cl_context c)
+    explicit context(cl_context c)
       : _context(c) {
-      ASSERT_THROW_CL(clRetainContext(_context));      
+      ASSERT_THROW_CL(clRetainContext(_context));
     }
     context(const platform& p,
 	    const device&   d)
-      : _context(make(p, d)) {}
+      : _context(make(p, d)) {
+    }
     context(const context& p)
       : _context(p._context) {
       ASSERT_THROW_CL(clRetainContext(_context));
@@ -249,7 +250,7 @@ namespace CL {
     cl_context _context;
   } ;
 
-  namespace {
+  namespace util {
     // unpack a vector of class instances into a vector of the wrapped class member
     template<typename V>
     std::vector<typename V::value_type::id_type> make_vector(const V& v) {
@@ -267,7 +268,7 @@ namespace CL {
     typedef cl_program id_type;
     program(cl_program p)
       : _program(p) {
-      ASSERT_THROW_CL(clRetainProgram(_program));
+      // ASSERT_THROW_CL(clRetainProgram(_program));
     }
     program(context& ctx, std::string source)
       : _program(make(ctx, source)) {}
@@ -303,7 +304,7 @@ namespace CL {
       build(device_list, options);
     }
     void build(const std::vector<device>& device_list, std::string options) {
-      const std::vector<cl_device_id> device_id_list(make_vector(device_list));
+      const std::vector<cl_device_id> device_id_list(util::make_vector(device_list));
       ASSERT_THROW_CL
 	(clBuildProgram(_program,
 			device_id_list.size(),
@@ -316,8 +317,8 @@ namespace CL {
 			const std::vector<device>& devices,
 			const std::vector<program>& programs,
 			std::string options) {
-      const std::vector<cl_device_id> device_id_list(make_vector(devices));
-      const std::vector<cl_program>  program_id_list(make_vector(programs));
+      const std::vector<cl_device_id> device_id_list(util::make_vector(devices));
+      const std::vector<cl_program>  program_id_list(util::make_vector(programs));
       cl_int err(CL_SUCCESS);
       program p(clLinkProgram(ctx,
 			      device_id_list.size(),  &device_id_list[0],
@@ -359,7 +360,7 @@ namespace CL {
       : _kernel(make(program, name)) {}
     kernel(const kernel& p)
       : _kernel(p._kernel) {
-      ASSERT_THROW_CL(clRetainKernel(_kernel));
+      // ASSERT_THROW_CL(clRetainKernel(_kernel));
     }
     ~kernel() {
       clReleaseKernel(_kernel);
@@ -416,19 +417,29 @@ namespace CL {
   class mem {
   public:
     mem(const context &ctx, size_t size, cl_mem_flags flags=CL_MEM_READ_WRITE)
-      : _mem(make(ctx, size, flags)) {}
+      : _mem(make(ctx, size, flags)) {
+      std::cout << "mem0 " << this << " " << _mem << std::endl;
+    }
+    
+    mem(const mem& m)
+      : _mem(m._mem) {
+      ASSERT_THROW_CL(clRetainMemObject(_mem));
+      std::cout << "mem1 " << this << " " << _mem << std::endl;
+    }
+
     ~mem() {
+      std::cout << "~mem " << this << " " << _mem << std::endl;
       ASSERT_THROW_CL(clReleaseMemObject(_mem));
     }
 
     mem& operator=(const mem& m) {
       if (&m == this)
 	return *this;
-      const CL::context  ctx(get_context());
-      const size_t       s(get_size());
-      const cl_mem_flags f(get_flags());
+      std::cout << "mem= " << this << " " << _mem << std::endl;
       ASSERT_THROW_CL(clReleaseMemObject(_mem));
-      _mem = make(ctx, s, f);
+      _mem = m._mem;
+      ASSERT_THROW_CL(clRetainMemObject(_mem));
+      return *this;
     }
 
     operator cl_mem() const { return _mem; }
@@ -457,16 +468,16 @@ namespace CL {
       return m;
     }
   private:
-    mem(const mem& );
     cl_mem _mem;
   } ;
 
   class event {
   public:
     typedef cl_event id_type;
-    event(cl_event e)
+    event(cl_event e, bool retain)
       : _event(e) {
-      ASSERT_THROW_CL(clRetainEvent(_event));      
+      if (retain)
+	ASSERT_THROW_CL(clRetainEvent(_event));      
     }
     event(const event& e)
       : _event(e._event) {
@@ -505,8 +516,10 @@ namespace CL {
       cl_int err(CL_SUCCESS);
       _queue = clCreateCommandQueue(ctx, dev, 0, &err);
       ASSERT_THROW_CL(err);
+      std::cout << "queue1 " << this << " " << _queue << std::endl;
     }
     ~queue() {
+      std::cout << "~queue " << this << " " << _queue << std::endl;
       ASSERT_THROW_CL(clReleaseCommandQueue(_queue));
     }
 
@@ -519,49 +532,49 @@ namespace CL {
       ASSERT_THROW_CL(clFinish(_queue));
     }
     void enqueueWaitForEvents(const std::vector<CL::event>& wait_list) {
-      const std::vector<cl_event> event_list(make_vector(wait_list));
+      const std::vector<cl_event> event_list(util::make_vector(wait_list));
       ASSERT_THROW_CL
 	(clEnqueueWaitForEvents(_queue, event_list.size(), &event_list[0]));
     }
 
     // device -> host
-    void enqueueReadBuffer(const mem& m, size_t len, void *ptr, size_t offset=0) {
-      ASSERT_THROW_CL
-	(clEnqueueReadBuffer(_queue, m, CL_TRUE, offset, len, ptr, 0, NULL, NULL));
+    CL::event enqueueReadBuffer(const mem& m, size_t len, void *ptr, size_t offset=0) {
+      const std::vector<CL::event> wait_list;
+      return enqueueReadBuffer(m, len, ptr, offset, wait_list);
     }
     CL::event enqueueReadBuffer(const mem& m, size_t len, void *ptr, size_t offset,
 				const std::vector<CL::event>& wait_list) {
-      const std::vector<cl_event> event_list(make_vector(wait_list));
+      const std::vector<cl_event> event_list(util::make_vector(wait_list));
       cl_event e;
       ASSERT_THROW_CL
 	(clEnqueueReadBuffer(_queue, m, CL_FALSE, offset, len, ptr, event_list.size(), &event_list[0], &e));
-      return CL::event(e);
+      return CL::event(e, true);
     }
     // host -> device
-    void enqueueWriteBuffer(const mem& m, size_t len, const void *ptr, size_t offset=0) {
-      ASSERT_THROW_CL
-	(clEnqueueWriteBuffer(_queue, m, CL_TRUE, offset, len, ptr, 0, NULL, NULL));
+    CL::event enqueueWriteBuffer(const mem& m, size_t len, const void *ptr, size_t offset=0) {
+      const std::vector<CL::event> wait_list;
+      return enqueueWriteBuffer(m, len, ptr, offset, wait_list);
     }
     CL::event enqueueWriteBuffer(const mem& m, size_t len, const void *ptr, size_t offset,
 				 const std::vector<CL::event>& wait_list) {
-      const std::vector<cl_event> event_list(make_vector(wait_list));
+      const std::vector<cl_event> event_list(util::make_vector(wait_list));
       cl_event e;
       ASSERT_THROW_CL
 	(clEnqueueWriteBuffer(_queue, m, CL_FALSE, offset, len, ptr, event_list.size(), &event_list[0], &e));
-      return CL::event(e);
+      return CL::event(e, true);
     }
     // device -> device
-    void enqueueCopyBuffer(const mem& src, mem& dst, size_t len, size_t src_offset=0, size_t dst_offset=0) {
-      ASSERT_THROW_CL
-	(clEnqueueCopyBuffer(_queue, src, dst, src_offset, dst_offset, len, 0, NULL, NULL));
+    CL::event enqueueCopyBuffer(const mem& src, mem& dst, size_t len, size_t src_offset=0, size_t dst_offset=0) {
+      const std::vector<CL::event> wait_list;
+      return enqueueCopyBuffer(src, dst, len, src_offset, dst_offset, wait_list);
     }
     CL::event enqueueCopyBuffer(const mem& src, mem& dst, size_t len, size_t src_offset, size_t dst_offset,
 				const std::vector<CL::event>& wait_list) {
-      const std::vector<cl_event> event_list(make_vector(wait_list));
+      const std::vector<cl_event> event_list(util::make_vector(wait_list));
       cl_event e;
       ASSERT_THROW_CL
 	(clEnqueueCopyBuffer(_queue, src, dst, src_offset, dst_offset, len, event_list.size(), &event_list[0], &e));
-      return CL::event(e);
+      return CL::event(e, true);
     }
     
   protected:
@@ -615,7 +628,7 @@ namespace CL {
     }  
 
     static void waitForEvents(const std::vector<CL::event>& wait_list) {
-      const std::vector<cl_event> event_list(make_vector(wait_list));
+      const std::vector<cl_event> event_list(util::make_vector(wait_list));
       ASSERT_THROW_CL(clWaitForEvents(event_list.size(), &event_list[0]));
     }
   } ;

@@ -24,6 +24,7 @@ int main() {
   CL::context ctx(CL::Global::platform(), CL::Global::device());
   CL::queue queue(ctx, CL::Global::device());
 
+
 #if 1
   std::ifstream t("test/test.cl");
   std::stringstream buffer;
@@ -38,6 +39,7 @@ int main() {
   CL::context ctx2 = k.context(); // for test
 
   CL::mem buf(ctx, 100*sizeof(float));
+
   std::vector<float> vv1(100), vv2(100);
   for (int i=0; i<100; ++i)
     vv1[i]=i;
@@ -54,6 +56,7 @@ int main() {
   for (int i=0; i<10; ++i)
     std::cout << "vv1,2 =" << vv1[i] << " " << vv2[i] << std::endl;
 #endif
+#if 0
   {
     CL::FFT::setup setup;
     
@@ -72,5 +75,6 @@ int main() {
       std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
 
   }
+#endif
   return EXIT_SUCCESS;  
 }

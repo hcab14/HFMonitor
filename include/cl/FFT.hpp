@@ -12,74 +12,84 @@
 
 namespace CL {
   namespace FFT {
-    namespace internal {
-      class Array {
-      public:
-	typedef std::complex<float> complex_type;
+    class array {
+    public:
+      typedef std::complex<float> complex_type;
 	
-	Array(const CL::context& ctx,
-	      size_t n)
-	  : _mem(ctx, sizeof(complex_type)*n)
-	  , _v(n,complex_type(0))
-	  , _norm(n) {}
+      array(const CL::context& ctx,
+	    size_t n)
+	: _mem(ctx, sizeof(complex_type)*n)
+	, _v(n,complex_type(0))
+	, _norm(n) {}
 
-	operator cl_mem() const {
-	  return _mem;
-	}
+      array(const array& a) 
+	: _mem(a._mem)
+	, _v(a._v)
+	, _norm(a._norm) {
+	std::cout << "array::array(const array&) " << this << std::endl;
+      }
 
-	void resize(size_t n) {
-	  if (_v.size()*sizeof(complex_type) == n)
-	    return;
-	  _v.resize(n, complex_type(0));
-	  _mem = CL::mem(_mem.get_context(), sizeof(complex_type)*n);
-	  _norm = n;
-	}
+      ~array() {
+	std::cout << "~array " << this << " "<< cl_mem(_mem) << std::endl;
+      }
 
-	size_t size() const { return _v.size(); }
-	float norm() const { return _norm; }
-	
-	complex_type* begin() { return &_v[0]; }
-	complex_type* end()   { return &_v[0]+_v.size(); }  
-	
-	complex_type& operator[](size_t i) { return _v[i]; }
-	const complex_type& operator[](size_t i) const { return _v[i]; }
-	
-	void host_to_device(CL::queue& q) {
-	  q.enqueueWriteBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
-	}
-	void device_to_host(CL::queue& q) {
-	  q.enqueueReadBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
-	}
-	
-	template<typename V, typename W>
-	float fill(const V& v,
-		   const W& window_fcn) {
-	  return fill(v.begin(), v.end(), window_fcn);
-	}
+      operator cl_mem() const {
+	return _mem;
+      }
 
-	template<typename IT, typename W>
-	float fill(IT i0, IT i1, W window_fcn) {
-	  const ssize_t length(std::distance(i0, i1));
-	  if (length != _v.size())
-	    resize(length);
-	  _norm= 0;
-	  for (unsigned u(0), n(_v.size()); u<n; ++u, ++i0) {
-	    const float w(window_fcn(u));
-	    _norm += w;
-	    _v[u]  = w* (*i0);
-	  }
-	  return _norm;
-	}
+      CL::context get_context() const { return _mem.get_context(); }
+
+      void resize(size_t n) {
+	if (_v.size()*sizeof(complex_type) == n)
+	  return;
+	_v.resize(n, complex_type(0));
+	_mem = CL::mem(_mem.get_context(), sizeof(complex_type)*n);
+	_norm = n;
+      }
+
+      size_t size() const { return _v.size(); }
+      float norm() const { return _norm; }
 	
-      protected:
-      private:
-	CL::mem _mem;
-	std::vector<complex_type> _v;
-	float _norm;
-      } ;
+      complex_type* begin() { return &_v[0]; }
+      complex_type* end()   { return &_v[0]+_v.size(); }  
+	
+      complex_type& operator[](size_t i) { return _v[i]; }
+      const complex_type& operator[](size_t i) const { return _v[i]; }
+	
+      void host_to_device(CL::queue& q) {
+	q.enqueueWriteBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
+      }
+      void device_to_host(CL::queue& q) {
+	q.enqueueReadBuffer(_mem, _v.size()*sizeof(complex_type), &_v[0]);
+      }
+	
+      template<typename V, typename W>
+      float fill(const V& v,
+		 const W& window_fcn) {
+	return fill(v.begin(), v.end(), window_fcn);
+      }
+
+      template<typename IT, typename W>
+      float fill(IT i0, IT i1, W window_fcn) {
+	const ssize_t length(std::distance(i0, i1));
+	if (length != _v.size())
+	  resize(length);
+	_norm= 0;
+	for (unsigned u(0), n(_v.size()); u<n; ++u, ++i0) {
+	  const float w(window_fcn(u));
+	  _norm += w;
+	  _v[u]  = w* (*i0);
+	}
+	return _norm;
+      }
+	
+    protected:
+    private:
+      CL::mem _mem;
+      std::vector<complex_type> _v;
+      float _norm;
+    } ;
       
-    } // namespace internal
-    
     class setup {
     public:
       setup() {
@@ -96,6 +106,16 @@ namespace CL {
     
     class clFFT {
     public:
+      clFFT(CL::queue& q,
+	    const array& in,
+	    const array& out,
+	    clfftDirection dir=CLFFT_FORWARD)
+	: _in(in)
+	, _out(out)
+	, _dir(dir) {
+	ASSERT_THROW(_in.size() == _out.size());
+	resize(_in.get_context(), q, _in.size(), false);
+      }
       clFFT(const CL::context& ctx,
 	    CL::queue& q,
 	    size_t n,	    
@@ -107,7 +127,9 @@ namespace CL {
       }
       
       ~clFFT() {
+	std::cout << "A0" << std::endl;
 	ASSERT_THROW_CL(clfftDestroyPlan(&_planHandle));
+	std::cout << "A1" << std::endl;
       }
       
       void resize(const CL::context& ctx,
@@ -129,11 +151,11 @@ namespace CL {
 	ASSERT_THROW_CL(clfftBakePlan(_planHandle, 1, qs, NULL, NULL));
       }
       
-      internal::Array::complex_type& in(size_t i) { return _in[i]; }
-      const internal::Array::complex_type& in(size_t i) const { return _in[i]; }
+      array::complex_type& in(size_t i) { return _in[i]; }
+      const array::complex_type& in(size_t i) const { return _in[i]; }
 
-      internal::Array::complex_type& out(size_t i) { return _out[i]; }
-      const internal::Array::complex_type& out(size_t i) const { return _out[i]; }
+      array::complex_type& out(size_t i) { return _out[i]; }
+      const array::complex_type& out(size_t i) const { return _out[i]; }
       
       void transform(CL::queue& q) {
 	_in.host_to_device(q);
@@ -142,18 +164,24 @@ namespace CL {
       }
       
     protected:
-      void transform_on_device(CL::queue& q) {
+      CL::event transform_on_device(CL::queue& q) {
+	const std::vector<CL::event> wait_list;
+	return transform_on_device(q, wait_list);
+      }
+      CL::event transform_on_device(CL::queue& q, const std::vector<CL::event>& wait_list) {
+	const std::vector<cl_event> event_list(CL::util::make_vector(wait_list));
 	cl_command_queue qs[1]     = { q    };
 	cl_mem           ms_in[1]  = { _in  };
 	cl_mem           ms_out[1] = { _out };
-	ASSERT_THROW_CL(clfftEnqueueTransform(_planHandle, _dir, 1, qs, 0, NULL, NULL, ms_in, ms_out, NULL));
-	q.finish();
+	cl_event         es[1];
+	ASSERT_THROW_CL(clfftEnqueueTransform(_planHandle, _dir, 1, qs, event_list.size(), &event_list[0], es, ms_in, ms_out, NULL));
+	return CL::event(es[0], false);
       }
       
     private:
       clfftPlanHandle _planHandle;
-      internal::Array _in;
-      internal::Array _out;
+      array _in;
+      array _out;
       clfftDirection  _dir;
     } ;
 
