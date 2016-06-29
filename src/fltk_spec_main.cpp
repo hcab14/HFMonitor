@@ -34,7 +34,7 @@
 #include "repack_processor.hpp"
 #include "run.hpp"
 #include "Spectrum.hpp"
-
+#include "spec_buffer.hpp"
 #include "filter/iir.hpp"
 
 #include <FL/Fl.H>
@@ -134,15 +134,19 @@ public:
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
+    , delta_f_(1.0 / config.get<double>("Repack.<xmlattr>.bufferLength_sec"))
+    , delta_t_(1.0 / delta_f_ * (1.0 - 0.01*config.get<double>("Repack.<xmlattr>.overlap_percent")))
     , last_update_time_(boost::date_time::not_a_date_time)
     , filter_nb_(0.01, 500e3)
     , s_last_(1e-3)
-    , counterBlanker_(0) {
+    , counterBlanker_(0)
+    , spec_buf_() {
     w_.show();
     w_.set_fMin(config.get<double>("<xmlattr>.fMin_kHz"));
     w_.set_fMax(config.get<double>("<xmlattr>.fMax_kHz"));
     w_.set_sMin(config.get<double>("<xmlattr>.sMin_dB"));
     w_.set_sMax(config.get<double>("<xmlattr>.sMax_dB"));
+    std::cout << "delta_f,t = " << delta_f_ << " " << delta_t_ << std::endl;
   }
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
@@ -163,6 +167,8 @@ public:
       fftw_.resize(length);
       filter_nb_.init(0.05, sp->sample_rate_Hz());
       s_last_ = 0.1;
+
+      spec_buf_ = spec_buffer::make(int(0.5+120/delta_t_), length);
     }
     if (filter_.empty()) {
       filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
@@ -203,6 +209,9 @@ public:
     const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
 			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,2));
     w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
+
+    spec_buf_->insert(ps);
+
     if (update_window)
       last_update_time_ = sp->approx_ptime();
     static char msg[1024];
@@ -221,11 +230,15 @@ private:
   Filter::Cascaded<frequency_vector<float> > filter_;
   std::string host_;
   std::string port_;
+  double delta_f_;
+  double delta_t_;
   boost::posix_time::ptime last_update_time_;
 //   boost::mutex mutex_;
   filter::iir_lowpass_1pole<double, double> filter_nb_;
   float s_last_;
   int   counterBlanker_;
+
+  spec_buffer::sptr spec_buf_;
 } ;
 
 int main(int argc, char* argv[])
