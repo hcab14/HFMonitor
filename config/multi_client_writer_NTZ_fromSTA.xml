@@ -9,6 +9,7 @@
   <server host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40029"/>
   <FileSink filePath="DataSTA" filePeriod="1d"/>
   <Streams>
+    <Stream pattern="A.*">Writer</Stream>
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
   </Streams>

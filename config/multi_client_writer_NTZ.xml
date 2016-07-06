@@ -12,6 +12,7 @@
             filePeriod="1d"/>
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
+    <Stream pattern="DC_013500_ALPHA">DemodALPHA</Stream>
     <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
     <Stream pattern="DC_019600_GQD">DemodMSK_GQ2</Stream>
     <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
@@ -34,6 +35,9 @@
   <Clients>
     <WriterTXT proc_name="WriterText" filePath="DataNTZ" filePeriod="1d"/>
     <WriterIQ  proc_name="WriterIQ"   filePath="DataIQ"  filePeriod="5m" bitsPerSample="24"/>
+
+    <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
+
     <DemodMSK proc_name="DemodMSK_JXN"
                   name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
                   dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
