@@ -42,8 +42,11 @@ namespace decode {
     typedef bit_vector_type::const_iterator const_iterator;
 
     rtcm2()
-      : state_(-3)
+      : state_(-4)
       , bit_counter_(0)
+      , sync_(300)
+      , sync_counter_(0)
+      , sync_offset_(0)
       , n_data_words_(0)
       , frame_()
       , msg_type_(0)
@@ -116,9 +119,76 @@ namespace decode {
       ++bit_counter_;
       if (bit_counter_ == 30)
         bit_counter_ = 0;
-#if 0
+
       frame_.data  = (frame_.data << 1);
       frame_.data |= b;
+
+      boost::uint32_t data = 0;
+      sync_[sync_counter_] = frame_.check_parity(data);
+
+      if ((sync_counter_%30) == sync_offset_) {
+        state_ = (sync_[sync_counter_] ? state_ : -3);
+        switch (state_) {
+        case -3:
+          if (frame_.check_preamble()) {
+            std::cout << "    *** found preamble ***" << std::endl;
+            state_ = -2;
+          }
+          break;
+        case -2:
+          msg_type_ = ((data>>10) & 0x3F);
+          stn_num_  = (data & 0x3FF);
+          std::cout << "     H1 type=" << int(msg_type_) << " stn=" << stn_num_ << std::endl;
+          state_ = -1;
+          break;
+        case -1:
+          z_count_ = ((data>>11) & 0x1FFF);
+          seq_     = ((data>> 8) & 0x7);
+          num_     = ((data>> 3) & 0x1F);
+          std::cout << "     H2 z_count=" << z_count_ << " seq=" << int(seq_) << " num_frames=" << int(num_) << std::endl;
+          n_data_words_ = num_;
+          state_ = (num_ > 0 ? 0 : -3);
+        default:
+          if (state_ >= 0) {
+            data_.push_back( data     &0xFF);
+            data_.push_back((data>> 8)&0xFF);
+            data_.push_back((data>>16)&0xFF);
+            
+            ++state_;
+            std::cout << "D *** msg #" << state_ << std::endl;;
+            if (state_ == n_data_words_) {
+              std::cout << "D *** decode" << std::endl;;
+              decode_message();
+              data_.clear();
+              state_ = -3;
+            }
+          }
+          break;
+        }
+      }
+
+      int hist[30] = { 0 };
+      for (int i=0, n=sync_.size(); i<n; ++i)
+        hist[i%30] += sync_[i];
+
+      ++sync_counter_;
+      if (sync_counter_ == sync_.size()) {
+        sync_counter_ = 0;
+        std::cout << "sync: ";
+        for (int i=0; i<30; ++i)
+          std::cout << boost::format("%3d") % hist[i];
+        const int idx_max = std::distance(hist, std::max_element(hist, hist+30));
+        std::cout << " | " << idx_max << " " << hist[idx_max] << std::endl;
+        if (hist[idx_max] > 5) {
+          sync_offset_ = idx_max;
+          state_ = (state_ == -4 ? -3 : state_);
+        } else {
+          state_ = -4;
+        }
+      }
+      
+
+#if 0
 
       // std::cout << "D *** data " << std::bitset<32>(frame_.data) << std::endl;
       boost::uint32_t data = 0;
@@ -135,9 +205,6 @@ namespace decode {
           if (frame_.check_parity(data)) {
             state_       = -1;
             bit_counter_ =  0;
-            msg_type_ = ((data>>10) & 0x3F);
-            stn_num_  = (data & 0x3FF);
-            std::cout << "D *** H1 type=" << int(msg_type_) << " stn=" << stn_num_ << std::endl;
             if (stn_num_ == 0) state_ = -3;
           } else {
             state_ = -3;
@@ -344,6 +411,11 @@ namespace decode {
   private:
     int   state_;
     int   bit_counter_;
+
+    std::vector<bool> sync_;
+    int   sync_counter_;
+    int   sync_offset_;
+
     int   n_data_words_;
     frame frame_;
     boost::uint8_t  msg_type_;
