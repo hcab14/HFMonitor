@@ -30,6 +30,9 @@
     <Stream pattern="DC_063850_FTA">DemodMSK_FTA</Stream>
     <Stream pattern="DC_065800_FUE">DemodMSK_FUE</Stream>
     <Stream pattern="DC_081000_GYN">DemodMSK_GYN</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK1</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK2</Stream>
+    <Stream pattern="DC_132000_EFR">DemodFSK3</Stream>
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
   <Clients>
@@ -37,6 +40,13 @@
     <WriterIQ  proc_name="WriterIQ"   filePath="DataIQ"  filePeriod="5m" bitsPerSample="24"/>
 
     <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
+
+    <DemodFSK name="EFR_Mainflingen" proc_name="DemodFSK1"
+              fc_Hz="129100" fs_Hz="170" baud="200" filterOrder="10"/>
+    <DemodFSK name="EFR_Lakihegy"    proc_name="DemodFSK2"
+              fc_Hz="135600" fs_Hz="170" baud="200" filterOrder="10"/>
+    <DemodFSK name="EFR_Burg"        proc_name="DemodFSK3"
+              fc_Hz="139000" fs_Hz="170" baud="200" filterOrder="10"/>
 
     <DemodMSK proc_name="DemodMSK_JXN"
                   name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
