@@ -41,6 +41,18 @@ namespace decode {
     typedef bit_vector_type::iterator iterator;
     typedef bit_vector_type::const_iterator const_iterator;
 
+    struct __attribute__((__packed__)) H1 {
+      size_t stn_num : 10;
+      size_t msg_type : 6;
+      size_t preamble : 8;
+    } ;
+    struct __attribute__((__packed__)) H2 {
+      size_t health  : 3;
+      size_t n       : 5;
+      size_t seq     : 3;
+      size_t z_count : 13;
+    } ;
+
     rtcm2()
       : state_(-4)
       , bit_counter_(0)
@@ -130,26 +142,34 @@ namespace decode {
         state_ = (sync_[sync_counter_] ? state_ : -3);
         switch (state_) {
         case -3:
-        case -2:
+        case -2: {
           if (frame_.check_preamble()) {
+            const H1* h1 = (const H1*)&data;
             msg_type_ = ((data>>10) & 0x3F);
             stn_num_  = (data & 0x3FF);
             std::cout << "     H1 type=" << int(msg_type_) << " stn=" << stn_num_ 
-                      << boost::format(" 0x%04X") % data 
+                      << "(" << h1->stn_num << " " << h1->msg_type << ")" 
                       << std::endl;
             state_ = -1;
           }
           break;
-        case -1:
+        }
+        case -1: {
+          const H2* h2 = (const H2*)&data;
           z_count_ = ((data>>11) & 0x1FFF);
           seq_     = ((data>> 8) & 0x7);
           num_     = ((data>> 3) & 0x1F);
           std::cout << "     H2 z_count=" << z_count_ << " seq=" << int(seq_) << " num_frames=" << int(num_)
-                    << boost::format(" 0x%04X") % data 
+                    << "(" << h2->z_count << " " << h2->seq << ")" 
                     << std::endl;
           n_data_words_ = num_;
           state_ = (num_ > 0 ? 0 : -3);
+          break;
+        }
         default:
+          if (state_ == 0)
+            data_.clear();
+
           if (state_ >= 0) {
             data_.push_back( data     &0xFF);
             data_.push_back((data>> 8)&0xFF);
@@ -160,7 +180,6 @@ namespace decode {
             if (state_ == n_data_words_) {
               std::cout << "D *** decode" << std::endl;;
               decode_message();
-              data_.clear();
               state_ = -3;
             }
           }
@@ -307,15 +326,15 @@ namespace decode {
           for (size_t i=0; i<data_.size(); i+=15) {
             const msg_1 *m = (const msg_1*)(&data_[i]);
             std::cout << "D*** MSG_1:"
-                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%+8.2f RRC=%+6.3f IOD=%3d")
               % m->sat_id1() % m->sf1() % m->udre1() % m->prc1() % m->rrc1() % m->iod1()
                       << std::endl;
             std::cout << "D*** MSG_1:"
-                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%+8.2f RRC=%+6.3f IOD=%3d")
               % m->sat_id2() % m->sf2() % m->udre2() % m->prc2() % m->rrc2() % m->iod2()
                       << std::endl;
             std::cout << "D*** MSG_1:"
-                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%+8.2f RRC=%+6.3f IOD=%3d")
               % m->sat_id3() % m->sf3() % m->udre3() % m->prc3() % m->rrc3() % m->iod3()
                       << std::endl;
           }
