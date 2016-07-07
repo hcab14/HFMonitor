@@ -126,26 +126,27 @@ namespace decode {
       boost::uint32_t data = 0;
       sync_[sync_counter_] = frame_.check_parity(data);
 
-      if ((sync_counter_%30) == sync_offset_) {
+      if ( (sync_counter_%30) == sync_offset_) {
         state_ = (sync_[sync_counter_] ? state_ : -3);
         switch (state_) {
         case -3:
-          if (frame_.check_preamble()) {
-            std::cout << "    *** found preamble ***" << std::endl;
-            state_ = -2;
-          }
-          break;
         case -2:
-          msg_type_ = ((data>>10) & 0x3F);
-          stn_num_  = (data & 0x3FF);
-          std::cout << "     H1 type=" << int(msg_type_) << " stn=" << stn_num_ << std::endl;
-          state_ = -1;
+          if (frame_.check_preamble()) {
+            msg_type_ = ((data>>10) & 0x3F);
+            stn_num_  = (data & 0x3FF);
+            std::cout << "     H1 type=" << int(msg_type_) << " stn=" << stn_num_ 
+                      << boost::format(" 0x%04X") % data 
+                      << std::endl;
+            state_ = -1;
+          }
           break;
         case -1:
           z_count_ = ((data>>11) & 0x1FFF);
           seq_     = ((data>> 8) & 0x7);
           num_     = ((data>> 3) & 0x1F);
-          std::cout << "     H2 z_count=" << z_count_ << " seq=" << int(seq_) << " num_frames=" << int(num_) << std::endl;
+          std::cout << "     H2 z_count=" << z_count_ << " seq=" << int(seq_) << " num_frames=" << int(num_)
+                    << boost::format(" 0x%04X") % data 
+                    << std::endl;
           n_data_words_ = num_;
           state_ = (num_ > 0 ? 0 : -3);
         default:
@@ -155,7 +156,7 @@ namespace decode {
             data_.push_back((data>>16)&0xFF);
             
             ++state_;
-            std::cout << "D *** msg #" << state_ << std::endl;;
+            //            std::cout << "D *** msg #" << state_ << std::endl;;
             if (state_ == n_data_words_) {
               std::cout << "D *** decode" << std::endl;;
               decode_message();
@@ -166,7 +167,7 @@ namespace decode {
           break;
         }
       }
-
+      
       int hist[30] = { 0 };
       for (int i=0, n=sync_.size(); i<n; ++i)
         hist[i%30] += sync_[i];
@@ -185,77 +186,7 @@ namespace decode {
         } else {
           state_ = -4;
         }
-      }
-      
-
-#if 0
-
-      // std::cout << "D *** data " << std::bitset<32>(frame_.data) << std::endl;
-      boost::uint32_t data = 0;
-      switch (state_) {
-      case -3:
-        if (frame_.check_preamble()) {
-          std::cout << "D *** found preamble ***" << std::endl;
-          state_ = -2;
-          bit_counter_ = 0;
-        }
-        break;
-      case -2:
-        if (bit_counter_ == 30) {
-          if (frame_.check_parity(data)) {
-            state_       = -1;
-            bit_counter_ =  0;
-            if (stn_num_ == 0) state_ = -3;
-          } else {
-            state_ = -3;
-          }
-        }
-        break;
-      case -1:
-        if (bit_counter_ == 30) {
-          if (frame_.check_parity(data)) {
-            state_ = 0;
-            z_count_ = ((data>>11) & 0x1FFF);
-            int seq_new = ((data>> 8) & 0x7);
-            num_     = ((data>> 3) & 0x1F);
-            std::cout << "D *** H2 z_count=" << z_count_ << " seq=" << int(seq_) << " num_frames=" << int(num_) << std::endl;
-            if (num_ == 0)
-              state_ = -3;
-            // if (seq_ != -1 && seq_new != ((seq_+1)%8)) {
-            //   state_ = -3;
-            //   seq_ = -1;
-            // } else {
-            seq_ = seq_new;
-            // }
-            n_data_words_ = num_;
-            data_.clear();
-          } else {
-            state_ = -3;
-          }
-          bit_counter_ = 0;
-        }
-        break;
-      default:
-        if (bit_counter_ == 30) {
-          if (frame_.check_parity(data)) {
-          
-            data_.push_back( data     &0xFF);
-            data_.push_back((data>> 8)&0xFF);
-            data_.push_back((data>>16)&0xFF);
-
-            ++state_;
-            std::cout << "D *** msg #" << state_ << std::endl;;
-            if (state_ == n_data_words_) {
-              decode_message();
-              state_ = -2;
-            }
-          } else {
-            state_ = -3;
-          } 
-          bit_counter_ = 0;
-        }
-      }
-#endif
+      }      
     }
 
     struct __attribute__((__packed__)) msg_1  {
@@ -376,28 +307,16 @@ namespace decode {
           for (size_t i=0; i<data_.size(); i+=15) {
             const msg_1 *m = (const msg_1*)(&data_[i]);
             std::cout << "D*** MSG_1:"
-                      << m->sat_id1() << " "
-                      << m->sf1() << " "
-                      << m->udre1() << " "
-                      << m->prc1() << " "
-                      << m->rrc1() << " "
-                      << m->iod1() << " "
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+              % m->sat_id1() % m->sf1() % m->udre1() % m->prc1() % m->rrc1() % m->iod1()
                       << std::endl;
             std::cout << "D*** MSG_1:"
-                      << m->sat_id2() << " "
-                      << m->sf2() << " "
-                      << m->udre2() << " "
-                      << m->prc2() << " "
-                      << m->rrc2() << " "
-                      << m->iod2() << " "
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+              % m->sat_id2() % m->sf2() % m->udre2() % m->prc2() % m->rrc2() % m->iod2()
                       << std::endl;
             std::cout << "D*** MSG_1:"
-                      << m->sat_id3() << " "
-                      << m->sf3() << " "
-                      << m->udre3() << " "
-                      << m->prc3() << " "
-                      << m->rrc3() << " "
-                      << m->iod3() << " "
+                      << boost::format(" G%02d SF=%d UDRE=%2d PRC=%8.2f RRC=%5.3f IOD=%3d")
+              % m->sat_id3() % m->sf3() % m->udre3() % m->prc3() % m->rrc3() % m->iod3()
                       << std::endl;
           }
         }
