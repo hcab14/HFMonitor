@@ -227,14 +227,16 @@ namespace decode {
     }
 
     struct __attribute__((__packed__)) msg_1  {
-      std::string to_str() const {
+      std::string to_str(int num_frames) const {
         std::string line;
         line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
                     % sat_id1() % udre1() % prc1() % rrc1() % iod1());
-        line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
-                    % sat_id2() % udre2() % prc2() % rrc2() % iod2());
-        line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
-                    % sat_id3() % udre3() % prc3() % rrc3() % iod3());
+        if (num_frames >= 2)
+          line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
+                      % sat_id2() % udre2() % prc2() % rrc2() % iod2());
+        if (num_frames >= 5)
+          line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
+                      % sat_id3() % udre3() % prc3() % rrc3() % iod3());
         return line;        
       }
       
@@ -294,7 +296,7 @@ namespace decode {
     struct __attribute__((__packed__)) msg_3 {
       std::string to_str() const {
         return str(boost::format("XYZ=(%10.2f,%10.2f,%10.2f) LLH=(%6.2f,%6.2f,%6.2f)")
-                   % ecef_x() % ecef_y() % ecef_y()
+                   % ecef_x() % ecef_y() % ecef_z()
                    % lat() % lon() % height());
       }
 
@@ -306,20 +308,21 @@ namespace decode {
         const double b(6356752.3142);
         const double e2 ((a*a-b*b)/(a*a));
         const double ep2((a*a-b*b)/(b*b));
-        const double p(ecef_x()*ecef_x() + ecef_y()*ecef_y());
-        const double theta(std::atan2(p*b, ecef_z()*a));
+        const double p(std::sqrt(ecef_x()*ecef_x() + ecef_y()*ecef_y()));
+        const double theta(std::atan2(a*ecef_z(), b*p));
         const double st(std::sin(theta));
         const double ct(std::cos(theta));
-        return ((ecef_y() + ep2*b*st*st*st) / (p - e2*a*ct*ct*ct))*180/M_PI;
+        return std::atan2(ecef_z() + ep2*b*st*st*st, p - e2*a*ct*ct*ct)*180/M_PI;
       }
       double height() const {
         const double a(6378137.0000);
         const double b(6356752.3142);
-        const double cp(std::cos(lon()/180*M_PI));
-        const double sp(std::cos(lon()/180*M_PI));
-        const double p(ecef_x()*ecef_x() + ecef_y()*ecef_y());
+        const double phi(lon()/180*M_PI);
+        const double cp(std::cos(phi));
+        const double sp(std::sin(phi));
+        const double p(std::sqrt(ecef_x()*ecef_x() + ecef_y()*ecef_y()));
         const double n(a*a/std::sqrt(a*a*cp*cp + b*b*sp*sp));
-        return p/cp -n;
+        return p/cp - n;
       }
 
       double ecef_x() const {
@@ -412,10 +415,10 @@ namespace decode {
         break;
       }
       case 1:
-      case 9: {
+      case 9: {        
         for (size_t i=0; i<data_.size(); i+=15) {
           const msg_1 *m = (const msg_1*)(&data_[i]);
-          std::cout << m->to_str() << std::endl;
+          std::cout << m->to_str((data_.size() - i) / 3) << std::endl;
         }
         break;
       }
