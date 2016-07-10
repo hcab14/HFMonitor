@@ -36,7 +36,7 @@
 
     <DemodALPHA proc_name="DemodALPHA" name="ALPHA"/>
     <DemodMSK proc_name="DemodMSK_VTX1"
-              name="MSK_VTX1" fc_Hz="16.30e3" fm_Hz="200.0"
+              name="MSK_VTX1" fc_Hz="16299.9939788" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_VTX3"
               name="MSK_VTX3" fc_Hz="18.20e3" fm_Hz="200.0"
@@ -48,7 +48,7 @@
               name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_JJI"
-              name="MSK_JJI" fc_Hz="22200.5893" fm_Hz="200.0"
+              name="MSK_JJI" fc_Hz="22200.59" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_DHO"
               name="MSK_DHO" fc_Hz="23.40e3" fm_Hz="200.0"
