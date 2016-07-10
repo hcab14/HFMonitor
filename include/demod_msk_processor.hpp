@@ -176,6 +176,35 @@ public:
     double          quality_;
     bit_vector_type bitvec_;
   } ;
+
+  class result_rtcm2 : public processor::result_base {
+  public:
+    typedef boost::shared_ptr<result_rtcm2> sptr;
+    virtual ~result_rtcm2() {}
+    
+    static sptr make(std::string name, ptime t, std::string line) {
+      return sptr(new result_rtcm2(name, t, line));
+    }
+    
+    virtual std::ostream& dump_header(std::ostream& os) const {      
+      return os
+        << "# name = " << name() << "\n"
+        << "# Time_UTC message num msg_type z_count seq num_frames [msg] ";
+    }
+    virtual std::ostream& dump_data(std::ostream& os) const {
+      return os << line_;
+    }    
+    
+  protected:
+  private:
+    result_rtcm2(std::string name, ptime t, std::string line)
+      : result_base(name, t)
+      , line_(line) {}
+
+    std::string line_;
+  } ;
+
+
  
   typedef boost::posix_time::time_duration time_duration;
   typedef FFT::FFTWTransform<float> fft_type;
@@ -355,13 +384,17 @@ public:
       
       // collect bit data
       if (not is_first_call && demod_msk_->bit_available()) {
+        const time_duration
+          dt(0,0,0, sample_counter*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
         if (not result_bits_) {
-          const time_duration
-            dt(0,0,0, sample_counter*time_duration::ticks_per_second()/sp->sample_rate_Hz()*downscale_factor_);
           result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
         }
         result_bits_->push_back(demod_msk_->current_bit());
-        rtcm_decoder_.decode(demod_msk_->current_bit());
+        const std::string line = rtcm_decoder_.decode(demod_msk_->current_bit());
+        if (line != "") {
+          sp->put_result(result_rtcm2::make(name_+"_rtcm2", sp->approx_ptime()+dt, line));
+        }
+
         if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           result_bits_->set_quality(double(signal_present_));
           //           std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;

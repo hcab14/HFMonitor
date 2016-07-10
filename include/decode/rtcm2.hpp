@@ -46,7 +46,7 @@ namespace decode {
         : data(d) {}
 
       std::string to_str() const {
-        return str(boost::format("stn=%04d type=%02d")
+        return str(boost::format(" %04d %02d")
                    % stn_num()
                    % msg_type());
       }
@@ -68,7 +68,7 @@ namespace decode {
         : data(d) {}
 
       std::string to_str() const {
-        return str(boost::format("z_count=%04d seq=%1d num_frames=%02d")
+        return str(boost::format(" %04d %1d %02d")
                    % z_count()
                    % seq()
                    % num_frames());
@@ -158,7 +158,9 @@ namespace decode {
       }
     } ;
 
-    void decode(bool b) {
+    std::string decode(bool b) {
+      std::string line;
+
       ++bit_counter_;
       if (bit_counter_ == 30)
         bit_counter_ = 0;
@@ -197,7 +199,7 @@ namespace decode {
             
             ++state_;
             if (state_ == int(h2_.num_frames())) {
-              decode_message();
+              line = decode_message();
               state_ = -3;
             }
           }
@@ -224,18 +226,20 @@ namespace decode {
           state_ = -4;
         }
       }
+
+      return line;
     }
 
     struct __attribute__((__packed__)) msg_1  {
       std::string to_str(int num_frames) const {
         std::string line;
-        line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
+        line += str(boost::format(" G%02d %1d %+6.2f %+6.3f %3d")
                     % sat_id1() % udre1() % prc1() % rrc1() % iod1());
         if (num_frames >= 2)
-          line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
+          line += str(boost::format(" G%02d %1d %+6.2f %+6.3f %3d")
                       % sat_id2() % udre2() % prc2() % rrc2() % iod2());
         if (num_frames >= 5)
-          line += str(boost::format(" G%02d UDRE=%1d PRC=%+8.2f RRC=%+6.3f IOD=%3d\n")
+          line += str(boost::format(" G%02d %1d %+6.2f %+6.3f %3d")
                       % sat_id3() % udre3() % prc3() % rrc3() % iod3());
         return line;        
       }
@@ -295,7 +299,7 @@ namespace decode {
 
     struct __attribute__((__packed__)) msg_3 {
       std::string to_str() const {
-        return str(boost::format("XYZ=(%10.2f,%10.2f,%10.2f) LLH=(%6.2f,%6.2f,%6.2f)")
+        return str(boost::format(" (%10.2f,%10.2f,%10.2f) (%6.2f,%6.2f,%6.2f)")
                    % ecef_x() % ecef_y() % ecef_z()
                    % lat() % lon() % height());
       }
@@ -357,7 +361,7 @@ namespace decode {
 
     struct __attribute__((__packed__)) msg_7 {
       std::string to_str() const {
-        return str(boost::format("LAT=%6.1f LON=%6.2f range=%.0f freq=%5.1f BCID=%04d")
+        return str(boost::format(" (%6.1f %6.2f) %.0fkm %5.1fkHz %04d")
                    % lat() % lon() % range() % freq() % bcid());
       }
 
@@ -390,28 +394,31 @@ namespace decode {
       boost::uint32_t range_     : 10;
       boost::uint32_t lon_l_     :  8;
 
-      boost::uint32_t  bc_coding_ :  1;
-      boost::uint32_t  sync_type_ :  1;
-      boost::uint32_t  mod_code_  :  1;
-      boost::uint32_t  bitrate_   :  3;
+      boost::uint32_t bc_coding_ :  1;
+      boost::uint32_t sync_type_ :  1;
+      boost::uint32_t mod_code_  :  1;
+      boost::uint32_t bitrate_   :  3;
 
       boost::uint32_t bcid_      : 10;
       boost::uint32_t health_    :  2;
       boost::uint32_t freq_l_    :  6;
     } ;
 
-    void decode_message() const {
+    std::string decode_message() const {
+      std::string line = h1_.to_str() + " " + h2_.to_str();
       switch (h1_.msg_type()) {
       case 7: {
         for (size_t i=0; i<data_.size(); i+=9) {
           const msg_7 *m = (const msg_7*)(&data_[i]);
           std::cout << m->to_str() << std::endl;
+          line += m->to_str();
         }
         break;
       }
       case 3: {
         const msg_3 *m = (const msg_3*)(&data_[0]);
         std::cout << m->to_str() << std::endl;        
+        line += m->to_str();
         break;
       }
       case 1:
@@ -419,12 +426,16 @@ namespace decode {
         for (size_t i=0; i<data_.size(); i+=15) {
           const msg_1 *m = (const msg_1*)(&data_[i]);
           std::cout << m->to_str((data_.size() - i) / 3) << std::endl;
+          line += m->to_str((data_.size() - i) / 3);
         }
         break;
       }
       default:
-        ; // NOP
+        line += " 0x";
+        for (size_t i=0; i<data_.size(); ++i)
+          line += str(boost::format("%02X") % int(data_[i]));
       }
+      return line;
     }
   protected:
   private:
