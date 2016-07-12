@@ -2,8 +2,8 @@
 <!DOCTYPE Perseus SYSTEM "DTD/perseus_server.dtd"> 
 <!-- $Id$ -->
 <Perseus sn="2670"
-	 fs="2000000"
-	 fc="880e3"
+	 fs="500000"
+	 fc="220e3"
 	 use_preselector="true"
 	 attenuator="0"
          usb_transfer_size="16320"

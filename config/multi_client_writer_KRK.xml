@@ -9,7 +9,7 @@
   <server host="nz23-18.ifj.edu.pl" port="8080"/>
   <FileSink filePath="DataKRK" filePeriod="1d"/>
   <Streams>
-    <Stream pattern="E.*">Writer</Stream>
+<!--    <Stream pattern="E.*">Writer</Stream> -->
     <Stream pattern="L.*">Writer</Stream>
     <Stream pattern="M.*">Writer</Stream>
   </Streams>

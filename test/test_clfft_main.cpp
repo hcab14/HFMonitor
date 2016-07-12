@@ -4,12 +4,16 @@
 #include <complex>
 #include <vector>
 #include <unistd.h>
+#include <stdlib.h>
 
-#include "cl/cl.hpp"
-#include "cl/FFT.hpp"
+#ifdef USE_OPENCL
+#  include "cl/cl.hpp"
+#  include "cl/FFT.hpp"
+#endif
 #include "FFT.hpp"
 
 int main() {  
+#ifdef USE_OPENCL
   const std::vector<CL::platform> ps = CL::platform::get();
   for (size_t i=0; i<ps.size(); ++i)
     std::cout << "platform[" << i << "] '" << ps[i].info() << "'" << std::endl;
@@ -72,5 +76,6 @@ int main() {
       std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
 
   }
+#endif // USE_OPENCL
   return EXIT_SUCCESS;  
 }
