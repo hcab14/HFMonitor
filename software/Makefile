@@ -1,7 +1,7 @@
 # -*- mode: Makefile -*-
 # $Id$
 
-ALL: install/share/clFFT/examples install/lib/libboost_log.so install/bin/volk_modtool install/bin/fltk-config install/bin/sqlite3
+ALL: install/share/clFFT/examples install/lib/libboost_log.so.1.60.0 install/bin/volk_modtool install/bin/fltk-config install/bin/sqlite3
 
 install/share/clFFT/examples: clFFT
 ifdef USE_OPENCL
