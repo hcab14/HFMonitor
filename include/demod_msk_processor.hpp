@@ -216,6 +216,7 @@ public:
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
     , fm_Hz_(config.get<double>("<xmlattr>.fm_Hz"))
     , record_bits_(config.get<bool>("<xmlattr>.recordBits", false))
+    , decode_rtcm_(config.get<bool>("<xmlattr>.decodeRTCM", false))
     , dwl_Hz_(config.get<double>("<xmlattr>.dwl_Hz"))
     , period_Sec_(config.get<double>("<xmlattr>.period_Sec"))
     , min_SN_db_(config.get<double>("<xmlattr>.min_SN_db"))
@@ -390,11 +391,12 @@ public:
           result_bits_ = result_bits::make(name_+"_bits", sp->approx_ptime()+dt, fc_Hz(), fm_Hz());
         }
         result_bits_->push_back(demod_msk_->current_bit());
-        const std::string line = rtcm_decoder_.decode(demod_msk_->current_bit());
-        if (line != "") {
-          sp->put_result(result_rtcm2::make(name_+"_rtcm2", sp->approx_ptime()+dt, line));
+        if (decode_rtcm_) {
+          const std::string line = rtcm_decoder_.decode(demod_msk_->current_bit());
+          if (line != "") {
+            sp->put_result(result_rtcm2::make(name_+"_rtcm2", sp->approx_ptime()+dt, line));
+          }
         }
-
         if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           result_bits_->set_quality(double(signal_present_));
           //           std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
@@ -505,6 +507,7 @@ private:
   double            fc_Hz_;     // center frequency
   const double      fm_Hz_;     // baud
   const bool        record_bits_;
+  const bool        decode_rtcm_;
   const double      dwl_Hz_;
   const double      period_Sec_;
   const double      min_SN_db_;

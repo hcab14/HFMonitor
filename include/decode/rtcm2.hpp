@@ -35,7 +35,7 @@
 namespace decode {
   class rtcm2 : public boost::noncopyable {
   public:
-    typedef boost::shared_ptr<rtcm2> sptr;    
+    typedef boost::shared_ptr<rtcm2> sptr;
 
     typedef std::vector<bool> bit_vector_type;
     typedef bit_vector_type::iterator iterator;
@@ -54,7 +54,7 @@ namespace decode {
       boost::uint32_t stn_num()  const { return fields.stn_num; }
       boost::uint32_t msg_type() const { return fields.msg_type; }
       boost::uint32_t preamble() const { return fields.preamble; }
-      
+
       struct __attribute__((__packed__)) {
         boost::uint32_t stn_num  : 10;
         boost::uint32_t msg_type : 6;
@@ -115,17 +115,17 @@ namespace decode {
       }
 
       bool check_preamble() const {
-        return (preamble() == 0x66 || preamble() == 0x99);        
+        return (preamble() == 0x66 || preamble() == 0x99);
       }
-    
+
       bool check_parity(boost::uint32_t &d) const {
         std::bitset<30> br(data);
-      
+
         std::bitset<30> brr;
         std::bitset<30> bd;
         for (int i=0; i<30; ++i)
           brr[29-i] = ((data>>i) & 1);
-#if 0      
+#if 0
         std::cout << "=== check: data= " << std::bitset<32>(data) << std::endl;
         std::cout << "=== check: payload= " << std::bitset<24>(f.payload) << std::endl;
         std::cout << "=== check: parity= " << std::bitset<6>(f.parity) << std::endl;
@@ -140,14 +140,14 @@ namespace decode {
           d    |= (bd[i] << (23-i));
           // d    |= (bd[i] << (i));
         }
-      
+
         bd[24] = f.b29 ^ bd[0] ^ bd[1] ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[ 9] ^ bd[10] ^ bd[11] ^ bd[12] ^ bd[13] ^ bd[16] ^ bd[17] ^ bd[19] ^ bd[22];
         bd[25] = f.b30 ^ bd[1] ^ bd[2] ^ bd[3] ^ bd[5] ^ bd[6] ^ bd[10] ^ bd[11] ^ bd[12] ^ bd[13] ^ bd[14] ^ bd[17] ^ bd[18] ^ bd[20] ^ bd[23];
         bd[26] = f.b29 ^ bd[0] ^ bd[2] ^ bd[3] ^ bd[4] ^ bd[6] ^ bd[ 7] ^ bd[11] ^ bd[12] ^ bd[13] ^ bd[14] ^ bd[15] ^ bd[18] ^ bd[19] ^ bd[21];
         bd[27] = f.b30 ^ bd[1] ^ bd[3] ^ bd[4] ^ bd[5] ^ bd[7] ^ bd[ 8] ^ bd[12] ^ bd[13] ^ bd[14] ^ bd[15] ^ bd[16] ^ bd[19] ^ bd[20] ^ bd[22];
         bd[28] = f.b30 ^ bd[0] ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[6] ^ bd[ 8] ^ bd[ 9] ^ bd[13] ^ bd[14] ^ bd[15] ^ bd[16] ^ bd[17] ^ bd[20] ^ bd[21] ^ bd[23];
         bd[29] = f.b29 ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[7] ^ bd[8] ^ bd[ 9] ^ bd[10] ^ bd[12] ^ bd[14] ^ bd[18] ^ bd[21] ^ bd[22] ^ bd[23];
-      
+
         // std::cout << "=== check: bd= " << bd << std::endl;
 
         int sum=0;
@@ -189,14 +189,14 @@ namespace decode {
         default:
           if (state_ == 0) {
             data_.clear();
-            std::cout << h1_.to_str() << " " << h2_.to_str() << std::endl;
+            // std::cout << h1_.to_str() << " " << h2_.to_str() << std::endl;
           }
 
           if (state_ >= 0) {
             data_.push_back( data     &0xFF);
             data_.push_back((data>> 8)&0xFF);
             data_.push_back((data>>16)&0xFF);
-            
+
             ++state_;
             if (state_ == int(h2_.num_frames())) {
               line = decode_message();
@@ -206,7 +206,7 @@ namespace decode {
           break;
         }
       }
-      
+
       int hist[30] = { 0 };
       for (int i=0, n=sync_.size(); i<n; ++i)
         hist[i%30] += sync_[i];
@@ -214,11 +214,11 @@ namespace decode {
       ++sync_counter_;
       if (sync_counter_ == sync_.size()) {
         sync_counter_ = 0;
-        std::cout << "sync: ";
-        for (int i=0; i<30; ++i)
-          std::cout << boost::format("%2d") % hist[i];
+        // std::cout << "sync: ";
+        // for (int i=0; i<30; ++i)
+        //   std::cout << boost::format("%2d") % hist[i];
         const int idx_max = std::distance(hist, std::max_element(hist, hist+30));
-        std::cout << boost::format(" | (%2d,%2d)") % idx_max % hist[idx_max] << std::endl;
+        // std::cout << boost::format(" | (%2d,%2d)") % idx_max % hist[idx_max] << std::endl;
         if (hist[idx_max] > 5) {
           sync_offset_ = idx_max;
           state_ = (state_ == -4 ? -3 : state_);
@@ -241,9 +241,9 @@ namespace decode {
         if (num_frames >= 5)
           line += str(boost::format(" G%02d %1d %+6.2f %+6.3f %3d")
                       % sat_id3() % udre3() % prc3() % rrc3() % iod3());
-        return line;        
+        return line;
       }
-      
+
       int sf1() const { return sf1_; }
       int sf2() const { return sf2_; }
       int sf3() const { return sf3_; }
@@ -280,7 +280,7 @@ namespace decode {
       boost::uint32_t rrc1_     :  8;
 
       boost::uint32_t rrc2_     :  8;
-      boost::uint32_t prc2_     : 16; 
+      boost::uint32_t prc2_     : 16;
 
       boost::uint32_t prc3_up_  :  8;
       boost::uint32_t sat_id3_  :  5;
@@ -409,23 +409,23 @@ namespace decode {
       switch (h1_.msg_type()) {
       case 7: {
         for (size_t i=0; i<data_.size(); i+=9) {
-          const msg_7 *m = (const msg_7*)(&data_[i]);
-          std::cout << m->to_str() << std::endl;
+          const msg_7 *m = reinterpret_cast<const msg_7*>(&data_[i]);
+          // std::cout << m->to_str() << std::endl;
           line += m->to_str();
         }
         break;
       }
       case 3: {
-        const msg_3 *m = (const msg_3*)(&data_[0]);
-        std::cout << m->to_str() << std::endl;        
+        const msg_3 *m = reinterpret_cast<const msg_3*>(&data_[0]);
+        // std::cout << m->to_str() << std::endl;
         line += m->to_str();
         break;
       }
       case 1:
-      case 9: {        
+      case 9: {
         for (size_t i=0; i<data_.size(); i+=15) {
-          const msg_1 *m = (const msg_1*)(&data_[i]);
-          std::cout << m->to_str((data_.size() - i) / 3) << std::endl;
+          const msg_1 *m = reinterpret_cast<const msg_1*>(&data_[i]);
+          // std::cout << m->to_str((data_.size() - i) / 3) << std::endl;
           line += m->to_str((data_.size() - i) / 3);
         }
         break;

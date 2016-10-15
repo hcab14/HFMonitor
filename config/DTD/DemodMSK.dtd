@@ -12,3 +12,4 @@
 <!ATTLIST DemodMSK max_offset_ppb_rms  CDATA  #REQUIRED> <!-- quality constraint on frequency calibration -->
 <!ATTLIST DemodMSK ampl_lowpass_tc_Sec CDATA  #REQUIRED> <!-- time constant for lowpass filter -->
 <!ATTLIST DemodMSK recordBits          (0|1)  #IMPLIED>  <!-- optional: default=0 -->
+<!ATTLIST DemodMSK decodeRTCM          (0|1)  #IMPLIED>  <!-- optional: default=0 -->
