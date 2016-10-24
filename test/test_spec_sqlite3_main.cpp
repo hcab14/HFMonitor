@@ -26,6 +26,8 @@
 #include <boost/format.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <bzlib.h>
+
 #include "FFT.hpp"
 #include "Spectrum.hpp"
 #include "logging.hpp"
@@ -56,7 +58,7 @@ public:
   typedef boost::shared_ptr<fft_type> fft_sptr;
   typedef frequency_vector<double> fv_type;
   typedef boost::posix_time::time_duration time_duration;
-  
+
 
   test_proc(const boost::property_tree::ptree& config)
     : base_iq(config)
@@ -67,7 +69,7 @@ public:
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
 
-    std::cout << "process_iq nS=" << std::distance(i0, i1) 
+    std::cout << "process_iq nS=" << std::distance(i0, i1)
               << " " << sp->id()
               << " " << sp->approx_ptime()
               << " " << sp->sample_rate_Hz()
@@ -88,7 +90,7 @@ public:
       fftw_->resize(length);
       std::cout << "FFTW resized" << std::endl;
     }
-    
+
     fftw_->transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
 
     const FFTSpectrum<fft_type> s(*fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
@@ -102,16 +104,16 @@ public:
       st =
         "PRAGMA page_size = 65536; ";
       db::sqlite3::statement(connection_, st).step_all();
-      st = 
+      st =
         "PRAGMA foreign_keys = ON; ";
       db::sqlite3::statement(connection_, st).step_all();
-      st = 
+      st =
         "CREATE TABLE IF NOT EXISTS SpecInfo (specId INTEGER PRIMARY KEY, tMin, tMax, nSpec INTEGER DEFAULT 0, fMin, fMax, df);";
       db::sqlite3::statement(connection_, st).step_all();
-      st= 
+      st=
         "CREATE TABLE IF NOT EXISTS SpecData (t, pMin, pMax, s BLOB, specId INTEGER, FOREIGN KEY(specId) REFERENCES SpecInfo(specId));";
       db::sqlite3::statement(connection_, st).step_all();
-      st = 
+      st =
         "CREATE TRIGGER IF NOT EXISTS trig AFTER INSERT ON SpecData \n"
         "\tBEGIN \n"
         "\t\tUPDATE SpecInfo SET tMax  = NEW.t   WHERE specId==NEW.specId; \n"
@@ -132,29 +134,38 @@ public:
 
     const double pMin(std::min_element(ps.begin(), ps.end(), fv_type::cmpSecond)->second);
     const double pMax(std::max_element(ps.begin(), ps.end(), fv_type::cmpSecond)->second);
-    std::vector<unsigned char> v(ps.size());
+    v_.resize(ps.size());
     for (size_t i(0), n(ps.size()); i<n; ++i)
-      v[i] = static_cast<unsigned char>(255.0*(ps[i].second-pMin)/(pMax-pMin));
-    
+      v_[i] = static_cast<unsigned char>(255.0*(ps[i].second-pMin)/(pMax-pMin));
+
+    // unsigned int dest_len(10*v_.size());
+    // vc_.resize(dest_len);
+    // const int result = BZ2_bzBuffToBuffCompress(reinterpret_cast<char*>(&vc_[0]), &dest_len,
+    //                                             reinterpret_cast<char*>(&v_[0]),  v_.size(),
+    //                                             9, 0, 0);
+    // std::cout << "BZ2 compression factor = " << double(dest_len)/v_.size() << std::endl;
+
     try {
       stmt_
         .bind("$time",   sp->approx_ptime())
         .bind("$pMin",   pMin)
         .bind("$pMax",   pMax)
-        .bind_blob("$s", &v[0], v.size())
+        // .bind_blob("$s", &vc_[0], dest_len) // v.size())
+        .bind_blob("$s", &v_[0], v_.size())
         .bind("$specId", specId_);
       stmt_.step_all();
     } catch (const std::exception &e) {
       std::cerr << e.what() << std::endl;
-      LOG_ERROR(e.what()); 
+      LOG_ERROR(e.what());
     }
   }
 
   struct s2db {
     double operator()(double c) const {
-      return 10*std::log10(c);
+      return 20*std::log10(c);
     }
   } ;
+#if 0
   template<typename T>
   double mean(const T& v) const {
     return mean(v.begin(), v.end());
@@ -198,7 +209,7 @@ public:
 
     return 0.5*double(v+v2);
   }
-
+#endif
 
 private:
   fft_sptr        fftw_;
@@ -207,6 +218,8 @@ private:
   db::sqlite3::connection::sptr connection_;
   db::sqlite3::statement        stmt_;
   boost::int64_t  specId_;
+  std::vector<unsigned char> v_;   // vector of quantized spectrum entries
+  std::vector<unsigned char> vc_;  // compressed version of v_
 } ;
 
 int main(int argc, char* argv[])
@@ -229,9 +242,8 @@ int main(int argc, char* argv[])
 
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
-    LOG_ERROR(e.what()); 
+    LOG_ERROR(e.what());
     return 1;
   }
   return 0;
 }
-

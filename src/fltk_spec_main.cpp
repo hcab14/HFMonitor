@@ -61,7 +61,7 @@
  * - GUI spectrum display
  * - reads an I/Q data stream (TPC/IP) and displays the FFT spectrum
  * - configuration: command-line
- * 
+ *
  * @{
  */
 
@@ -76,7 +76,7 @@ public:
     , filter_switch_   ( 0, h-30,  70, 30, "filter")
     , filter_alpha_    (120, h-30, 40, 30, "alpha")
     , filter_threshold_(210, h-30, 40, 30, "thr")
-    // , disp_(20, 40, w-40, h-40, "Display") 
+    // , disp_(20, 40, w-40, h-40, "Display")
   {
     menu_bar_.add("File/Quit", FL_CTRL+'q', Quit_CB);
     end();
@@ -120,7 +120,7 @@ private:
 /// processor for computing FFT and inserting the data into @ref MyWindow
 class test_proc : public processor::base_iq {
 public:
-#ifdef USE_CUDA      
+#ifdef USE_CUDA
   typedef FFT::CUFFTTransform fft_type;
 #else
   typedef FFT::FFTWTransform<float> fft_type;
@@ -148,7 +148,7 @@ public:
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
     const size_t length(std::distance(i0, i1));
 #if 0
-    std::cout << "process_iq nS=" << std::distance(i0, i1) 
+    std::cout << "process_iq nS=" << std::distance(i0, i1)
               << " " << sp->id()
               << " " << sp->approx_ptime()
               << " " << sp->sample_rate_Hz()
@@ -183,7 +183,7 @@ public:
                  ? (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_
                  : 1e-3);
       *is = ((b || !filter_on) ? *i  : std::complex<float>(0));
-    } 
+    }
 
     fftw_.transformRange(sf.begin(), sf.end(), FFT::WindowFunction::Blackman<double>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
   try {
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
-    
+
     if (vm.count("help")) {
       std::cout << desc << std::endl;
       return 1;
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
     std::cout << desc << std::endl;
     return 1;
   }
-  
+
   // logger initialization
   LOGGER_INIT("./Log", "fltk_spec");
 
@@ -314,12 +314,12 @@ int main(int argc, char* argv[])
 //     tp->detach();
     tp->timed_join(boost::posix_time::seconds(2));
   } catch (const std::exception &e) {
-    LOG_ERROR(e.what()); 
+    LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
     return 1;
   }
   return 0;
 }
-/*! @} 
- *  @} 
+/*! @}
+ *  @}
  */

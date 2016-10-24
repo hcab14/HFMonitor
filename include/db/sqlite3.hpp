@@ -47,13 +47,13 @@
   if ((_x))								\
     throw std::runtime_error(THROW_SITE_INFO("assertion failed: " + std::string(#_x) \
                                              + " msg: " + std::string(sqlite3_errstr(_x)))); \
-  else void(0) 
+  else void(0)
 
 #define ASSERT_THROW_DESTRUCTOR_SQLITE3(_x)				\
   if ((_x) && !std::uncaught_exception())				\
     throw std::runtime_error(THROW_SITE_INFO("assertion failed: " + std::string(#_x) \
                                              + " msg: " + std::string(sqlite3_errstr(_x)))); \
-  else void(0) 
+  else void(0)
 
 
 namespace db {
@@ -117,7 +117,7 @@ namespace db {
       virtual boost::int64_t last_insert_rowid() const {
         return sqlite3_last_insert_rowid(const_cast<impl_type*>(get()));
       }
-      
+
     protected:
       impl_type* get() { return _db; }
       const impl_type* get() const { return _db; }
@@ -150,7 +150,7 @@ namespace db {
                                                 query.c_str(),
                                                 -1,//query.size(),
                                                 &_stmt,
-                                                NULL));      
+                                                NULL));
       }
       ~statement() {
         ASSERT_THROW_DESTRUCTOR_SQLITE3(sqlite3_finalize(_stmt));
@@ -165,7 +165,7 @@ namespace db {
                                                 query.c_str(),
                                                 -1,//query.size(),
                                                 &_stmt,
-                                                NULL));      
+                                                NULL));
         return *this;
       }
 
@@ -179,7 +179,7 @@ namespace db {
         std::cout << "step result = " << result << std::endl;
         switch (result) {
         case SQLITE_ROW:
-          return 1;
+          return true;
         case SQLITE_DONE:
           reset();
           return false;
@@ -216,7 +216,7 @@ namespace db {
         }
       }
 
-      // column access    
+      // column access
       int column_count() const { return sqlite3_column_count(_stmt); }
       int data_count() const { return sqlite3_data_count(_stmt); }
       template<typename T>
@@ -308,7 +308,7 @@ namespace db {
         static bool is_first(true);
         if (is_first) {
           oss.imbue
-            (std::locale(oss.getloc(), 
+            (std::locale(oss.getloc(),
                          new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f")));
         }
         is_first = false;
@@ -322,7 +322,7 @@ namespace db {
 // //         static bool is_first(true);
 // //         if (is_first) {
 // //           iss.imbue
-// //             (std::locale(iss.getloc(), 
+// //             (std::locale(iss.getloc(),
 // //                          new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f")));
 // //         }
 // //         is_first = false;

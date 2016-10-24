@@ -33,7 +33,7 @@
 /// FFT spectrum representation
 template<typename FFT_TYPE>
 class FFTSpectrum {
-public:  
+public:
   typedef typename FFT_TYPE::value_type value_type;
   typedef std::complex<value_type> complex_type;
   FFTSpectrum(const FFT_TYPE& fftw,
@@ -45,7 +45,7 @@ public:
   ~FFTSpectrum() {}
 
   size_t size() const { return fftw_.size(); }
-  complex_type operator[](size_t index) const { return fftw_.getBin(index); }  
+  complex_type operator[](size_t index) const { return fftw_.getBin(index); }
   double normWindow() const { return fftw_.normWindow(); }
 
   /// sample rate (Hz)
@@ -74,7 +74,7 @@ public:
     return centerFrequency() + sampleRate() * (int(index) < n/2
                                                ?    int(index)
                                                : -n+int(index))/double(n);
-  }  
+  }
 
 protected:
 private:
@@ -131,10 +131,10 @@ public:
   typedef typename vector_type::iterator iterator;
   typedef typename vector_type::const_iterator const_iterator;
 
-  frequency_vector(freq_type fmin=freq_type(0), 
+  frequency_vector(freq_type fmin=freq_type(0),
                    freq_type fmax=freq_type(1))
     : fmin_(fmin), fmax_(fmax) {}
-  
+
   frequency_vector(freq_type fmin, freq_type fmax, size_t size, const T& value=T(0))
     : fmin_(fmin),
       fmax_(fmax),
@@ -142,15 +142,15 @@ public:
     for (unsigned u(0); u<size; ++u)
       v_[u]= std::make_pair(fmin+(fmax-fmin)/(size-1)*u, value);
   }
-  
+
   template<typename FUNCTION,
            typename SPEC_TYPE>
   frequency_vector(freq_type fmin, freq_type fmax,
                    const SPEC_TYPE& s, FUNCTION func, double offset_ppb=0.)
     : fmin_(fmin), fmax_(fmax) { fill(s, func, offset_ppb); }
 
-  frequency_vector(const frequency_vector& f) 
-    : fmin_(f.fmin_), fmax_(f.fmax_), v_(f.v_) {} 
+  frequency_vector(const frequency_vector& f)
+    : fmin_(f.fmin_), fmax_(f.fmax_), v_(f.v_) {}
 
   frequency_vector& operator=(const frequency_vector& f) {
     if (&f != this) {
@@ -161,7 +161,7 @@ public:
     }
     return *this;
   }
- 
+
   freq_type fmin() const { return fmin_; }
   freq_type fmax() const { return fmax_; }
   freq_type deltaf() const { return (v_.size() > 1) ? (fmax() - fmin()) / (size()-1) : 0.0; }
@@ -228,7 +228,7 @@ public:
     }
     return size_t(0.5+(f-fmin_)/(fmax_-fmin_) * (v_.size()-1));
   }
-  
+
   const value_type& operator[](unsigned index) const { return v_[index]; }
   value_type& operator[](unsigned index) { return v_[index]; }
 
@@ -313,12 +313,12 @@ public:
     return r;
   }
   /// multiplication by scalar factor
-  friend frequency_vector<T> operator*(double f, const frequency_vector<T>& v) {    
+  friend frequency_vector<T> operator*(double f, const frequency_vector<T>& v) {
     frequency_vector<T> r(v); r*=f;
     return r;
   }
 
-  /// component-wise multiplication 
+  /// component-wise multiplication
   frequency_vector<T>& operator*=(const frequency_vector<T>& v) {
     ASSERT_THROW(size() == v.size());
     const_iterator j(v.begin());
@@ -328,7 +328,7 @@ public:
     }
     return *this;
   }
-  /// component-wise multiplication 
+  /// component-wise multiplication
   friend frequency_vector<T> operator*(const frequency_vector<T>& v1,
                                        const frequency_vector<T>& v2) {
     frequency_vector<T> r(v1); r*=v2;

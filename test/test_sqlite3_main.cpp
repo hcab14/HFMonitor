@@ -143,7 +143,6 @@ private:
 
   db::sqlite3::statement _select_channel;
   db::sqlite3::statement _insert_channel;
-
   db::sqlite3::statement _insert_peak;
 } ;
 

@@ -40,12 +40,12 @@
  *  @{
  * \addtogroup wave_reader wave_reader
  * WAV reader processor
- * 
+ *
  * @{
  */
 
 namespace wave {
-  namespace detail { // anonymous 
+  namespace detail { // anonymous
     template<typename T>
     T readT(std::istream& is, size_t n) {
       T data;
@@ -55,7 +55,7 @@ namespace wave {
     }
     template<typename T>
     T readT(std::istream& is) {
-      static T data;      
+      static T data;
       if (!is.read((char *)(&data), sizeof(T))) throw std::runtime_error("read failed");
       return data;
     }
@@ -69,18 +69,18 @@ namespace wave {
                             size_t bits_per_sample) {
       boost::uint8_t a(0);
       boost::int32_t sum(0);
-      for (size_t u(0); u<bits_per_sample; u+=8) 
+      for (size_t u(0); u<bits_per_sample; u+=8)
         sum |= ((a=readT<boost::uint8_t>(is)) << u);
       const boost::int32_t i_max(1L << bits_per_sample);
       const double norm(2. / static_cast<double>(i_max));
       return ( ((a&0x80) == 0x80) ? sum-i_max : sum) * norm;
-    }    
+    }
 
     template<typename T>
     std::pair<T, double> read_real_sample(T i, size_t bits_per_sample) {
       boost::uint8_t a(0);
       boost::int32_t sum(0);
-      for (size_t u(0); u<bits_per_sample; u+=8) 
+      for (size_t u(0); u<bits_per_sample; u+=8)
         sum |= ((a=boost::uint8_t(*i++)) << u);
       const boost::int32_t i_max(1L << bits_per_sample);
       const double norm(2. / static_cast<double>(i_max));
@@ -98,11 +98,11 @@ namespace wave {
         return sptr(new service_wave_iq(approx_ptime, stream_name,
                                         center_frequency_Hz, format));
       }
-      
+
       virtual std::string     id()                  const { return "WAVE_000"; }
       virtual ptime           approx_ptime()        const { return approx_ptime_; }
       virtual boost::uint16_t stream_number()       const { return 1; }
-      virtual std::string     stream_name()         const { return stream_name_; }      
+      virtual std::string     stream_name()         const { return stream_name_; }
       virtual boost::uint32_t sample_rate_Hz()      const { return format_.sampleRate(); }
       virtual double          center_frequency_Hz() const { return center_frequency_Hz_; }
       virtual float           offset_ppb()          const { return 0; }
@@ -120,11 +120,11 @@ namespace wave {
         , stream_name_(stream_name)
         , center_frequency_Hz_(center_frequency_Hz)
         , format_(format) {}
-      
+
       const ptime         approx_ptime_;
       const std::string   stream_name_;
       const double        center_frequency_Hz_;
-      const chunk::format format_;    
+      const chunk::format format_;
     } ;
   } // namespace detail
 
@@ -176,7 +176,7 @@ namespace wave {
       boost::iostreams::filtering_istream is;
       is.push(boost::iostreams::bzip2_decompressor());
       is.push(ifs);
-      
+
       return read_chunks(is);
     }
 #endif
@@ -188,7 +188,7 @@ namespace wave {
 
     // complex_vector_type samples() const { return iq_buffer_.samples(); }
 
-    
+
 //     void procIQ(const_iterator i0,
 //                 const_iterator i1) {
 //       using namespace boost::posix_time;
@@ -200,7 +200,7 @@ namespace wave {
 //     }
 
     void process_iq(service::sptr service,
-                    const_iterator i0, 
+                    const_iterator i0,
                     const_iterator i1) { }
 
   protected:
@@ -242,7 +242,7 @@ namespace wave {
           std::cout << data_ << std::endl;
           const size_t bufferSize(2500);
           static aligned_vector<std::complex<float> > samples(bufferSize);
-          
+
           size_t counter(0), last_sample_number_(0);
           for (size_t i(0), n(h.size()); i<n; i+=format_.bytesPerSample(), ++sample_number_, ++counter) {
             if (i != 0 && (counter%bufferSize) == 0) {
@@ -255,7 +255,7 @@ namespace wave {
             const float xq(detail::read_real_sample(is, format_.bitsPerSample())); // imag
             const std::complex<float> s[2] = { std::complex<float>(xi, xq), std::complex<float>(xq, xi) };
             samples[counter%bufferSize] = s[iq_reversed_];
-            
+
           }
           // process remaining samples
           if ((counter%bufferSize) != 0) {
@@ -276,11 +276,11 @@ namespace wave {
     }
     // to be overwritten in derived classes
     virtual bool read_chunk(const chunk::header& h,
-                            std::istream& is) { 
+                            std::istream& is) {
       return false;
     }
 
-    virtual bool chunks_ok() const { 
+    virtual bool chunks_ok() const {
       return (   read_riff_   && riff_.ok()
               && read_format_ && format_.ok()
               && read_data_   && data_.ok());
@@ -315,7 +315,7 @@ namespace wave {
       : reader_iq_base<PROCESSOR>(config)
       , center_frequency_hz_(config.get<double>("<xmlattr>.center_freq_Hz", 0.0)) {
       // update_start_time(boost::posix_time::microsec_clock::universal_time());
-    }    
+    }
     virtual ~reader_iq() {}
 
     typedef typename reader_iq_base<PROCESSOR>::service service;
@@ -335,7 +335,7 @@ namespace wave {
         (start_time() + dt,
          "name",
          (read_rcvr_ ? double(rcvr_.nCenterFrequencyHz()) : center_frequency_hz_),
-         format());                                           
+         format());
     }
 
   private:
