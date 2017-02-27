@@ -1,9 +1,10 @@
 <!-- client_multi configuration -->
 <!-- $Id$ -->
 
-<!ELEMENT ClientMulti (Servers+)>
+<!ELEMENT ClientMulti (Servers+,Python)>
 <!ATTLIST ClientMulti time_granularity_sec      CDATA #REQUIRED> <!-- time interval in which data is collected  -->
 <!ATTLIST ClientMulti synchronization_delay_sec CDATA #REQUIRED> <!-- processing delay due to network latency  -->
+<!ATTLIST ClientMulti threadPoolSize            CDATA #IMPLIED>  <!-- number of threads used, default=4  -->
 
 <!ELEMENT Servers (Server+)>              <!-- list of servers to connect to -->
 
@@ -14,4 +15,8 @@
 
 <!ELEMENT Stream (#PCDATA)>               <!-- stream - processor name association -->
 <!ATTLIST Stream pattern CDATA #REQUIRED> <!-- pattern matching available stream names -->
+
+<!-- python adapter configuration: cf. external DTD -->
+<!ENTITY % Python-DTD SYSTEM "python.dtd">
+%Python-DTD;
   

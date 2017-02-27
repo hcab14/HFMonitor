@@ -25,6 +25,10 @@
 
 int main(int argc, char* argv[])
 {
+  Py_InitializeEx(0);
+  PyEval_InitThreads();
+  PyEval_ReleaseLock();
+
   boost::program_options::variables_map vm;
   try {
     vm = process_options("config/multi_downconvert.xml", argc, argv);
@@ -40,27 +44,31 @@ int main(int argc, char* argv[])
     read_xml(vm["config"].as<std::string>(), config,
              boost::property_tree::xml_parser::no_comments);
 
+    client_multi_python_processor c(network::get_io_service(), config);
+    c.start();
+
     boost::asio::signal_set signals
       (network::get_io_service(), SIGINT, SIGTERM, SIGQUIT);
     signals.async_wait
       (boost::bind
        (&boost::asio::io_service::stop, boost::ref(network::get_io_service())));
 
-    client_multi_python_processor c(network::get_io_service(), config);
-    c.start();
-
     boost::thread_group threadpool;
-    for (size_t i(0); i<4; ++i)
+    const size_t thread_pool_size(config.get<size_t>("ClientMulti.<xmlattr>.threadPoolSize", 4));
+    for (size_t i(0); i<thread_pool_size; ++i)
       threadpool.create_thread
         (boost::bind
          (&boost::asio::io_service::run,
           boost::ref(network::get_io_service())));
 
     threadpool.join_all();
+
+  } catch (boost::python::error_already_set const &) {
+    PyErr_Print();
   } catch (const std::exception &e) {
     LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
-  return 0;
+  return EXIT_SUCCESS;
 }

@@ -34,39 +34,49 @@ public:
   client_multi_python_processor(boost::asio::io_service& io_service,
                                 const boost::property_tree::ptree& config)
     : network::client::client_multi_base(io_service, config)
-    , obj_pkg_     (boost::python::import("test_package")) // TBD: via configuration
-    , obj_datetime_(boost::python::import("datetime"))
-  {}
-
+    , python_pkg_  (config.get<std::string>("ClientMulti.Python.<xmlattr>.pkg"))
+    , python_file_ (config.get<std::string>("ClientMulti.Python.<xmlattr>.file"))
+    , python_fcn_  (config.get<std::string>("ClientMulti.Python.<xmlattr>.fcn")) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    obj_pkg_      = boost::python::import(python_pkg_.c_str());
+    obj_datetime_ = boost::python::import("datetime").attr("datetime");
+    PyGILState_Release(gstate);
+  }
+  
   virtual ~client_multi_python_processor() {}
 
   virtual void proc_data_per_interval(const name_time_data_type& d) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
     boost::python::dict data;
     BOOST_FOREACH(const name_time_data_type::value_type& v, d) {
       boost::python::list list;
       BOOST_FOREACH(const time_data_type::value_type& u, v.second) {
-        list.append(boost::python::make_tuple(ptime_to_obj(u.first),
-                                              std::string(u.second.data().begin(),
-                                                          u.second.data().end())));
+        boost::python::str obj_data(&u.second.data()[0], u.second.data().size());
+        list.append(boost::python::make_tuple(ptime_to_obj(u.first), obj_data));
       }
       data[v.first] = list;
     }
     // call python method
+    obj_pkg_.attr(python_file_.c_str()).attr(python_fcn_.c_str())(data);
+    PyGILState_Release(gstate);
   }
 
 protected:
   boost::python::object ptime_to_obj(const ptime& t) const {
     const boost::gregorian::date&             d = t.date();
     const boost::posix_time::time_duration& tod = t.time_of_day();
-    return obj_datetime_.attr("datetime")(d.year(),
-                                          d.month(),
-                                          d.day(),
-                                          tod.hours(),
-                                          tod.minutes(),
-                                          tod.seconds(),
-                                          tod.fractional_seconds() * 1e6/boost::posix_time::time_duration::ticks_per_second());
+    return obj_datetime_(int(d.year()),
+                         int(d.month()),
+                         int(d.day()),
+                         int(tod.hours()),
+                         int(tod.minutes()),
+                         int(tod.seconds()),
+                         int(tod.fractional_seconds() * 1e6/boost::posix_time::time_duration::ticks_per_second()));
   }
 private:
+  std::string python_pkg_;
+  std::string python_file_;
+  std::string python_fcn_;
   boost::python::object obj_pkg_;
   boost::python::object obj_datetime_;
 } ;

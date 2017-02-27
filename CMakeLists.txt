@@ -52,6 +52,10 @@ ENDIF (NOT APPLE)
 FIND_PACKAGE(FFTW3 REQUIRED COMPONENTS single double threads)
 LIST(APPEND _libs ${FFTW3_LIBRARIES})
 
+# fin python  libraries
+FIND_PACKAGE(PythonLibs REQUIRED)
+LIST(APPEND _libs ${PYTHON_LIBRARY})
+
 MESSAGE("USE_OPENCL=${USE_OPENCL}")
 
 IF (USE_OPENCL)
@@ -65,7 +69,7 @@ SET(Boost_USE_MULTITHREADED ON)
 SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(Boost_NO_SYSTEM_PATHS ON)
-FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS atomic chrono context log log_setup filesystem iostreams date_time regex program_options system coroutine thread)
+FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS atomic chrono context log log_setup filesystem iostreams date_time regex program_options system coroutine thread python)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")
@@ -162,6 +166,7 @@ INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
   ${libusb-1.0_INCLUDE_DIR}
   ${FFTW3_INCLUDE_DIR}
+  ${PYTHON_INCLUDE_DIR}
   "./include"
   )
 

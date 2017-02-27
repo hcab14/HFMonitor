@@ -124,9 +124,9 @@ namespace network {
       //  * header() provides the header
       virtual void process(data_buffer_type::const_iterator begin,
                            data_buffer_type::const_iterator end) {
-        LOG_INFO(str(boost::format("process: h='%s', length=%d")
-                     % header()
-                     % std::distance(begin,end)));
+        // LOG_INFO(str(boost::format("process: h='%s', length=%d")
+        //              % header()
+        //              % std::distance(begin,end)));
       }
     
       // notifies derived classes of an update of directory
@@ -200,14 +200,14 @@ namespace network {
               std::swap(new_directory, directory_);
             } else {
               // dump all wav streams
-              const std::string str_name(directory().stream_name_of(header().stream_number()));
-              if (header().id() == "WAV_0000")
-                dump_wav(header().approx_ptime(), str_name, data_buffer_.begin(), data_buffer_.begin()+header_.length());
-            
-              LOG_INFO(str(boost::format("___ process: %s h='%s'") % str_name % header_));
-
+              if (header().id() == "WAV_0000") {
+                const std::string str_name(directory().stream_name_of(header().stream_number()));
+                strand().dispatch(boost::bind(&connection::dump_wav, this,
+                                              header().approx_ptime(), str_name, data_buffer_.begin(), data_buffer_.begin()+header_.length()));
+              }            
               // process data samples in a method overwritten in a derived class
-              process(data_buffer_.begin(), data_buffer_.begin()+header_.length());
+              strand().dispatch(boost::bind(&connection::process, this,
+                                            data_buffer_.begin(), data_buffer_.begin()+header_.length()));
             }
           }
         } catch (std::exception& e) {

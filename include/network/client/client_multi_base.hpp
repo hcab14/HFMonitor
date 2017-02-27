@@ -66,9 +66,6 @@ namespace network {
 
         virtual void process(data_buffer_type::const_iterator begin,
                              data_buffer_type::const_iterator end) {
-          LOG_INFO(str(boost::format("process: h='%s', %s")
-                       % header()
-                       % name_));
           that_->process(this, begin, end);
         }
 
@@ -177,7 +174,7 @@ namespace network {
         if (!history_.empty()) {
           const ptime oldest_ptime(history_.begin()->first.first);
           if (t < oldest_ptime) { // ignore this data as it is too old
-            std::cout << "ignoring data: " << t << " < " << oldest_ptime << std::endl;
+            LOG_INFO(str(boost::format("ignoring data: %s < %s")  % t % oldest_ptime));
             return;
           }
         }
@@ -197,8 +194,8 @@ namespace network {
            (ptime(t.date(), boost::posix_time::seconds(time_granularity_sec_*(sec_of_day/time_granularity_sec_))),
             ptime(t.date(), boost::posix_time::seconds(time_granularity_sec_*(sec_of_day/time_granularity_sec_ + 1)))));
 
-        std::cout << "now,t,interval= " << now_ << " "
-                  << t << " [" << time_interval.first << "," << time_interval.second << "]" << std::endl;
+        // std::cout << "now,t,interval= " << now_ << " "
+        //           << t << " [" << time_interval.first << "," << time_interval.second << "]" << std::endl;
 
         // insert the data (copy)
         time_data_type& mm(history_[time_interval][name]);
@@ -207,12 +204,11 @@ namespace network {
         // process and erase all those intervals which are too old
         const ptime newest_ptime(history_.rbegin()->first.second);
         for (history_buffer_type::iterator i(history_.begin()); i!=history_.end(); ) {
-          std::cout << " --- [" << i->first.first << "," << i->first.second
-                    << "] newest time: " << newest_ptime
-                    << " number of names: " << i->second.size() << std::endl;
+          // std::cout << " --- [" << i->first.first << "," << i->first.second
+          //           << "] newest time: " << newest_ptime
+          //           << " number of names: " << i->second.size() << std::endl;
           if (newest_ptime - i->first.first > delay_) {
             // process all data for this interval
-            std::cout << " --- * processing data for interval= " << i->first.first << "," << i->first.second << std::endl;
             proc_data_per_interval(i->second);
             history_.erase(i++);
           } else {

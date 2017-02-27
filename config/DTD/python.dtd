@@ -1,0 +1,8 @@
+<!-- python adapter configuration -->
+<!-- $Id$ -->
+
+<!ELEMENT Python (#PCDATA)>
+<!ATTLIST Python pkg   CDATA #REQUIRED> <!-- package name  -->
+<!ATTLIST Python file  CDATA #REQUIRED> <!-- file name in package  -->
+<!ATTLIST Python fcn   CDATA #REQUIRED> <!-- function name in file which is called  -->
+  
