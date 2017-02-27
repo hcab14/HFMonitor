@@ -20,6 +20,7 @@
 #define _CLIENT_MULTI_BASE_HPP_cm140509_
 
 #include <boost/bind.hpp>
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/spawn.hpp>
@@ -49,7 +50,7 @@ namespace network {
                             , private boost::noncopyable {
     public:
       typedef boost::shared_ptr<client_multi_base> sptr;
-    
+
       class connection_multi : public connection {
       public:
         typedef boost::shared_ptr<connection_multi> sptr;
@@ -70,7 +71,7 @@ namespace network {
                        % name_));
           that_->process(this, begin, end);
         }
-      
+
       protected:
       private:
         connection_multi(client_multi_base* that,
@@ -81,11 +82,11 @@ namespace network {
           : connection(io_service, host, port)
           , that_(that)
           , name_(name) { }
-    
+
         client_multi_base* that_;
         std::string        name_;
       } ;
-  
+
       //                               (name, streams) -> connection
       typedef std::map<std::pair<std::string, std::string>, connection_multi::sptr> connection_map_type;
 
@@ -142,7 +143,7 @@ namespace network {
         }
       }
       virtual ~client_multi_base() {}
-  
+
       void connect_to(std::string name, std::string host, std::string port, std::string streams) {
         connection_multi::sptr c(connection_multi::make(this, io_service(), name, host, port));
         connections_.insert(std::make_pair(std::make_pair(name, streams), c));
@@ -154,9 +155,13 @@ namespace network {
           cv.second->start(cv.first.second);
         }
       }
-      boost::asio::io_service& io_service() { return strand_.get_io_service(); }  
-      boost::asio::strand&     strand()     { return strand_; }  
-  
+      boost::asio::io_service& io_service() { return strand_.get_io_service(); }
+      boost::asio::strand&     strand()     { return strand_; }
+
+      // this method is called per per data interval
+      virtual void proc_data_per_interval(const name_time_data_type& d) {
+      }
+
     protected:
       // this method is called by the connected clients to send data
       void process(connection_multi* c,
@@ -194,7 +199,7 @@ namespace network {
 
         std::cout << "now,t,interval= " << now_ << " "
                   << t << " [" << time_interval.first << "," << time_interval.second << "]" << std::endl;
-      
+
         // insert the data (copy)
         time_data_type& mm(history_[time_interval][name]);
         mm.insert(time_data_type::value_type(t, stream_data(c->header(), begin, end)));
@@ -207,7 +212,8 @@ namespace network {
                     << " number of names: " << i->second.size() << std::endl;
           if (newest_ptime - i->first.first > delay_) {
             // process all data for this interval
-            std::cout << " --- * processing data for interval= " << i->first.first << "," << i->first.second << std::endl;      
+            std::cout << " --- * processing data for interval= " << i->first.first << "," << i->first.second << std::endl;
+            proc_data_per_interval(i->second);
             history_.erase(i++);
           } else {
             ++i;
@@ -218,11 +224,11 @@ namespace network {
     private:
       boost::asio::strand              strand_;
       connection_map_type              connections_;          // connection information
-      boost::shared_ptr<boost::mutex>  mutex_;                // protectes the process method
+      boost::shared_ptr<boost::mutex>  mutex_;                // protects the process method
       ptime                            now_;                  // current time = newest time of all received data
       history_buffer_type              history_;              // holds data received from servers
       size_t                           time_granularity_sec_; // in seconds
-      boost::posix_time::time_duration delay_;                // time delay for synchronization
+      boost::posix_time::time_duration delay_;                // time delay used for synchronization
     } ;
 
   } // namespace client
