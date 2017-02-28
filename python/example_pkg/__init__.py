@@ -1,4 +1,4 @@
-#!/usr/binenv python
+#!/bin/env python
 
 import proc
 

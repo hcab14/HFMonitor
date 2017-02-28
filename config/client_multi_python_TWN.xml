@@ -12,8 +12,7 @@
        host="140.115.111.74"
        port="19100">
       <Stream pattern="M.*"></Stream>
-<!--      <Stream pattern="L.*"></Stream>
--->
+      <Stream pattern="A.*"></Stream>
     </Server>
   </Servers>
   <Python
