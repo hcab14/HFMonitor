@@ -3,8 +3,8 @@
 <!-- $Id: multi_client_STA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
 
 <ClientMulti 
-   time_granularity_sec="1"
-   synchronization_delay_sec="3"
+   time_granularity_sec="2"
+   synchronization_delay_sec="4"
    threadPoolSize="4">
   <Servers>
     <Server

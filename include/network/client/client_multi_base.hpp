@@ -109,7 +109,7 @@ namespace network {
 
       typedef boost::posix_time::ptime ptime;
       typedef std::multimap<ptime, stream_data > time_data_type;
-      typedef std::map<std::string, time_data_type >   name_time_data_type;
+      typedef std::map<std::pair<std::string, std::string>, time_data_type > name_time_data_type;
       typedef std::map<std::pair<ptime, ptime>, name_time_data_type > history_buffer_type;
 
       client_multi_base(boost::asio::io_service& io_service,
@@ -166,8 +166,21 @@ namespace network {
                    connection::data_buffer_type::const_iterator end) {
         boost::unique_lock<boost::mutex> lock(*mutex_); // protects the code below
 
+        // ignore empty data
+        if (begin == end)
+          return;
+
+        // ignore non-text data
+        if (c->header().id().find("TXT") == std::string::npos)
+          return;
+
+        // ignore header text entries (starting with '#')
+        if (*begin == '#')
+          return;
+
         //  data id : name + stream_name
-        const std::string name(c->name()+"_"+c->directory().stream_name_of(c->header().stream_number()));
+        const std::pair<std::string, std::string> name(make_pair(c->name(),
+                                                                 c->directory().stream_name_of(c->header().stream_number())));
         const ptime t(c->header().approx_ptime());
 
         // ignore data which is too old

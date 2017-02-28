@@ -20,7 +20,10 @@
 #ifndef CLIENT_MULTI_PYTHON_PROCESSOR_HPP_cm20170228
 #define CLIENT_MULTI_PYTHON_PROCESSOR_HPP_cm20170228
 
-#include <boost/property_tree/xml_parser.hpp>\
+#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include "network.hpp"
 #include "network/client/client_multi_base.hpp"
@@ -51,10 +54,13 @@ public:
     BOOST_FOREACH(const name_time_data_type::value_type& v, d) {
       boost::python::list list;
       BOOST_FOREACH(const time_data_type::value_type& u, v.second) {
-        boost::python::str obj_data(&u.second.data()[0], u.second.data().size());
-        list.append(boost::python::make_tuple(ptime_to_obj(u.first), obj_data));
+        boost::python::list list_data;
+        list_data.append(ptime_to_obj(u.first));
+        const std::string sdata(&u.second.data()[0], u.second.data().size());
+        add_data(list_data, sdata);
+        list.append(boost::python::tuple(list_data));
       }
-      data[v.first] = list;
+      data[boost::python::make_tuple(v.first.first, v.first.second)] = list;
     }
     // call python method
     obj_pkg_.attr(python_file_.c_str()).attr(python_fcn_.c_str())(data);
@@ -62,6 +68,19 @@ public:
   }
 
 protected:
+  boost::python::list add_data(boost::python::list list, std::string sdata) const {
+    boost::algorithm::trim(sdata);
+    std::vector<std::string> sv;
+    boost::algorithm::split(sv, sdata, boost::algorithm::is_any_of(" "), boost::algorithm::token_compress_on);
+    BOOST_FOREACH(std::string &s, sv) {
+      try {
+        list.append(boost::python::object(boost::lexical_cast<double>(s)));
+      } catch (const boost::bad_lexical_cast &) {
+        list.append(boost::python::object(s.c_str()));
+      }
+    }
+    return list;
+  }
   boost::python::object ptime_to_obj(const ptime& t) const {
     const boost::gregorian::date&             d = t.date();
     const boost::posix_time::time_duration& tod = t.time_of_day();

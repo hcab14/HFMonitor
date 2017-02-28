@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE ClientMulti SYSTEM "DTD/client_multi.dtd"> 
+<!-- $Id: multi_client_STA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
+
+<ClientMulti 
+   time_granularity_sec="1"
+   synchronization_delay_sec="3"
+   threadPoolSize="4">
+  <Servers>
+    <Server name="TWN" host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40044">
+      <Stream pattern="M.*"></Stream>
+<!--  <Stream pattern="L.*"></Stream>  -->
+    </Server>
+    <Server name="STA" host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40029">
+      <Stream pattern="M.*"></Stream>
+<!--  <Stream pattern="L.*"></Stream>  -->
+    </Server>
+    <Server name="BOS" host="cpcfcmd.evn.np.kn.nz.dlr.de" port="40026">
+      <Stream pattern="M.*"></Stream>
+<!--  <Stream pattern="L.*"></Stream>  -->
+    </Server>
+  </Servers>
+  <Python
+     pkg="example_pkg"
+     file="proc"
+     fcn="process_data_per_interval">
+  </Python>
+</ClientMulti>
