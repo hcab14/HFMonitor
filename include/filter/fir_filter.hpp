@@ -53,7 +53,7 @@ public:
     history_.resize(n_, 0);
     fir_type fir_design(n);
     fir_design.design(f, x_slope*f);
-    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());    
+    std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());
     reset();
     return true;
   }
@@ -61,12 +61,12 @@ public:
   void reset() {
     sample_counter_= n_-1;
     for (size_t i(0), n(history_.size()); i<n; ++i)
-      history_[i] = 0;    
+      history_[i] = 0;
   }
 
   // shift by frequency f0 (normalized)
   // returns the true, quantized shift frequency
-  double shift(double f0) { 
+  double shift(double f0) {
     long int shift(boost::math::lround(f0*n_));
     while (shift >= int(n_/2)) shift -= n_;
     while (shift < -int(n_/2)) shift += n_;

@@ -44,7 +44,7 @@
  *  @{
  * \addtogroup multi_downconver multi_downconver
  * multi downconvert processor
- * 
+ *
  * @{
  */
 
@@ -104,7 +104,7 @@ protected:
     std::string name_;                 // filter name
     double      cutoff_;               // normalized cutoff frequency
     double      center_freq_input_Hz_; //
-    double      center_freq_Hz_;       // 
+    double      center_freq_Hz_;       //
     double      offset_;               // normalized frequency (relative to center_freq_input_Hz)
     size_t      decim_;                // decimation factor
     size_t      handle_;               // overlap_save handle
@@ -177,13 +177,13 @@ protected:
   // filter name -> associated iq processor sptr
   typedef std::map<std::string, processor::base_iq::sptr> processor_map;
 
-  // 
+  //
   typedef std::map<std::string, processor::result_base::sptr> result_map;
 
-  // 
+  //
   typedef std::vector<std::string> calibration_keys;
 
-public: 
+public:
   typedef boost::shared_ptr< multi_downconvert_processor<FFTFloat> > sptr;
   typedef typename filter::fir::overlap_save<FFTFloat> overlap_save_type;
 
@@ -195,7 +195,7 @@ public:
     // Filters
     BOOST_FOREACH(const ptree::value_type& filt, config.get_child("Filters")) {
       if (filt.first == "FIR") {
-        const filter_param fp(filt.second.get<std::string>("<xmlattr>.name"), 
+        const filter_param fp(filt.second.get<std::string>("<xmlattr>.name"),
                               filt.second.get<double>("<xmlattr>.cutoff"),
                               filt.second.get<double>("<xmlattr>.centerFrequency_Hz"),
                               filt.second.get<size_t>("<xmlattr>.decim"));
@@ -205,7 +205,7 @@ public:
         LOG_ERROR(str(boost::format("multi_downconvert_processor: unknown filter type '%s'")
                       % filt.first));
       }
-    }    
+    }
     // Processors
     BOOST_FOREACH(const ptree::value_type& p, config.get_child("Processors")) {
       const std::string type(p.first);
@@ -226,7 +226,7 @@ public:
         const std::string cal_algo(p.second.get<std::string>("<xmlattr>.type"));
         if (cal_algo != "WeightedMean")
           LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-        BOOST_FOREACH(const ptree::value_type& pp, p.second) { 
+        BOOST_FOREACH(const ptree::value_type& pp, p.second) {
           if (pp.first != "Key") {
             LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % pp.first));
             continue;
@@ -248,7 +248,7 @@ public:
     // if (cal_algo != "NO_ALGORITHM") {
     //   if (cal_algo == "WeightedMean")
     //     LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-    //   BOOST_FOREACH(const ptree::value_type& p, cal_config) { 
+    //   BOOST_FOREACH(const ptree::value_type& p, cal_config) {
     //     if (p.first != "Key") {
     //       LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
     //       continue;
@@ -271,7 +271,7 @@ public:
   virtual void process_iq(service::sptr sp,
                           const_iterator i0,
                           const_iterator i1) {
-    // (0) possibly broadcast also the incoming data stream    
+    // (0) possibly broadcast also the incoming data stream
     dump(service_dc::make(this, sp), i0, i1);
 
     // (1) initialize filters
@@ -279,7 +279,7 @@ public:
       if (not fp.initialized()) {
         fp.update_offset(sp->center_frequency_Hz(), sp->sample_rate_Hz());
         typename filter::fir::lowpass<FFTFloat> fir(overlap_save_.p());
-        fir.design(fp.cutoff(), fp.cutoff()/5.);        
+        fir.design(fp.cutoff(), fp.cutoff()/5.);
         fp.set_initialized(overlap_save_.add_filter(fir.coeff(), fp.offset(), fp.decim()),
                            sp->sample_rate_Hz());
       }
@@ -320,7 +320,7 @@ protected:
                     const typename overlap_save_type::complex_vector_type& out) {
     pp->process_iq(sp, out.begin(), out.end());
   }
-  
+
 private:
   // results
   void put_result(processor::result_base::sptr rp) {
@@ -373,4 +373,3 @@ private:
 /// @}
 /// @}
 #endif // _MULTI_DOWNCONVERT_PROCESSOR_HPP_cm130115_
-

@@ -22,7 +22,7 @@
 #include <complex>
 #include <fftw3.h>
 
-namespace FFT {  
+namespace FFT {
   namespace WindowFunction {
     /// rectangular window function
     template<typename T>
@@ -36,7 +36,7 @@ namespace FFT {
     public:
       Hanning(size_t n)
         : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
+      T operator()(size_t u) const {
         return 0.5*(1.0-std::cos(2.*M_PI*u*norm_));
       }
     private:
@@ -48,7 +48,7 @@ namespace FFT {
     public:
       Hamming(size_t n)
         : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
+      T operator()(size_t u) const {
         return 0.54 - 0.46*std::cos(2.*M_PI*u*norm_);
       }
     private:
@@ -61,7 +61,7 @@ namespace FFT {
       Gaussian(size_t n, T sigma)
         : n_(n)
         , norm_(1./(0.5*sigma*(n-1))) {}
-      T operator()(size_t u) const { 
+      T operator()(size_t u) const {
         return std::exp(-0.5*std::pow((u-0.5*(n_-1))*norm_, 2));
       }
     private:
@@ -77,7 +77,7 @@ namespace FFT {
         , a1_(0.5)
         , a2_(0.5*alpha)
         , norm_(1./double(n-1)) {}
-      T operator()(size_t u) const { 
+      T operator()(size_t u) const {
         const T t(2.*M_PI*u*norm_);
         return a0_ - a1_*std::cos(t) + a2_*std::cos(2*t);
       }
@@ -130,24 +130,24 @@ namespace FFT {
         : n_(n)
         , a_(Traits::malloc(n))
         , norm_(n_) {}
-      
+
       template<typename WINDOW_FCN>
       FFTWArray(const std::vector<std::complex<double> >& v,
                 const WINDOW_FCN& window_fcn)
         : n_(v.size())
         , a_(Traits::malloc(n_))
         , norm_(fill(v, window_fcn)) {}
-      
+
       ~FFTWArray() { Traits::free(a_); }
-      
+
       size_t size() const { return n_; }
       T norm() const { return norm_; }
-      
+
       complex_type* begin() { return a_; }
-      complex_type* end()   { return a_+n_; }  
+      complex_type* end()   { return a_+n_; }
       complex_type&       operator[](size_t n)       { return a_[n]; }
       const complex_type& operator[](size_t n) const { return a_[n]; }
-      
+
       template<typename V,
                template<typename U> class VECTOR,
                template<typename W> class WINDOW_FCN>
@@ -173,10 +173,10 @@ namespace FFT {
 #endif
         return norm_;
       }
-      
+
       void resize(size_t n) {
         if (n != n_) {
-          Traits::free(a_); 
+          Traits::free(a_);
           n_= n;
           a_= Traits::malloc(n);
         }
@@ -191,11 +191,11 @@ namespace FFT {
   /// interface to FFTW (double or single precision)
   template<typename T>
   class FFTWTransform : public Internal::FFTWTraits<T> {
-  public:    
+  public:
     typedef Internal::FFTWTraits<T> Traits;
     typedef typename Traits::complex_type complex_type;
     typedef typename Traits::Plan Plan;
-    
+
     using Traits::plan_dft_1d;
     using Traits::execute;
     using Traits::destroy_plan;
@@ -206,21 +206,21 @@ namespace FFT {
       , sign_(sign)
       , flags_(flags)
       , plan_(plan_dft_1d(n, in_.begin(), out_.begin(), sign, flags))
-      , normalizationFactor_(T(1)/in_.norm()) {}    
-    
+      , normalizationFactor_(T(1)/in_.norm()) {}
+
     template<typename WINDOW_FCN>
     FFTWTransform(const std::vector<std::complex<double> >& v,
                   const WINDOW_FCN& window_fcn,
-                  int sign, 
+                  int sign,
                   unsigned flags)
       : in_(v, window_fcn)
       , out_(v.size())
       , sign_(sign)
       , flags_(flags)
       , plan_(plan_dft_1d(in_.size(), in_.begin(), out_.begin(), sign, flags))
-      , normalizationFactor_(T(1)/in_.norm()) { 
+      , normalizationFactor_(T(1)/in_.norm()) {
       execute(plan_);
-    }    
+    }
     ~FFTWTransform() {
       destroy_plan(plan_);
     }
@@ -267,22 +267,22 @@ namespace FFT {
 
     /// size of the FFT transform
     size_t size() const { return in_.size(); }
-    
+
     /// get the result of a single bin
     /// amplitude is corrected for the spread due to the used window function
     std::complex<T> getBin(size_t u) const {
-      return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]); 
+      return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]);
     }
     /// get all bins
     std::vector<complex_type> getBins() const {
       std::vector<complex_type> v(size());
-      for (size_t u(0); u<size(); ++u) 
+      for (size_t u(0); u<size(); ++u)
         v[u] = getBin(u);
       return v;
     }
 
     /// get the input bin \c u
-    std::complex<T> getInBin(size_t u) const { 
+    std::complex<T> getInBin(size_t u) const {
       return std::complex<T>(in_[u][0], in_[u][1]);
     }
 

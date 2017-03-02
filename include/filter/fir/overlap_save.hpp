@@ -32,17 +32,17 @@
 
 //
 // multi overlap-save filter
-// 
+//
 namespace filter {
   namespace fir {
     template<typename T>
     class overlap_save {
-    public:  
+    public:
       typedef std::complex<T> complex_type;
       typedef aligned_vector<T> real_vector_type;
       typedef aligned_vector<complex_type> complex_vector_type;
       typedef FFT::FFTWTransform<T> small_fft_type;
-#ifdef USE_CUDA      
+#ifdef USE_CUDA
       typedef FFT::CUFFTTransform large_fft_type;
 #else
       typedef FFT::FFTWTransform<T> large_fft_type;
@@ -86,7 +86,7 @@ namespace filter {
           shift_ = (shift_/size_t(v()+.5))*size_t(v()+0.5);
         }
         ~filt() {}
-        
+
         size_t l() const { return l_; }                  // Number of new input samples consumed per data block
         size_t p() const { return p_; }                  // Length of h(n)
         size_t d() const { return d_; }                  // downsampling factor
@@ -105,7 +105,7 @@ namespace filter {
         }
         const complex_vector_type& result() const { return result_; }
 
-        // performs inverse FFT of (shifted) input and downsampling       
+        // performs inverse FFT of (shifted) input and downsampling
         void transform(const large_fft_type& fft) {
           const size_t nd(n()/d());
           const T norm(T(1)/T(l()));
@@ -143,7 +143,7 @@ namespace filter {
           }
 #endif
           ifft_.transform();
-          
+
           for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
             result_[i] = ifft_.out(offset+i);
         }
@@ -188,7 +188,7 @@ namespace filter {
 
       static size_t design_optimal(size_t p) {
         size_t n(1);
-        while (n < p+1) 
+        while (n < p+1)
           n *= 2;
         double x     = complexity(n, p);
         double x_old = 2.*x+1.;
@@ -202,7 +202,7 @@ namespace filter {
       static double complexity(size_t n, size_t p) {
         return (n+2.*n*std::log(n)/std::log(2))/(double(n)-double(p)+1.);
       }
-      
+
       typename filt::sptr get_filter(size_t index) {
         return filters_[index];
       }
@@ -219,7 +219,7 @@ namespace filter {
         filters_.insert(std::make_pair(last_id_, fp));
         return std::make_pair(last_id_++, fp->offset());
       }
-      
+
       void proc(const complex_vector_type& in) {
         proc(in.begin(), in.end());
       }
@@ -244,7 +244,7 @@ namespace filter {
         for (size_t i(0), iend(p_-1); i<iend; ++i)
           fft_.in(i) = fft_.in(l_+i);
       }
-      
+
     private:
       const size_t l_;
       const size_t p_;

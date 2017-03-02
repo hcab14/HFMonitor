@@ -146,6 +146,7 @@ namespace db {
         : _db(boost::dynamic_pointer_cast<connection>(db))
         , _stmt(NULL) {
         if (!_db.lock()) throw std::runtime_error("db::sqlite3::statement: non-sqlite3 db sptr passed");
+        std::cout << "stmt='" << query << "'" << std::endl;
         ASSERT_THROW_SQLITE3(sqlite3_prepare_v2(_db.lock()->get(),
                                                 query.c_str(),
                                                 -1,//query.size(),
@@ -161,6 +162,7 @@ namespace db {
         _db = boost::dynamic_pointer_cast<connection>(db);
         _stmt = NULL;
         if (!_db.lock()) throw std::runtime_error("db::sqlite3::statement: non-sqlite3 db sptr passed");
+        std::cout << "stmt='" << query << "'" << std::endl;
         ASSERT_THROW_SQLITE3(sqlite3_prepare_v2(_db.lock()->get(),
                                                 query.c_str(),
                                                 -1,//query.size(),
@@ -176,7 +178,7 @@ namespace db {
       // throws on error
       bool step(bool do_rollback_if_error=true) {
         const int result(sqlite3_step(_stmt));
-        std::cout << "step result = " << result << std::endl;
+        std::cout << "step result = " << result << " " << sqlite3_data_count(_stmt) << std::endl;
         switch (result) {
         case SQLITE_ROW:
           return true;
@@ -302,7 +304,7 @@ namespace db {
       // int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
       // int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
       // int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
-
+    public:
       static std::string date_time_to_string(boost::posix_time::ptime t) {
         static std::stringstream oss;
         static bool is_first(true);
@@ -316,6 +318,7 @@ namespace db {
         oss << t;
         return oss.str();
       }
+    private:
 //       static boost::posix_time::ptime string_to_date_time(std::string s) {
 //         std::cout << "s=" <<s << std::endl;
 //         static std::stringstream iss;

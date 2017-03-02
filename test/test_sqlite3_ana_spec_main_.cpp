@@ -64,21 +64,21 @@ public:
     while (std::getline(ifs, line)) {
       std::copy(line.begin(), line.end(), std::back_inserter(_str));
       _str.push_back('\n');
-      std::cout << "line = " << line << std::endl;        
+      std::cout << "line = " << line << std::endl;
     }
     _str.push_back('\0');
     _count = 1;
     _pstr = &_str[0];
   }
-  
+
   ~ShaderSource() {}
-  
+
   GLsizei  count() const { return _count; }
-  const GLchar** str() const { 
+  const GLchar** str() const {
     return const_cast<const GLchar**>(&_pstr);
   }
   const GLint* length() const { return NULL; }
-  
+
 private:
   GLsizei             _count;
   std::vector<GLchar> _str;
@@ -90,13 +90,13 @@ public:
   Shader(GLenum shaderType,
          std::string sourceFileName)
     : id_(glCreateShader(shaderType)) {
-    
+
     if (id_ == 0)
       std::cout << "Error" << std::endl;
 
     const ShaderSource ss(sourceFileName);
     glShaderSource(id_, ss.count(), ss.str(), ss.length());
-    
+
     glCompileShader(id_);
 
     GLint compile_ok(0);
@@ -131,7 +131,7 @@ public:
     return sptr(new Program());
   }
 
-  ~Program() {      
+  ~Program() {
     glDeleteProgram(id_);
   }
 
@@ -162,21 +162,21 @@ public:
     GLint compile_ok(0);
     glGetProgramiv(id_, GL_LINK_STATUS, &compile_ok);
     std::cout << "compile_ok= " << compile_ok << std::endl;
-    
+
     glValidateProgram(id_);
     glGetProgramiv(id_, GL_VALIDATE_STATUS, &compile_ok);
     std::cout << "validate_ok= " << compile_ok << std::endl;
-    
+
     const GLsizei maxCount(64);
     GLuint  shaders[maxCount];
     GLsizei count(0);
     glGetAttachedShaders(id_, maxCount, &count, shaders);
     for (int i=0; i<count; ++i)
       glDetachShader(id_, shaders[i]);
-    
+
     return *this;
   }
-    
+
   GLint id() const { return id_; }
 protected:
 private:
@@ -184,7 +184,7 @@ private:
     : id_(glCreateProgram()) {}
   Program(const Program&);
   Program& operator=(const Program&);
-  
+
   GLint id_;
 } ;
 
@@ -200,7 +200,7 @@ public:
     glDeleteTextures(1, &id_);
     id_ = 0;
   }
-  
+
   void bind() {
     glBindTexture(GL_TEXTURE_2D, id_);
   }
@@ -220,7 +220,7 @@ private:
 
   // adapted from palette.c \in linrad
 unsigned char colorScale(size_t index) {
-  static unsigned char color_scale[]={ 
+  static unsigned char color_scale[]={
     0, 36,37,38,39,40,41,42,43,44,
     45,46,47,48,49,50,51,52,53,54,
     55,15,15};
@@ -279,19 +279,19 @@ public:
 
   }
 
-  Texture::sptr texture() { return texture_; }  
+  Texture::sptr texture() { return texture_; }
 
 protected:
   void GlInit() {
     static bool first_time = true;
     if (first_time) {
-      first_time = false;      
-      
+      first_time = false;
+
       texture_ = Texture::make();
       glActiveTexture(GL_TEXTURE0);
       texture_->bind();
 
-#if 0            
+#if 0
       {
         const size_t imgWidth  = 256;
         const size_t imgHeight = 256;
@@ -299,7 +299,7 @@ protected:
         for (size_t j=0; j<imgHeight; ++j)
           for (size_t i=0; i<imgWidth; ++i)
             img[j*imgWidth*1 + i*1 + 0] = GLubyte(256*double(j)/double(imgHeight) * double(i)/double(imgWidth));
-        
+
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, imgWidth, imgHeight, 0, GL_RED, GL_UNSIGNED_BYTE, img);
       }
@@ -309,9 +309,9 @@ protected:
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #endif
-      // 
+      //
 
       textureCol_ = Texture::make();
       glActiveTexture(GL_TEXTURE1);
@@ -328,18 +328,18 @@ protected:
             img[j*imgWidth*3 + i*3 + 1] = GLubyte(svgaPalette(3*colorMapIndex+1)<<2);
             img[j*imgWidth*3 + i*3 + 2] = GLubyte(svgaPalette(3*colorMapIndex+0)<<2);
           }
-        }        
+        }
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
       }
 
       glGenerateMipmap(GL_TEXTURE_2D);
-      
+
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      
+
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
   }
 
@@ -369,7 +369,7 @@ protected:
         {0.0, 1.0},
         {0.0, 0.0}
       };
-            
+
       glGenVertexArrays(1, &vao_);
       glBindVertexArray(vao_);
 
@@ -382,10 +382,10 @@ protected:
       glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
       glBufferData(GL_ARRAY_BUFFER, 12*sizeof(GLfloat), texVertices, GL_STATIC_DRAW);
       glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-      glEnableVertexAttribArray(1);        
+      glEnableVertexAttribArray(1);
 
       glBindVertexArray(0);
-      
+
 #if 1
       Shader vertexShader  (GL_VERTEX_SHADER,   "../test/vertexShader.txt");
       CheckErr("vtx");
@@ -413,7 +413,7 @@ protected:
       prog_->use();
       CheckErr("use");
 
-      
+
       GLint loc1 = prog_->getUniformLocation("sMin");
       std::cout << "sMin= " << loc1 << std::endl;
       glUniform1f(loc1, 0.0);
@@ -525,7 +525,7 @@ protected:
     if (err != GL_NO_ERROR)
       std::cout << "glGetError " << msg << " " << err << std::endl;
   }
- 
+
 private:
   Texture::sptr texture_;
   Texture::sptr textureCol_;
@@ -546,7 +546,7 @@ public:
     , browserTop_ (  0,   20,   w,     70)
     , browserLeft_(  0,   90, w-300, h-120)
     , glPlot_     (300,   90, w-300, h-120)
-      // , disp_(20, 40, w-40, h-40, "Display") 
+      // , disp_(20, 40, w-40, h-40, "Display")
   {
     menu_bar_.add("File/Open", FL_CTRL+'o', static_cb_menuBar, this);
     menu_bar_.add("File/Quit", FL_CTRL+'q', static_cb_menuBar, this);
@@ -615,22 +615,22 @@ protected:
         }
       }
     }
-    
+
     glActiveTexture(GL_TEXTURE0);
     glPlot_.texture()->bind();
-    
+
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, imgWidth, imgHeight, 0, GL_RED, GL_UNSIGNED_BYTE, img);
 
     delete[] img;
-    
+
     glGenerateMipmap(GL_TEXTURE_2D);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);     
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glPlot_.redraw();
 
@@ -658,7 +658,7 @@ protected:
         fnfc.type(Fl_Native_File_Chooser::BROWSE_FILE);
         fnfc.filter("*.db");
         fnfc.directory("./");
-        
+
         switch ( fnfc.show() ) {
         case -1: printf("ERROR: %s\n", fnfc.errmsg());    break;  // ERROR
         case  1: printf("CANCEL\n");                      break;  // CANCEL
@@ -666,7 +666,7 @@ protected:
           db_ = db::sqlite3::connection::make(fnfc.filename());
 
           db::sqlite3::statement stmt(db_, "SELECT specId,tMin,tMax,nSpec,fMin,fMax,df from SpecInfo;");
-          
+
           while (stmt.step()) {
             const int  specId(stmt.get_column<int>   (0));
             const ptime  tMin(stmt.get_column<ptime> (1));
@@ -677,10 +677,10 @@ protected:
             const double   df(stmt.get_column<double>(6));
 
             const std::string line(str(boost::format("%5d\t%s\t%s\t%6d\t%7.0f\t%7.0f\t%5.3f") % specId % tMin % tMax % nSpec % fMin % fMax % df));
-            browserTop_.add(line.c_str());            
+            browserTop_.add(line.c_str());
           }
 
-          break;              
+          break;
         }
       }
     }
@@ -704,7 +704,7 @@ protected:
 
     Filter::Cascaded<frequency_vector<double> > filter;
     filter.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 15));
-    
+
     ptime t0(boost::posix_time::not_a_date_time);
 
     std::cout << "E" << std::endl;
@@ -717,16 +717,16 @@ protected:
       const size_t n     = stmt2.column_bytes(3);
       const unsigned char *s = static_cast<const unsigned char*>(stmt2.column_blob(3));
       std::cout << "t= " << t << " " << pMin << " " << pMax << " " << n << std::endl;
-      
+
       if (t0 == boost::posix_time::not_a_date_time)
         t0 = t;
-      
+
       std::cout << t0 << " " << t << " " << t-t0 << std::endl;
-      
+
       std::vector<double> vs(n);
-      
+
       frequency_vector<double> ps(fMin, fMax, size_t((fMax-fMin)/df+0.5));
-      
+
       for (fv_type::iterator i(fv_.begin()), iend(fv_.end()); i!=iend; ++i) {
         const ssize_t index(std::distance(fv_.begin(), i));
         i->second.push_back(pMin+(pMax-pMin)*s[index]/255.0);
@@ -737,34 +737,34 @@ protected:
         filter.init(t, ps);
       else
         filter.update(t, ps);
-      
+
       if (t-t0 > boost::posix_time::minutes(4)) {
         t0 = t;
-        
+
         const frequency_vector<double>& xf(filter.x());
-        
+
         std::vector<double> spec_filtered(ps.size(), 0);
         for (size_t i=0, n=ps.size(); i<n; ++i)
           spec_filtered[i] = xf[i].second;
-        
+
         std::vector<size_t> b(ps.size(), 1);
         const double threshold_db(2);
         const unsigned poly_degree(2);
-        
+
         const size_t m(15*4); // number of fit intervals
         std::vector<double> indices(m+1, 0);
         for (size_t i(0); i<m; ++i)
           indices[i] = (i*n)/m;
-        
+
         indices[m] = n-1;
         indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
         indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
-        
+
         polynomial_interval_fit p(poly_degree, indices);
         std::vector<double> ts(n, 0);
         for (size_t i(0); i<n; ++i)
           ts[i] = i;
-        
+
         for (size_t l(0); l<100; ++l) {
           if (!p.fit(ts, spec_filtered, b)) {
             std::cerr << "fit failed" << std::endl;
@@ -779,10 +779,10 @@ protected:
           if (0 == nchanged)
             break;
         }
-        
+
         // b[i] == false -> signal
         // b[i] == true  -> no signal
-        
+
         // (1) group signals according to amplitude
 
         vs_.clear();
@@ -796,7 +796,7 @@ protected:
             vs_.push_back(interval);
             std::cout << "S: " << vs_.size()-1 << " " << interval.first << " " << interval.second << " "
                       << fMin+df*interval.first << " " << fMin+df*interval.second << std::endl;
-            
+
             const std::string line(str(boost::format("%7.0f %7.0f")
                                        % (fMin+df*interval.first)
                                        % (fMin+df*interval.second)));
@@ -812,14 +812,14 @@ protected:
         //           for (size_t j=0,m=vs_.size(); j<m; ++j) {
         //             std::cout << "S: " << j << " " << vs_[j].first << " " << vs_[j].second << " "
         //                       << fMin+df*vs_[j].first << " " << fMin+df*vs_[j].second << std::endl;
-        
+
         // //             const double f = fMin+df*i;
         // //             const std::pair<double,double> vf(p.eval(i));
         // //             std::cout << i << " " << f << " " << b[i] << " " << spec_filtered[i] << " " << vf.first << std::endl;;
         //           }
-        
-        
-        
+
+
+
         //           for (int j=0; j<n; ++j) {
         //             vs_[j] = pMin+(pMax-pMin)*s[j]/255.0;
         //             const double f = fMin+df*j;
@@ -855,14 +855,14 @@ private:
 int main(int argc, char* argv[])
 {
   Fl::visual(FL_RGB | FL_OPENGL3);
-  
+
   SqliteSpecBrowser w(1200,600);
   w.show();
-  return (Fl::run());  
+  return (Fl::run());
 
   LOGGER_INIT("./Log", "test_spec_sqlite3");
   try {
-    
+
 
     std::cout << "file: " << argv[1] << std::endl;
 
@@ -872,7 +872,7 @@ int main(int argc, char* argv[])
     db::sqlite3::statement stmt(db, "SELECT specId,tMin,tMax,nSpec,fMin,fMax,df from SpecInfo;");
 
     while (stmt.step()) {
-      
+
       std::cout << "column_count " << stmt.column_count() << std::endl;
       for (int i=0; i<stmt.column_count(); ++i) {
         std::cout << i << " " << stmt.column_type(i) << std::endl;
@@ -933,31 +933,31 @@ int main(int argc, char* argv[])
 
         if (t-t0 > boost::posix_time::minutes(3)) {
           t0 = t;
-          
+
           const frequency_vector<double>& xf(filter.x());
-          
+
           std::vector<double> spec_filtered(ps.size(), 0);
           for (size_t i=0, n=ps.size(); i<n; ++i)
             spec_filtered[i] = xf[i].second;
-          
+
           std::vector<size_t> b(ps.size(), 1);
           const double threshold_db(2);
           const unsigned poly_degree(2);
-          
+
           const size_t m(15*4); // number of fit intervals
           std::vector<double> indices(m+1, 0);
           for (size_t i(0); i<m; ++i)
             indices[i] = (i*n)/m;
-          
+
           indices[m] = n-1;
           indices[0] = std::min(indices[1],   indices[0]+size_t(0.005*n));
           indices[m] = std::max(indices[m-1], indices[m]-size_t(0.005*n));
-          
+
           polynomial_interval_fit p(poly_degree, indices);
           std::vector<double> ts(n, 0);
           for (size_t i(0); i<n; ++i)
             ts[i] = i;
-          
+
           for (size_t l(0); l<100; ++l) {
             if (!p.fit(ts, spec_filtered, b)) {
               std::cerr << "fit failed" << std::endl;
@@ -977,7 +977,7 @@ int main(int argc, char* argv[])
           // b[i] == true  -> no signal
 
           // (1) group signals according to amplitude
-          
+
           std::vector<std::pair<size_t, size_t> > vs; // signals
           std::pair<size_t, size_t> interval  = std::make_pair(0,0);
           for (size_t i(1); i<n; ++i) {
@@ -989,7 +989,7 @@ int main(int argc, char* argv[])
               vs.push_back(interval);
               std::cout << "S: " << vs.size()-1 << " " << interval.first << " " << interval.second << " "
                         << fMin+df*interval.first << " " << fMin+df*interval.second << std::endl;
-              
+
               interval.first = interval.second = 0;
             }
             if (!b[i-1] && !b[i]) {
@@ -1008,7 +1008,7 @@ int main(int argc, char* argv[])
 //           }
 
 
-          
+
 //           for (int j=0; j<n; ++j) {
 //             vs[j] = pMin+(pMax-pMin)*s[j]/255.0;
 //             const double f = fMin+df*j;
@@ -1016,15 +1016,15 @@ int main(int argc, char* argv[])
 //             if (f>331.8e3 && f< 333.2e3)
 //               std::cout << j << " " << f << " " << vs[j] << std::endl;;
 //           }
-          
-          
+
+
         }
       }
-    }    
+    }
 
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
-    LOG_ERROR(e.what()); 
+    LOG_ERROR(e.what());
     return 1;
   }
   return 0;

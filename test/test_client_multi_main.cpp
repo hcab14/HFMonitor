@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     network::client::client_multi_base c(network::get_io_service(), config);
     c.start();
 
-    boost::thread_group threadpool;    
+    boost::thread_group threadpool;
     for (size_t i(0); i<4; ++i)
       threadpool.create_thread
         (boost::bind
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 
     threadpool.join_all();
   } catch (const std::exception &e) {
-    LOG_ERROR(e.what()); 
+    LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
     return 1;
   }

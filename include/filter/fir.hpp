@@ -26,7 +26,7 @@
 #include "FFT.hpp"
 
 namespace filter {
-  namespace fir {    
+  namespace fir {
     namespace detail {
       template<typename T>
       class FFTWindowDesign {
@@ -35,15 +35,15 @@ namespace filter {
         typedef typename std::complex<float_type> complex_type;
         typedef typename std::vector<float_type> real_vector_type;
         typedef typename std::vector<complex_type> complex_vector_type;
-        
+
         FFTWindowDesign(size_t n)
           : b_(n,0) {
           if ((n % 2) == 0) throw std::runtime_error("FFTWindowDesign::FFTWindowDesign n is even");
         }
         virtual ~FFTWindowDesign() {}
-        
-        const real_vector_type& coeff() const { return b_; }    
-        
+
+        const real_vector_type& coeff() const { return b_; }
+
       protected:
         template<typename win_function_type>
         void design_(const complex_vector_type& f_pos,        // 0 and positive frequencies
@@ -51,16 +51,16 @@ namespace filter {
                      const win_function_type& win_function) { // window function
           if (f_pos.size() != f_neg.size())
             throw std::runtime_error("f_pos.size() != f_neg.size()");
-          
+
           // arrange positive and negative frequencies
           complex_vector_type f(f_pos);
           std::reverse_copy(f_neg.begin()+1, f_neg.end()-1, std::back_inserter(f));
           const size_t m(f.size());
-          
+
           //inverse FFT
           FFT::FFTWTransform<float_type> ifft(m, -1, FFTW_ESTIMATE);
           ifft.transformRange(f.begin(), f.end(), FFT::WindowFunction::Rectangular<float_type>(f.size()));
-          
+
           // multiply with window function
           const size_t n(b_.size());
           float_t sum(0);
@@ -70,7 +70,7 @@ namespace filter {
             sum += b_[i];
             max_value = (b_[i] > max_value) ? b_[i] : max_value;
           }
-          
+
           // normalize
           const float_t norm(float_type(1)/sum);
           for (size_t i(0); i<n; ++i)
@@ -78,7 +78,7 @@ namespace filter {
         }
       private:
         real_vector_type b_;
-      } ;  
+      } ;
     } // namespace detail
 
     template<typename T>
@@ -89,14 +89,14 @@ namespace filter {
       typedef typename base_type::complex_type complex_type;
       typedef typename base_type::real_vector_type real_vector_type;
       typedef typename base_type::complex_vector_type complex_vector_type;
-      
+
       using base_type::coeff;
       using base_type::design_;
-      
-      lowpass(size_t n) 
+
+      lowpass(size_t n)
         : base_type(n) {
       }
-      
+
       // f0 is normalized frequency (f0=f/fs)
       virtual void design(double f0, double f_ramp=0.) {
         if (f0     < 0.) throw std::runtime_error("lowpass::design f0 < 0");
@@ -114,10 +114,10 @@ namespace filter {
           if (j<0 || j>int(m)) continue;
           v[j] = double(i)/k;
         }
-        
+
         base_type::design_(v, v, FFT::WindowFunction::Hamming<float_type>(v.size()));
       }
-      
+
     protected:
     private:
       static size_t compute_m(size_t n) {
@@ -126,7 +126,7 @@ namespace filter {
         return m+1;
       }
       // real_vector_type b_;
-    } ;  
+    } ;
   } // namespace fir
 } // namespace filter
 
