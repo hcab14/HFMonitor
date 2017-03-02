@@ -291,6 +291,9 @@ namespace db {
       int           get_columnT(int icol, detail::type2type<int>) const {
         return sqlite3_column_int   (_stmt, icol);
       }
+      boost::int64_t get_columnT(int icol, detail::type2type<boost::int64_t>) const {
+        return sqlite3_column_int64 (_stmt, icol);
+      }
       sqlite3_int64 get_columnT(int icol, detail::type2type<sqlite3_int64>) const {
         return sqlite3_column_int64 (_stmt, icol);
       }

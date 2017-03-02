@@ -19,7 +19,7 @@ volk:
 	git clone -b v1.3 https://github.com/gnuradio/volk.git volk
 
 install/lib/libboost_log.a: boost_1_60_0
-	cd boost_1_60_0 && ./bootstrap.sh --prefix=${INSTALL_PATH} --with-libraries=python,program_options,thread,coroutine,iostreams,locale,log && ./b2 -j4 --layout=system install
+	cd boost_1_60_0 && ./bootstrap.sh --prefix=${INSTALL_PATH} --with-libraries=python,program_options,thread,coroutine,iostreams,locale,log,test && ./b2 -j4 --layout=system install
 boost_1_60_0:
 	wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2 -O - | bzip2 -dc - | tar xvf -
 

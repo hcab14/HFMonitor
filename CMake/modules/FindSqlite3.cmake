@@ -21,12 +21,12 @@
 # SQLITE3_LIBRARIES - Sqlite 3 library
 # SQLITE3_FOUND - Set to TRUE if we found everything (library, includes and executable)
 
-FIND_PATH  (SQLITE3_INCLUDE_DIR NAME sqlite3.h PATHS software/sqlite3/include)
+FIND_PATH  (SQLITE3_INCLUDE_DIR NAME sqlite3.h PATHS ${CMAKE_HOME_DIRECTORY}/software/install/sqlite3/include)
 IF(NOT SQLITE3_INCLUDE_DIR)
   FIND_PATH(SQLITE3_INCLUDE_DIR NAME sqlite3.h PATHS /opt/local/include)
 ENDIF(NOT SQLITE3_INCLUDE_DIR)
 
-FIND_LIBRARY  (SQLITE3_LIBRARIES NAME sqlite3 PATHS software/sqlite3/lib)
+FIND_LIBRARY  (SQLITE3_LIBRARIES NAME sqlite3 PATHS ${CMAKE_HOME_DIRECTORY}/software/install/sqlite3/lib)
 IF(NOT SQLITE3_LIBRARIES)
   FIND_LIBRARY(SQLITE3_LIBRARIES NAME sqlite3 PATHS /opt/local/lib)
 ENDIF(NOT SQLITE3_LIBRARIES)
