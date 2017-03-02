@@ -115,7 +115,7 @@ namespace db {
       }
 
       virtual boost::int64_t last_insert_rowid() const {
-        return sqlite3_last_insert_rowid(const_cast<impl_type*>(get()));
+        return boost::int64_t(sqlite3_last_insert_rowid(const_cast<impl_type*>(get())));
       }
 
     protected:
@@ -261,14 +261,14 @@ namespace db {
         ASSERT_THROW_SQLITE3(sqlite3_bind_int(_stmt, index, val));
         return *this;
       }
-      statement& bindT(int index, sqlite_int64 val, detail::type2type<sqlite_int64>) {
+      statement& bindT(int index, boost::int64_t val, detail::type2type<boost::int64_t>) {
         ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
         return *this;
       }
-      statement& bindT(int index, long int val, detail::type2type<long int>) {
-        ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
-        return *this;
-      }
+      // statement& bindT(int index, sqlite_int64 val, detail::type2type<sqlite_int64>) {
+      //   ASSERT_THROW_SQLITE3(sqlite3_bind_int64(_stmt, index, val));
+      //   return *this;
+      // }
       statement& bindT(int index, std::string s, detail::type2type<std::string>) {
         ASSERT_THROW_SQLITE3(sqlite3_bind_text(_stmt, index, s.c_str(), s.size(), SQLITE_TRANSIENT));
         return *this;
@@ -294,9 +294,9 @@ namespace db {
       boost::int64_t get_columnT(int icol, detail::type2type<boost::int64_t>) const {
         return sqlite3_column_int64 (_stmt, icol);
       }
-      sqlite3_int64 get_columnT(int icol, detail::type2type<sqlite3_int64>) const {
-        return sqlite3_column_int64 (_stmt, icol);
-      }
+      // sqlite3_int64 get_columnT(int icol, detail::type2type<sqlite3_int64>) const {
+      //   return sqlite3_column_int64 (_stmt, icol);
+      // }
       std::string   get_columnT(int icol, detail::type2type<std::string>) const {
         return std::string(reinterpret_cast<const char*>(sqlite3_column_text(_stmt, icol)));
       }

@@ -8,9 +8,8 @@ sudo yum install cmake3
 
 - devtoolset3
 https://www.softwarecollections.org/en/scls/rhscl/devtoolset-3/
-
-- gcc4.9:
-sudo yum install devtoolset-3-gcc-c++
+wget https://copr.fedorainfracloud.org/coprs/rhscl/devtoolset-3/repo/epel-6/rhscl-devtoolset-3-epel-6.repo -O /etc/yum.repos.d/rhscl-devtoolset-3-epel-6.repo
+yum install devtoolset-3-gcc-c++
 
 - python2.7
 sudo yum install python27

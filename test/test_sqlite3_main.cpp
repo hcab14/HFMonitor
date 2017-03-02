@@ -35,16 +35,16 @@ public:
 		   double freq_Hz) {
     db::sqlite3::lock lock(_mutex);
 
-    const sqlite3_int64 epoch_id
+    const boost::int64_t epoch_id
       (insert_id
        (timestamp, _select_timestamp, _insert_timestamp, "$timestamp"));
     std::cout << "epoch_id = " << epoch_id << std::endl;
-    const sqlite3_int64 chan_type_id
+    const boost::int64_t chan_type_id
       (insert_id
        (type, _select_channel_type, _insert_channel_type, "$type"));
     std::cout << "chan_type_id = " << chan_type_id << std::endl;
 
-    const sqlite3_int64 chan_id
+    const boost::int64_t chan_id
       (insert_id
        (freq_Hz, _select_channel,
 	_insert_channel.bind("$chan_type_id", chan_type_id), "$freq_Hz"));
@@ -63,14 +63,14 @@ public:
 protected:
   // inserts a value and if it does not exist and returns the id of the value
   template<typename T>
-  sqlite3_int64 insert_id(T value,
+  boost::int64_t insert_id(T value,
 			  db::sqlite3::statement& select_statement,
 			  db::sqlite3::statement& insert_statement,
 			  std::string what) {
     select_statement.bind(what, value);
-    sqlite3_int64 id(-1);
+    boost::int64_t id(-1);
     if (select_statement.step()) { // value is already used
-      id = select_statement.get_column<sqlite3_int64>(0);
+      id = select_statement.get_column<boost::int64_t>(0);
       select_statement.reset();
     } else { // new value
       insert_statement
