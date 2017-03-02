@@ -2,4 +2,4 @@
 # $Id: 0-perseus_server.in 462 2016-02-04 08:25:49Z gifds $
 
 NAME="perseus_server"
-CMD="sudo LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./bin/$NAME -c config/${NAME}_TWN.xml"
+CMD="sudo ./bin/$NAME -c config/${NAME}_TWN.xml"
