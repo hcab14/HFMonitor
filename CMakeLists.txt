@@ -69,7 +69,7 @@ SET(Boost_USE_MULTITHREADED ON)
 SET(BOOST_ROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
 SET(Boost_NO_SYSTEM_PATHS ON)
-FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS atomic chrono context log log_setup filesystem iostreams date_time regex program_options system coroutine thread python)
+FIND_PACKAGE(Boost 1.60 REQUIRED COMPONENTS log python program_options thread coroutine iostreams locale)
 LIST(APPEND _libs ${Boost_LIBRARIES})
 
 MESSAGE("Boost_LIBRARIES = ${Boost_LIBRARIES}")
@@ -119,7 +119,7 @@ ENDIF(BZIP2_FOUND)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 IF(SQLITE3_FOUND)
   LIST(APPEND _libs ${SQLITE3_LIBRARIES})
-  INCLUDE_DIRECTORIES(${SQLITE3_INCLUDE_DIR})  
+  INCLUDE_DIRECTORIES(${SQLITE3_INCLUDE_DIR})
 ENDIF(SQLITE3_FOUND)
 
 # Setup CUDA (optional)
@@ -182,7 +182,7 @@ If(BUILD_DOCUMENTATION)
   #-- Configure the Template Doxyfile for our specific project
   Configure_file(Doxyfile.in ${PROJECT_BINARY_DIR}/Doxyfile  @ONLY IMMEDIATE)
   #-- Add a custom target to run Doxygen when ever the project is built
-  add_custom_target (Docs #ALL 
+  add_custom_target (Docs #ALL
     COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
     SOURCES ${PROJECT_BINARY_DIR}/Doxyfile)
   # IF you do NOT want the documentation to be generated EVERY time you build the project
@@ -198,11 +198,10 @@ endif()
 #SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
 #SET(CPACK_STRIP_FILES "bin/client_FFTtoBC")
 #SET(CPACK_SOURCE_STRIP_FILES "")
-#SET(CPACK_PACKAGE_EXECUTABLES 
+#SET(CPACK_PACKAGE_EXECUTABLES
 #  "client_FFTtoBC" "Executable Description"
 #  "client_FFTtoFile" "Executable Description"
 #  "client_multi_downconvert" "Executable Description"
 #  "multi_client perseus_server" "Executable Description"
 #  "server_ls" "Executable Description"
 #  )
-
