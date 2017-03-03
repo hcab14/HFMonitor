@@ -108,8 +108,7 @@ namespace logging {
     boost::log::attribute_set& attrs = BaseT::attributes();
     boost::log::attribute_set::iterator tag = attrs.end();
 
-    std::pair<boost::log::attribute_set::iterator, bool>
-      res = BaseT::add_attribute_unlocked("TimeTag", boost::log::attributes::constant<boost::posix_time::ptime>(tag_value));
+    auto const res = BaseT::add_attribute_unlocked("TimeTag", boost::log::attributes::constant<boost::posix_time::ptime>(tag_value));
     if (res.second)
       tag = res.first;
 
@@ -134,7 +133,7 @@ namespace logging {
     > {
     BOOST_LOG_FORWARD_LOGGER_MEMBERS_TEMPLATE(severity_timestamp_logger);
   };
-  
+
   void init(std::string path, std::string name);
 
   BOOST_LOG_GLOBAL_LOGGER(logger, severity_timestamp_logger<severity_level>);

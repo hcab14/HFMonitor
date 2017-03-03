@@ -36,8 +36,8 @@ std::ostream& operator<<(std::ostream& os, const std::vector<float>& v) {
 }
 std::ostream& operator<<(std::ostream& os, const std::map<double, double>& v) {
   os << "[ ";
-  for (std::map<double,double>::const_iterator i(v.begin()), iend(v.end()); i!=iend; ++i)
-    os << "(" << i->first << "," << i->second << ") ";
+  for (auto const& u : v)
+    os << "(" << u.first << "," << u.second << ") ";
   return os << "]";
 }
 
@@ -52,7 +52,7 @@ public:
   class result_alpha : public processor::result_base {
   public:
     typedef boost::shared_ptr<result_alpha> sptr;
-    
+
     virtual ~result_alpha() {}
     static sptr make(std::string name,
                      ptime t,
@@ -65,7 +65,7 @@ public:
     }
 
 
-    virtual std::ostream& dump_header(std::ostream& os) const {      
+    virtual std::ostream& dump_header(std::ostream& os) const {
       return os
         << "# Time_UTC bkgd[dB] Amplitudes[dB] Phases[rad] ";
     }
@@ -79,7 +79,7 @@ public:
       os << (locked_ ? " STN_LOCKED" : " STN_UNLOCKED");
       return os;
     }
-    
+
   protected:
     static float s2db(float s) {
       return 10*std::log10(s);
@@ -101,12 +101,12 @@ public:
         phases_[i] = pmPi(phases[j] - phaseOffset);
       }
     }
-    
+
     float bkgd_;
     float sig_[6];
     float phases_[6];
     bool  locked_;
-  } ; 
+  } ;
 
 
   enum {
@@ -143,7 +143,7 @@ public:
 
   void process_iq(processor::service_iq::sptr sp, const_iterator i0, const_iterator i1) {
 #if 0
-    std::cout << "process_iq nS=" << std::distance(i0, i1) 
+    std::cout << "process_iq nS=" << std::distance(i0, i1)
               << " " << sp->id()
               << " " << sp->approx_ptime()
               << " " << sp->sample_rate_Hz()
@@ -169,7 +169,7 @@ public:
 
       buf_counter_ = 0;
       buf_size_    = int(0.5+3.6/dt_);
-      
+
       for (int i=0; i<3; ++i) {
         // std::cout << "f[" << i << "] " << f[i] << std::endl;
         gf_[i].set_parameter(-(f[i]-sp->center_frequency_Hz())/sp->sample_rate_Hz());
@@ -204,7 +204,7 @@ public:
 
     const float filter_threshold = 8;
     const int   maxBlanker       = 0.005*sp->sample_rate_Hz(); // 5ms
-    for (const_iterator i=i0; i!=i1; ++i) {      
+    for (const_iterator i=i0; i!=i1; ++i) {
       bool b = abs(*i) < filter_threshold*s_last_;
       b = (b ? b : counterBlanker_ >= maxBlanker);
       counterBlanker_ = (b ? 0 : 1+counterBlanker_);
@@ -230,11 +230,11 @@ public:
             offset[j] = check_lock(buf_[j], sig_[j], bkgd_[j]);
 #if 0
             std::cout << "buf[" << j << "]  " << offset[j] << " (" <<
-              sig_[j][0] << "," << 
-              sig_[j][1] << "," << 
-              sig_[j][2] << "," << 
-              sig_[j][3] << "," << 
-              sig_[j][4] << "," << 
+              sig_[j][0] << "," <<
+              sig_[j][1] << "," <<
+              sig_[j][2] << "," <<
+              sig_[j][3] << "," <<
+              sig_[j][4] << "," <<
               sig_[j][5] << ")"
                       << " state="<< state_ << std::endl;
 #endif
@@ -247,21 +247,21 @@ public:
             // std::cout << "counterPhaseMeasurement=" << counterPhaseMeasurement_ << " " << periodPhase_ << std::endl;
           }
         }
-      }    
-      
+      }
+
       if (state_ == LOCKED) {
         if (counterPhaseMeasurement_ >= 0) {
           for (int j=0; j<3; ++j)
             gfPhase_[j].update(s * FFT::WindowFunction::Hamming<float>(periodPhase_)(counterPhaseMeasurement_));
         }
-        
+
         if (++counterPhaseMeasurement_ == periodPhase_) {
           for (int j=0; j<3; ++j) {
             const int k = ((6+counterSlot_)%6);
             phases_[j][k] = pmPi(std::arg(gfPhase_[j].x()) -
-                                 counterCarrier_*2*M_PI*df[j]*3.6 +                                    
+                                 counterCarrier_*2*M_PI*df[j]*3.6 +
                                  counterPhaseShifts_/24000.0*17*2*M_PI);
-            
+
             if (phasesReset_) {
               phasesOffset_[j][k] = phases_[j][k];
               phasesReset_ = false;
@@ -269,7 +269,7 @@ public:
 
             phases_[j][k] =  pmPi(phases_[j][k] - 0*phasesOffset_[j][k]);
           }
-            
+
           if (++counterSlot_ == 6)
             counterSlot_ = 0;
 
@@ -318,7 +318,7 @@ public:
             gfPhase_[j].reset();
         }
       }
-    }    
+    }
   }
 
   int find_stations() const {
@@ -335,15 +335,15 @@ public:
     const bool no[3][6] = { {1,0,0,0,0,0},
                             {0,1,0,0,0,0},
                             {0,0,1,0,0,0} };
-    
+
     const bool kr[3][6] = { {0,0,1,0,0,0},
                             {0,0,0,1,0,0},
                             {1,0,0,0,0,0} };
-    
+
     const bool kh[3][6] = { {0,0,0,1,0,0},
                             {0,0,1,0,0,0},
                             {0,1,0,0,0,0} };
-    
+
     int off[6] = { 0,0,0, 0,0,0 };
     find_stations_offset(b, no, off);
     find_stations_offset(b, kr, off);
@@ -384,14 +384,14 @@ public:
     const size_t len_2 = size_t(0.5+0.6/dt_);
 
     // std::cout << "check_lock: " << buf << std::endl;
-    
+
     const int n = buf.size();
     std::vector<float> corr(buf.size(), 0);
     for (size_t i=0; i<buf.size(); ++i)
       for (size_t j=0; j<buf.size(); ++j)
         corr[i] += buf[(i+j)%n] * ((j%len_2) < len_0);
-    
-    std::vector<float>::iterator im = std::max_element(corr.begin(), corr.end());
+
+    auto const im = std::max_element(corr.begin(), corr.end());
     const int offset = (std::distance(corr.begin(), im) % len_2);
 
     int n_bkgd = 0;
@@ -428,7 +428,7 @@ public:
 private:
   int           state_;
   size_t        sample_counter_;
-  size_t        period_;                  // dt_ samples 
+  size_t        period_;                  // dt_ samples
   double        dt_;                      // 0.05 sec used for pulse synchronization
   goertzel_type gf_[3];                   // Goertzel filters for pulse synchronization
   size_t        buf_counter_;
@@ -448,14 +448,14 @@ private:
   float         sig_[3][6];               // signal in F123 in 6 slots each
   float         phases_[3][6];            // phases in F123 in 6 slots each
 
-  bool          phasesReset_;             // 
+  bool          phasesReset_;             //
   float         phasesOffset_[3][6];      // start phases
 
   float         alpha_;                   // low-pass filter parameter (static crashes)
   float         s_last_;                  // low-pass filter state
-  int           counterBlanker_;          // 
+  int           counterBlanker_;          //
 
   ptime         lastResultTime_[3];       //
   float         phaseOffsets_[3];         // to be updated at 21UTC = midnight Moscow Standard Time
-  
+
 } ;

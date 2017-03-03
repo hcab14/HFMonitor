@@ -25,10 +25,10 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-namespace decode {  
+namespace decode {
   class efr : public boost::noncopyable {
   public:
-    typedef boost::shared_ptr<efr> sptr;    
+    typedef boost::shared_ptr<efr> sptr;
     typedef std::deque<bool>           bit_vector_type;
     typedef std::vector<unsigned char> data_vector_type;
     typedef data_vector_type::const_iterator const_iterator;
@@ -153,12 +153,12 @@ namespace decode {
       unsigned char p(1);
       for (bit_vector_type::const_iterator j(i+1); j<i+9; ++j) {
         data |= (*j * p);
-        p <<= 1;        
+        p <<= 1;
       }
       return std::make_pair(data, true);
     }
 
-  private: 
+  private:
     efr()
       : state_(STATE_UNLOCKED)
       , data_ok_(false) {}

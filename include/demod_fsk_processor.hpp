@@ -41,7 +41,7 @@
  *  @{
  * \addtogroup demod_fsk demod_fsk
  * FSK demodulation
- * 
+ *
  * @{
  */
 
@@ -50,7 +50,7 @@ class demod_fsk_processor : public processor::base_iq {
 public:
   typedef boost::shared_ptr<demod_fsk_processor> sptr;
   typedef std::complex<double> complex_type;
-  
+
   class result_data : public processor::result_base {
   public:
     typedef boost::shared_ptr<result_data> sptr;
@@ -78,7 +78,7 @@ public:
     void clear() { data_vec_.clear(); }
     void push_back(unsigned char b) { data_vec_.push_back(b); }
 
-    virtual std::ostream& dump_header(std::ostream& os) const {      
+    virtual std::ostream& dump_header(std::ostream& os) const {
       return os
         << "# fc[Hz] = " << boost::format("%15.8f") % fc_Hz() << "\n"
         << "# fs[Hz] = " << boost::format("%7.3f")  % fs_Hz() << "\n"
@@ -89,7 +89,7 @@ public:
 
     virtual std::ostream& dump_data(std::ostream& os) const {
       os << boost::format("%02X %02X%02X ") % int(data_vec_[0]) % int(data_vec_[1]) % int(data_vec_[2]);
-      for (const_iterator i(begin()+3); i!=end(); ++i)
+      for (const_iterator i(begin()+3), iend(end()); i!=iend; ++i)
         os << boost::format("%02X") % int(*i);
 
       static const char* weekdays[] = {
@@ -121,7 +121,7 @@ public:
           % int(data_vec_[4]>>2)
           % time_zones[(data_vec_[6]&0x80) == 0x80];
       }
-      
+
       if (data_vec_[1] == 0xFF &&
           data_vec_[2] == 0xFF) {
         os << " \'";
@@ -130,7 +130,7 @@ public:
       }
       return os;
     }
-    
+
   protected:
   private:
     result_data(std::string name,
@@ -142,15 +142,15 @@ public:
       , fc_Hz_(fc_Hz)
       , fs_Hz_(fs_Hz)
       , baud_(baud) {}
-    
+
     const double     fc_Hz_;
     const double     fs_Hz_;
     const double     baud_;
     data_vector_type data_vec_;
   } ;
- 
+
   typedef boost::posix_time::time_duration time_duration;
-  
+
   typedef filter::iir<double, complex_type>         iir_type;
   typedef filter::iir_lowpass_1pole<double, double> iir_lp_type;
   typedef filter::integrator_modulo<double>         osc_phase_type;
@@ -176,7 +176,7 @@ public:
     , iir_startup_counter_(0)
     , early_late_synch_(5)
   {}
-  
+
   virtual ~demod_fsk_processor() {}
 
   double fc_Hz() const { return fc_Hz_; }
@@ -224,8 +224,8 @@ public:
       // iir filters for mark and space with cutoff +- fs_Hz
       filter::iir_design_lowpass iird(iir_filter_order_);
       iird.design(iir_filter_order_, 2.*fs_Hz()/sp->sample_rate_Hz()*dc_factor_);
-      const filter::iir_design_lowpass::vector_type a(iird.a());
-      const filter::iir_design_lowpass::vector_type b(iird.b());
+      auto const a(iird.a());
+      auto const b(iird.b());
       iir_mark_.init(a, b);
       iir_space_.init(a, b);
 
@@ -233,8 +233,8 @@ public:
 
       early_late_synch_ = demod::early_late_synch(double(sp->sample_rate_Hz()) / dc_factor_ / baud());
 
-      std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " " 
-                << sp->sample_rate_Hz() << " " 
+      std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " "
+                << sp->sample_rate_Hz() << " "
                 << sp->center_frequency_Hz() << " "
                 << early_late_synch_.period() << " fc_Hz= " << fc_shifted_Hz() << std::endl;
 #if 0
@@ -269,7 +269,7 @@ public:
           iir_strength_.process(sig_mark + sig_space);
           early_late_synch_.insert_signal((sig_mark - sig_space)/std::min(1e-10, iir_strength_.get()));
 #if 0
-          std::cout << "S " 
+          std::cout << "S "
                     << sig_mark << " " << sig_space << " "
                     << iir_strength_.get() << " "
                     << early_late_synch_.current_bit() << " " << early_late_synch_.bit_valid()
@@ -294,8 +294,8 @@ public:
 #endif
               result_data::sptr result_data =
                 result_data::make(name_ + "_data", sp->approx_ptime()+dt, fc_Hz(), fs_Hz(), baud());
-              for (decode::efr::data_vector_type::const_iterator i(decoder_->begin()), end(decoder_->end()); i!=end; ++i)
-                result_data->push_back(*i);
+              for (auto const& d : decoder_->data())
+                result_data->push_back(d);
 #if 0
               std::cout << "push_back: " << result_data->to_string() << std::endl;
 #endif
@@ -329,7 +329,7 @@ private:
   size_t            iir_filter_order_;
   iir_type          iir_mark_;
   iir_type          iir_space_;
-  iir_lp_type       iir_strength_;  
+  iir_lp_type       iir_strength_;
   size_t            iir_startup_counter_;
   demod::early_late_synch  early_late_synch_;
   decode::efr::sptr decoder_;

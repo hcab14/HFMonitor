@@ -42,7 +42,7 @@ namespace network {
   //  * uses boost::asio
   //  * the data is sent to all connected clients
   //  * being-alive-ticks are exchanged between server and client
-  //  * config: 
+  //  * config:
   //   <Data port="xxxx"
   //         maxQueueSize_MB="xxxx"
   //         maxQueueDelay_Minutes="xxxx"></Data>
@@ -62,7 +62,7 @@ namespace network {
       LOG_INFO("broadcaster start");
       start_listen();
     }
-  
+
     // stop broadcaster
     void stop() {
       // announce stop of io_service
@@ -110,8 +110,7 @@ namespace network {
                                    : data_ptr_type());
 
       // insert to all data connections, checking if they are still alive
-      for (std::set<data_connection::sptr>::iterator k(data_connections_.begin());
-           k!=data_connections_.end(); ) {
+      for (auto k(data_connections_.begin()); k!=data_connections_.end(); ) {
         if ((*k)->push_back(t, path, bytes_data, bytes_preamble))
           ++k;
         else
@@ -163,7 +162,7 @@ namespace network {
         a.second->set_option(boost::asio::socket_base::reuse_address(true));
 
         // start listening
-        a.second->listen();      
+        a.second->listen();
 
         // asynchronously accept data connections
         async_accept(a);
@@ -208,8 +207,8 @@ namespace network {
         for (auto const& dc : data_connections_) {
           boost::system::error_code ecl_ignore, ecr_ignore;
           LOG_STATUS_T(t, str(boost::format("  %s - %s : delay[ms] = %.2f (%s)")
-                              % dc->local_endpoint(ecl_ignore) 
-                              % dc->remote_endpoint(ecr_ignore) 
+                              % dc->local_endpoint(ecl_ignore)
+                              % dc->remote_endpoint(ecr_ignore)
                               % dc->max_delay_msec()
                               % dc->stream_name()));
           dc->reset_max_delay();
@@ -228,10 +227,9 @@ namespace network {
     const time_duration     max_queue_delay_;      // queue maximum delay of data connections
     directory               directory_;            // directory of available data streams
     data_connections        data_connections_;     // set of data connections
-    mutable ptime           last_log_status_time_; // 
+    mutable ptime           last_log_status_time_; //
   } ;
 
 } // namespace broadcaster
 } // namespace network
 #endif // _BROADCASTER_HPP_cm111219_
-

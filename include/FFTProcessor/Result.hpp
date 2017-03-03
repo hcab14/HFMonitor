@@ -55,7 +55,7 @@ namespace Result {
 
     void push_back(const Handle& h) { handles_.push_back(h); }
 
-    const Base* getLatest() const { 
+    const Base* getLatest() const {
       return handles_.empty() ? this : handles_.back().get();
     }
 
@@ -85,8 +85,6 @@ namespace Result {
       dumpToBCSingle(path, tag, bc, this, si);
       for (auto const& h : handles_)
         dumpToBCSingle(path, tag, bc, h.get(), si);
-//       for (HandleVector::const_iterator i(handles_.begin()), iend(handles_.end()); i!=iend; ++i)
-//         dumpToBCSingle(path, tag, bc, i->get(), si);
     }
 
     template<typename BROADCASTER>
@@ -107,17 +105,17 @@ namespace Result {
       bc->bc_data(h->time(), tag, h->format(), sd, sh);
     }
 
-    boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs, 
-                                           std::string path, std::string tag, 
+    boost::filesystem::fstream* dumpSingle(boost::filesystem::fstream* ofs,
+                                           std::string path, std::string tag,
                                            const Base* h,
                                            const station_info& si) const {
       const boost::filesystem::path p(gen_file_path(path, tag, h->time()));
       const bool file_exists(boost::filesystem::exists(p));
       if (not file_exists) {
-        if (ofs != NULL) { 
-          delete ofs; ofs= NULL; 
+        if (ofs != NULL) {
+          delete ofs; ofs= NULL;
         }
-        boost::filesystem::fstream lofs(p, std::ios::out);  
+        boost::filesystem::fstream lofs(p, std::ios::out);
         lofs << si;
         h->dumpHeaderToFile(lofs) << h->lineBreak();
       }
@@ -144,7 +142,7 @@ namespace Result {
     virtual boost::filesystem::fstream& dumpHeaderToFile(boost::filesystem::fstream& os) const {
       std::string timeLabel(makeTimeLabel());
       os << "# StartTime = " << timeLabel << " [UTC]" << lineBreak();
-      posEndTime_   = os.tellg() + std::streamoff(14);          
+      posEndTime_   = os.tellg() + std::streamoff(14);
       os << "# EndTime   = " << timeLabel << " [UTC]" << lineBreak();
       std::ostringstream oss; dump_header(oss);
       os << oss.str();

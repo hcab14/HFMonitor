@@ -46,7 +46,7 @@ namespace network {
       typedef directory_map::const_iterator const_iterator;
 
       // returns new stream id and a flag indicating if a new entry has been added
-      std::pair<boost::uint32_t, bool> 
+      std::pair<boost::uint32_t, bool>
       insert(index_type name) {
         static boost::uint32_t unique_stream_number(1); // stream number 0 -> directory
         const_iterator i(directory_.find(name));
@@ -64,8 +64,8 @@ namespace network {
 
       std::string serialize(ptime t) const {
         std::string bytes_dir;
-        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
-          bytes_dir += protocol::directory_entry::serialize(i->second, i->first);
+        for (auto const& d : directory_)
+          bytes_dir += protocol::directory_entry::serialize(d.second, d.first);
         return bytes_dir;
       }
 
@@ -87,8 +87,8 @@ namespace network {
         return directory_.find(name) != end();
       }
       bool contains(const boost::regex& e) const {
-        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
-          if (regex_match(i->first, e)) return true;
+        for (auto const& d : directory_)
+          if (regex_match(d.first, e)) return true;
         return regex_match("", e);
       }
 
@@ -99,25 +99,25 @@ namespace network {
       }
 
       std::string stream_name_of(boost::uint32_t number) const {
-        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
-          if (i->second == number) return i->first;
+        for (auto const& d : directory_)
+          if (d.second == number) return d.first;
         throw std::runtime_error("no stream associated with this stream number");
       }
 
       std::string ls() const {
         std::ostringstream oss;
-        for (const_iterator i(begin()), iend(end()); i!=iend; ++i)
-          oss << i->first << " " << i->second << "\n";
+        for (auto const& d : directory_)
+          oss << d.first << " " << d.second << "\n";
         oss << "\r\n";
         return oss.str();
       }
 
       friend std::ostream& operator<<(std::ostream& os, const directory& d) {
-        for (directory::const_iterator i(d.begin()), iend(d.end()); i!=iend && os; ++i)
+        for (auto i(d.begin()), iend(d.end()); i!=iend && os; ++i)
           os << i->first << " (" << i->second << ") ";
         return os;
       }
-  
+
       const_iterator begin() const { return directory_.begin(); }
       const_iterator end()   const { return directory_.end(); }
     protected:

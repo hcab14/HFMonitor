@@ -43,7 +43,7 @@
  * client_multi_downconvert
  * - @ref multi_downconvert_processor with output to @ref network::broadcaster::broadcaster
  * - configuration using command-line / XML
- * 
+ *
  * @{
  */
 
@@ -73,12 +73,11 @@ protected:
       broadcaster_->start();
       started_= true;
     }
-    typedef typename overlap_save_type::complex_vector_type complex_vector_type;
     const size_t bytes_per_sample(3);
     // data
     std::string s(2*bytes_per_sample*std::distance(begin,end), 0);
     std::string::iterator si(s.begin());
-    for (typename complex_vector_type::const_iterator i(begin); i!=end; ++i) {
+    for (auto i(begin); i!=end; ++i) {
       si = wave::detail::write_real_sample(si, 8*bytes_per_sample, i->real());
       si = wave::detail::write_real_sample(si, 8*bytes_per_sample, i->imag());
     }
@@ -91,7 +90,7 @@ protected:
     std::copy(s.begin(), s.end(), data.begin()+sizeof(network::protocol::iq_info));
     broadcaster_->bc_data(sp->approx_ptime(), sp->stream_name(), "WAV_0000", data);
   }
-  
+
 
   virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {
     LOG_INFO(str(boost::format("dump: %s") % *rp));
@@ -103,7 +102,7 @@ protected:
     std::ostringstream oss_data;
     rp->dump_data(oss_data);
     std::string data_str(oss_data.str());
-    
+
     broadcaster_->bc_data(rp->approx_ptime(), rp->name(), rp->format(), data_str, header_str);
     return rp;
   }
@@ -143,7 +142,7 @@ int main(int argc, char* argv[])
 
     network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<float> > > >
       c(config.get_child("MultiDownConverter"));
-        
+
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())
       ASSERT_THROW(c.connect_to(stream_name) == true);
@@ -153,7 +152,7 @@ int main(int argc, char* argv[])
     c.start();
     run_in_thread(network::get_io_service());
   } catch (const std::exception &e) {
-    LOG_ERROR(e.what()); 
+    LOG_ERROR(e.what());
     std::cerr << e.what() << std::endl;
     return 1;
   }

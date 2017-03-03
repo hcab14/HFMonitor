@@ -237,8 +237,8 @@ namespace filter {
         fft_.transform();
 
         // for each filter
-        for (typename filter_map::iterator i(filters_.begin()), end(filters_.end()); i!=end; ++i)
-          i->second->transform(fft_);
+        for (auto filter : filters_)
+          filter.second->transform(fft_);
 
         // save old samples
         for (size_t i(0), iend(p_-1); i<iend; ++i)

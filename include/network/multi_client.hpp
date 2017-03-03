@@ -97,11 +97,11 @@ namespace network {
           stream_names << p.first << " ";
         if (not client_base::connect_to(stream_names.str()))
           return false;
-        for (auto const& p : map) 
+        for (auto const& p : map)
           add_processors(p.first, p.second);
         return true;
       }
-  
+
       bool connect_to(std::string stream_names,
                       std::string processor_name)  {
         if (client_base::connect_to(stream_names) == false)
@@ -114,7 +114,7 @@ namespace network {
                            data_buffer_type::const_iterator end) {
 
         const stream_name str_name(get_directory().stream_name_of(get_header().stream_number()));
-        std::pair<processor_id_map::iterator, processor_id_map::iterator> range(processor_id_map_.equal_range(str_name));
+        auto range(processor_id_map_.equal_range(str_name));
         if (range.first == range.second) {
           return; // TODO: complain
         }
@@ -152,7 +152,7 @@ namespace network {
 
       // add processors with name processor_name for the streams matcing stream_name
       void add_processors(std::string stream_names, std::string processor_name) {
-        const boost::property_tree::ptree::value_type s(find_ptree_for_processor(processor_name));    
+        auto const s(find_ptree_for_processor(processor_name));
         std::istringstream iss(stream_names);
         std::string stream_name;
         while (iss >> stream_name)
@@ -164,15 +164,15 @@ namespace network {
       // notifies derived classes of an update of directory
       virtual void directory_update(const broadcaster::directory& new_directory) {
         // remove processors not present anymore
-        for (processor_id_map::iterator i(processor_id_map_.begin()); i!=processor_id_map_.end();) {
+        for (auto i(processor_id_map_.begin()); i!=processor_id_map_.end();) {
           if (not new_directory.contains(i->first))
             processor_id_map_.erase(i++);
-          else 
+          else
             ++i;
         }
         // construct new processors, if needed
-        for (broadcaster::directory::const_iterator i(new_directory.begin()), iend(new_directory.end()); i!=iend; ++i) {
-          stream_name str_name(i->first);
+        for (auto const& d : new_directory) {
+          stream_name str_name(d.first);
           // if not found: make new
           if (processor_id_map_.find(str_name) != processor_id_map_.end()) continue;
           const std::vector<pp_type> ps(find_type_of_stream(str_name));
@@ -194,15 +194,15 @@ namespace network {
       // returns vector of pairs of (processor_type, ptree)
       std::vector<pp_type> find_type_of_stream(std::string stream_name) const {
         std::vector<pp_type> result;
-        for (processor_type_map::const_iterator i(processor_type_map_.begin()), end(processor_type_map_.end()); i!=end; ++i) {
-          if (regex_match(stream_name, i->get<0>()))
-            result.push_back(std::make_pair(i->get<1>(), i->get<2>()));
+        for (auto const& p : processor_type_map_) {
+          if (regex_match(stream_name, p.get<0>()))
+            result.push_back(std::make_pair(p.get<1>(), p.get<2>()));
         }
         return result;
       }
 
     private:
-      const boost::property_tree::ptree config_;   // holds copy of config 
+      const boost::property_tree::ptree config_;   // holds copy of config
 
       processor_id_map   processor_id_map_;
       processor_type_map processor_type_map_;
