@@ -96,7 +96,7 @@ namespace netpbm {
     bool write_str(std::string s, bool throw_on_error=true) { 
       bool success(false);
       try {
-	success= os_.write(s.c_str(), s.size());
+	success= bool(os_.write(s.c_str(), s.size()));
       } catch (const std::runtime_error& error) {
 	if (throw_on_error) throw error; else return false;
       }
