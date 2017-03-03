@@ -68,7 +68,7 @@ namespace Perseus {
 
     virtual void init(const boost::property_tree::ptree& config) {
       _rbs_map.clear();
-      for (auto const & v : config) {
+      for (auto const& v : config) {
         if (v.first == "rbs") {
           ASSERT_THROW(boost::filesystem::exists(v.second.data()));
           _rbs_map[v.second.get<int>("<xmlattr>.fs")] = v.second.data();

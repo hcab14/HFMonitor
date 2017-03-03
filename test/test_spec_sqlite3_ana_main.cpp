@@ -471,7 +471,7 @@ public:
   vec_type scale_autocorrelation(const vec_type& xc, float dc) const {
     const float dcy = 1-4*(dc < 0.5 ? dc : 1-dc);
     vec_type xxc(xc.size(), 0);
-    for (int i=0; i<xc.size(); ++i)
+    for (size_t i=0; i<xc.size(); ++i)
       xxc[i] = (2*xc[i]-dcy-1) / (1-dcy);
 
     return xxc;
@@ -500,8 +500,8 @@ public:
     float sum[2] = { 0, 0 };
     int counter=0;
     for (int i=0; i<m; ++i) {
-      const int idx_max = int((i+1.0)*period + 0.5);
-      const int idx_min = int((i+0.0)*period + 0.5);
+      const size_t idx_max = size_t((i+1.0)*period + 0.5);
+      const size_t idx_min = size_t((i+0.0)*period + 0.5);
       if (idx_max >= xc.size())
         continue;
 
@@ -535,7 +535,7 @@ public:
       y[i] = 0.0f;
       int counter=0;
       for (int j=1; j<=m; ++j) {
-        const int idx = std::floor(j*ps[i]);
+        const size_t idx = std::floor(j*ps[i]);
         if (idx+1 >= xc.size())
           continue;
         const float x = j*ps[i]-idx;
@@ -720,7 +720,7 @@ int main(int argc, char* argv[])
                     << " fMin,Max,df= " << fMin << " " << fMax << " " << df
                     << std::endl;
 
-          for (int i=0; i<nBytes; ++i)
+          for (size_t i=0; i<nBytes; ++i)
             s[i] = pMin + (pMax-pMin)*bytes[i]/255.0;
 
           double f0 = 1e3*fMin_kHz;

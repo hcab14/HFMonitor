@@ -201,7 +201,7 @@ public:
         const ssize_t min_index(40); // TODO make it relative to the sample time
         // threshold at -4 sigma
         const double threshold_ac(4./std::sqrt(double(ft.size())));
-        ASSERT_THROW(min_index < ac.size());
+        ASSERT_THROW(size_t(min_index) < ac.size());
         // search for a peak in the auto-correlation
         std::vector<double>::const_iterator imax(std::max_element(ac.begin()+min_index, ac.end()));
         std::vector<double>::const_iterator imin(std::min_element(ac.begin(),           ac.end()));
