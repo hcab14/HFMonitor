@@ -26,7 +26,6 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
@@ -102,7 +101,7 @@ public:
           std::cout << "_service.stopped()\n";
           return; 
         }
-        BOOST_FOREACH(process::sptr p, _processes) {
+        for (process::sptr p : _processes) {
           if (!p || !p->is_running())
             return;
         }

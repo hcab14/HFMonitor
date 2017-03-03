@@ -24,7 +24,6 @@
 #include <iomanip>
 #include <vector>
 
-#include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -230,7 +229,7 @@ namespace detail {
     // size in samples
     size_t history_size() const {
       size_t s(0);
-      BOOST_FOREACH(const phase_vector_t::value_type& v, phase_vector_)
+      for (auto const& v : phase_vector_)
         s += v.dt();
       return s;
     }

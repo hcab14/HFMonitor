@@ -30,7 +30,6 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/foreach.hpp>
 
 #include "aligned_vector.hpp"
 #include "filter/fir.hpp"
@@ -193,7 +192,7 @@ public:
                     config.get<size_t>("<xmlattr>.m"))
     , offset_(0) {
     // Filters
-    BOOST_FOREACH(const ptree::value_type& filt, config.get_child("Filters")) {
+    for (auto const& filt : config.get_child("Filters")) {
       if (filt.first == "FIR") {
         const filter_param fp(filt.second.get<std::string>("<xmlattr>.name"),
                               filt.second.get<double>("<xmlattr>.cutoff"),
@@ -207,7 +206,7 @@ public:
       }
     }
     // Processors
-    BOOST_FOREACH(const ptree::value_type& p, config.get_child("Processors")) {
+    for (auto const& p : config.get_child("Processors")) {
       const std::string type(p.first);
       const std::string name(p.second.get<std::string>("<xmlattr>.name"));
       const std::string input(p.second.get<std::string>("<xmlattr>.input"));
@@ -221,12 +220,12 @@ public:
       processor_map_[input] = pp;
     }
     // Calibration
-    BOOST_FOREACH(const ptree::value_type& p, config.get_child("Calibration")) {
+    for (auto const& p : config.get_child("Calibration")) {
       if (p.first  == "Algorithm") {
         const std::string cal_algo(p.second.get<std::string>("<xmlattr>.type"));
         if (cal_algo != "WeightedMean")
           LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-        BOOST_FOREACH(const ptree::value_type& pp, p.second) {
+        for (auto const& pp : p.second) {
           if (pp.first != "Key") {
             LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % pp.first));
             continue;
@@ -248,7 +247,7 @@ public:
     // if (cal_algo != "NO_ALGORITHM") {
     //   if (cal_algo == "WeightedMean")
     //     LOG_ERROR(str(boost::format("unsupported calibration algorithm '%s' requested") % cal_algo));
-    //   BOOST_FOREACH(const ptree::value_type& p, cal_config) {
+    //   for (auto const& p : cal_config) {
     //     if (p.first != "Key") {
     //       LOG_ERROR(str(boost::format("ignoring Calibration tag '%s'") % p.first));
     //       continue;
@@ -275,7 +274,7 @@ public:
     dump(service_dc::make(this, sp), i0, i1);
 
     // (1) initialize filters
-    BOOST_FOREACH(filter_param& fp, filter_params_) {
+    for (filter_param& fp : filter_params_) {
       if (not fp.initialized()) {
         fp.update_offset(sp->center_frequency_Hz(), sp->sample_rate_Hz());
         typename filter::fir::lowpass<FFTFloat> fir(overlap_save_.p());
@@ -289,7 +288,7 @@ public:
     overlap_save_.proc(i0, i1);
 
     // (3) dump the output of all filters
-    BOOST_FOREACH(const filter_param& fp, filter_params_) {
+    for (auto const& fp : filter_params_) {
       service::sptr
         sp_dc(service_dc::make(this,
                                sp,
@@ -338,7 +337,7 @@ private:
       return std::make_pair(1e9*offset_, 0.0);
 
     double sum_wx(0), sum_w(0);
-    BOOST_FOREACH(const std::string& key, calibration_keys_) {
+    for (auto key : calibration_keys_) {
       tracking_goertzel_processor::result::sptr
         rp(boost::dynamic_pointer_cast<tracking_goertzel_processor::result>(get_result(key)));
       if (not rp) {

@@ -22,7 +22,6 @@
 #include <vector>
 #include <numeric>
 #include <boost/shared_ptr.hpp>
-#include <boost/foreach.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include "sdr/perseus/perseus_control.hpp"
@@ -98,12 +97,12 @@ namespace Perseus {
                                   td.get(),
                                   80*length);
       }
-      BOOST_FOREACH(transfer_data::sptr& td, _queue)
+      for (auto const& td : _queue)
         libusb_submit_transfer(td->t);
     }
 
     bool check_completed() {
-      BOOST_FOREACH(const transfer_data::sptr& td, _queue) {
+      for (auto const& td : _queue) {
         if (td->cancelled) {
           _completed = true;
           break;
@@ -116,14 +115,14 @@ namespace Perseus {
 
     virtual ~input_queue() {
       _cancelling= true;
-      BOOST_FOREACH(transfer_data::sptr& td, _queue)
+      for (auto const& td : _queue)
         libusb_cancel_transfer(td->t);
       // wait up to 5 seconds until everything is cancelled
       LOG_INFO("wait_cancel: ");
       for (size_t i=0; i<50 && not is_completed(); ++i)
         usleep(100*1000);
       LOG_INFO("... cancelled");
-      BOOST_FOREACH(transfer_data::sptr& td, _queue)
+      for (auto const& td : _queue)
         libusb_free_transfer(td->t);
       LOG_INFO("~input_queue end");
     }

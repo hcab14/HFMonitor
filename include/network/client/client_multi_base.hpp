@@ -25,7 +25,6 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/condition.hpp>
@@ -124,11 +123,11 @@ namespace network {
         ASSERT_THROW(((24*60*60) % time_granularity_sec_) == 0);
 
         // make up the list of connections
-        BOOST_FOREACH(const boost::property_tree::ptree::value_type& p, config.get_child("ClientMulti.Servers")) {
+        for (auto const& p : config.get_child("ClientMulti.Servers")) {
           if (p.first == "<xmlattr>") continue;
           ASSERT_THROW(p.first == "Server");
           std::string streams;
-          BOOST_FOREACH(const boost::property_tree::ptree::value_type& s, p.second) {
+          for (auto const& s : p.second) {
             if (s.first == "<xmlattr>") continue;
             ASSERT_THROW(s.first == "Stream");
             streams += " " + s.second.get<std::string>("<xmlattr>.pattern");
@@ -148,7 +147,7 @@ namespace network {
 
       // start all connections
       void start() {
-        BOOST_FOREACH(connection_map_type::value_type& cv, connections_) {
+        for (auto const& cv : connections_) {
           cv.second->start(cv.first.second);
         }
       }

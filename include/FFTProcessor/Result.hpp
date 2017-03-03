@@ -70,7 +70,7 @@ namespace Result {
       const station_info si(s, lineBreak());
       boost::filesystem::fstream *ofs(0);
       ofs = dumpSingle(ofs, path, tag, this, si);
-      BOOST_FOREACH(const HandleVector::value_type& h, handles_)
+      for (auto const& h : handles_)
         ofs = dumpSingle(ofs, path, tag, h.get(), si);
       updateTimeTag(*ofs, posEndTime_, getLatest()->makeTimeLabel());
       delete ofs;
@@ -83,7 +83,7 @@ namespace Result {
                   std::string s) {
       const station_info si(s, lineBreak());
       dumpToBCSingle(path, tag, bc, this, si);
-      BOOST_FOREACH(const HandleVector::value_type& h, handles_)
+      for (auto const& h : handles_)
         dumpToBCSingle(path, tag, bc, h.get(), si);
 //       for (HandleVector::const_iterator i(handles_.begin()), iend(handles_.end()); i!=iend; ++i)
 //         dumpToBCSingle(path, tag, bc, i->get(), si);

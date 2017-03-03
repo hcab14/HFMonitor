@@ -18,7 +18,6 @@
 //
 
 #include <map>
-#include <boost/foreach.hpp>
 #include "logging.hpp"
 #include "libusb1.0/libusb1.hpp"
 
@@ -153,7 +152,7 @@ namespace libusb {
       ASSERT_THROW(libusb_open(_dev->get(), &_handle) == 0);
     }
     ~device_handle_impl() {
-      BOOST_FOREACH(int claimed_interface, _claimed)
+      for (int claimed_interface : _claimed)
         libusb_release_interface(this->get(), claimed_interface);
       libusb_close(_handle);
     }

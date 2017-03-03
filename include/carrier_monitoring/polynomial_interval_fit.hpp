@@ -30,8 +30,6 @@
 // #include <boost/numeric/ublas/vector_proxy.hpp>
 // #include <boost/numeric/ublas/operation.hpp>
 
-#include <boost/foreach.hpp>
-
 #include "InvertMatrix.hpp"
 
 class polynomial_interval_fit {
@@ -95,7 +93,7 @@ public:
     matrix_type ata(nx, nx, 0);
 
     size_t slice_counter(0);
-    BOOST_FOREACH(const slice& sy, slices_y_) {
+    for (auto const& sy : slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0), n(sy.size()); j<n; ++j) {
 	const double x(t_(sy(j)) - t_indices_[slice_counter]);
@@ -155,7 +153,7 @@ public:
 
     // compute the fitted values yf
     slice_counter= 0;
-    BOOST_FOREACH(const slice& sy, slices_y_) {
+    for (auto const& sy : slices_y_) {
       matrix_type a(sy.size(), poly_degree_plus_1, 0);
       for (size_t j(0), n(sy.size()); j<n; ++j) {
 	const double x(t_(sy(j)) - t_indices_[slice_counter]);

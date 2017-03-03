@@ -53,7 +53,7 @@ namespace Result {
         const float slMax(std::log10(iMax->second));
         std::copy((char*)&slMax, (char*)&slMax+sizeof(slMax), std::back_inserter(line_));
         
-        BOOST_FOREACH(const PowerSpectrum::value_type& fs, ps)
+        for (auto const& fs : ps)
           line_.push_back((unsigned char)((std::log10(fs.second) - slMin)/(slMax-slMin)*255));
       }
     }

@@ -18,7 +18,6 @@
 //
 #include <vector>
 #include <numeric>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -64,12 +63,12 @@ namespace Perseus {
     }
 
     virtual bool is_running() const {
-      return _input_queue;
+      return bool(_input_queue);
     }
 
     virtual void init(const boost::property_tree::ptree& config) {
       _rbs_map.clear();
-      BOOST_FOREACH(const boost::property_tree::ptree::value_type& v, config) {
+      for (auto const & v : config) {
         if (v.first == "rbs") {
           ASSERT_THROW(boost::filesystem::exists(v.second.data()));
           _rbs_map[v.second.get<int>("<xmlattr>.fs")] = v.second.data();
@@ -171,7 +170,7 @@ namespace Perseus {
       while (run) {
         usleep(1000*1000);
         LOG_INFO(str(boost::format("input_queue_monitor_thread_fn %d") % bool(p->_input_queue)));
-        run = p->_input_queue;
+        run = bool(p->_input_queue);
         if (run) {
           run = !(p->_input_queue->check_completed());
           LOG_INFO(str(boost::format("input_queue_monitor_thread_fn run=%d") % run));

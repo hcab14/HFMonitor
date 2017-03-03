@@ -24,7 +24,6 @@
 #include <numeric>
 #include <string>
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 #include "logging.hpp"
 
 namespace Perseus {
@@ -54,7 +53,7 @@ namespace Perseus {
                            % _code.size()
                            % int(_addr)
                            % _type));
-      BOOST_FOREACH(boost::uint8_t c, _code)
+      for (boost::uint8_t c : _code)
         line += str(boost::format("%02X") % int(c));
       return line + str(boost::format("%02X") % int(checksum()));
     }

@@ -89,8 +89,7 @@ int main(int argc, char* argv[])
 
     // fill spm (stream name -> processor name) multimap
     network::client::multi_client::stream_processor_map spm;
-    BOOST_FOREACH(const ptree::value_type& s,
-                  config_multi_client.get_child("Streams")) {
+    for (auto const& s : config_multi_client.get_child("Streams")) {
       if (s.first != "Stream") {
         LOG_INFO(str(boost::format("ignoring invalid key: '%s'") % s.first));
         continue;
@@ -111,7 +110,7 @@ int main(int argc, char* argv[])
     network::client::multi_client_tofile c(config_multi_client);
 
     const std::set<std::string> streams(c.ls());
-    BOOST_FOREACH(std::string stream, streams)
+    for (auto stream : streams)
       std::cout << "-- " << stream << std::endl;
 
     ASSERT_THROW(c.connect_to(spm) == true);

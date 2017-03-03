@@ -20,7 +20,6 @@
 #define _BUFFER_HPP_cm1201105_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/foreach.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -78,7 +77,7 @@ public:
   
   size_t total_size() const {
     size_t sum(0);
-    BOOST_FOREACH(const typename list_of_packets::value_type& lp, list_of_packets_)
+    for (auto const& lp : list_of_packets_)
       sum += lp.second.size();
     return sum;
   }

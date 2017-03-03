@@ -21,7 +21,6 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/program_options.hpp>
@@ -282,7 +281,7 @@ int main(int argc, char* argv[])
       network::get_io_service().stop();
 
       // Wait for all threads in the pool to exit.
-      BOOST_FOREACH(boost::shared_ptr<boost::thread> thr, threads)
+      for (auto thr: threads)
         thr->join();
       
       std::cout << "**** stopped *** " << std::endl;

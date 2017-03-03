@@ -22,7 +22,6 @@
 #include <map>
 #include <string>
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/regex.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -94,11 +93,11 @@ namespace network {
 
       bool connect_to(const stream_processor_map& map) {
         std::ostringstream stream_names;
-        BOOST_FOREACH(const stream_processor_map::value_type& p, map)
+        for (auto const& p : map)
           stream_names << p.first << " ";
         if (not client_base::connect_to(stream_names.str()))
           return false;
-        BOOST_FOREACH(const stream_processor_map::value_type& p, map) 
+        for (auto const& p : map) 
           add_processors(p.first, p.second);
         return true;
       }
@@ -144,7 +143,7 @@ namespace network {
       typedef std::pair<processor_type, boost::property_tree::ptree> pp_type;
 
       boost::property_tree::ptree::value_type find_ptree_for_processor(std::string processor_name) {
-        BOOST_FOREACH(const boost::property_tree::ptree::value_type& s, config_.get_child("Clients")) {
+        for (auto const& s : config_.get_child("Clients")) {
           if (s.second.get<std::string>("<xmlattr>.proc_name") == processor_name)
             return s;
         }
@@ -179,7 +178,7 @@ namespace network {
           const std::vector<pp_type> ps(find_type_of_stream(str_name));
           // p.first : processor name
           // p.second: to be used path in ptree config
-          BOOST_FOREACH(const pp_type& p, ps) {
+          for (auto const& p : ps) {
             std::ostringstream oss;
             boost::property_tree::write_xml(oss, p.second);
             LOG_INFO(str(boost::format("making processor '%s' type='%s' config='%s' ")

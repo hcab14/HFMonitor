@@ -23,7 +23,6 @@
 #include <boost/python.hpp>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -51,9 +50,9 @@ public:
   virtual void proc_data_per_interval(const name_time_data_type& d) {
     PyGILState_STATE gstate = PyGILState_Ensure();
     boost::python::dict data;
-    BOOST_FOREACH(const name_time_data_type::value_type& v, d) {
+    for (auto const& v : d) {
       boost::python::list list;
-      BOOST_FOREACH(const time_data_type::value_type& u, v.second) {
+      for (auto const& u : v.second) {
         boost::python::list list_data;
         list_data.append(ptime_to_obj(u.first));
         const std::string sdata(&u.second.data()[0], u.second.data().size());
@@ -72,7 +71,7 @@ protected:
     boost::algorithm::trim(sdata);
     std::vector<std::string> sv;
     boost::algorithm::split(sv, sdata, boost::algorithm::is_any_of(" "), boost::algorithm::token_compress_on);
-    BOOST_FOREACH(std::string &s, sv) {
+    for (auto s : sv) {
       try {
         list.append(boost::python::object(boost::lexical_cast<double>(s)));
       } catch (const boost::bad_lexical_cast &) {

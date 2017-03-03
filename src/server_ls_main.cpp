@@ -18,7 +18,6 @@
 //
 #include <iostream>
 
-#include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 
 #include "network.hpp"
@@ -72,7 +71,7 @@ int main(int argc, char* argv[])
     network::client::client_base c(network::get_io_service(), config);
 
     const std::set<std::string> streams(c.ls());
-    BOOST_FOREACH (std::string s, streams) {
+    for (auto s : streams) {
       std::cout << s << std::endl;
     }
   } catch (const std::exception &e) {

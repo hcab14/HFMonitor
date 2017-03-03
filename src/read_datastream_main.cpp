@@ -37,7 +37,6 @@
 #include "tracking_goertzel_processor.hpp"
 #include "processor/registry.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -196,7 +195,7 @@ int main(int argc, char* argv[])
 
     if (vm.count("input")) {
       std::cout << "input: [" << vm.count("input") << "]: ";
-      BOOST_FOREACH(const std::string& input_filename,  vm["input"].as<std::vector<std::string> >()) {
+      for (const std::string& input_filename : vm["input"].as<std::vector<std::string> >()) {
 	std::cout << input_filename << std::endl;
 	rds.process_file(input_filename);
       }

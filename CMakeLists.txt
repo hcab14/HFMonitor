@@ -1,6 +1,4 @@
-# -*- mode: cmake -*-
-# $Id$
-
+# -*- cmake -*-
 
 #
 # USE_OPENCL
@@ -10,6 +8,8 @@
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 3.6 FATAL_ERROR)
 CMAKE_POLICY(SET CMP0065 NEW)
+
+SET(CMAKE_CXX_STANDARD 11)
 
 # Set name of our project.
 PROJECT(HFMonitor)
@@ -22,11 +22,6 @@ SET(CMAKE_BUILD_TYPE Release)
 #SET(CMAKE_CXX_FLAGS         "-Wall -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG -DSVN_VERSION_STRING=\"${SVN_VERSION_STRING}\"")
 
 SET(CMAKE_CXX_FLAGS "-Wall -DSVN_VERSION_STRING=\"\\\"${SVN_VERSION_STRING}\\\"\"")
-#IF(NOT APPLE)
-#  SET(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -DBOOST_LOG_DYN_LINK -msse3 -mssse3 -mcx16 -msse3 -msse4.1 -mpopcnt   -mmmx  -msse -msse2 -mfpmath=sse")
-#ELSE(NOT APPLE)
-#  SET(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG -DBOOST_LOG_DYN_LINK -Wno-unused-local-typedefs")
-#ENDIF(NOT APPLE)
 SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
@@ -143,8 +138,6 @@ IF(CLFFT_FOUND)
   ENDIF(APPLE)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CLFFT")
 ENDIF(CLFFT_FOUND)
-
-#LIST(APPEND _libs pthread)
 
 # used by cuda_mutex
 IF (NOT APPLE)

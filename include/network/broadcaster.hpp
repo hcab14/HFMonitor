@@ -158,7 +158,7 @@ namespace network {
     typedef std::map<std::string, acceptor_ptr> acceptor_map;
 
     void start_listen() {
-      BOOST_FOREACH(const acceptor_map::value_type& a, acceptor_map_) {
+      for (auto const& a : acceptor_map_) {
         // setup acceptor
         a.second->set_option(boost::asio::socket_base::reuse_address(true));
 
@@ -205,7 +205,7 @@ namespace network {
     void log_status(ptime t) const {
       if (t-last_log_status_time_ > boost::posix_time::seconds(1)) {
         LOG_STATUS_T(t, str(boost::format("#connections=%3d") % data_connections_.size()));
-        BOOST_FOREACH(const data_connections::value_type& dc, data_connections_) {
+        for (auto const& dc : data_connections_) {
           boost::system::error_code ecl_ignore, ecr_ignore;
           LOG_STATUS_T(t, str(boost::format("  %s - %s : delay[ms] = %.2f (%s)")
                               % dc->local_endpoint(ecl_ignore) 

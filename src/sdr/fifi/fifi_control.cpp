@@ -17,7 +17,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <vector>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include "sdr/fifi/fifi_control.hpp"
@@ -73,7 +72,7 @@ namespace FiFiSDR {
       }
       
       int counter(-1);
-      BOOST_FOREACH(const boost::property_tree::ptree::value_type& entry, config_presel) {
+      for (auto const& entry : config_presel) {
         if (entry.first != "Entry") {
           if (entry.first != "<xmlattr>")
             LOG_WARNING(str(boost::format("tag '%s' not supported: expect 'Entry'") % entry.first));

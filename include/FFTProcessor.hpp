@@ -31,7 +31,6 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/foreach.hpp>
 
 #include "FFT.hpp"
 #include "FFTProcessor/Action.hpp"
@@ -140,12 +139,12 @@ public:
     , modCounter_(std::max(1u, config.get<unsigned>("<xmlattr>.numberOfCollectedEpochs"))) {
     using boost::property_tree::ptree;
     // Levels
-    BOOST_FOREACH(const ptree::value_type& level, config.get_child("Actions")) {
+    for (auto const& level : config.get_child("Actions")) {
       if (level.first.size() == 0 || level.first[0] == '<') continue;
       LOG_INFO(str(boost::format("Level: %s") % level.first));
       // Actions
       size_t counter(0);
-      BOOST_FOREACH(const ptree::value_type& action, level.second) {
+      for (auto const& action : level.second) {
         const ActionKey actionKey(action.first, counter++);
         LOG_INFO(str(boost::format(" +--- Action: %s") % actionKey));
         actions_[level.first][actionKey] = Action::Factory::makeAction<fft_spec_type>(actionKey.name(), action.second);
@@ -189,8 +188,8 @@ public:
       resultMap[calibrationKey_] = Result::Calibration::makeDefault(sp->approx_ptime(), calibrationKey_);
     }
  
-    BOOST_FOREACH(const typename LevelMap::value_type& level, actions_) {
-      BOOST_FOREACH(const typename ActionMap::value_type& action, level.second) {
+    for (auto const& level : actions_) {
+      for (auto const& action : level.second) {
         FFTProxy proxy(sp, level.first, resultMap);
         // LOG_INFO(str(boost::format("%s %s") % level.first % action.first));
         action.second->perform(proxy, s);
@@ -200,7 +199,7 @@ public:
     ++modCounter_;
 
     // collect results
-    BOOST_FOREACH(const ResultMap::value_type& result, resultMap) {
+    for (auto const& result : resultMap) {
       sp->put_result(result.second);
       ResultMap::iterator i(resultBuffer_.find(result.first));
       if (i != resultBuffer_.end())
@@ -211,7 +210,7 @@ public:
     
     // output results
     if (modCounter_ == 0) {
-      BOOST_FOREACH(const ResultMap::value_type& result, resultBuffer_) {
+      for (auto const& result : resultBuffer_) {
         dump(result);
         result.second->clear();
       }

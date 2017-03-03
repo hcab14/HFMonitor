@@ -20,7 +20,6 @@
 #define _FILTER_HPP_cm101017_
 
 #include <vector>
-#include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -204,12 +203,12 @@ namespace Filter {
     }
     virtual void init(boost::posix_time::ptime pt, const T& x) {
       x_= x;
-      BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
+      for (auto filter : filters_)
         filter->init(pt, x);
     }
     virtual const T& update(boost::posix_time::ptime pt, const T& x) {
       x_= x;
-      BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
+      for (auto filter : filters_)
         x_ = filter->update(pt, x_);
       return x_;
     }
@@ -217,7 +216,7 @@ namespace Filter {
       return filters_.empty() ? x_ : filters_.back()->x();
     }
     virtual bool isInEquilibrium() const {
-      BOOST_FOREACH(typename Base<T>::sptr filter, filters_)
+      for (auto filter : filters_)
         if (not filter->isInEquilibrium()) return false;
       return true;
     }

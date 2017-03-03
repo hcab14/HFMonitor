@@ -26,7 +26,6 @@
 
 #include "aligned_vector.hpp"
 #include <boost/noncopyable.hpp>
-#include <boost/foreach.hpp>
 
 #include "logging.hpp"
 
@@ -214,7 +213,7 @@ public:
   /// applies a function \c func
   template<typename FUNCTION>
   frequency_vector<T>& apply(const FUNCTION& func) {
-    BOOST_FOREACH(value_type& x, v_)
+    for (auto&& x : v_)
       x.second= func(x.second);
     return *this;
   }
@@ -294,12 +293,12 @@ public:
 
   /// multiplication by scalar factor
   frequency_vector<T>& operator*=(double f) {
-    BOOST_FOREACH(value_type& x, v_) x.second *= f;
+    for (auto&& x : v_) x.second *= f;
     return *this;
   }
   /// division by scalar factor
   frequency_vector<T>& operator/=(double f) {
-    BOOST_FOREACH(value_type& x, v_) x.second /= f;
+    for (auto&& x : v_) x.second /= f;
     return *this;
   }
   /// multiplication by scalar factor

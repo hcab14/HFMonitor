@@ -113,7 +113,7 @@ public:
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double offset_ppb(0); // to be determined
     const fv_type ps(f_min_Hz_, f_max_Hz_, s, std::abs<double>, offset_ppb);
-    phase_history_.fill(s, std::arg<float>, offset_ppb);
+    phase_history_.fill(s, (float(*)(std::complex<float> const&))std::arg<float>, offset_ppb);
 
     if (fmax_index_history_.empty()) {
       // const time_duration dt(0,0,0, int64_t(0.5 + time_duration::ticks_per_second()*0.5*delta_t_sec_));

@@ -26,7 +26,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/foreach.hpp>
 
 #include "Spectrum.hpp"
 #include "FFTProcessor/Result/Calibration.hpp"
@@ -43,7 +42,7 @@ namespace Action {
       , offsetMax_(config.get<double>("<xmlattr>.maxOffset_Hz")) 
       , ppmMax_   (config.get<double>("<xmlattr>.maxCorrectionFactor_ppm")) {
       using boost::property_tree::ptree;
-      BOOST_FOREACH(const ptree::value_type input, config.get_child("Inputs")) {
+      for (auto const& input : config.get_child("Inputs")) {
         if (input.first == "Input") {
           LOG_INFO(str(boost::format("Calibrator::Calibrator Input.%s") 
                        % input.second.get<std::string>("<xmlattr>.key")));
@@ -57,7 +56,7 @@ namespace Action {
     virtual void perform(Proxy::Base& p, const T& s) {
       // count data
       std::vector<Result::SpectrumPeak::Handle> peaks;
-      BOOST_FOREACH(const std::string& input, inputs_) {
+      for (auto input : inputs_) {
         try {
           Result::SpectrumPeak::Handle 
             sp(boost::dynamic_pointer_cast<Result::SpectrumPeak>(p.getResult(input)));

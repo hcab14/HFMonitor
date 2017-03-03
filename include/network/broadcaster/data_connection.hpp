@@ -31,7 +31,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
 #include "logging.hpp"
@@ -97,7 +96,7 @@ namespace network {
       std::string stream_name() const {
         if (status_ == status_configured) {
           std::ostringstream oss;
-          BOOST_FOREACH(const boost::regex& r, stream_names_)
+          for (auto const& r : stream_names_)
             oss << r << " ";
           return oss.str();    
         }
@@ -139,7 +138,7 @@ namespace network {
 
       size_t total_size() const {
         size_t sum(0);
-        BOOST_FOREACH(const list_of_packets::value_type& lp, list_of_packets_)
+        for (auto const& lp : list_of_packets_)
           sum += lp.second->size();
         return sum;
       }
@@ -164,7 +163,7 @@ namespace network {
       ptime last_tick_time() const { return last_tick_time_; }
 
       bool match_path(std::string path) const {
-        BOOST_FOREACH(const boost::regex& r, stream_names_)
+        for (auto const& r : stream_names_)
           if (regex_match(path, r)) return true;
         return false;
       }

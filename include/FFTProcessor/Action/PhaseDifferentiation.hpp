@@ -19,6 +19,7 @@
 #ifndef _FFT_ACTION_PHASE_DIFFERENTIATION_HPP_cm101106_
 #define _FFT_ACTION_PHASE_DIFFERENTIATION_HPP_cm101106_
 
+#include <complex>
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -43,15 +44,15 @@ namespace Action {
 
     PhaseDifferentiation(const boost::property_tree::ptree& config)
       : Base<T>("SpectrumInterval")
-      , ps_(config.get<double>("fMin"), 
+      , ps_(config.get<double>("fMin"),
             config.get<double>("fMax"))
       , filterDiffPhase_(Filter::LowPass<PhaseSpectrum>::make(1.0, config.get<double>("Filter.TimeConstant")),
-                         Filter::LowPass<PhaseSpectrum>::make(1.0, config.get<double>("Filter.TimeConstant")), 
+                         Filter::LowPass<PhaseSpectrum>::make(1.0, config.get<double>("Filter.TimeConstant")),
                          1.0)
       , resultKey_(config.get<std::string>("Name"))
       , plotSpectrum_(config.get<bool>("PlotSpectrum", false)) {}
 
-    virtual ~PhaseDifferentiation() {}    
+    virtual ~PhaseDifferentiation() {}
 
     std::string resultKey() const { return resultKey_; }
     bool plotSpectrum() const { return plotSpectrum_; }
@@ -65,10 +66,10 @@ namespace Action {
         const double dt(  double((p.getApproxPTime() - t_).ticks())
                         / double(time_duration::ticks_per_second()));
         if (ps_.empty()) {
-          ps_.fill(s, std::arg<double>);
+          ps_.fill(s, (double(*)(std::complex<double> const&))std::arg<double>);
           t_= p.getApproxPTime();
         } else {
-          PhaseSpectrum psNew(ps_.fmin(), ps_.fmax(), s, std::arg<double>);          
+          PhaseSpectrum psNew(ps_.fmin(), ps_.fmax(), s, (double(*)(std::complex<double> const&))std::arg<double>);
           PhaseSpectrum diffPhaseNew((psNew-ps_) / (2*M_PI)); // 2*pi = 1
           diffPhaseNew.apply(mod1);
           if (filterDiffPhase_.x().empty()) {
@@ -80,9 +81,9 @@ namespace Action {
           t_= p.getApproxPTime();
         }
         // call virtual method
-        proc(p, s, 
-             filterDiffPhase_.x(), 
-             filterDiffPhase_.rms(), 
+        proc(p, s,
+             filterDiffPhase_.x(),
+             filterDiffPhase_.rms(),
              dt);
       } catch (const std::exception& e) {
         LOG_WARNING(e.what());
@@ -92,7 +93,7 @@ namespace Action {
     }
 
     // this method can be overwritten
-    virtual void proc(Proxy::Base& p, 
+    virtual void proc(Proxy::Base& p,
                       const T& s,
                       const PhaseSpectrum& ps,
                       const PhaseSpectrum& psrms,
@@ -100,7 +101,7 @@ namespace Action {
       for (unsigned u=0; u<ps.size(); ++u)
         std::cout << "  --- " << dt << " " << ps[u].first << " " << ps[u].second << " " << psrms[u].second << std::endl;
     }
-    
+
   protected:
   private:
     PhaseSpectrum ps_;        //
