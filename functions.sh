@@ -4,13 +4,13 @@
 LOG_STATUS="log_status.txt"
 LOCK_FILE="/tmp/HFMonitor.lock"
 
+SUDO=`which sudo`
+[ X`whoami` == Xroot ] && SUDO=""
+
 source setup.sh
 source /opt/rh/python27/enable
 
 trap "exit" SIGINT SIGQUIT SIGTERM
-
-SUDO="sudo"
-[ X`whoami` == Xroot ] && SUDO=""
 
 function last_status {
     [ -f ${LOG_STATUS} ] && { tail -1 ${LOG_STATUS} | awk '{print $2}'; } || echo FAIL;
