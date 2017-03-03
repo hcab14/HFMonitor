@@ -298,10 +298,10 @@ public:
                 }
                 lastResultTime_[j] = timeOfResult;
                 result_alpha::sptr rp = result_alpha::make("ALPHA_"+names[j], timeOfResult, bkgd_[j], sig_[j], phases_[j], phaseOffsets_[j], counterSlot_);
-                std::cout << rp->approx_ptime() << " " << rp->name() << " ";
-                rp->dump_data(std::cout);
+                // std::cout << rp->approx_ptime() << " " << rp->name() << " ";
+                // rp->dump_data(std::cout);
                 sp->put_result(rp);
-                std::cout << std::endl;
+                // std::cout << std::endl;
               }
             }
           }

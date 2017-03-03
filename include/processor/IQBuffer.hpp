@@ -34,7 +34,7 @@ namespace Internal {
   template<typename T>
   class ModuloCounter {
   public:
-    explicit ModuloCounter(T m) : m_(m), t_(0) {}    
+    explicit ModuloCounter(T m) : m_(m), t_(0) {}
 
     T m() const { return m_; }
     operator T() const { return t_; }
@@ -69,7 +69,8 @@ namespace Internal {
     T t_;
   } ;
 }
-
+# if 0
+// not used anymore
 class IQBuffer {
 public:
   typedef std::complex<double> complex_type;
@@ -88,14 +89,14 @@ public:
     , isFirst_(true) {
     LOG_INFO(str(boost::format("IQBuffer n=%d m=%d overlap=%f") % n_ % m_ % overlap));
   }
-  
+
 
   // returns the remaining unprocessed samples
   Samples samples() const {
 //     Samples s(lastI1()-lastI0(), 0);
 //     std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), s.begin());
     Samples s;
-    std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(), 
+    std::copy(iqVec_.begin()+lastI0(), iqVec_.begin()+lastI1(),
               std::back_inserter(s));
     return s;
   }
@@ -117,13 +118,13 @@ public:
   size_t n() const { return n_; }
   size_t m() const { return m_; }
   double overlap() const { return 1.0-double(m_)/double(n_); }
- 
+
   // insert a single sample
   template<typename PROCESSOR>
   void insert(PROCESSOR* p, const complex_type& c) {
-    if (isFirst_) 
+    if (isFirst_)
       isFirst_ = false;
-    else if (!isFull_) 
+    else if (!isFull_)
       isFull_ = (counterModN_ == 0);
     if (counterModM_ == 0) {
       if (counterModL_++ == 0 && isFull_)
@@ -144,10 +145,10 @@ public:
   }
 
   // for debugging purpose only
-  void procIQ(Samples::const_iterator i0, 
+  void procIQ(Samples::const_iterator i0,
               Samples::const_iterator i1) {
     std::cout << "*** procIQ ";
-    std::copy(i0, i1, 
+    std::copy(i0, i1,
               std::ostream_iterator<std::complex<double> >(std::cout, " "));
     std::cout << "***" << std::endl;
   }
@@ -160,8 +161,8 @@ private:
   }
   // returns last index of not yet processed samples
   size_t lastI1() const {
-    return (counterModN_+n_ - lastI0() > n_ 
-            ? size_t(counterModN_) 
+    return (counterModN_+n_ - lastI0() > n_
+            ? size_t(counterModN_)
             : counterModN_+n_);
   }
   static double ol2ol(double overlap) {
@@ -184,6 +185,6 @@ private:
   bool isFull_;
   bool isFirst_;
 } ;
-
+#endif // not used anymore
 
 #endif // _IQ_BUFFER_HPP_cm101004_

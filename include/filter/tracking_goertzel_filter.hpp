@@ -170,6 +170,7 @@ namespace detail {
         if (i->df() != j->df() && counter>0)
           dfs[counter-1] += (j->df() - i->df());
 
+#if 0
         std::cout << str(boost::format("\t%4d %9.3f %8.4e %15.10f (%.10f %.10f) %15.10f %15.10f\n")
                          % j->dt()
                          % j->phase()
@@ -180,6 +181,7 @@ namespace detail {
                          % (j->df() + dphase/dt/(2*M_PI))
                          % (filter_.kN() +j->df() + dphase/dt/(2*M_PI))
                          );
+#endif
       }
       if (dfs.empty())
         return value_and_error(0,0);
@@ -191,12 +193,12 @@ namespace detail {
     void dump(size_t ccounter) const {
       if (phase_vector_.empty())
         return;
-      
+
 //       const value_and_error f_est(compute_f_est());
       // std::cout << "f_est = " << ccounter << " " << f_est << std::endl;
     }
 
-    bool update(complex_type sample) {      
+    bool update(complex_type sample) {
       filter_.update(sample);
       ++sample_counter_;
 
@@ -204,7 +206,7 @@ namespace detail {
       if (sample_counter_ == period_) {
         while (history_size() > max_hist_size_)
           phase_vector_.pop_front();
-    
+
         const double phase(std::arg(filter_.x()));
         last_amplitude_ = std::abs(filter_.x());
         // phase unwrapping
@@ -254,7 +256,7 @@ namespace detail {
 
   protected:
     bool inhibit_reset() const { return inhibit_reset_; }
-    
+
   private:
     gf_with_phase_hist(std::string name, double kN, size_t period, size_t max_hist_size)
       : name_(name)
@@ -268,7 +270,7 @@ namespace detail {
       , last_sample_(0)
       , inhibit_reset_(false)
       , df_(0) {}
-    
+
     std::string     name_;
     goertzel_type   filter_;
     phase_vector_t  phase_vector_;
@@ -316,7 +318,7 @@ public:
     GF_RIGHT  = 2,
     NUM_GF
   } gf_id_t;
-  
+
   static std::string gf_id2str(gf_id_t id) {
     static std::string stab[] = { "GF_LEFT", "GF_CENTER", "GF_RIGHT" };
     assert(id < NUM_GF && id >= 0);
@@ -339,7 +341,7 @@ public:
   bool           state_updated() const { return filters_updated_ && last_state() != state::UNDEFINED;  }
   size_t         period()        const { return period_; }
   const detail::value_and_error& estimated_f_Hz() const { return estimated_f_; }
-  const detail::value_and_error& estimated_df()   const { return estimated_df_; }  
+  const detail::value_and_error& estimated_df()   const { return estimated_df_; }
   double        delta_time_sec() const { return delta_time_sec_; }
 
   bool update(complex_t sample) {
@@ -356,7 +358,7 @@ public:
     // (3) change the filter according to the measured amplitudes
 
     double ampl[NUM_GF] = { 0 };
-    // std::cout << "AMPL: ";    
+    // std::cout << "AMPL: ";
     for (size_t i(0); i<NUM_GF; ++i) {
       ampl[i] = gfs_[i]->amplitude();
       // std::cout << "( " << ampl[i] << ", " << gfs_[i]->kN() << ", " << gfs_[i]->period() << " ) ";
@@ -391,7 +393,7 @@ public:
         gfs_[GF_RIGHT]->update (kN_center + 1./period_, period_);
       }
       last_state_ = state::PEAK;
-    } else { 
+    } else {
       if (ampl[GF_LEFT]   > ampl[GF_CENTER] &&
           ampl[GF_CENTER] > ampl[GF_RIGHT]  &&
           ampl[GF_LEFT] / ampl[GF_CENTER] > 1.1) { // 3 2 1
@@ -462,7 +464,7 @@ public:
     }
 
 
-    // reset all filters 
+    // reset all filters
     for (size_t i(0); i<NUM_GF; ++i)
       gfs_[i]->reset(gf_id2str(gf_id_t(i)));
 
@@ -475,7 +477,7 @@ public:
       ++num_without_lock_;
     else
       num_without_lock_ = 0;
-   
+
     if (num_without_lock_ > max_num_without_lock_)
       reset();
 

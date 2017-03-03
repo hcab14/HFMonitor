@@ -138,7 +138,6 @@ namespace decode {
         for (int i=0; i<24; ++i) {
           bd[i] = (f.b30 ^ brr[i]);
           d    |= (bd[i] << (23-i));
-          // d    |= (bd[i] << (i));
         }
 
         bd[24] = f.b29 ^ bd[0] ^ bd[1] ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[ 9] ^ bd[10] ^ bd[11] ^ bd[12] ^ bd[13] ^ bd[16] ^ bd[17] ^ bd[19] ^ bd[22];
@@ -148,12 +147,9 @@ namespace decode {
         bd[28] = f.b30 ^ bd[0] ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[6] ^ bd[ 8] ^ bd[ 9] ^ bd[13] ^ bd[14] ^ bd[15] ^ bd[16] ^ bd[17] ^ bd[20] ^ bd[21] ^ bd[23];
         bd[29] = f.b29 ^ bd[2] ^ bd[4] ^ bd[5] ^ bd[7] ^ bd[8] ^ bd[ 9] ^ bd[10] ^ bd[12] ^ bd[14] ^ bd[18] ^ bd[21] ^ bd[22] ^ bd[23];
 
-        // std::cout << "=== check: bd= " << bd << std::endl;
-
         int sum=0;
         for (int i=24; i<30; ++i)
           sum += (brr[i]==bd[i]);
-        // std::cout << "=== check: sum=" << sum << std::endl;
         return (sum==6);
       }
     } ;
@@ -189,7 +185,6 @@ namespace decode {
         default:
           if (state_ == 0) {
             data_.clear();
-            // std::cout << h1_.to_str() << " " << h2_.to_str() << std::endl;
           }
 
           if (state_ >= 0) {
@@ -410,14 +405,12 @@ namespace decode {
       case 7: {
         for (size_t i=0; i<data_.size(); i+=9) {
           const msg_7 *m = reinterpret_cast<const msg_7*>(&data_[i]);
-          // std::cout << m->to_str() << std::endl;
           line += m->to_str();
         }
         break;
       }
       case 3: {
         const msg_3 *m = reinterpret_cast<const msg_3*>(&data_[0]);
-        // std::cout << m->to_str() << std::endl;
         line += m->to_str();
         break;
       }
@@ -425,7 +418,6 @@ namespace decode {
       case 9: {
         for (size_t i=0; i<data_.size(); i+=15) {
           const msg_1 *m = reinterpret_cast<const msg_1*>(&data_[i]);
-          // std::cout << m->to_str((data_.size() - i) / 3) << std::endl;
           line += m->to_str((data_.size() - i) / 3);
         }
         break;

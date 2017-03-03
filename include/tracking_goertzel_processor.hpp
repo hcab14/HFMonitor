@@ -34,7 +34,7 @@
  *  @{
  * \addtogroup tracking_goertzel tracking_goertzel
  * tracking goertzel processor
- * 
+ *
  * @{
  */
 
@@ -59,7 +59,7 @@ public:
                      const detail::value_and_error& df) {
       return sptr(new result(name, t, f0_Hz, state, period_sec, f_Hz, df));
     }
-    
+
     double      f0_Hz()      const { return f0_Hz_; }      /// nominal frequency (Hz)
     std::string state()      const { return state_; }      /// state of the processor
     double      period_sec() const { return period_sec_; } /// current integration period of the processor (sec)
@@ -100,7 +100,7 @@ public:
     const double f0_Hz_;      /// nominal frequency (Hz)
     const std::string state_; /// processor state
     const double period_sec_; /// processor integration period (sec)
-    const detail::value_and_error f_Hz_; /// estimated frequency (Hz) 
+    const detail::value_and_error f_Hz_; /// estimated frequency (Hz)
     const detail::value_and_error df_;   /// estimated frequency variation w.r.t time (Hz/sec)
   } ;
 
@@ -114,7 +114,7 @@ public:
     , min_df_Hz_(config.get<double>("<xmlattr>.minDf_Hz"))
     , max_history_size_(config.get<size_t>("<xmlattr>.maxHistorySize"))
     , max_num_without_lock_(config.get<size_t>("<xmlattr>.maxNumWithoutLock")) {}
-  
+
   ~tracking_goertzel_processor() {}
 
   void process_iq(service::sptr sp,
@@ -143,7 +143,7 @@ public:
     for (const_iterator i(i0); i!=i1; ++i) {
       filter_->update(*i);
       if (filter_->state_updated()) {
-        const time_duration 
+        const time_duration
           dt(0,0,0, int64_t(time_duration::ticks_per_second()*(std::distance(i0, i)/sp->sample_rate_Hz() + filter_->delta_time_sec())));
         sp->put_result(result::make(name_,
                                     sp->approx_ptime()+dt,
@@ -169,4 +169,3 @@ private:
 /// @}
 /// @}
 #endif // _TRACKING_GOERTZEL_PROCESSOR_HPP_cm130211_
-

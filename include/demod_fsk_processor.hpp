@@ -233,11 +233,11 @@ public:
 
       early_late_synch_ = demod::early_late_synch(double(sp->sample_rate_Hz()) / dc_factor_ / baud());
 
+#if 0
       std::cout << "k_mark,space,period= " << k_mark << " " << k_space << " " << period_ << " "
                 << sp->sample_rate_Hz() << " "
                 << sp->center_frequency_Hz() << " "
                 << early_late_synch_.period() << " fc_Hz= " << fc_shifted_Hz() << std::endl;
-#if 0
       std::cout << "a= "; std::copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, ", "));
       std::cout << std::endl;
       std::cout << "b= "; std::copy(b.begin(), b.end(), std::ostream_iterator<double>(std::cout, ", "));
