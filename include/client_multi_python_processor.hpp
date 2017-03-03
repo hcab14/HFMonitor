@@ -20,6 +20,8 @@
 #ifndef CLIENT_MULTI_PYTHON_PROCESSOR_HPP_cm20170228
 #define CLIENT_MULTI_PYTHON_PROCESSOR_HPP_cm20170228
 
+#include <boost/python.hpp>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
@@ -27,8 +29,6 @@
 
 #include "network.hpp"
 #include "network/client/client_multi_base.hpp"
-
-#include <boost/python.hpp>
 
 class client_multi_python_processor : public network::client::client_multi_base {
 public:

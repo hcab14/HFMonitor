@@ -11,17 +11,17 @@ ifdef USE_OPENCL
 endif
 
 clFFT:
-	git clone -b v2.10.0 https://github.com/clMathLibraries/clFFT.git
+	git clone https://github.com/clMathLibraries/clFFT.git
 
 install/bin/volk_modtool: volk install/lib/libboost_log.a
 	cd volk && mkdir -p build && cd build && cmake -DBOOST_ROOT=${INSTALL_PATH} -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} ../ && make -j4 install
 volk:
-	git clone -b v1.3 https://github.com/gnuradio/volk.git volk
+	git clone https://github.com/gnuradio/volk.git volk
 
-install/lib/libboost_log.a: boost_1_60_0
-	cd boost_1_60_0 && ./bootstrap.sh --prefix=${INSTALL_PATH} --with-libraries=python,program_options,thread,coroutine,iostreams,locale,log,test && ./b2 -j4 --layout=system install
-boost_1_60_0:
-	wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2 -O - | bzip2 -dc - | tar xvf -
+install/lib/libboost_log.a: boost_1_63_0
+	cd boost_1_63_0 && ./bootstrap.sh --prefix=${INSTALL_PATH} --with-libraries=python,program_options,thread,coroutine,iostreams,locale,log,test && ./b2 -j4 --layout=system install
+boost_1_63_0:
+	wget http://downloads.sourceforge.net/project/boost/boost/1.63.0/boost_1_63_0.tar.bz2 -O - | bzip2 -dc - | tar xvf -
 
 
 install/bin/fltk-config: fltk-1.3.x-r11157
@@ -34,5 +34,5 @@ install/bin/sqlite3: sqlite-autoconf-3080704
 sqlite-autoconf-3080704:
 	wget https://sqlite.org/2014/sqlite-autoconf-3080704.tar.gz -O - | gzip -dc - | tar xvf -
 
-CLEAN:
-	rm -fr fltk* boost* sqlite*
+clean:
+	rm -fr fltk* boost* sqlite* install/* volk*
