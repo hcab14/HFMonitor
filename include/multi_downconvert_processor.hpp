@@ -295,9 +295,9 @@ public:
                                fp.name(),
                                sp->sample_rate_Hz()/fp.decim(),
                                fp.center_freq_Hz()));
-      const typename overlap_save_type::complex_vector_type& out(overlap_save_.get_filter(fp.handle())->result());
+      auto const& out(overlap_save_.get_filter(fp.handle())->result());
       dump(sp_dc, out.begin(), out.end());
-      processor_map::iterator i(processor_map_.find(fp.name()));
+      processor_map::const_iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
         proc(sp_dc, i->second, out);

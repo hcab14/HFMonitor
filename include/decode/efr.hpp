@@ -145,8 +145,7 @@ namespace decode {
       // std::cout << "decode_line: ";
       // std::copy(i, i+11, std::ostream_iterator<bool>(std::cout, ""));
       // std::cout << "\ndecode_line: " << (*i) << " " << std::accumulate(i+1, i+9, 0) << " " << *(i+9) << std::endl;
-      if ((*i != 0) ||
-          (std::accumulate(i+1, i+9, 0) % 2) != *(i+9))
+      if (*i || (std::accumulate(i+1, i+9, 0) % 2) != *(i+9))
         return std::make_pair(0, false);
       // bits -> 8 bit number
       unsigned char data(0);

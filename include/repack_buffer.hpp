@@ -76,7 +76,7 @@ public:
         counter += n_samples;
 	if (i_ == int(v_.size())) {
 	  // eject
-	  if (NULL != p) {
+	  if (p) {
 	    p->process_samples(v_.begin(),
 			       v_.begin() + n_,
                                counter);
@@ -91,19 +91,19 @@ public:
 	if (n_samples > delta_n_)
 	  n_samples = delta_n_;
 	// nearest index for inserting data
-	const ssize_t decision(delta_n_*((i_+n_samples)/delta_n_) - i_);	
+	const ssize_t decision(delta_n_*((i_+n_samples)/delta_n_) - i_);
 	if (decision > 0) // inside the current samples
 	  n_samples = std::min(n_samples,  decision);
 
 	std::copy(beg, beg+n_samples, v_.begin()+i_);
 	std::copy(beg, beg+n_samples, v_.begin()+i_+n_);
-	
+
 	i_  += n_samples;
 	beg += n_samples;
         counter += n_samples;
 	if ((i_ % delta_n_) == 0) {
 	  // eject
-	  if (NULL != p) {
+	  if (p) {
 	    p->process_samples(v_.begin()+i_,
 			       v_.begin()+i_ + n_,
                                counter);

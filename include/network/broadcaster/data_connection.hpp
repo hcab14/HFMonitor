@@ -52,20 +52,20 @@ namespace network {
     public:
       typedef boost::posix_time::ptime ptime;
       typedef boost::posix_time::time_duration time_duration;
-  
+
       typedef boost::shared_ptr<data_connection> sptr;
       typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcp_socket_ptr;
       typedef std::string data_type;
       typedef boost::shared_ptr<data_type> data_ptr;
       typedef std::pair<ptime, data_ptr> ptime_data_pair;
       typedef std::deque<ptime_data_pair> list_of_packets;
-  
+
       enum status_type {
         status_error      = -1, //
         status_init       =  0, // negotiation phase: client asks for streams
         status_configured =  1  // after streams have been selected, data is sent to the client
       } status;
-  
+
       typedef std::map<std::string, data_type> path_preamble_map_type;
     public:
       data_connection(boost::asio::io_service& io_service,
@@ -86,11 +86,11 @@ namespace network {
         , start_async_write_(false) {
         async_receive_command();
       }
-  
+
       ~data_connection() {
         close();
       }
-  
+
       boost::asio::io_service& get_service() { return io_service_; }
 
       std::string stream_name() const {
@@ -98,11 +98,11 @@ namespace network {
           std::ostringstream oss;
           for (auto const& r : stream_names_)
             oss << r << " ";
-          return oss.str();    
+          return oss.str();
         }
         return ((status_ == status_init) ? "[INIT]" : "[ERROR]");
       }
-  
+
       static sptr make(boost::asio::io_service& io_service,
                        boost::asio::strand& strand,
                        tcp_socket_ptr p,
@@ -111,13 +111,13 @@ namespace network {
                        time_duration max_queue_delay=boost::posix_time::minutes(5)) {
         return sptr(new data_connection(io_service, strand, p, directory, max_total_size, max_queue_delay));
       }
-  
+
       // close() must ONLY be called in the destructor
-      // for all other purposes set status_= status_error 
+      // for all other purposes set status_= status_error
       // then the object connection will be deleted in the next call to broadcaster::push_back
       void close() {
         if (is_open()) {
-          boost::system::error_code ec;      
+          boost::system::error_code ec;
           LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
           LOG_INFO("close and shutdown socket");
           tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
@@ -159,7 +159,7 @@ namespace network {
       double max_delay_msec() const {
         return 1e3*max_delay().ticks() / time_duration::ticks_per_second();
       }
-  
+
       ptime last_tick_time() const { return last_tick_time_; }
 
       bool match_path(std::string path) const {
@@ -167,7 +167,7 @@ namespace network {
           if (regex_match(path, r)) return true;
         return false;
       }
-  
+
       bool check_format(data_ptr d) const {
         if (not d) return true;
         const protocol::header* hp(reinterpret_cast<const protocol::header*>(&(*d)[0]));
@@ -212,10 +212,10 @@ namespace network {
         // if the buffer is full forget all data except first packets which may be being sent
         size_t n_omit(0);
         if (not empty() && (total_size() > max_total_size_ || front().first+max_queue_delay_ < t)) {
-          for (; size()>1; ++n_omit)      
+          for (; size()>1; ++n_omit)
             list_of_packets_.pop_back();
         }
-        if (n_omit != 0)
+        if (n_omit)
           LOG_WARNING(str(boost::format("omitted # %d data packets") % n_omit));
 
         if (is_open()) {
@@ -293,11 +293,11 @@ namespace network {
         if (response_stream >> action) {
           LOG_INFO(str(boost::format("handle_receive_command action='%s'") % action));
           if (action == "LIST") {
-            // send list of available streams        
+            // send list of available streams
             send_reply(directory_.ls(), status_);
           } else if (action == "GET") {
             std::string stream_name;
-            while (response_stream >> stream_name) {          
+            while (response_stream >> stream_name) {
               LOG_INFO(str(boost::format("handle_receive_command requested stream name='%s'") % stream_name));
               boost::regex stream_regex;
               try { // stream_name may not be a proper reguar expression
@@ -423,4 +423,3 @@ namespace network {
   } // namespace broadcaster
 } // namespace network
 #endif //  _DATA_CONNECTION_HPP_cm111219_
-

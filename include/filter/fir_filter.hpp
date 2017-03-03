@@ -85,7 +85,7 @@ public:
   void insert(complex_type sample) {
     ++sample_counter_;
     sample_counter_ %= phases_.size();
-    for (size_t i(n_-1); i!=0; --i)
+    for (size_t i(n_-1); i; --i)
       history_[i] = history_[i-1];
     history_[0] = phases_[sample_counter_] * sample;
   }

@@ -112,14 +112,14 @@ namespace Result {
       const boost::filesystem::path p(gen_file_path(path, tag, h->time()));
       const bool file_exists(boost::filesystem::exists(p));
       if (not file_exists) {
-        if (ofs != NULL) {
+        if (ofs) {
           delete ofs; ofs= NULL;
         }
         boost::filesystem::fstream lofs(p, std::ios::out);
         lofs << si;
         h->dumpHeaderToFile(lofs) << h->lineBreak();
       }
-      if (ofs == NULL) {
+      if (!ofs) {
         findPositionOfEndTime(p);
         ofs = new boost::filesystem::fstream(p, std::ios::in | std::ios::out);
         ofs->seekp(0, std::ios::end);

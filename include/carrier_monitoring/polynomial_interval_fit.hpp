@@ -19,7 +19,7 @@
 #ifndef POLYNOMIAL_INTERVAL_FIT_HPP_cm131005_
 #define POLYNOMIAL_INTERVAL_FIT_HPP_cm131005_
 
-#include <algorithm> 
+#include <algorithm>
 #include <vector>
 
 // #include <boost/numeric/ublas/io.hpp>
@@ -66,7 +66,7 @@ public:
   template<typename T, typename U>
   bool fit(const std::vector<T>& t,
 	   const std::vector<U>& y,
-	   const std::vector<size_t>& b) {    
+	   const std::vector<size_t>& b) {
     assert(t.size() == y.size());
     assert(t.size() == b.size());
     assert(std::is_sorted(t));
@@ -187,7 +187,7 @@ public:
     const slice& sx(slices_x_[i]);
     return std::make_pair(inner_prod(a, project(x_, sx)),
 			  inner_prod(a, prod(project(q_,sx,sx), a)));
-			   
+
   }
 
   const double chi2() const { return chi2_; }
@@ -223,7 +223,7 @@ protected:
 
     size_t counter(0);  // counts measurements t,y,b
 
-    // skip measurements before the first interval 
+    // skip measurements before the first interval
     while (t[counter] < t_indices_[0])
       ++counter;
 
@@ -231,7 +231,7 @@ protected:
     for (size_t i(1), ib(0), it(0), n(t_indices_.size()); i<n; ++i) {
       size_t nb(0);
       for (; t[counter] < t_indices_[i] && counter<y.size(); ++counter) {
-	if (b[counter] != 0) {
+	if (b[counter]) {
 	  ++nb;
  	  t_[it]   = t[counter];
 	  y_[it++] = y[counter];
@@ -265,4 +265,3 @@ private:
 } ;
 
 #endif //POLYNOMIAL_INTERVAL_FIT_HPP_cm131005_
-

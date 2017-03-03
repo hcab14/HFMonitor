@@ -51,7 +51,7 @@
  *  @{
  * \addtogroup FFTProcessor FFTProcessor
  * FFT Processor
- * 
+ *
  * @{
  */
 
@@ -104,7 +104,7 @@ public:
 
     virtual void putResult(std::string resultKey, Result::Base::Handle result) {
       // LOG_INFO_T(approxPTime_, str(boost::format("FFTProxy::result [%s] =  %s") % resultKey % result));
-      std::string key(level() + "." + resultKey);      
+      std::string key(level() + "." + resultKey);
       if (resultMap_.find(key) != resultMap_.end())
         LOG_WARNING_T(ptime_, str(boost::format("overwriting key %s") % key));
       result->set_name(key);
@@ -130,7 +130,7 @@ public:
     const std::string level_;
     ResultMap& resultMap_;
   } ;
- 
+
   FFTProcessor(const boost::property_tree::ptree& config)
     : base_iq(config)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
@@ -172,22 +172,22 @@ public:
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Hamming<complex_type::value_type>(length));
     else if (windowFcnName_ == "Blackman")
       fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<complex_type::value_type>(length));
-    else 
+    else
       throw std::runtime_error(THROW_SITE_INFO(windowFcnName_ + ": unknown window function"));
-    
+
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
-  
+
     // operate on Spectrum
     ResultMap resultMap;
     // set default calibration from the last epoch
     // it will be overwritten with the new calibration
-    if (calibrationHandle_ != 0) {
+    if (calibrationHandle_) {
       calibrationHandle_->updateTime(sp->approx_ptime());
       resultMap[calibrationKey_] = calibrationHandle_;
     } else {
       resultMap[calibrationKey_] = Result::Calibration::makeDefault(sp->approx_ptime(), calibrationKey_);
     }
- 
+
     for (auto const& level : actions_) {
       for (auto const& action : level.second) {
         FFTProxy proxy(sp, level.first, resultMap);
@@ -207,7 +207,7 @@ public:
       else
         resultBuffer_[result.first] = result.second;
     }
-    
+
     // output results
     if (modCounter_ == 0) {
       for (auto const& result : resultBuffer_) {
@@ -219,11 +219,10 @@ public:
 
     // check if calibration has succeded
     // store (a copy of) the cal handle with "worst-case" covariance for use in the next epoch
-    const ResultMap::iterator i(resultMap.find(calibrationKey_));
+    auto const i(resultMap.find(calibrationKey_));
     if (i != resultMap.end()) {
-      Result::Calibration::Handle
-        ch(boost::dynamic_pointer_cast<Result::Calibration>(i->second));
-      if (ch != 0)
+      auto const ch(boost::dynamic_pointer_cast<Result::Calibration>(i->second));
+      if (ch)
         calibrationHandle_= ch->withWorstCaseCov(calibrationKey_);
       else
         LOG_WARNING_T(sp->approx_ptime(),
@@ -249,4 +248,3 @@ private:
 /// @}
 /// @}
 #endif // _FFT_PROCESSOR_HPP_cm100729_
-
