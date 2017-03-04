@@ -41,7 +41,6 @@
 #include "logging.hpp"
 #include "network/protocol.hpp"
 #include "processor.hpp"
-#include "processor/IQBuffer.hpp"
 #include "processor/service.hpp"
 #include "Spectrum.hpp"
 
@@ -136,7 +135,8 @@ public:
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
     , windowFcnName_(config.get<std::string>("<xmlattr>.windowFunction"))
     , calibrationKey_(config.get<std::string>("Actions.<xmlattr>.calibrationKey"))
-    , modCounter_(std::max(1u, config.get<unsigned>("<xmlattr>.numberOfCollectedEpochs"))) {
+    , numCollectedEpochs_(std::max(1u, config.get<unsigned>("<xmlattr>.numberOfCollectedEpochs")))
+    , epochCounter_(0) {
     using boost::property_tree::ptree;
     // Levels
     for (auto const& level : config.get_child("Actions")) {
@@ -196,12 +196,12 @@ public:
       }
     }
 
-    ++modCounter_;
+    ++epochCounter_;
 
     // collect results
     for (auto const& result : resultMap) {
       sp->put_result(result.second);
-      ResultMap::iterator i(resultBuffer_.find(result.first));
+      auto const i(resultBuffer_.find(result.first));
       if (i != resultBuffer_.end())
         i->second->push_back(result.second);
       else
@@ -209,7 +209,8 @@ public:
     }
 
     // output results
-    if (modCounter_ == 0) {
+    if (epochCounter_ == numCollectedEpochs_) {
+      epochCounter_ = 0;
       for (auto const& result : resultBuffer_) {
         dump(result);
         result.second->clear();
@@ -240,7 +241,8 @@ private:
   fft_type    fftw_;
   std::string windowFcnName_;
   std::string calibrationKey_;
-  Internal::ModuloCounter<size_t> modCounter_;
+  size_t      numCollectedEpochs_;
+  size_t      epochCounter_;
   Result::Base::Handle            calibrationHandle_;
   LevelMap  actions_;
   ResultMap resultBuffer_;

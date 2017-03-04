@@ -207,9 +207,9 @@ public:
       std::cout << "SHIFTs ({f_shift0,f_shift,fc}_Hz): " << f_shift0_Hz << " " << f_shift_Hz << " " << fc_Hz() << std::endl;
 #endif
       // normalized mark frequency
-      double k_mark ((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
+      // const double k_mark ((fc_Hz() - fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
       // normalized space frequency
-      double k_space((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
+      // const double k_space((fc_Hz() + fs_Hz() - sp->center_frequency_Hz()) / sp->sample_rate_Hz());
 
       // filter +- baud()
       filter_.design(401, 2*baud()/sp->sample_rate_Hz());
