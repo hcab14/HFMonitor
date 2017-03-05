@@ -224,10 +224,10 @@ namespace filter {
         proc(in.begin(), in.end());
       }
 
-      virtual std::vector<complex_type>::const_iterator begin(::size_t idx) const {
+      virtual complex_vector_type::const_iterator begin(::size_t idx) const {
 	return get_filter(idx)->begin();
       }
-      virtual std::vector<complex_type>::const_iterator end  (::size_t idx) const {
+      virtual complex_vector_type::const_iterator end  (::size_t idx) const {
 	return get_filter(idx)->end();
       }
 

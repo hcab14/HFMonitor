@@ -209,11 +209,11 @@ namespace cl {
         return std::make_pair(last_id_++, fp->offset());
       }
 
-      virtual std::vector<complex_type>::const_iterator begin(::size_t idx) const {
-	return get_filter(idx)->begin();
+      virtual processor::base_iq::const_iterator begin(::size_t idx) const {
+	return processor::base_iq::const_iterator(get_filter(idx)->begin());
       }
-      virtual std::vector<complex_type>::const_iterator end  (::size_t idx) const {
-	return get_filter(idx)->end();
+      virtual processor::base_iq::const_iterator end  (::size_t idx) const {
+	return processor::base_iq::const_iterator(get_filter(idx)->end());
       }
 
       // void proc(const complex_vector_type& in) { proc(in.begin(), in.end()); }

@@ -2,7 +2,7 @@
 #ifndef CL_ARRAY_HPP_cm20170304_
 #define CL_ARRAY_HPP_cm20170304_
 
-#include <vector>
+#include "aligned_vector.hpp"
 #include "cl/cl.hpp"
 
 namespace cl {
@@ -10,7 +10,7 @@ namespace cl {
   class array {
   public:
     typedef T value_type;
-    typedef std::vector<value_type> vector_type;
+    typedef aligned_vector<value_type> vector_type;
     typedef typename vector_type::iterator iterator;
     typedef typename vector_type::const_iterator const_iterator;
 
