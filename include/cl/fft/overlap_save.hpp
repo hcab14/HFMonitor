@@ -64,10 +64,10 @@ namespace cl {
 	  kernel_.setArg(0, in_.get_device_buffer());
 	  kernel_.setArg(1, in_buffer);
 	  kernel_.setArg(2, h_.get_device_buffer());
-	  kernel_.setArg(3, n_);
-	  kernel_.setArg(4, d_);
-	  kernel_.setArg(5, shift_);
-	  kernel_.setArg(6, 1.0f/n_); // norm
+	  kernel_.setArg(3, cl_int(n_));
+	  kernel_.setArg(4, cl_int(d_));
+	  kernel_.setArg(5, cl_int(shift_));
+	  kernel_.setArg(6, cl_float(1.0f/n_)); // norm
 
 	  const float scale = 1.0f;
 	  ::size_t clLengths[1] = { n_/d_ };

@@ -2,6 +2,7 @@
 #define _CL_FFT_HPP_cm170305_
 
 #ifdef USE_OPENCL
+#  define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #  include <clFFT.h>
 #  define __CL_ENABLE_EXCEPTIONS
 #  include "cl/cl.hpp"
