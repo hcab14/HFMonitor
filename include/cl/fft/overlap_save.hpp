@@ -3,15 +3,20 @@
 #ifndef _CL_OVERLAP_SAVE_HPP_cm170305_
 #define _CL_OVERLAP_SAVE_HPP_cm170305_
 
+#include <fstream>
+#include <boost/format.hpp>
+
+#include "filter/fir/overlap_save_base.hpp"
 #include "cl/fft.hpp"
 
 namespace cl {
   namespace fft {
-    class overlap_save {
+    class overlap_save : public filter::fir::overlap_save_base {
     public:
-      typedef std::complex<float> complex_type;
       typedef array<complex_type>::vector_type complex_vector_type;
       typedef FFT::FFTWTransform<float> small_fft_type;
+
+      typedef boost::shared_ptr<overlap_save> sptr;
 
     private:
       // class for holding filter coefficients and the fft
@@ -96,7 +101,7 @@ namespace cl {
 		  : double(shift())/n());
         }
 	complex_vector_type::const_iterator begin()  const { return out_.begin(); }
-        complex_vector_type::const_iterator end()    const { return out_.end(); }
+	complex_vector_type::const_iterator end()    const { return out_.end(); }
         const complex_vector_type&          result() const { return out_.get(); }
 
         // performs inverse FFT of (shifted) input and downsampling
@@ -147,7 +152,8 @@ namespace cl {
                    ::size_t p, // Length of h(n)
 		   cl::Context& ctx,
 		   cl::CommandQueue& queue)
-        : l_(l)
+        : filter::fir::overlap_save_base()
+	, l_(l)
 	, p_(p)
         , last_id_(0)
 	, in_ (ctx, l+p-1)
@@ -172,25 +178,29 @@ namespace cl {
 	program_.build(devices, "");
       }
 
-      ~overlap_save() {
+      virtual ~overlap_save() {
 	clfftDestroyPlan(&plan_handle_);
       }
 
-      ::size_t l() const { return l_; }
-      ::size_t p() const { return p_; }
+      virtual ::size_t l() const { return l_; }
+      virtual ::size_t p() const { return p_; }
 
       typedef std::map<::size_t, typename filt::sptr> filter_map;
 
-      typename filt::sptr get_filter(::size_t index) {
-        return filters_[index];
+      typename filt::sptr get_filter(::size_t index) const {
+	//        return filters_[index];
+	auto const& i = filters_.find(index);
+	if (i != filters_.end())
+	  return i->second;
+	else
+	  throw 1;
       }
 
       // add one filter
       //  * returns a pair of handle (::size_t) and the (rounded) mid-frequency of the filter
-      template<typename U>
-      std::pair<::size_t, double> add_filter(const typename std::vector<U>& b,
-					     double_t offset,
-					     ::size_t decim) {
+      virtual std::pair<::size_t, double> add_filter(const std::vector<float>& b,
+						     double_t offset,
+						     ::size_t decim) {
         if (b.size() != p_)
           throw std::runtime_error("overlap_save::update_filter_coeff b.size() != p_");
 	cl::Context ctx = queue_.getInfo<CL_QUEUE_CONTEXT>();
@@ -199,10 +209,17 @@ namespace cl {
         return std::make_pair(last_id_++, fp->offset());
       }
 
-      void proc(const complex_vector_type& in) { proc(in.begin(), in.end()); }
+      virtual std::vector<complex_type>::const_iterator begin(::size_t idx) const {
+	return get_filter(idx)->begin();
+      }
+      virtual std::vector<complex_type>::const_iterator end  (::size_t idx) const {
+	return get_filter(idx)->end();
+      }
 
-      void proc(typename complex_vector_type::const_iterator i0,
-                typename complex_vector_type::const_iterator i1) {
+      // void proc(const complex_vector_type& in) { proc(in.begin(), in.end()); }
+
+      virtual void proc(processor::base_iq::const_iterator i0,
+			processor::base_iq::const_iterator i1) {
         if (std::distance(i0, i1) != int(l_))
           throw std::runtime_error(str(boost::format("overlap_save::proc in.size() != l_ : %d != %d")
                                        % std::distance(i0, i1)

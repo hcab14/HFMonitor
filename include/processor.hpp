@@ -66,7 +66,6 @@ namespace processor {
   public:
     typedef boost::shared_ptr<base_iq> sptr;
     typedef std::complex<float> complex_type;
-    // typedef std::vector<complex_type >::const_iterator const_iterator;
     typedef aligned_vector<complex_type> vector_type;
     typedef vector_type::const_iterator const_iterator;
 

@@ -49,18 +49,12 @@
 
 /// adaptation of @ref multi_downconvert_processor to output to @ref network::broadcaster::broadcaster
 ///
-template<typename FFTFloat>
-class multi_downconvert_toBC : public multi_downconvert_processor<FFTFloat> {
+class multi_downconvert_toBC : public multi_downconvert_processor {
 public:
-  typedef boost::shared_ptr<multi_downconvert_toBC<FFTFloat> > sptr;
-  typedef typename multi_downconvert_processor<FFTFloat>::ptree ptree;
-  typedef typename multi_downconvert_processor<FFTFloat>::service service;
-  typedef typename multi_downconvert_processor<FFTFloat>::filter_param filter_param;
-  typedef typename multi_downconvert_processor<FFTFloat>::overlap_save_type overlap_save_type;
-  typedef typename multi_downconvert_processor<FFTFloat>::const_iterator const_iterator;
+  typedef boost::shared_ptr<multi_downconvert_toBC > sptr;
 
   multi_downconvert_toBC(const boost::property_tree::ptree& config)
-    : multi_downconvert_processor<FFTFloat>(config)
+    : multi_downconvert_processor(config)
     , broadcaster_(network::broadcaster::broadcaster::make(config.get_child("Broadcaster")))
     , started_(false)
     , station_info_(config.get<std::string>("StationInfo")) {}
@@ -68,7 +62,7 @@ public:
   virtual ~multi_downconvert_toBC() {}
 
 protected:
-  virtual void dump(typename service::sptr sp, const_iterator begin, const_iterator end) {
+  virtual void dump(service::sptr sp, const_iterator begin, const_iterator end) {
     if (not started_) {
       broadcaster_->start();
       started_= true;
@@ -140,7 +134,7 @@ int main(int argc, char* argv[])
     const std::string stream_name(config.get<std::string>
                                   ("MultiDownConverter.server.<xmlattr>.stream_name", "DataIQ"));
 
-    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<float> > > >
+    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC > > >
       c(config.get_child("MultiDownConverter"));
 
     const std::set<std::string> streams(c.ls());

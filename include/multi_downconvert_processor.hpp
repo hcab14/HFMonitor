@@ -48,7 +48,6 @@
  */
 
 /// multi downconvert processor
-template<typename FFTFloat>
 class multi_downconvert_processor : public processor::base_iq {
 protected:
   class filter_param {
@@ -114,7 +113,7 @@ protected:
   class service_dc : public service {
   public:
     typedef boost::shared_ptr<service_dc> sptr;
-    static sptr make(multi_downconvert_processor<FFTFloat>* pp,
+    static sptr make(multi_downconvert_processor* pp,
                      service::sptr   sp,
                      std::string     stream_name,
                      boost::uint32_t sample_rate_Hz,
@@ -124,7 +123,7 @@ protected:
                                  sample_rate_Hz,
                                  center_frequency_Hz));
     }
-    static sptr make(multi_downconvert_processor<FFTFloat>* pp, service::sptr sp) {
+    static sptr make(multi_downconvert_processor* pp, service::sptr sp) {
       return sptr(new service_dc(pp, sp,
                                  sp->stream_name(),
                                  sp->sample_rate_Hz(),
@@ -150,7 +149,7 @@ protected:
 
   protected:
   private:
-    service_dc(multi_downconvert_processor<FFTFloat>* pp,
+    service_dc(multi_downconvert_processor* pp,
                service::sptr   sp,
                std::string     stream_name,
                boost::uint32_t sample_rate_Hz,
@@ -162,7 +161,7 @@ protected:
       , center_frequency_Hz_(center_frequency_Hz)
       , offset_ppb_(pp->calibration_offset_ppb()) {}
 
-    multi_downconvert_processor<FFTFloat>* pp_;
+    multi_downconvert_processor* pp_;
     const service::sptr   sp_;
     const std::string     stream_name_;
     const boost::uint32_t sample_rate_Hz_;
@@ -183,8 +182,8 @@ protected:
   typedef std::vector<std::string> calibration_keys;
 
 public:
-  typedef boost::shared_ptr< multi_downconvert_processor<FFTFloat> > sptr;
-  typedef typename filter::fir::overlap_save<FFTFloat> overlap_save_type;
+  typedef boost::shared_ptr<multi_downconvert_processor> sptr;
+  typedef filter::fir::overlap_save overlap_save_type;
 
   multi_downconvert_processor(const ptree& config)
     : base_iq(config)
@@ -263,7 +262,7 @@ public:
   virtual ~multi_downconvert_processor() {}
 
   static sptr make(const ptree& config) {
-    sptr result(new multi_downconvert_processor<FFTFloat>(config));
+    sptr result(new multi_downconvert_processor(config));
     return result;
   }
 
@@ -277,7 +276,7 @@ public:
     for (filter_param& fp : filter_params_) {
       if (not fp.initialized()) {
         fp.update_offset(sp->center_frequency_Hz(), sp->sample_rate_Hz());
-        typename filter::fir::lowpass<FFTFloat> fir(overlap_save_.p());
+        filter::fir::lowpass<float> fir(overlap_save_.p());
         fir.design(fp.cutoff(), fp.cutoff()/5.);
         fp.set_initialized(overlap_save_.add_filter(fir.coeff(), fp.offset(), fp.decim()),
                            sp->sample_rate_Hz());
@@ -300,7 +299,7 @@ public:
       processor_map::const_iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
-        proc(sp_dc, i->second, out);
+        proc(sp_dc, i->second, out.begin(), out.end());
       }
     }
   }
@@ -316,8 +315,8 @@ protected:
   }
   virtual void proc(service::sptr sp,
                     processor::base_iq::sptr pp,
-                    const typename overlap_save_type::complex_vector_type& out) {
-    pp->process_iq(sp, out.begin(), out.end());
+                    const_iterator begin, const_iterator end) {
+    pp->process_iq(sp, begin, end);
   }
 
 private:

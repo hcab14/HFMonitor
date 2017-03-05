@@ -20,6 +20,7 @@
 #define _FFT_HPP_cm100823_
 
 #include <complex>
+#include <vector>
 #include <fftw3.h>
 
 namespace FFT {

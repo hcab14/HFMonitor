@@ -1,18 +1,13 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <complex>
-#include <vector>
-#include <unistd.h>
 #include <stdlib.h>
 
 #include "FFT.hpp"
 
-#include "aligned_vector.hpp"
+#include "cl/fft/overlap_save.hpp"
+
 #include "filter/fir.hpp"
 #include "filter/fir/overlap_save.hpp"
 
-#include "cl/fft/overlap_save.hpp"
 
 void print_device_info(const cl::Device& device) {
   std::cout<< "Using device: "                             << device.getInfo<CL_DEVICE_NAME>()
@@ -62,7 +57,7 @@ int main() {
     const int l = 500*1000;   //10*8192;
     const int p = 125*1000+1; //10*1024+1;
     cl::fft::overlap_save os(l, p, ctx, queue);
-    filter::fir::overlap_save<float> os_(l, p);
+    filter::fir::overlap_save os_(l, p);
     filter::fir::lowpass<float> fir(os.p());
 
     fir.design(0.1, 0.02);
@@ -83,11 +78,10 @@ int main() {
 
     // generate data
     typedef cl::fft::overlap_save::complex_type complex_type;
-    typedef cl::fft::overlap_save::complex_vector_type complex_vector_type;
+
     const int N = 5*l;
-    complex_vector_type buf(N);
-    aligned_vector<std::complex<float> > buf2(N);
-    const float f = 0.22*l;
+    processor::base_iq::vector_type buf(N), buf2(N);
+    const float f = 0.22029*l;
     for (int i=0; i<N; ++i) {
       const float t = float(i)/float(l);
       buf[i] = buf2[i] = complex_type(std::cos(2*M_PI*f*t), std::sin(2*M_PI*f*t));

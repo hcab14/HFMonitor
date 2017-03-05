@@ -30,29 +30,28 @@
 #include "aligned_vector.hpp"
 #include "FFT.hpp"
 
+#include "filter/fir/overlap_save_base.hpp"
+
 //
 // multi overlap-save filter
 //
 namespace filter {
   namespace fir {
-    template<typename T>
-    class overlap_save {
+    class overlap_save : public overlap_save_base {
     public:
-      typedef std::complex<T> complex_type;
-      typedef aligned_vector<T> real_vector_type;
-      typedef aligned_vector<complex_type> complex_vector_type;
-      typedef FFT::FFTWTransform<T> small_fft_type;
+      typedef aligned_vector<float> real_vector_type;
+      typedef FFT::FFTWTransform<float> small_fft_type;
 #ifdef USE_CUDA
       typedef FFT::CUFFTTransform large_fft_type;
 #else
-      typedef FFT::FFTWTransform<T> large_fft_type;
+      typedef FFT::FFTWTransform<float> large_fft_type;
 #endif
     private:
 
       // class for holding filter coefficients and the fft
       class filt {
       public:
-        typedef typename boost::shared_ptr<filt> sptr;
+        typedef boost::shared_ptr<filt> sptr;
 
         template<typename U>
         filt(size_t l,
@@ -76,7 +75,7 @@ namespace filter {
           assert((l_%d_) == 0);
           complex_vector_type in(n(), 0);
           std::copy(b.begin(), b.end(), in.begin());
-          fft_.transformVector(in, FFT::WindowFunction::Rectangular<T>(b.size()));
+          fft_.transformVector(in, FFT::WindowFunction::Rectangular<float>(b.size()));
           for (size_t i(0), iend(n()); i<iend; ++i) {
             h_[i] = fft_.out(i);
             fft_.in(i) = 0;
@@ -97,14 +96,14 @@ namespace filter {
         double offset() const {
           return (shift() > n()/2) ? double(int(shift())-int(n()))/n(): double(shift())/n();
         }
-        typename complex_vector_type::const_iterator begin() const { return result_.begin(); }
-        typename complex_vector_type::const_iterator end()   const { return result_.end(); }
+	complex_vector_type::const_iterator begin()  const { return result_.begin(); }
+        complex_vector_type::const_iterator end()    const { return result_.end(); }
         const complex_vector_type& result() const { return result_; }
 
         // performs inverse FFT of (shifted) input and downsampling
         void transform(const large_fft_type& fft) {
           const size_t nd(n()/d());
-          const T norm(T(1)/T(n()));
+          const float norm(1.0f/float(n()));
 #if 0
           // naive implementation
           for (size_t i(0); i<nd; ++i)
@@ -134,7 +133,7 @@ namespace filter {
               a[i] = h_[j+i*nd];
             }
             complex_type ci(0);
-            volk_32fc_x2_dot_prod_32fc(&ci, x, a, m);
+            volk_32fc_x2_dot_prod_32fc(&ci, &x[0], &a[0], m);
             ifft_.in(j) = norm*ci;
           }
 #endif
@@ -147,9 +146,9 @@ namespace filter {
       protected:
       private:
         inline complex_type complex_multiplication_optimized(complex_type c1, complex_type c2) const {
-          T a(c1.real()), b(c1.imag()),
+          float a(c1.real()), b(c1.imag()),
             c(c2.real()), d(c2.imag());
-          T k1(a*(c + d)),
+          float k1(a*(c + d)),
             k2(d*(a + b)),
             k3(c*(b - a));
           return complex_type(k1-k2, k1+k3);
@@ -169,7 +168,8 @@ namespace filter {
     public:
       overlap_save(size_t l, // Number of new input samples consumed per data block
                    size_t p) // Length of h(n)
-        : l_(l)
+        : overlap_save_base()
+        , l_(l)
         , p_(p)
         , fft_(l+p-1, 1, FFTW_ESTIMATE)
         , last_id_(0) {
@@ -177,10 +177,10 @@ namespace filter {
           fft_.in(i) = 0;
       }
 
-      size_t l() const { return l_; }
-      size_t p() const { return p_; }
+      virtual size_t l() const { return l_; }
+      virtual size_t p() const { return p_; }
 
-      typedef std::map<size_t, typename filt::sptr> filter_map;
+      typedef std::map<size_t, filt::sptr> filter_map;
 
       static size_t design_optimal(size_t p) {
         size_t n(1);
@@ -199,25 +199,36 @@ namespace filter {
         return (n+2.*n*std::log(n)/std::log(2))/(double(n)-double(p)+1.);
       }
 
-      typename filt::sptr get_filter(size_t index) {
-        return filters_[index];
+      filt::sptr get_filter(size_t index) const {
+        // return filters_[index];
+	auto const& i = filters_.find(index);
+	if (i != filters_.end())
+	  return i->second;
+	else
+	  throw 1;
       }
 
       // add one filter
       //  * returns a pair of handle (size_t) and the (rounded) mid-frequency of the filter
-      template<typename U>
-      std::pair<size_t, double> add_filter(const typename std::vector<U>& b,
-                                           double_t offset,
-                                           size_t decim) {
+      virtual std::pair<size_t, double> add_filter(const std::vector<float>& b,
+                                                   double_t offset,
+                                                   size_t decim) {
         if (b.size() != p_)
           throw std::runtime_error("overlap_save::update_filter_coeff b.size() != p_");
-        typename filt::sptr fp(new filt(l_, p_, b, offset, decim));
+        filt::sptr fp(new filt(l_, p_, b, offset, decim));
         filters_.insert(std::make_pair(last_id_, fp));
         return std::make_pair(last_id_++, fp->offset());
       }
 
       void proc(const complex_vector_type& in) {
         proc(in.begin(), in.end());
+      }
+
+      virtual std::vector<complex_type>::const_iterator begin(::size_t idx) const {
+	return get_filter(idx)->begin();
+      }
+      virtual std::vector<complex_type>::const_iterator end  (::size_t idx) const {
+	return get_filter(idx)->end();
       }
 
       void proc(typename complex_vector_type::const_iterator i0,

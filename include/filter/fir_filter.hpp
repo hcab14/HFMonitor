@@ -91,7 +91,7 @@ public:
   }
   complex_type process() const {
     complex_type result(0);
-    volk_32fc_32f_dot_prod_32fc(&result, history_, b_, n_);
+    volk_32fc_32f_dot_prod_32fc(&result, &history_[0], &b_[0], n_);
     return result;
   }
   complex_type process(complex_type sample) {

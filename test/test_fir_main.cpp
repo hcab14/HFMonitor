@@ -26,7 +26,7 @@ int main()
 {
   typedef float float_type;
   typedef filter::fir::lowpass<float_type> fir_type;
-  typedef filter::fir::overlap_save<float_type> os_type;
+  typedef filter::fir::overlap_save os_type;
   const size_t m(125001);
   fir_type fir(m);
   fir.design(0.009, 0.009/5);
@@ -40,7 +40,7 @@ int main()
   std::cout << "#offset = " << r.second << " (" << 0.1 << ")" << std::endl;
   os_type::complex_vector_type buffer(l);
 
-  
+
   FFT::FFTWTransform<float> t1(l,       FFTW_FORWARD, FFTW_ESTIMATE);
   FFT::FFTWTransform<float> t2(l/decim, FFTW_FORWARD, FFTW_ESTIMATE);
 
@@ -54,16 +54,16 @@ int main()
 
 
     if (i>1) {
-      const os_type::complex_vector_type& out(os.get_filter(r.first)->result());
+      auto const& out(os.get_filter(r.first)->result());
       t1.transformVector(buffer, FFT::WindowFunction::Blackman<float>(l));
       t2.transformVector(out, FFT::WindowFunction::Blackman<float>(l/decim));
       for (size_t j=0; j<l; ++j) {
-        std::cout << "O " << j << " " 
-                  << std::scientific << " " 
+        std::cout << "O " << j << " "
+                  << std::scientific << " "
                   << std::abs(t1.getBin(j)) << std::endl;;
       }
       for (size_t j=0; j<l/decim; ++j) {
-        std::cout << "D " << j*decim << " " 
+        std::cout << "D " << j*decim << " "
                   << std::scientific << std::abs(t2.getBin(j)) << std::endl;;
       }
     }
