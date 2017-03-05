@@ -6,76 +6,111 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#ifdef USE_OPENCL
-#  include "cl/cl.hpp"
-#  include "cl/FFT.hpp"
-#endif
 #include "FFT.hpp"
 
-int main() {  
+#include "aligned_vector.hpp"
+#include "filter/fir.hpp"
+#include "filter/fir/overlap_save.hpp"
+
+#include "cl/fft/overlap_save.hpp"
+
+void print_device_info(const cl::Device& device) {
+  std::cout<< "Using device: "                             << device.getInfo<CL_DEVICE_NAME>()
+	   << "\n\t CL_DEVICE_VENDOR "                     << device.getInfo<CL_DEVICE_VENDOR>()
+	   << "\n\t CL_DRIVER_VERSIOn "                    << device.getInfo<CL_DRIVER_VERSION>()
+	   << "\n\t CL_DEVICE_VERSION "                    << device.getInfo<CL_DEVICE_VERSION>()
+	   << "\n\t CL_DEVICE_PROFILE "                    << device.getInfo<CL_DEVICE_PROFILE>()
+	   << "\n\t CL_DEVICE_EXTENSIONS "                 << device.getInfo<CL_DEVICE_EXTENSIONS>()
+	   << "\n\t CL_DEVICE_MAX_COMPUTE_UNITS="          << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>()
+	   << "\n\t CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS="   << device.getInfo<CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS>()
+	   << "\n\t CL_DEVICE_MAX_WORK_GROUP_SIZE="        << device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()
+    //<< "\n\t CL_DEVICE_MAX_WORK_ITEM_SIZES="  << device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>()
+	   << "\n\t CL_DEVICE_MAX_CLOCK_FREQUENCY="        << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>()
+	   << "\n\t CL_DEVICE_MAX_MEM_ALLOC_SIZE="         << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>()
+	   << std::endl;
+}
+
+int main() {
 #ifdef USE_OPENCL
-  const std::vector<CL::platform> ps = CL::platform::get();
-  for (size_t i=0; i<ps.size(); ++i)
-    std::cout << "platform[" << i << "] '" << ps[i].info() << "'" << std::endl;
+  try {
+    // (1) get (ctx, queue)
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    ASSERT_THROW(!platforms.empty());
 
-  const std::vector<CL::device> ds = ps[0].get_devices(CL_DEVICE_TYPE_ALL);
-  for (size_t i=0; i<ds.size(); ++i)
-    std::cout << "dev[" << i <<"] '" << ds[i].name() << "'" << std::endl;
+    auto const& default_platform = platforms[0];
+    std::cout << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>() << " #platforms=" << platforms.size() << "\n";
 
-  CL::Global::setup("AMD Accelerated Parallel Processing",
-		   "Hainan");
+    cl_context_properties properties[] =
+      { CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0};
+    cl::Context ctx(CL_DEVICE_TYPE_GPU, properties);
 
-  CL::context ctx(CL::Global::platform(), CL::Global::device());
-  CL::queue queue(ctx, CL::Global::device());
+    std::vector<cl::Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
+    ASSERT_THROW(!devices.empty());
+    for (auto const& device : devices) {
+      print_device_info(device);
+    }
 
-#if 1
-  std::ifstream t("test/test.cl");
-  std::stringstream buffer;
-  buffer << t.rdbuf();
+    auto const& default_device = devices[0];
+    cl::CommandQueue queue(ctx, default_device);
 
-  CL::program p(ctx, buffer.str());
-  p.build("-Werror");
+    //
+    // (2) input: (ctx, queue)
+    //
+    cl::fft::setup cl_fft_setup;
 
-  CL::kernel k(p, "simple_add");
-  std::cout << "kernel name=" << k.name() << std::endl;
+    const int l = 500*1000;   //10*8192;
+    const int p = 125*1000+1; //10*1024+1;
+    cl::fft::overlap_save os(l, p, ctx, queue);
+    filter::fir::overlap_save<float> os_(l, p);
+    filter::fir::lowpass<float> fir(os.p());
 
-  CL::context ctx2 = k.context(); // for test
+    fir.design(0.1, 0.02);
 
-  CL::mem buf(ctx, 100*sizeof(float));
-  std::vector<float> vv1(100), vv2(100);
-  for (int i=0; i<100; ++i)
-    vv1[i]=i;
+    const int decim = 10;
+    {
+      auto const xx1 = os.add_filter(fir.coeff(), 0.5, decim);
+      std::cout << "xx1= (" << xx1.first << ", " << xx1.second << ")"<< std::endl;
+      auto const xx2 = os_.add_filter(fir.coeff(), 0.5, decim);
+      std::cout << "xx2= (" << xx2.first << ", " << xx2.second << ")"<< std::endl;
+    }
+    {
+      auto const xx1 = os.add_filter(fir.coeff(), 0.22, decim);
+      std::cout << "xx1= (" << xx1.first << ", " << xx1.second << ")"<< std::endl;
+      auto const xx2 = os_.add_filter(fir.coeff(), 0.22, decim);
+      std::cout << "xx2= (" << xx2.first << ", " << xx2.second << ")"<< std::endl;
+    }
 
-  std::vector<CL::event> event_list;
-  CL::event event = queue.enqueueWriteBuffer(buf, 100*sizeof(float), &vv1[0], 0, event_list);
-  event_list.push_back(event);
-  event = queue.enqueueReadBuffer (buf, 100*sizeof(float), &vv2[0], 0, event_list);
-  event_list.push_back(event);
-  CL::Global::waitForEvents(event_list);
-
-  queue.finish();
-
-  for (int i=0; i<10; ++i)
-    std::cout << "vv1,2 =" << vv1[i] << " " << vv2[i] << std::endl;
-#endif
-  {
-    CL::FFT::setup setup;
-    
-    const size_t n=16;
-    CL::FFT::clFFT fft(ctx, queue, n);
-
-    FFT::FFTWTransform<float> fftw(n, FFTW_FORWARD, FFTW_ESTIMATE);
-    
-    for (size_t i=0; i<n; ++i)
-      fftw.in(i) = fft.in(i) = std::complex<float>(i, 3*i);
-
-    fft.transform(queue);
-    fftw.transform();
-
-    for (size_t i=0; i<n; ++i)
-      std::cout << i << " " << std::abs(fft.out(i)-fftw.out(i)) << " " << fft.out(i) << " " << fftw.out(i) << std::endl;
-
+    // generate data
+    typedef cl::fft::overlap_save::complex_type complex_type;
+    typedef cl::fft::overlap_save::complex_vector_type complex_vector_type;
+    const int N = 5*l;
+    complex_vector_type buf(N);
+    aligned_vector<std::complex<float> > buf2(N);
+    const float f = 0.22*l;
+    for (int i=0; i<N; ++i) {
+      const float t = float(i)/float(l);
+      buf[i] = buf2[i] = complex_type(std::cos(2*M_PI*f*t), std::sin(2*M_PI*f*t));
+    }
+    for (int j=0; j<5; ++j) {
+      os.proc(buf.begin()+j*l,   buf.begin()+j*l+l);
+      os_.proc(buf2.begin()+j*l, buf2.begin()+  j*l+l);
+      {
+	auto const& r1 = os.get_filter(1)->result();
+	auto const& r2 = os_.get_filter(1)->result();
+	for (int i=0; i<3; ++i)
+	  std::cout << i << " " << r1[0*(p-1)/decim+i] << " " << r2[i] << " " << std::abs(r1[i]-r2[i]) << std::endl;
+	for (int i=r2.size()-3; i<r2.size(); ++i)
+	  std::cout << i << " " << r1[0*(p-1)/decim+i] << " " << r2[i] << " " << std::abs(r1[i]-r2[i]) << std::endl;
+      }
+    }
+  } catch (const cl::Error& err) {
+    std::cerr << err.what() << "(" << cl::error::to_string(err.err()) << ")" << std::endl;
+    return EXIT_FAILURE;
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
   }
-#endif // USE_OPENCL
-  return EXIT_SUCCESS;  
+#endif
+  return EXIT_SUCCESS;
 }
