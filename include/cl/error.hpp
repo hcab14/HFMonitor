@@ -6,6 +6,8 @@
 #include <boost/config.hpp> // BOOST_STRINGIZE
 #include <boost/current_function.hpp>
 
+#include <clFFT.h>
+
 namespace cl {
   struct error {
     static const char* to_string(cl_int err) {

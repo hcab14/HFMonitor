@@ -100,7 +100,7 @@ int main() {
 	auto const& r2 = os_.get_filter(1)->result();
 	for (int i=0; i<3; ++i)
 	  std::cout << i << " " << r1[0*(p-1)/decim+i] << " " << r2[i] << " " << std::abs(r1[i]-r2[i]) << std::endl;
-	for (int i=r2.size()-3; i<r2.size(); ++i)
+	for (int i=r2.size()-3,n=r2.size(); i<n; ++i)
 	  std::cout << i << " " << r1[0*(p-1)/decim+i] << " " << r2[i] << " " << std::abs(r1[i]-r2[i]) << std::endl;
       }
     }

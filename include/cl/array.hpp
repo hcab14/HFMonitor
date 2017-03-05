@@ -2,7 +2,6 @@
 #ifndef CL_ARRAY_HPP_cm20170304_
 #define CL_ARRAY_HPP_cm20170304_
 
-#include <complex>
 #include <vector>
 #include "cl/cl.hpp"
 
