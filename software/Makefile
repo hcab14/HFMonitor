@@ -3,12 +3,20 @@
 
 INSTALL_PATH = $(shell echo `pwd`/install)
 
-ALL: install/share/clFFT/examples install/lib/libboost_log.a install/bin/volk_modtool install/bin/fltk-config install/bin/sqlite3
+targets = install/lib/libboost_log.a install/bin/volk_modtool install/bin/fltk-config
+
+ifndef APPLE
+targets += install/bin/sqlite3
+endif
+
+ifdef USE_OPENCL
+targets += install/share/clFFT/examples
+endif
+
+ALL: ${targets}
 
 install/share/clFFT/examples: clFFT install/lib/libboost_log.a
-ifdef USE_OPENCL
 	cd clFFT && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} -DBOOST_ROOT=${INSTALL_PATH} ../src && make -j4 install
-endif
 
 clFFT:
 	git clone https://github.com/clMathLibraries/clFFT.git
