@@ -97,18 +97,14 @@ namespace filter {
         double offset() const {
           return (shift() > n()/2) ? double(int(shift())-int(n()))/n(): double(shift())/n();
         }
-        typename complex_vector_type::const_iterator begin() const {
-          return result_.begin();
-        }
-        typename complex_vector_type::const_iterator end() const {
-          return result_.end();
-        }
+        typename complex_vector_type::const_iterator begin() const { return result_.begin(); }
+        typename complex_vector_type::const_iterator end()   const { return result_.end(); }
         const complex_vector_type& result() const { return result_; }
 
         // performs inverse FFT of (shifted) input and downsampling
         void transform(const large_fft_type& fft) {
           const size_t nd(n()/d());
-          const T norm(T(1)/T(l()));
+          const T norm(T(1)/T(n()));
 #if 0
           // naive implementation
           for (size_t i(0); i<nd; ++i)
