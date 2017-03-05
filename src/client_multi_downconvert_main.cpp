@@ -37,6 +37,9 @@
 #include "wave/writer.hpp"
 #include "station_info.hpp"
 
+#include "filter/fir/overlap_save.hpp"
+#include "cl/fft/overlap_save.hpp"
+
 /*! \addtogroup executables
  *  @{
  * \addtogroup client_multi_downconvert client_multi_downconvert
@@ -49,12 +52,16 @@
 
 /// adaptation of @ref multi_downconvert_processor to output to @ref network::broadcaster::broadcaster
 ///
-class multi_downconvert_toBC : public multi_downconvert_processor {
+template<class OS_SETUP>
+class multi_downconvert_toBC : public multi_downconvert_processor<OS_SETUP> {
 public:
-  typedef boost::shared_ptr<multi_downconvert_toBC > sptr;
+  typedef boost::shared_ptr<multi_downconvert_toBC<OS_SETUP> > sptr;
+
+  typedef typename multi_downconvert_processor<OS_SETUP>::service service;
+  typedef typename multi_downconvert_processor<OS_SETUP>::const_iterator const_iterator;
 
   multi_downconvert_toBC(const boost::property_tree::ptree& config)
-    : multi_downconvert_processor(config)
+    : multi_downconvert_processor<OS_SETUP>(config)
     , broadcaster_(network::broadcaster::broadcaster::make(config.get_child("Broadcaster")))
     , started_(false)
     , station_info_(config.get<std::string>("StationInfo")) {}
@@ -62,7 +69,7 @@ public:
   virtual ~multi_downconvert_toBC() {}
 
 protected:
-  virtual void dump(service::sptr sp, const_iterator begin, const_iterator end) {
+  virtual void dump(typename service::sptr sp, const_iterator begin, const_iterator end) {
     if (not started_) {
       broadcaster_->start();
       started_= true;
@@ -134,7 +141,9 @@ int main(int argc, char* argv[])
     const std::string stream_name(config.get<std::string>
                                   ("MultiDownConverter.server.<xmlattr>.stream_name", "DataIQ"));
 
-    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC > > >
+    // typedef filter::fir::overlap_save_setup  os_setup_type;
+    typedef cl::fft::overlap_save_setup os_setup_type;
+    network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<os_setup_type> > > >
       c(config.get_child("MultiDownConverter"));
 
     const std::set<std::string> streams(c.ls());

@@ -28,51 +28,30 @@ void print_device_info(const cl::Device& device) {
 int main() {
 #ifdef USE_OPENCL
   try {
-    // (1) get (ctx, queue)
-    std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
-    ASSERT_THROW(!platforms.empty());
-
-    auto const& default_platform = platforms[0];
-    std::cout << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>() << " #platforms=" << platforms.size() << "\n";
-
-    cl_context_properties properties[] =
-      { CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0};
-    cl::Context ctx(CL_DEVICE_TYPE_GPU, properties);
-
-    std::vector<cl::Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
-    ASSERT_THROW(!devices.empty());
-    for (auto const& device : devices) {
-      print_device_info(device);
-    }
-
-    auto const& default_device = devices[0];
-    cl::CommandQueue queue(ctx, default_device);
-
-    //
-    // (2) input: (ctx, queue)
-    //
     cl::fft::setup cl_fft_setup;
 
     const int l = 500*1000;   //10*8192;
     const int p = 125*1000+1; //10*1024+1;
-    cl::fft::overlap_save os(l, p, ctx, queue);
-    filter::fir::overlap_save os_(l, p);
-    filter::fir::lowpass<float> fir(os.p());
+    cl::fft::overlap_save_setup os1_setup;
+    filter::fir::overlap_save::sptr os1 = os1_setup.make_overlap_save(l, p);
+
+    filter::fir::overlap_save_setup os2_setup;
+    filter::fir::overlap_save::sptr os2 = os2_setup.make_overlap_save(l, p);
+    filter::fir::lowpass<float> fir(os1->p());
 
     fir.design(0.1, 0.02);
 
     const int decim = 10;
     {
-      auto const xx1 = os.add_filter(fir.coeff(), 0.5, decim);
+      auto const xx1 = os1->add_filter(fir.coeff(), 0.5, decim);
       std::cout << "xx1= (" << xx1.first << ", " << xx1.second << ")"<< std::endl;
-      auto const xx2 = os_.add_filter(fir.coeff(), 0.5, decim);
+      auto const xx2 = os2->add_filter(fir.coeff(), 0.5, decim);
       std::cout << "xx2= (" << xx2.first << ", " << xx2.second << ")"<< std::endl;
     }
     {
-      auto const xx1 = os.add_filter(fir.coeff(), 0.22, decim);
+      auto const xx1 = os1->add_filter(fir.coeff(), 0.22, decim);
       std::cout << "xx1= (" << xx1.first << ", " << xx1.second << ")"<< std::endl;
-      auto const xx2 = os_.add_filter(fir.coeff(), 0.22, decim);
+      auto const xx2 = os2->add_filter(fir.coeff(), 0.22, decim);
       std::cout << "xx2= (" << xx2.first << ", " << xx2.second << ")"<< std::endl;
     }
 
@@ -80,18 +59,18 @@ int main() {
     typedef cl::fft::overlap_save::complex_type complex_type;
 
     const int N = 5*l;
-    processor::base_iq::vector_type buf(N), buf2(N);
+    processor::base_iq::vector_type buf1(N), buf2(N);
     const float f = 0.22029*l;
     for (int i=0; i<N; ++i) {
       const float t = float(i)/float(l);
-      buf[i] = buf2[i] = complex_type(std::cos(2*M_PI*f*t), std::sin(2*M_PI*f*t));
+      buf1[i] = buf2[i] = complex_type(std::cos(2*M_PI*f*t), std::sin(2*M_PI*f*t));
     }
     for (int j=0; j<5; ++j) {
-      os.proc(buf.begin()+j*l,   buf.begin()+j*l+l);
-      os_.proc(buf2.begin()+j*l, buf2.begin()+  j*l+l);
+      os1->proc(buf1.begin()+j*l, buf1.begin()+j*l+l);
+      os2->proc(buf2.begin()+j*l, buf2.begin()+j*l+l);
       {
-	auto const& r1 = os.get_filter(1)->result();
-	auto const& r2 = os_.get_filter(1)->result();
+	const std::vector<complex_type> r1(os1->begin(1), os1->end(1));
+	const std::vector<complex_type> r2(os2->begin(1), os2->end(1));
 	for (int i=0; i<3; ++i)
 	  std::cout << i << " " << r1[0*(p-1)/decim+i] << " " << r2[i] << " " << std::abs(r1[i]-r2[i]) << std::endl;
 	for (int i=r2.size()-3,n=r2.size(); i<n; ++i)

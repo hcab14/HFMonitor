@@ -33,7 +33,7 @@
 
 #include "aligned_vector.hpp"
 #include "filter/fir.hpp"
-#include "filter/fir/overlap_save.hpp"
+#include "filter/fir/overlap_save_base.hpp"
 #include "logging.hpp"
 #include "processor.hpp"
 #include "processor/registry.hpp"
@@ -48,6 +48,7 @@
  */
 
 /// multi downconvert processor
+template<class OS_SETUP>
 class multi_downconvert_processor : public processor::base_iq {
 protected:
   class filter_param {
@@ -183,12 +184,12 @@ protected:
 
 public:
   typedef boost::shared_ptr<multi_downconvert_processor> sptr;
-  typedef filter::fir::overlap_save overlap_save_type;
 
   multi_downconvert_processor(const ptree& config)
     : base_iq(config)
-    , overlap_save_(config.get<size_t>("<xmlattr>.l"),
-                    config.get<size_t>("<xmlattr>.m"))
+    , overlap_save_setup_()
+    , overlap_save_(overlap_save_setup_.make_overlap_save(config.get<size_t>("<xmlattr>.l"),
+                                                          config.get<size_t>("<xmlattr>.m")))
     , offset_(0) {
     // Filters
     for (auto const& filt : config.get_child("Filters")) {
@@ -276,15 +277,15 @@ public:
     for (filter_param& fp : filter_params_) {
       if (not fp.initialized()) {
         fp.update_offset(sp->center_frequency_Hz(), sp->sample_rate_Hz());
-        filter::fir::lowpass<float> fir(overlap_save_.p());
+        filter::fir::lowpass<float> fir(overlap_save_->p());
         fir.design(fp.cutoff(), fp.cutoff()/5.);
-        fp.set_initialized(overlap_save_.add_filter(fir.coeff(), fp.offset(), fp.decim()),
+        fp.set_initialized(overlap_save_->add_filter(fir.coeff(), fp.offset(), fp.decim()),
                            sp->sample_rate_Hz());
       }
     }
 
     // (2) process I/Q samples
-    overlap_save_.proc(i0, i1);
+    overlap_save_->proc(i0, i1);
 
     // (3) dump the output of all filters
     for (auto const& fp : filter_params_) {
@@ -294,12 +295,13 @@ public:
                                fp.name(),
                                sp->sample_rate_Hz()/fp.decim(),
                                fp.center_freq_Hz()));
-      auto const& out(overlap_save_.get_filter(fp.handle())->result());
-      dump(sp_dc, out.begin(), out.end());
+      auto const& out_begin = overlap_save_->begin(fp.handle());
+      auto const& out_end   = overlap_save_->end  (fp.handle());
+      dump(sp_dc, out_begin, out_end);
       processor_map::const_iterator i(processor_map_.find(fp.name()));
       if (i != processor_map_.end()) {
         LOG_INFO(str(boost::format("proc %s") % fp));
-        proc(sp_dc, i->second, out.begin(), out.end());
+        proc(sp_dc, i->second, out_begin, out_end);
       }
     }
   }
@@ -361,7 +363,8 @@ private:
       : std::make_pair(0., 0.);
   }
 
-  overlap_save_type overlap_save_;
+  OS_SETUP          overlap_save_setup_;
+  filter::fir::overlap_save_base::sptr overlap_save_;
   filter_params     filter_params_;
   processor_map     processor_map_;
   result_map        result_map_;

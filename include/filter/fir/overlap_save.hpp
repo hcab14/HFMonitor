@@ -259,6 +259,13 @@ namespace filter {
       size_t last_id_;
       filter_map filters_;
     } ;
+
+    struct overlap_save_setup {
+      overlap_save_base::sptr make_overlap_save(::size_t l, ::size_t p) {
+	return overlap_save_base::sptr(new overlap_save(l, p));
+      }
+    } ;
+
   } // namespace fir
 } // namespace filter
 #endif // _OVERLAP_SAVE_HPP_cm110628_
