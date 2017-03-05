@@ -153,7 +153,7 @@ namespace cl {
 	, in_ (ctx, l+p-1)
 	, out_(ctx, l+p-1)
 	, queue_(queue)
-	, prog_source_(read_kernel_source("test/kernel.cl"))
+	, prog_source_(read_kernel_source("include/cl/fft/kernel.cl"))
 	, program_(ctx, cl::Program::Sources(1, std::make_pair(prog_source_.c_str(),
 							       prog_source_.length()+1))) {
         for (::size_t i(0), iend(l+p-1); i<iend; ++i)
