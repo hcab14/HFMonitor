@@ -132,6 +132,8 @@ int main(int argc, char* argv[])
 
     FFT::FFTWInitThreads fftwInit;
 
+    cl::fft::setup cl_fft_setup;
+
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");

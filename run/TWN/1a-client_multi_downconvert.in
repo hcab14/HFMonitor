@@ -2,5 +2,5 @@
 # $Id: 1a-client_multi_downconvert.in 462 2016-02-04 08:25:49Z gifds $
 
 NAME="client_multi_downconvert"
-CMD="./bin/$NAME -c config/multi_downconvert_TWN.xml"
+CMD="env DISPLAY= ./bin/$NAME -c config/multi_downconvert_TWN.xml"
 

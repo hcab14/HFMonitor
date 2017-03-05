@@ -101,7 +101,7 @@ namespace cl {
 		  : double(shift())/n());
         }
 	complex_vector_type::const_iterator begin()  const { return out_.begin(); }
-	complex_vector_type::const_iterator end()    const { return out_.end(); }
+	complex_vector_type::const_iterator end()    const { return out_.begin()+l()/d(); }
         const complex_vector_type&          result() const { return out_.get(); }
 
         // performs inverse FFT of (shifted) input and downsampling
