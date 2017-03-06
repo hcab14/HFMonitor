@@ -24,6 +24,7 @@
 
 #include <boost/function.hpp>
 #include <boost/functional/factory.hpp>
+#include <boost/format.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -42,7 +43,7 @@ namespace processor {
     static base::sptr make(std::string key, const boost::property_tree::ptree& config) {
       map_type::iterator i(map().find(key));
       if (i == map().end())
-        return base::sptr();
+        throw std::runtime_error(str(boost::format("processor::registry::make '%s' is not supported") % key));
       return i->second(config);
     }
 
