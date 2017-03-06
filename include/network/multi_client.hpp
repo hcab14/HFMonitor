@@ -112,17 +112,16 @@ namespace network {
 
       virtual void process(data_buffer_type::const_iterator begin,
                            data_buffer_type::const_iterator end) {
-
         const stream_name str_name(get_directory().stream_name_of(get_header().stream_number()));
         auto range(processor_id_map_.equal_range(str_name));
-        if (range.first == range.second) {
-          return; // TODO: complain
-        }
+        ASSERT_THROW(range.first != range.second);
 
         // make up service object
         processor::service_base::sptr sp(service_mc::make(this, service_net::make(get_header(), get_directory())));
-        for (; range.first != range.second; ++range.first)
+        for (; range.first != range.second; ++range.first) {
+          ASSERT_THROW(range.first->second);
           range.first->second->process(sp, begin, end);
+        }
       }
 
       virtual processor::result_base::sptr dump(processor::result_base::sptr rp) {

@@ -119,6 +119,9 @@ namespace network {
         if (is_open()) {
           boost::system::error_code ec;
           LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
+          LOG_INFO("cancel async operations");
+          tcp_socket_ptr_->cancel(ec);
+          if (ec) LOG_WARNING((str(boost::format("cancel error_code=%s") % ec)));
           LOG_INFO("close and shutdown socket");
           tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
           if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
