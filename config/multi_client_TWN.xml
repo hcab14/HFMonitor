@@ -72,7 +72,7 @@
               name="MSK_FUG" fc_Hz="62.60e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
 
-    <FFT_Processor proc_name="FFT_Processor" type="FFTProcessor_DOUBLE" name="FFTProcessor"
+    <FFT_Processor proc_name="FFT_Processor" type="FFTProcessor_FLOAT" name="FFTProcessor"
                    windowFunction="Blackman"
                    numberOfCollectedEpochs="1">
       <Actions calibrationKey="L1.CAL">
