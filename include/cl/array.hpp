@@ -36,11 +36,9 @@ namespace cl {
     ::size_t size() const { return _v_host.size(); }
     float norm() const { return _norm; }
 
-    vector_type& get() { return _v_host; }
     iterator   begin() { return _v_host.begin(); }
     iterator     end() { return _v_host.end(); }
 
-    const vector_type& get() const { return _v_host; }
     const_iterator   begin() const { return _v_host.begin(); }
     const_iterator     end() const { return _v_host.end(); }
 

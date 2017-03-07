@@ -39,16 +39,13 @@ namespace cl {
           , n_(l_+p_-1)
           , shift_(::size_t((1.+shift)*n_+0.5) % n_)
 	  , fft_ (n_,     1, FFTW_ESTIMATE)
-	  , in_ (queue, n_/d_)
-	  , out_(queue, n_/d_)
+	  , clfft_(n_/d_, CLFFT_BACKWARD, queue)
 	  , h_  (queue, n_)
 	  , kernel_(program, "convolve")
 	{
-          assert(l_+p_ > 0);
-          assert(((p_-1)%d_) == 0);
-          assert(b.size() < n());
-          assert((n_%d_) == 0);
-          assert((l_%d_) == 0);
+	  verify_arguments();
+          ASSERT_THROW(b.size() < n());
+
           complex_vector_type in(n(), 0);
           std::copy(b.begin(), b.end(), in.begin());
           fft_.transformVector(in, FFT::WindowFunction::Rectangular<float>(b.size()));
@@ -63,29 +60,16 @@ namespace cl {
           shift_ = (shift_/::size_t(v()+.5))*::size_t(v()+0.5);
 
 	  // set up kernel
-	  kernel_.setArg(0, in_.get_device_buffer());
+	  kernel_.setArg(0, clfft_.in().get_device_buffer());
 	  kernel_.setArg(1, in_buffer);
 	  kernel_.setArg(2, h_.get_device_buffer());
 	  kernel_.setArg(3, cl_int(n_));
 	  kernel_.setArg(4, cl_int(d_));
 	  kernel_.setArg(5, cl_int(shift_));
 	  kernel_.setArg(6, cl_float(1.0f/n_)); // norm
-
-	  auto const ctx = queue.getInfo<CL_QUEUE_CONTEXT>();
-
-	  const float scale = 1.0f;
-	  ::size_t clLengths[1] = { n_/d_ };
-	  ASSERT_THROW_CL(clfftCreateDefaultPlan(&plan_handle_, ctx(), CLFFT_1D, clLengths));
-	  ASSERT_THROW_CL(clfftSetPlanPrecision ( plan_handle_, CLFFT_SINGLE));
-	  ASSERT_THROW_CL(clfftSetPlanScale     ( plan_handle_, CLFFT_BACKWARD, scale));
-	  ASSERT_THROW_CL(clfftSetLayout        ( plan_handle_, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED));
-	  ASSERT_THROW_CL(clfftSetResultLocation( plan_handle_, CLFFT_OUTOFPLACE));
-	  ASSERT_THROW_CL(clfftBakePlan         ( plan_handle_, 1, &queue(), NULL, NULL));
 	}
 
-        ~filt() {
-	  clfftDestroyPlan(&plan_handle_);
-	}
+        ~filt() {}
 
         ::size_t l() const { return l_; }                  // Number of new input samples consumed per data block
         ::size_t p() const { return p_; }                  // Length of h(n)
@@ -99,12 +83,11 @@ namespace cl {
 		  ? double(int(shift())-int(n()))/n()
 		  : double(shift())/n());
         }
-	complex_vector_type::const_iterator begin()  const { return out_.begin(); }
-	complex_vector_type::const_iterator end()    const { return out_.begin()+l()/d(); }
+	complex_vector_type::const_iterator begin()  const { return clfft_.out().begin(); }
+	complex_vector_type::const_iterator end()    const { return clfft_.out().begin()+l()/d(); }
 
         // performs inverse FFT of (shifted) input and downsampling
 	cl::Event transform(cl::CommandQueue& q, const std::vector<cl::Event>& waitFor) {
-	  cl::Event event1;
 	  const auto dev = q.getInfo<CL_QUEUE_DEVICE>();
 	  const int max_work_group_size = kernel_.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(dev);
 
@@ -113,24 +96,29 @@ namespace cl {
 	  for (; work_group_size && (nd%work_group_size); --work_group_size)
 	    ;
 
+	  std::vector<cl::Event> event1(1, cl::Event());;
 	  q.enqueueNDRangeKernel(kernel_,
 				 cl::NullRange,                // offset
 				 cl::NDRange(nd),              // global
 				 cl::NDRange(work_group_size), // local
 				 &waitFor,
-				 &event1);
+				 &event1[0]);
 
-	  std::vector<cl::Event> event2(1, cl::Event());
-	  ASSERT_THROW_CL(clfftEnqueueTransform(plan_handle_, CLFFT_BACKWARD, 1, &q(),
-						1, &event1(), &event2[0](),
-						&in_.get_device_buffer()(), &out_.get_device_buffer()(), NULL));
+	  std::vector<cl::Event> event2(1, clfft_.enqueue_transform(event1));
+
 	  cl::Event event3;
-	  out_.device_to_host(q, &event2, &event3);
+	  clfft_.device_to_host(&event2, &event3);
 
 	  return event3;
         }
 
       protected:
+	void verify_arguments() const {
+          ASSERT_THROW(l_+p_ > 0);
+          ASSERT_THROW(((p_-1)%d_) == 0);
+          ASSERT_THROW((n_%d_) == 0);
+          ASSERT_THROW((l_%d_) == 0);
+	}
       private:
         const ::size_t      l_;
         const ::size_t      p_;
@@ -138,11 +126,9 @@ namespace cl {
         const ::size_t      n_;
         ::size_t            shift_;
         small_fft_type      fft_;
-	array<complex_type> in_;
-	array<complex_type> out_;
+	cl::fft::clfft      clfft_;
 	array<complex_type> h_;
 	cl::Kernel          kernel_;
-	clfftPlanHandle     plan_handle_;
       } ;
 
     public:
@@ -153,34 +139,18 @@ namespace cl {
 	, l_(l)
 	, p_(p)
         , last_id_(0)
-	, in_ (queue, l+p-1)
-	, out_(queue, l+p-1)
+	, clfft_(l+p-1, CLFFT_FORWARD, queue)
 	, queue_(queue)
 	, prog_source_(read_kernel_source("include/cl/fft/kernel.cl"))
 	, program_(queue.getInfo<CL_QUEUE_CONTEXT>(),
 		   cl::Program::Sources(1, std::make_pair(prog_source_.c_str(),
 							  prog_source_.length()+1))) {
-        for (::size_t i(0), iend(l+p-1); i<iend; ++i)
-          in_[i] = out_[i] = 0;
-
-	auto const ctx = queue.getInfo<CL_QUEUE_CONTEXT>();
-
-	const float scale = 1.0f;
-	::size_t clLengths[1] = { l+p-1 };
-	ASSERT_THROW_CL(clfftCreateDefaultPlan(&plan_handle_, ctx(), CLFFT_1D, clLengths));
-	ASSERT_THROW_CL(clfftSetPlanPrecision ( plan_handle_, CLFFT_SINGLE));
-	ASSERT_THROW_CL(clfftSetPlanScale     ( plan_handle_, CLFFT_FORWARD, scale));
-	ASSERT_THROW_CL(clfftSetLayout        ( plan_handle_, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED));
-	ASSERT_THROW_CL(clfftSetResultLocation( plan_handle_, CLFFT_OUTOFPLACE));
-	ASSERT_THROW_CL(clfftBakePlan         ( plan_handle_, 1, &queue(), NULL, NULL));
-
+	auto const& ctx     = queue.getInfo<CL_QUEUE_CONTEXT>();
 	auto const& devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
 	program_.build(devices, "");
       }
 
-      virtual ~overlap_save() {
-	clfftDestroyPlan(&plan_handle_);
-      }
+      virtual ~overlap_save() {}
 
       virtual ::size_t l() const { return l_; }
       virtual ::size_t p() const { return p_; }
@@ -201,9 +171,8 @@ namespace cl {
       virtual std::pair<::size_t, double> add_filter(const std::vector<float>& b,
 						     double_t offset,
 						     ::size_t decim) {
-        if (b.size() != p_)
-          throw std::runtime_error("overlap_save::update_filter_coeff b.size() != p_");
-        typename filt::sptr fp(new filt(l_, p_, b, offset, decim, program_, queue_, out_.get_device_buffer()));
+        ASSERT_THROW(b.size() == p_);
+        typename filt::sptr fp(new filt(l_, p_, b, offset, decim, program_, queue_, clfft_.out().get_device_buffer()));
         filters_.insert(std::make_pair(last_id_, fp));
         return std::make_pair(last_id_++, fp->offset());
       }
@@ -226,27 +195,23 @@ namespace cl {
 
         // copy input data
         for (::size_t i(0); i<l_; ++i)
-          in_[p_+i-1] = *i0++;
+          clfft_.in(p_+i-1) = *i0++;
 
-	cl::Event event0;
-	in_.host_to_device(queue_, NULL, &event0);
+	std::vector<cl::Event> event0(1, cl::Event());
+	clfft_.host_to_device(NULL, &event0[0]);
 
-	std::vector<cl::Event> events(1, cl::Event());
-	ASSERT_THROW_CL(clfftEnqueueTransform(plan_handle_, CLFFT_FORWARD, 1, &queue_(), 1, &event0(),
-					      &events[0](),
-					      &in_.get_device_buffer()(), &out_.get_device_buffer()(), NULL));
+	std::vector<cl::Event> event1(1, clfft_.enqueue_transform(event0));
 
         // for each filter
 	std::vector<cl::Event> events_wait;
         for (auto filter : filters_)
-          events_wait.push_back(filter.second->transform(queue_, events));
+          events_wait.push_back(filter.second->transform(queue_, event1));
 
 	cl::Event::waitForEvents(events_wait);
-	cl::finish();
 
         // save old samples
         for (::size_t i(0), iend(p_-1); i<iend; ++i)
-          in_[i] = in_[l_+i];
+          clfft_.in(i) = clfft_.in(l_+i);
       }
 
     private:
@@ -262,12 +227,10 @@ namespace cl {
 
       filter_map filters_;
 
-      array<complex_type> in_;
-      array<complex_type> out_;
-      clfftPlanHandle     plan_handle_;
-      cl::CommandQueue    queue_;
-      std::string         prog_source_;
-      cl::Program         program_;
+      cl::fft::clfft   clfft_;
+      cl::CommandQueue queue_;
+      std::string      prog_source_;
+      cl::Program      program_;
     } ;
 
     class overlap_save_setup {
