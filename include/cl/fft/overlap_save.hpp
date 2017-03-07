@@ -30,7 +30,6 @@ namespace cl {
              const typename std::vector<U>& b,
              double shift,  // normalized frequency
              ::size_t d,    // downsampling (decimation) factor
-	     cl::Context& ctx,
 	     cl::Program& program,
 	     cl::CommandQueue& queue,
 	     cl::Buffer&  in_buffer)
@@ -40,9 +39,9 @@ namespace cl {
           , n_(l_+p_-1)
           , shift_(::size_t((1.+shift)*n_+0.5) % n_)
 	  , fft_ (n_,     1, FFTW_ESTIMATE)
-	  , in_ (ctx, n_/d_)
-	  , out_(ctx, n_/d_)
-	  , h_  (ctx, n_)
+	  , in_ (queue, n_/d_)
+	  , out_(queue, n_/d_)
+	  , h_  (queue, n_)
 	  , kernel_(program, "convolve")
 	{
           assert(l_+p_ > 0);
@@ -71,6 +70,8 @@ namespace cl {
 	  kernel_.setArg(4, cl_int(d_));
 	  kernel_.setArg(5, cl_int(shift_));
 	  kernel_.setArg(6, cl_float(1.0f/n_)); // norm
+
+	  auto const ctx = queue.getInfo<CL_QUEUE_CONTEXT>();
 
 	  const float scale = 1.0f;
 	  ::size_t clLengths[1] = { n_/d_ };
@@ -147,20 +148,22 @@ namespace cl {
     public:
       overlap_save(::size_t l, // Number of new input samples consumed per data block
                    ::size_t p, // Length of h(n)
-		   cl::Context& ctx,
 		   cl::CommandQueue& queue)
         : filter::fir::overlap_save_base()
 	, l_(l)
 	, p_(p)
         , last_id_(0)
-	, in_ (ctx, l+p-1)
-	, out_(ctx, l+p-1)
+	, in_ (queue, l+p-1)
+	, out_(queue, l+p-1)
 	, queue_(queue)
 	, prog_source_(read_kernel_source("include/cl/fft/kernel.cl"))
-	, program_(ctx, cl::Program::Sources(1, std::make_pair(prog_source_.c_str(),
-							       prog_source_.length()+1))) {
+	, program_(queue.getInfo<CL_QUEUE_CONTEXT>(),
+		   cl::Program::Sources(1, std::make_pair(prog_source_.c_str(),
+							  prog_source_.length()+1))) {
         for (::size_t i(0), iend(l+p-1); i<iend; ++i)
           in_[i] = out_[i] = 0;
+
+	auto const ctx = queue.getInfo<CL_QUEUE_CONTEXT>();
 
 	const float scale = 1.0f;
 	::size_t clLengths[1] = { l+p-1 };
@@ -200,8 +203,7 @@ namespace cl {
 						     ::size_t decim) {
         if (b.size() != p_)
           throw std::runtime_error("overlap_save::update_filter_coeff b.size() != p_");
-	cl::Context ctx = queue_.getInfo<CL_QUEUE_CONTEXT>();
-        typename filt::sptr fp(new filt(l_, p_, b, offset, decim, ctx, program_, queue_, out_.get_device_buffer()));
+        typename filt::sptr fp(new filt(l_, p_, b, offset, decim, program_, queue_, out_.get_device_buffer()));
         filters_.insert(std::make_pair(last_id_, fp));
         return std::make_pair(last_id_++, fp->offset());
       }
@@ -275,7 +277,7 @@ namespace cl {
 	, _ctx(_queue.getInfo<CL_QUEUE_CONTEXT>()) {}
 
       filter::fir::overlap_save_base::sptr make_overlap_save(::size_t l, ::size_t p) {
-	return filter::fir::overlap_save_base::sptr(new overlap_save(l, p, _ctx, _queue));
+	return filter::fir::overlap_save_base::sptr(new overlap_save(l, p, _queue));
       }
 
     protected:

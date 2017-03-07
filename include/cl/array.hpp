@@ -19,6 +19,11 @@ namespace cl {
       , _v_host(n, value_type(0))
       , _norm(n) {}
 
+    array(const cl::CommandQueue& q, ::size_t n)
+      : _v_device(q.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, n*sizeof(value_type))
+      , _v_host(n, value_type(0))
+      , _norm(n) {}
+
     void resize(::size_t n) {
       if (_v_host.size() == n)
 	return;
