@@ -3,12 +3,13 @@
 
 #include "FFT.hpp"
 
-#include "cl/fft/overlap_save.hpp"
 
 #include "filter/fir.hpp"
 #include "filter/fir/overlap_save.hpp"
 
 
+#ifdef USE_OPENCL
+#  include "cl/fft/overlap_save.hpp"
 void print_device_info(const cl::Device& device) {
   std::cout<< "Using device: "                             << device.getInfo<CL_DEVICE_NAME>()
 	   << "\n\t CL_DEVICE_VENDOR "                     << device.getInfo<CL_DEVICE_VENDOR>()
@@ -24,6 +25,7 @@ void print_device_info(const cl::Device& device) {
 	   << "\n\t CL_DEVICE_MAX_MEM_ALLOC_SIZE="         << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>()
 	   << std::endl;
 }
+#endif
 
 int main() {
 #ifdef USE_OPENCL

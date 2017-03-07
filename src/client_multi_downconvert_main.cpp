@@ -37,8 +37,11 @@
 #include "wave/writer.hpp"
 #include "station_info.hpp"
 
-#include "filter/fir/overlap_save.hpp"
-#include "cl/fft/overlap_save.hpp"
+#ifdef USE_OPENCL
+#  include "cl/fft/overlap_save.hpp"
+#else
+#  include "filter/fir/overlap_save.hpp"
+#endif
 
 /*! \addtogroup executables
  *  @{
@@ -132,8 +135,6 @@ int main(int argc, char* argv[])
 
     FFT::FFTWInitThreads fftwInit;
 
-    cl::fft::setup cl_fft_setup;
-
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq      > >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
@@ -143,8 +144,12 @@ int main(int argc, char* argv[])
     const std::string stream_name(config.get<std::string>
                                   ("MultiDownConverter.server.<xmlattr>.stream_name", "DataIQ"));
 
-    // typedef filter::fir::overlap_save_setup  os_setup_type;
+#ifdef USE_OPENCL    
+    cl::fft::setup cl_fft_setup;
     typedef cl::fft::overlap_save_setup os_setup_type;
+#else
+    typedef filter::fir::overlap_save_setup  os_setup_type;
+#endif
     network::client::client<network::iq_adapter<repack_processor<multi_downconvert_toBC<os_setup_type> > > >
       c(config.get_child("MultiDownConverter"));
 
