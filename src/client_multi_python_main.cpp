@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
       (boost::bind
        (&boost::asio::io_service::stop, boost::ref(network::get_io_service())));
 
-    boost::thread_group threadpool;
+    boost::thread_group& threadpool = get_thread_pool();
     const size_t thread_pool_size(config.get<size_t>("ClientMulti.<xmlattr>.threadPoolSize", 4));
     for (size_t i(0); i<thread_pool_size; ++i)
       threadpool.create_thread
