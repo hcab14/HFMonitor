@@ -202,11 +202,11 @@ namespace network {
               // dump all wav streams
               if (header().id() == "WAV_0000") {
                 const std::string str_name(directory().stream_name_of(header().stream_number()));
-                strand().dispatch(boost::bind(&connection::dump_wav, this,
+                strand().dispatch(boost::bind(&connection::dump_wav, shared_from_this(),
                                               header().approx_ptime(), str_name, data_buffer_.begin(), data_buffer_.begin()+header_.length()));
               }            
               // process data samples in a method overwritten in a derived class
-              strand().dispatch(boost::bind(&connection::process, this,
+              strand().dispatch(boost::bind(&connection::process, shared_from_this(),
                                             data_buffer_.begin(), data_buffer_.begin()+header_.length()));
             }
           }

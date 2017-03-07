@@ -67,7 +67,7 @@ namespace network {
     void stop() {
       // announce stop of io_service
       LOG_INFO("broadcaster stop");
-      network::get_io_service().post(strand_.wrap(boost::bind(&broadcaster::do_stop, this)));
+      strand_.dispatch(boost::bind(&broadcaster::do_stop, this));
     }
 
     typedef data_connection::ptime ptime;
@@ -187,8 +187,10 @@ namespace network {
           LOG_INFO(str(boost::format("remote endpoint='%s'") % socket->remote_endpoint(ec_ignore)));
 
           // make new data connection and insert into the set of open connections
-          data_connections_.insert(data_connection::make(network::get_io_service(), strand_, socket,
-                                                         directory_, max_queue_total_size_, max_queue_delay_));
+          auto dc = data_connection::make(network::get_io_service(), strand_, socket,
+                                          directory_, max_queue_total_size_, max_queue_delay_);
+          dc->async_receive_command();
+          data_connections_.insert(dc);
 
           // asynchronously accept next data connection
           async_accept(a);

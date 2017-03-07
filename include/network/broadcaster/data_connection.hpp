@@ -48,7 +48,7 @@ namespace network {
     //  * when (binary) data is being sent, a "tick" protocol ensures that the
     //    connection is still there
 
-    class data_connection : private boost::noncopyable {
+    class data_connection : public boost::enable_shared_from_this<data_connection>, private boost::noncopyable {
     public:
       typedef boost::posix_time::ptime ptime;
       typedef boost::posix_time::time_duration time_duration;
@@ -84,7 +84,7 @@ namespace network {
         , last_tick_time_(boost::posix_time::microsec_clock::universal_time())
         , status_(status_init)
         , start_async_write_(false) {
-        async_receive_command();
+        // async_receive_command(); calles shared_from_this() and threfore cannot be called from the constructor
       }
 
       ~data_connection() {
@@ -112,22 +112,6 @@ namespace network {
         return sptr(new data_connection(io_service, strand, p, directory, max_total_size, max_queue_delay));
       }
 
-      // close() must ONLY be called in the destructor
-      // for all other purposes set status_= status_error
-      // then the object connection will be deleted in the next call to broadcaster::push_back
-      void close() {
-        if (is_open()) {
-          boost::system::error_code ec;
-          LOG_INFO(str(boost::format("data_connection::close ep=%s") % tcp_socket_ptr_->remote_endpoint(ec)));
-          LOG_INFO("cancel async operations");
-          tcp_socket_ptr_->cancel(ec);
-          if (ec) LOG_WARNING((str(boost::format("cancel error_code=%s") % ec)));
-          LOG_INFO("close and shutdown socket");
-          tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-          if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
-          tcp_socket_ptr_->close();
-        }
-      }
       bool is_open() const { return tcp_socket_ptr_ ? tcp_socket_ptr_->is_open() : false; }
 
       void pop_front() { list_of_packets_.pop_front(); }
@@ -251,7 +235,7 @@ namespace network {
           boost::asio::async_write(*tcp_socket_ptr_,
                                    boost::asio::buffer(dataPtr->data(), dataPtr->size()),
                                    strand_.wrap(boost::bind(&data_connection::handle_write_data,
-                                                            this,
+                                                            shared_from_this(),
                                                             boost::asio::placeholders::error,
                                                             boost::asio::placeholders::bytes_transferred)));
         }
@@ -274,7 +258,7 @@ namespace network {
         case status_init:
           boost::asio::async_read_until(*tcp_socket_ptr_, response_, "\r\n",
                                         strand_.wrap(boost::bind(&data_connection::handle_receive_command,
-                                                                 this,
+                                                                 shared_from_this(),
                                                                  boost::asio::placeholders::error)));
           break;
         case status_configured:
@@ -342,7 +326,7 @@ namespace network {
         boost::asio::async_write(*tcp_socket_ptr_,
                                  boost::asio::buffer(reply_),
                                  strand_.wrap(boost::bind(&data_connection::handle_write_reply,
-                                                          this,
+                                                          shared_from_this(),
                                                           new_status,
                                                           boost::asio::placeholders::error,
                                                           boost::asio::placeholders::bytes_transferred)));
@@ -384,7 +368,7 @@ namespace network {
           boost::asio::async_read(*tcp_socket_ptr_,
                                   boost::asio::buffer(&dummy_data_, sizeof(dummy_data_)),
                                   strand_.wrap(boost::bind(&data_connection::handle_receive_tick,
-                                                           this,
+                                                           shared_from_this(),
                                                            boost::asio::placeholders::error,
                                                            boost::asio::placeholders::bytes_transferred,
                                                            status)));
@@ -404,6 +388,19 @@ namespace network {
         }
       }
     protected:
+      // close() must ONLY be called in the destructor
+      // for all other purposes set status_= status_error
+      // then the object connection will be deleted in the next call to broadcaster::push_back
+      void close() {
+        if (is_open()) {
+          boost::system::error_code ec;
+          tcp_socket_ptr_->cancel(ec);
+          if (ec) LOG_WARNING((str(boost::format("cancel error_code=%s") % ec)));
+          tcp_socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+          if (ec) LOG_WARNING((str(boost::format("shutdown error_code=%s") % ec)));
+          tcp_socket_ptr_->close();
+        }
+      }
     private:
       boost::asio::io_service& io_service_;
       boost::asio::strand&     strand_;
