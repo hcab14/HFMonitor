@@ -96,9 +96,8 @@ namespace filter {
         double offset() const {
           return (shift() > n()/2) ? double(int(shift())-int(n()))/n(): double(shift())/n();
         }
-	complex_vector_type::const_iterator begin()  const { return result_.begin(); }
-        complex_vector_type::const_iterator end()    const { return result_.end(); }
-        const complex_vector_type& result() const { return result_; }
+	complex_vector_type::const_iterator begin()  const { return ifft_.out().begin()+(p()-1)/d(); }
+        complex_vector_type::const_iterator end()    const { return ifft_.out().end(); }
 
         // performs inverse FFT of (shifted) input and downsampling
         void transform(const large_fft_type& fft) {
@@ -139,8 +138,8 @@ namespace filter {
 #endif
           ifft_.transform();
 
-          for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
-            result_[i] = ifft_.out(offset+i);
+          // for (size_t i(0), ld(l()/d()), offset((p()-1)/d()); i<ld; ++i)
+          //   result_[i] = ifft_.out(offset+i);
         }
 
       protected:

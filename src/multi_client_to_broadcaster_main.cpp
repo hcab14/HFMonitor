@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
     processor::registry::add<writer_txt>("WriterTXT");
     processor::registry::add<network::iq_adapter<wave::writer_iq>     >("WriterIQ");
     processor::registry::add<network::iq_adapter<FFTProcessor<float > > >("FFTProcessor_FLOAT");
-    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
+    //    processor::registry::add<network::iq_adapter<FFTProcessor<double> > >("FFTProcessor_DOUBLE");
     processor::registry::add<network::iq_adapter<demod_msk_processor  > >("DemodMSK");
     processor::registry::add<network::iq_adapter<demod_fsk_processor  > >("DemodFSK");
     processor::registry::add<network::iq_adapter<demod_alpha_processor> >("DemodALPHA");

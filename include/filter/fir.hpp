@@ -108,14 +108,13 @@ namespace filter {
         for (size_t i(0); i<m; ++i)
           v[i] = (i<=if0);
         const size_t k(size_t(f_ramp*m));
-//         std::cerr << "k= " << k << std::endl;
         for (size_t i(0); i<k; ++i) {
           const int j(int(if0+k/2)-int(i));
           if (j<0 || j>int(m)) continue;
           v[j] = double(i)/k;
         }
-
-        base_type::design_(v, v, FFT::WindowFunction::Hamming<float_type>(v.size()));
+        FFT::WindowFunction::Hamming<float_type> win_fcn(v.size());
+        base_type::design_(v, v, win_fcn);
       }
 
     protected:

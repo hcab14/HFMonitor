@@ -28,8 +28,8 @@ namespace cl {
         filt(::size_t l,
              ::size_t p,
              const typename std::vector<U>& b,
-             double shift, // normalized frequency
-             ::size_t d,    // downsampling factor
+             double shift,  // normalized frequency
+             ::size_t d,    // downsampling (decimation) factor
 	     cl::Context& ctx,
 	     cl::Program& program,
 	     cl::CommandQueue& queue,
@@ -40,8 +40,6 @@ namespace cl {
           , n_(l_+p_-1)
           , shift_(::size_t((1.+shift)*n_+0.5) % n_)
 	  , fft_ (n_,     1, FFTW_ESTIMATE)
-	    //	  , ifft_(n_/d_, -1, FFTW_ESTIMATE)
-	    //    , h_(n_, 0)
 	  , in_ (ctx, n_/d_)
 	  , out_(ctx, n_/d_)
 	  , h_  (ctx, n_)
@@ -102,7 +100,6 @@ namespace cl {
         }
 	complex_vector_type::const_iterator begin()  const { return out_.begin(); }
 	complex_vector_type::const_iterator end()    const { return out_.begin()+l()/d(); }
-        const complex_vector_type&          result() const { return out_.get(); }
 
         // performs inverse FFT of (shifted) input and downsampling
 	cl::Event transform(cl::CommandQueue& q, const std::vector<cl::Event>& waitFor) {

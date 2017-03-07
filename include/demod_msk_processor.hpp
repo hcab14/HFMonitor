@@ -490,6 +490,8 @@ protected:
     }
     double sum_w(0), sum_wx(0);
     for (frequency_vector<double>::const_iterator i(i_max-3); i!=(i_max+4) && i!=psf.end(); ++i) {
+      if (i < psf.begin())
+        continue;
       // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
       sum_w += i->second;
       sum_wx += i->first * i->second;

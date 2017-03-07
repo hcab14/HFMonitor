@@ -54,7 +54,8 @@ int main()
 
 
     if (i>1) {
-      auto const& out(os.get_filter(r.first)->result());
+      const os_type::complex_vector_type out(os.begin(r.first),
+                                             os.end(r.first));
       t1.transformVector(buffer, FFT::WindowFunction::Blackman<float>(l));
       t2.transformVector(out, FFT::WindowFunction::Blackman<float>(l/decim));
       for (size_t j=0; j<l; ++j) {

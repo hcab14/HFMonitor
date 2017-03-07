@@ -23,21 +23,45 @@
 #include <vector>
 #include <fftw3.h>
 
+#include "aligned_vector.hpp"
+
 namespace FFT {
   namespace WindowFunction {
     /// rectangular window function
     template<typename T>
-    struct Rectangular {
-      Rectangular(size_t) {}
-      T operator()(size_t) const { return T(1); }
+    class base {
+    public:
+      base(size_t n)
+        :  n_(n) {}
+      virtual ~base() {}
+      T gain() const {
+        T gain_val = 0;
+        for (size_t i=0; i<n_; ++i)
+          gain_val += (*this)(i);
+        return gain_val/n_;
+      }
+      T operator()(size_t i) const { return eval(i); }
+    protected:
+      virtual T eval(size_t) const = 0;
+    private:
+      size_t n_;
+    };
+
+    template<typename T>
+    struct Rectangular : public base<T> {
+      Rectangular(size_t n)
+        : base<T>(n) {}
+      virtual T eval(size_t) const { return T(1); }
     } ;
     /// Hanning window function
     template<typename T>
-    class Hanning {
+    class Hanning : public base<T> {
     public:
       Hanning(size_t n)
-        : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const {
+        : base<T>(n)
+        , norm_(1./double(n-1)){}
+    protected:
+      virtual T eval(size_t u) const {
         return 0.5*(1.0-std::cos(2.*M_PI*u*norm_));
       }
     private:
@@ -45,11 +69,13 @@ namespace FFT {
     } ;
     /// Hamming window function
     template<typename T>
-    class Hamming {
+    class Hamming : public WindowFunction::base<T> {
     public:
       Hamming(size_t n)
-        : norm_(1./double(n-1)) {}
-      T operator()(size_t u) const {
+        : base<T>(n)
+        , norm_(1./double(n-1)) {}
+    protected:
+      virtual T eval(size_t u) const {
         return 0.54 - 0.46*std::cos(2.*M_PI*u*norm_);
       }
     private:
@@ -57,28 +83,31 @@ namespace FFT {
     } ;
     /// Gaussian window function
     template<typename T>
-    class Gaussian {
+    class Gaussian : public base<T> {
     public:
       Gaussian(size_t n, T sigma)
-        : n_(n)
-        , norm_(1./(0.5*sigma*(n-1))) {}
-      T operator()(size_t u) const {
-        return std::exp(-0.5*std::pow((u-0.5*(n_-1))*norm_, 2));
+        : base<T>(n)
+        , norm_(1./(0.5*sigma*(n-1)))
+        , mean_(0.5*(n-1)) {}
+    protected:
+      virtual T eval(size_t u) const {
+        return std::exp(-0.5*std::pow((u-mean_)*norm_, 2));
       }
     private:
-      const size_t n_;
       const double norm_;
+      const double mean_;
     } ;
     /// Blackman window function
     template<typename T>
-    class Blackman {
+    class Blackman : public base<T> {
     public:
       Blackman(size_t n, T alpha=0.16)
-        : a0_(0.5*(1-alpha))
+        : base<T>(n)
+        , a0_(0.5*(1-alpha))
         , a1_(0.5)
         , a2_(0.5*alpha)
         , norm_(1./double(n-1)) {}
-      T operator()(size_t u) const {
+      virtual T eval(size_t u) const {
         const T t(2.*M_PI*u*norm_);
         return a0_ - a1_*std::cos(t) + a2_*std::cos(2*t);
       }
@@ -121,72 +150,6 @@ namespace FFT {
     MAKE_TRAITS(fftw,  double);
     MAKE_TRAITS(fftwl, long double);
 
-    template<typename T>
-    class FFTWArray {
-    public:
-      typedef Internal::FFTWTraits<T> Traits;
-      typedef typename Traits::complex_type complex_type;
-
-      FFTWArray(size_t n)
-        : n_(n)
-        , a_(Traits::malloc(n))
-        , norm_(n_) {}
-
-      template<typename WINDOW_FCN>
-      FFTWArray(const std::vector<std::complex<double> >& v,
-                const WINDOW_FCN& window_fcn)
-        : n_(v.size())
-        , a_(Traits::malloc(n_))
-        , norm_(fill(v, window_fcn)) {}
-
-      ~FFTWArray() { Traits::free(a_); }
-
-      size_t size() const { return n_; }
-      T norm() const { return norm_; }
-
-      complex_type* begin() { return a_; }
-      complex_type* end()   { return a_+n_; }
-      complex_type&       operator[](size_t n)       { return a_[n]; }
-      const complex_type& operator[](size_t n) const { return a_[n]; }
-
-      template<typename V,
-               template<typename U> class VECTOR,
-               template<typename W> class WINDOW_FCN>
-      double fill(const VECTOR<std::complex<V> >& v,
-                  const WINDOW_FCN<V>& window_fcn) {
-        return fill(v.begin(), v.end(), window_fcn);
-      }
-      template<typename IT,
-               typename W>
-      double fill(IT i0,
-                  IT  i1,
-                  const W& window_fcn) {
-        const size_t length(std::distance(i0, i1));
-        if (length != n_) resize(length);
-        norm_= 0;
-#if 1
-        for (unsigned u(0); u<n_ /* && i0 != i1 */; ++u, ++i0) {
-          const T w(window_fcn(u));
-          norm_ += w;
-          a_[u][0] = w * i0->real();
-          a_[u][1] = w * i0->imag();
-        }
-#endif
-        return norm_;
-      }
-
-      void resize(size_t n) {
-        if (n != n_) {
-          Traits::free(a_);
-          n_= n;
-          a_= Traits::malloc(n);
-        }
-      }
-    private:
-      size_t n_;
-      complex_type *a_;
-      T norm_;
-    } ;
   } // namespace Internal
 
   /// interface to FFTW (double or single precision)
@@ -194,8 +157,11 @@ namespace FFT {
   class FFTWTransform : public Internal::FFTWTraits<T> {
   public:
     typedef Internal::FFTWTraits<T> Traits;
-    typedef typename Traits::complex_type complex_type;
+    typedef typename Traits::complex_type fftw_complex_type;
+    typedef typename std::complex<T> complex_type;
     typedef typename Traits::Plan Plan;
+
+    typedef aligned_vector<complex_type> vector_type;
 
     using Traits::plan_dft_1d;
     using Traits::execute;
@@ -206,22 +172,9 @@ namespace FFT {
       , out_(n)
       , sign_(sign)
       , flags_(flags)
-      , plan_(plan_dft_1d(n, in_.begin(), out_.begin(), sign, flags))
-      , normalizationFactor_(T(1)/in_.norm()) {}
+      , plan_(plan_dft_1d(n, (fftw_complex_type*)&in_[0], (fftw_complex_type*)&out_[0], sign, flags))
+      , normalizationFactor_(T(1)/T(n)) {}
 
-    template<typename WINDOW_FCN>
-    FFTWTransform(const std::vector<std::complex<double> >& v,
-                  const WINDOW_FCN& window_fcn,
-                  int sign,
-                  unsigned flags)
-      : in_(v, window_fcn)
-      , out_(v.size())
-      , sign_(sign)
-      , flags_(flags)
-      , plan_(plan_dft_1d(in_.size(), in_.begin(), out_.begin(), sign, flags))
-      , normalizationFactor_(T(1)/in_.norm()) {
-      execute(plan_);
-    }
     ~FFTWTransform() {
       destroy_plan(plan_);
     }
@@ -232,7 +185,7 @@ namespace FFT {
         in_.resize(n);
         out_.resize(n);
         destroy_plan(plan_);
-        plan_ = plan_dft_1d(in_.size(), in_.begin(), out_.begin(), sign_, flags_);
+        plan_ = plan_dft_1d(in_.size(), (fftw_complex_type*)&in_[0], (fftw_complex_type*)&out_[0], sign_, flags_);
         // normalizationFactor_ has to be updated by hand
       }
     }
@@ -256,8 +209,9 @@ namespace FFT {
       const size_t length(std::distance(i0, i1));
       if (length != size())
         resize(length);
-      in_.fill(i0, i1, window_fcn);
-      normalizationFactor_= T(1)/in_.norm();
+      for (size_t i=0; i<length; ++i)
+        in_[i] = typename IT::value_type::value_type(window_fcn(i)) * *i0++;
+      normalizationFactor_= T(1)/T(length)/window_fcn.gain();
       execute(plan_);
     }
     /// transform
@@ -271,36 +225,27 @@ namespace FFT {
 
     /// get the result of a single bin
     /// amplitude is corrected for the spread due to the used window function
-    std::complex<T> getBin(size_t u) const {
-      return normalizationFactor_*std::complex<T>(out_[u][0], out_[u][1]);
-    }
-    /// get all bins
-    std::vector<complex_type> getBins() const {
-      std::vector<complex_type> v(size());
-      for (size_t u(0); u<size(); ++u)
-        v[u] = getBin(u);
-      return v;
+    complex_type getBin(size_t u) const {
+      return normalizationFactor_ * out_[u];
     }
 
-    /// get the input bin \c u
-    std::complex<T> getInBin(size_t u) const {
-      return std::complex<T>(in_[u][0], in_[u][1]);
-    }
+    vector_type& in() { return in_; }
+    const vector_type& out() const { return out_; }
 
     /// access for input array (non-const)
-    std::complex<T>& in (size_t index) { return reinterpret_cast<std::complex<T>&>(in_[index]); }
+    complex_type& in (size_t index) { return in_[index]; }
     /// access for output array (non-const)
-    std::complex<T>& out(size_t index) { return reinterpret_cast<std::complex<T>&>(out_[index]); }
+    complex_type& out(size_t index) { return out_[index]; }
 
     /// access for input array (const)
-    const std::complex<T>& in (size_t index) const { return reinterpret_cast<const std::complex<T>&>(in_[index]); }
+    const complex_type& in (size_t index) const { return in_[index]; }
     /// access for output array (const)
-    const std::complex<T>& out(size_t index) const { return reinterpret_cast<const std::complex<T>&>(out_[index]); }
+    const complex_type& out(size_t index) const { return out_[index]; }
 
   protected:
   private:
-    Internal::FFTWArray<T> in_;   /// input FFTW array
-    Internal::FFTWArray<T> out_;  /// output FFTW array
+    vector_type              in_;   /// input FFTW array
+    vector_type             out_;  /// output FFTW array
     int                    sign_; /// sign of transform
     unsigned              flags_; /// FFTW flags
     Plan                   plan_; /// FFTW plan

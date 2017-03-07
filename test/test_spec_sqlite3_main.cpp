@@ -54,9 +54,9 @@ std::ostream& operator<<(std::ostream& os, const std::map<double, double>& v) {
 class test_proc :  processor::base_iq  {
 public:
   typedef boost::shared_ptr<test_proc> sptr;
-  typedef FFT::FFTWTransform<double> fft_type;
+  typedef FFT::FFTWTransform<float> fft_type;
   typedef boost::shared_ptr<fft_type> fft_sptr;
-  typedef frequency_vector<double> fv_type;
+  typedef frequency_vector<float> fv_type;
   typedef boost::posix_time::time_duration time_duration;
 
 

@@ -59,7 +59,7 @@ template<typename FFTFloat>
 class FFTProcessor : public processor::base_iq {
 public:
   // typedef float FFTFloat;
-  typedef std::complex<double> complex_type;
+  typedef std::complex<float> complex_type;
   typedef std::vector<complex_type> Samples;
 
 #ifdef USE_CUDA

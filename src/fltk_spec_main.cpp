@@ -168,8 +168,8 @@ public:
       filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
     }
 
-    std::vector<std::complex<double> > sf(length);
-    std::vector<std::complex<double> >::iterator is=sf.begin();
+    std::vector<std::complex<float> > sf(length);
+    std::vector<std::complex<float> >::iterator is=sf.begin();
     const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
     const bool  filter_on        = w_.filter_on();
     const float filter_threshold = w_.filter_threshold();
@@ -185,7 +185,7 @@ public:
       *is = ((b || !filter_on) ? *i  : std::complex<float>(0));
     }
 
-    fftw_.transformRange(sf.begin(), sf.end(), FFT::WindowFunction::Blackman<double>(length));
+    fftw_.transformRange(sf.begin(), sf.end(), FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
     const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());

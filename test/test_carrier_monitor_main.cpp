@@ -159,7 +159,7 @@ private:
 
 class carrier_monitor_processor : public processor::base_iq {
 public:
-  typedef FFT::FFTWTransform<double> fft_type;
+  typedef FFT::FFTWTransform<float> fft_type;
   typedef std::vector<single_channel_carrier_monitor::sptr> channel_vector_type;
 
   carrier_monitor_processor(const ptree& config)
@@ -195,7 +195,7 @@ public:
     // (1) compute FFT spectrum
     if (length != fftw_.size())
       fftw_.resize(length);
-    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<double>(length));
+    fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
     const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
     
     // (2) process each channel
