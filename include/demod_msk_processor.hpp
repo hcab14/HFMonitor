@@ -27,6 +27,7 @@
 #include <bitset>
 
 #include <boost/property_tree/ptree.hpp>
+#include <volk/volk.h>
 
 #include "demod/msk.hpp"
 #include "decode/rtcm2.hpp"
@@ -316,9 +317,9 @@ public:
           (std::distance(i0, i) % downscale_factor_) == 0) {
         const complex_type sample(filter_.process());
         *j++ = sample;
-        *k++ = sample*sample;
       }
     }
+    volk_32fc_x2_multiply_32fc(&samples2[0], &samples[0], &samples[0], samples.size());
 
 #if 0
     {
@@ -449,30 +450,24 @@ protected:
     const bool found_plus = find_peak(filter_plus_.x(), f_plus, sn_plus);
     if (!found_plus) return false;
 
-    try {
 #if 0
-      const size_t ip[2] = {
-        s.freq2index(f_minus),
-        s.freq2index(f_plus)
-      };
-      for (int i=-3; i<4; ++i) {
-        std::cout << "detect_msk: " << i << " "
-                  << s.index2freq(i+ip[0]) << " "
-                  << s.index2freq(i+ip[1]) << " "
-                  << std::arg(fftw_.getBin(i+ip[0])) - std::arg(fftw_.getBin(i+ip[1])) << " "
-                  << std::abs(fftw_.getBin(i+ip[0])) << " "
-                  << std::abs(fftw_.getBin(i+ip[1])) << " "
-                  << std::endl;
-      }
-#endif
-      sn      = 0.5*(sn_minus + sn_plus);
-      delta_f = 0.5* (f_plus + f_minus);
-      baud    = f_plus - f_minus;
-      // std::cout << "ps: " << delta_f << " " << sn << " " << baud << std::endl;
-    } catch (const std::exception& e) {
-      LOG_ERROR(e.what());
-      return false;
+    const size_t ip[2] = {
+      s.freq2index(f_minus),
+      s.freq2index(f_plus)
+    };
+    for (int i=-3; i<4; ++i) {
+      std::cout << "detect_msk: " << i << " "
+                << s.index2freq(i+ip[0]) << " "
+                << s.index2freq(i+ip[1]) << " "
+                << std::arg(fftw_.getBin(i+ip[0])) - std::arg(fftw_.getBin(i+ip[1])) << " "
+                << std::abs(fftw_.getBin(i+ip[0])) << " "
+                << std::abs(fftw_.getBin(i+ip[1])) << " "
+                << std::endl;
     }
+#endif
+    sn      = 0.5*(sn_minus + sn_plus);
+    delta_f = 0.5* (f_plus + f_minus);
+    baud    = f_plus - f_minus;
     return true;
   }
 
