@@ -23,6 +23,9 @@
 #include <vector>
 #include <fftw3.h>
 
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "aligned_vector.hpp"
 
 namespace FFT {
@@ -156,6 +159,7 @@ namespace FFT {
   template<typename T>
   class FFTWTransform : public Internal::FFTWTraits<T> {
   public:
+    typedef boost::shared_ptr<FFTWTransform<T> > sptr;
     typedef Internal::FFTWTraits<T> Traits;
     typedef typename Traits::complex_type fftw_complex_type;
     typedef typename std::complex<T> complex_type;
@@ -264,6 +268,16 @@ namespace FFT {
   private:
   } ;
 
+  struct fftw_setup {
+    typedef FFTWTransform<float>::sptr sptr;
+    enum {
+      FORWARD  = FFTW_FORWARD,  // +1
+      BACKWARD = FFTW_BACKWARD  // -1
+    };
+    sptr make(size_t n, int sign) {
+      return boost::make_shared<sptr::element_type>(n, sign, FFTW_ESTIMATE);
+    }
+  } ;
 } // namespace FFT
 
 #ifdef USE_CUDA

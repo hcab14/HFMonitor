@@ -1,14 +1,15 @@
 #ifndef _CL_FFT_HPP_cm170305_
 #define _CL_FFT_HPP_cm170305_
 
-#ifdef USE_OPENCL
+//#ifdef USE_OPENCL
 #  define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #  include <clFFT.h>
 #  define __CL_ENABLE_EXCEPTIONS
 #  include "cl/cl.hpp"
 #  include "cl/error.hpp"
 #  include "cl/array.hpp"
-#endif
+#  include "cl/setup.hpp"
+//#endif
 
 namespace cl {
   namespace fft {
@@ -29,6 +30,8 @@ namespace cl {
 
     class clfft {
     public:
+      typedef boost::shared_ptr<clfft> sptr;
+      typedef float value_type;
       typedef std::complex<float> complex_type;
 
       clfft(::size_t n,
@@ -38,11 +41,14 @@ namespace cl {
 	, _out(q, 1024)
 	, _queue(q)
 	, _direction(direction)
-	, _plan_handle() { resize(n); }
+	, _plan_handle()
+	, _normalization_factor(1.0f) { resize(n); }
 
       virtual ~clfft() {
 	clfftDestroyPlan(&_plan_handle);
       }
+
+      ::size_t size() const { return _in.size(); }
 
       void resize(::size_t n) {
 	if (n == _in.size() && n == _out.size())
@@ -66,6 +72,19 @@ namespace cl {
 	enqueue_transform(events_wait);
 	_queue.finish();
 	device_to_host();
+      }
+      template<typename IT,
+	       typename W>
+      void transformRange(IT i0,
+			  IT i1,
+			  const W& window_fcn) {
+	const ::size_t length(std::distance(i0, i1));
+	if (length != size())
+	  resize(length);
+	for (::size_t i=0; i<length; ++i)
+	  in(i) = typename IT::value_type::value_type(window_fcn(i)) * *i0++;
+	_normalization_factor = 1.0f/(float(length)*window_fcn.gain());
+	transform();
       }
 
       cl::Event enqueue_transform(std::vector<cl::Event> &events_wait) {
@@ -95,6 +114,9 @@ namespace cl {
       const array<complex_type>& in () const { return  _in; }
       const array<complex_type>& out() const { return _out; }
 
+      complex_type getBin(::size_t i) const {
+	return _normalization_factor*out(i);
+      }
     protected:
     private:
       array<complex_type> _in;
@@ -102,7 +124,21 @@ namespace cl {
       cl::CommandQueue    _queue;
       clfftDirection      _direction;
       clfftPlanHandle     _plan_handle;
+      float               _normalization_factor;
     } ;
+
+    class clfft_setup : public cl::setup {
+    public:
+      typedef clfft::sptr sptr;
+      enum {
+	FORWARD  = CLFFT_FORWARD,
+	BACKWARD = CLFFT_BACKWARD
+      };
+      sptr make(::size_t n, int sign) {
+	return boost::make_shared<sptr::element_type>(n, clfftDirection(sign), queue());
+      }
+    } ;
+
   } // namespace fft
 } // namespace cl
 

@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "processor.hpp"
+#include "cl/setup.hpp"
 #include "cl/fft.hpp"
 
 namespace cl {
@@ -234,40 +235,17 @@ namespace cl {
       cl::Program      program_;
     } ;
 
-    class overlap_save_setup {
+    class overlap_save_setup : public cl::setup {
     public:
       typedef overlap_save::sptr sptr;
+
       overlap_save_setup()
-	: _queue(make_queue())
-	, _ctx(_queue.getInfo<CL_QUEUE_CONTEXT>()) {}
+	: cl::setup() {}
+      virtual ~overlap_save_setup() {}
 
       sptr make_overlap_save(::size_t l, ::size_t p) {
-	return boost::make_shared<overlap_save>(l, p, _queue);
+	return boost::make_shared<overlap_save>(l, p, queue());
       }
-
-    protected:
-      static cl::CommandQueue make_queue() {
-	std::vector<cl::Platform> platforms;
-	cl::Platform::get(&platforms);
-	ASSERT_THROW(!platforms.empty());
-
-	auto const& default_platform = platforms[0];
-	std::cout << "Using platform: "<< default_platform.getInfo<CL_PLATFORM_NAME>() << " #platforms=" << platforms.size() << "\n";
-
-	cl_context_properties properties[] =
-	  { CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0};
-	cl::Context ctx(CL_DEVICE_TYPE_GPU, properties);
-
-	std::vector<cl::Device> devices = ctx.getInfo<CL_CONTEXT_DEVICES>();
-	ASSERT_THROW(!devices.empty());
-
-	auto const& default_device = devices[0];
-	return cl::CommandQueue(ctx, default_device);
-      }
-
-    private:
-      cl::CommandQueue _queue;
-      cl::Context      _ctx;
     } ;
 
   } // namespace fft
