@@ -23,22 +23,22 @@
 #include <map>
 
 #include <boost/format.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <volk/volk.h>
 
 #include "aligned_vector.hpp"
 #include "FFT.hpp"
-
-#include "filter/fir/overlap_save_base.hpp"
-
+#include "processor.hpp"
 //
 // multi overlap-save filter
 //
 namespace filter {
   namespace fir {
-    class overlap_save : public overlap_save_base {
+    class overlap_save {
     public:
+      typedef boost::shared_ptr<overlap_save> sptr;
       typedef aligned_vector<float> real_vector_type;
       typedef FFT::FFTWTransform<float> small_fft_type;
 #ifdef USE_CUDA
@@ -46,6 +46,8 @@ namespace filter {
 #else
       typedef FFT::FFTWTransform<float> large_fft_type;
 #endif
+      typedef processor::base_iq::complex_type complex_type;
+      typedef processor::base_iq::vector_type complex_vector_type;
     private:
 
       // class for holding filter coefficients and the fft
@@ -167,8 +169,7 @@ namespace filter {
     public:
       overlap_save(size_t l, // Number of new input samples consumed per data block
                    size_t p) // Length of h(n)
-        : overlap_save_base()
-        , l_(l)
+        : l_(l)
         , p_(p)
         , fft_(l+p-1, 1, FFTW_ESTIMATE)
         , last_id_(0) {
@@ -260,8 +261,9 @@ namespace filter {
     } ;
 
     struct overlap_save_setup {
-      overlap_save_base::sptr make_overlap_save(::size_t l, ::size_t p) {
-	return overlap_save_base::sptr(new overlap_save(l, p));
+      typedef overlap_save::sptr sptr;
+      sptr make_overlap_save(::size_t l, ::size_t p) {
+	return boost::make_shared<overlap_save>(l, p);
       }
     } ;
 

@@ -5,18 +5,20 @@
 
 #include <fstream>
 #include <boost/format.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "filter/fir/overlap_save_base.hpp"
+#include "processor.hpp"
 #include "cl/fft.hpp"
 
 namespace cl {
   namespace fft {
-    class overlap_save : public filter::fir::overlap_save_base {
+    class overlap_save {
     public:
+      typedef boost::shared_ptr<overlap_save> sptr;
+      typedef processor::base_iq::complex_type complex_type;
       typedef array<complex_type>::vector_type complex_vector_type;
       typedef FFT::FFTWTransform<float> small_fft_type;
-
-      typedef boost::shared_ptr<overlap_save> sptr;
 
     private:
       // class for holding filter coefficients and the fft
@@ -135,8 +137,7 @@ namespace cl {
       overlap_save(::size_t l, // Number of new input samples consumed per data block
                    ::size_t p, // Length of h(n)
 		   cl::CommandQueue& queue)
-        : filter::fir::overlap_save_base()
-	, l_(l)
+        : l_(l)
 	, p_(p)
         , last_id_(0)
 	, clfft_(l+p-1, CLFFT_FORWARD, queue)
@@ -235,12 +236,13 @@ namespace cl {
 
     class overlap_save_setup {
     public:
+      typedef overlap_save::sptr sptr;
       overlap_save_setup()
 	: _queue(make_queue())
 	, _ctx(_queue.getInfo<CL_QUEUE_CONTEXT>()) {}
 
-      filter::fir::overlap_save_base::sptr make_overlap_save(::size_t l, ::size_t p) {
-	return filter::fir::overlap_save_base::sptr(new overlap_save(l, p, _queue));
+      sptr make_overlap_save(::size_t l, ::size_t p) {
+	return boost::make_shared<overlap_save>(l, p, _queue);
       }
 
     protected:

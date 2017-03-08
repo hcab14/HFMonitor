@@ -33,7 +33,6 @@
 
 #include "aligned_vector.hpp"
 #include "filter/fir.hpp"
-#include "filter/fir/overlap_save_base.hpp"
 #include "logging.hpp"
 #include "processor.hpp"
 #include "processor/registry.hpp"
@@ -364,7 +363,7 @@ private:
   }
 
   OS_SETUP          overlap_save_setup_;
-  filter::fir::overlap_save_base::sptr overlap_save_;
+  typename OS_SETUP::sptr overlap_save_;
   filter_params     filter_params_;
   processor_map     processor_map_;
   result_map        result_map_;

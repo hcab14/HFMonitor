@@ -35,7 +35,7 @@ int main() {
     const int l = 500*1000;   //10*8192;
     const int p = 125*1000+1; //10*1024+1;
     cl::fft::overlap_save_setup os1_setup;
-    filter::fir::overlap_save::sptr os1 = os1_setup.make_overlap_save(l, p);
+    cl::fft::overlap_save::sptr os1 = os1_setup.make_overlap_save(l, p);
 
     filter::fir::overlap_save_setup os2_setup;
     filter::fir::overlap_save::sptr os2 = os2_setup.make_overlap_save(l, p);
