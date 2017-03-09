@@ -221,7 +221,6 @@ public:
     w_.label(window_title.c_str());
     const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
 			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,2));
-    // w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
     w_.get_spec_display().insert_spec(*fps_, *fpsf_, sp, update_window);
     if (update_window)
       last_update_time_ = sp->approx_ptime();
