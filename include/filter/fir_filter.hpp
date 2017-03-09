@@ -38,8 +38,8 @@ public:
     , shift_(0)
     , sample_counter_(n_-1)
     , b_(n, 0.)
-    , phases_ (n, complex_type(1,0))
-    , history_(n, complex_type(0,0)) {
+    , phases_ (  n, complex_type(1,0))
+    , history_(2*n, complex_type(0,0)) {
     design(n, f, x_slope);
   }
 
@@ -50,7 +50,7 @@ public:
     f_ = f;
     b_.resize(n_, 0);
     phases_.resize(n_, 1);
-    history_.resize(n_, 0);
+    history_.resize(2*n_, 0);
     fir_type fir_design(n);
     fir_design.design(f, x_slope*f);
     std::copy(fir_design.coeff().begin(), fir_design.coeff().end(), b_.begin());
@@ -85,13 +85,11 @@ public:
   void insert(complex_type sample) {
     ++sample_counter_;
     sample_counter_ %= phases_.size();
-    for (size_t i(n_-1); i; --i)
-      history_[i] = history_[i-1];
-    history_[0] = phases_[sample_counter_] * sample;
+    history_[n_-1-sample_counter_] = history_[2*n_-1-sample_counter_] = phases_[sample_counter_] * sample;
   }
   complex_type process() const {
     complex_type result(0);
-    volk_32fc_32f_dot_prod_32fc(&result, &history_[0], &b_[0], n_);
+    volk_32fc_32f_dot_prod_32fc(&result, &history_[n_-1-sample_counter_], &b_[0], n_);
     return result;
   }
   complex_type process(complex_type sample) {
