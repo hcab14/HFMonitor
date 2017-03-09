@@ -36,7 +36,7 @@
 #include "filter/fir_filter.hpp"
 #include "logging.hpp"
 #include "processor.hpp"
-#include "Spectrum.hpp"
+#include "fft_data.hpp"
 #include "aligned_vector.hpp"
 
 #include <complex>
@@ -213,6 +213,9 @@ public:
   demod_msk_processor(const boost::property_tree::ptree& config)
     : base_iq(config)
     , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+    , last_time_()
+    , ps_()
+    , ps_filtered_()
     , name_(config.get<std::string>("<xmlattr>.name"))
     , fc_Hz_(config.get<double>("<xmlattr>.fc_Hz"))
     , fm_Hz_(config.get<double>("<xmlattr>.fm_Hz"))
@@ -228,10 +231,7 @@ public:
     , filter_amp_pm_    (  config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , filter_amp_center_(5*config.get<double>("<xmlattr>.ampl_lowpass_tc_Sec"), period_Sec_)
     , phase_(0)
-    , signal_present_(0) {
-    filter_plus_.add (Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
-    filter_minus_.add(Filter::LowPass<frequency_vector<double> >::make(1.0, 300));
-  }
+    , signal_present_(0) {}
 
   virtual ~demod_msk_processor() {}
 
@@ -286,7 +286,7 @@ public:
       LOG_INFO(str(boost::format("%s downscale_factor=%d") % name_ % downscale_factor_));
 
       demod_msk_ = demod::msk::make(sp->sample_rate_Hz()/downscale_factor_, // sampling frequency
-                                    delta_f_Hz() + offset_Hz,               // center frequency relative to freq.-shifted FIR filter outpu
+                                    delta_f_Hz() + offset_Hz,               // center frequency relative to freq.-shifted FIR filter output
                                     0.5*fm_Hz(),                            // baud/2
                                     dwl_Hz_, period_Sec_);
 
@@ -305,12 +305,8 @@ public:
                            0.5*fm_Hz());
 
     // filter input
-    aligned_vector<complex_type>
-      samples(length, complex_type(0)),
-      samples2(length, complex_type(0));
-    aligned_vector<complex_type>::iterator
-      j(samples.begin()),
-      k(samples2.begin());
+    aligned_vector<complex_type> samples(length), samples2(length);
+    aligned_vector<complex_type>::iterator j(samples.begin());
     for (const_iterator i(i0); i!=i1; ++i) {
       filter_.insert(*i);
       if (downscale_factor_ == 1 ||
@@ -321,19 +317,6 @@ public:
     }
     volk_32fc_x2_multiply_32fc(&samples2[0], &samples[0], &samples[0], samples.size());
 
-#if 0
-    {
-      fftw_.transformRange(samples.begin(), samples.end(), FFT::WindowFunction::Blackman<float>(samples.size()));
-      const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz()/downscale_factor_, -2.*delta_f_Hz());
-
-      for (int i=0; i<s.size(); ++i)
-        std::cout << "SPEC: " << " " << s.index2freq(i) << " " << std::abs(s[i]) << std::endl;
-
-      for (int i=0; i<samples2.size(); ++i)
-        std::cout << "SIG: " << samples[i].real() << " " << samples[i].imag() << std::endl;
-
-    }
-#endif
     double baud(0), delta_f(0), sn(0);
     const bool is_signal = (detect_msk(sp, samples2.begin(), samples2.end(), baud, delta_f, sn) &&
                             sn > min_SN_db_       &&
@@ -342,7 +325,7 @@ public:
                              std::abs(baud-200) < 5));
 
     size_t sample_counter = 0;
-    for (const_iterator i(samples.begin()); i!=samples.end(); ++i, ++sample_counter) {
+    for (const_iterator i(samples.begin()), iend(samples.end()); i!=iend; ++i, ++sample_counter) {
       const complex_type sample(*i);
       demod_msk_->process(sample);
 
@@ -400,8 +383,6 @@ public:
         }
         if (result_bits_->size() == size_t(0.5+fm_Hz())) {
           result_bits_->set_quality(double(signal_present_));
-          //           std::cout << name_ << " " << "quality= " << result_bits_->quality() << " " << signal_present_ << std::endl;
-
           if (record_bits_ && result_bits_->quality() > 0.5)
             sp->put_result(result_bits_);
           result_bits_.reset();
@@ -424,82 +405,52 @@ protected:
                   double &sn) {
     const size_t length(std::distance(i0, i1));
     fftw_.transformRange(i0, i1, FFT::WindowFunction::Blackman<float>(length));
-    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz()/downscale_factor_, 2.*delta_f_Hz());
-#if 0
-    std::cout << "ps: " << name_ << " " << length << " " << s.index2freq(length/2-1) << " " << s.index2freq(length/2)
-              << " minus " << fc_Hz() << " " <<  filter_.get_shift()*sp->sample_rate_Hz() << " " << sp->center_frequency_Hz() << " "
-              << sp->sample_rate_Hz() << " " << downscale_factor_ << std::endl;
-#endif
-    const frequency_vector<double> ps_plus(-250., -40., s, std::abs<float>);
-    if (filter_minus_.x().empty())
-      filter_minus_.init(sp->approx_ptime(), ps_plus);
-    else
-      filter_minus_.update(sp->approx_ptime(), ps_plus);
 
-    const frequency_vector<double> ps_minus(40., 250., s, std::abs<double>);
-    if (filter_plus_.x().empty())
-      filter_plus_.init(sp->approx_ptime(), ps_minus);
-    else
-      filter_plus_.update(sp->approx_ptime(), ps_minus);
+    const bool is_first = !ps_;
+    if (is_first) {
+      ps_  = boost::make_shared<fft_power_spectrum>(fftw_.size(),
+                                                    sp->sample_rate_Hz()/downscale_factor_,
+                                                    2.*delta_f_Hz(), 0.0);
+      ps_filtered_  = boost::make_shared<fft_power_spectrum>(fftw_.size(),
+                                                             sp->sample_rate_Hz()/downscale_factor_,
+                                                             2.*delta_f_Hz(), 0.0);
+    }
 
-    double f_minus(0), sn_minus(0);
-    const bool found_minus = find_peak(filter_minus_.x(), f_minus, sn_minus);
-    if (!found_minus) return false;
+    ps_->update(sp->sample_rate_Hz()/downscale_factor_, 2.*delta_f_Hz(), 0.0);
+    ps_filtered_->update(sp->sample_rate_Hz()/downscale_factor_, 2.*delta_f_Hz(), 0.0);
+    ps_->insert(fftw_);
 
-    double f_plus(0), sn_plus(0);
-    const bool found_plus = find_peak(filter_plus_.x(), f_plus, sn_plus);
-    if (!found_plus) return false;
+    if (is_first) {
+      std::copy(ps_->begin(), ps_->end(), ps_filtered_->begin());
+    } else {
+      using namespace boost::posix_time;
+      const double dt(double((sp->approx_ptime() - last_time_).ticks()) / double(time_duration::ticks_per_second()));
+      const float alpha = dt/30.0;
+      for (auto i=ps_filtered_->begin(), j=ps_->begin(); j!=ps_->end(); ++i, ++j)
+	*i = *i*(1-alpha) + *j*alpha;
+    }
+    last_time_ = sp->approx_ptime();
 
-#if 0
-    const size_t ip[2] = {
-      s.freq2index(f_minus),
-      s.freq2index(f_plus)
+    const float f_min[2] = { -250,  40 };
+    const float f_max[2] = {  -40, 250 };
+    float f_peak[2], sn_peak[2];
+    for (int i=0; i<2; ++i) {
+      const int idx = ps_filtered_->find_peak(f_min[i], f_max[i]);
+      f_peak[i]     = ps_filtered_->estimate_peak_freq(idx);
+      sn_peak[i]    = ps_filtered_->begin()[idx] - ps_filtered_->get_noise_floor(f_min[i], f_max[i], 10.0f);
     };
-    for (int i=-3; i<4; ++i) {
-      std::cout << "detect_msk: " << i << " "
-                << s.index2freq(i+ip[0]) << " "
-                << s.index2freq(i+ip[1]) << " "
-                << std::arg(fftw_.getBin(i+ip[0])) - std::arg(fftw_.getBin(i+ip[1])) << " "
-                << std::abs(fftw_.getBin(i+ip[0])) << " "
-                << std::abs(fftw_.getBin(i+ip[1])) << " "
-                << std::endl;
-    }
-#endif
-    sn      = 0.5*(sn_minus + sn_plus);
-    delta_f = 0.5* (f_plus + f_minus);
-    baud    = f_plus - f_minus;
-    return true;
-  }
 
-  bool find_peak(const frequency_vector<double>& psf, double &f, double &sn) const {
-    frequency_vector<double>::const_iterator i_max;
-    double max(-1);
-    double sum(0);
-    for (frequency_vector<double>::const_iterator i(psf.begin()), end(psf.end()); i!=end; ++i) {
-      // std::cout << "find_peak ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
-      sum += i->second;
-      if (i->second > max) {
-        max = i->second;
-        i_max = i;
-      }
-    }
-    double sum_w(0), sum_wx(0);
-    for (frequency_vector<double>::const_iterator i(i_max-3); i!=(i_max+4) && i!=psf.end(); ++i) {
-      if (i < psf.begin())
-        continue;
-      // std::cout << "ps: " << name_ << boost::format("%8.3f %.2e") % i->first % i->second << std::endl;
-      sum_w += i->second;
-      sum_wx += i->first * i->second;
-    }
-    f  = sum_wx/sum_w;
-    sn = i_max->second/sum*psf.size();
-    // std::cout << " --- " << f << " (" << sn << ") " << std::endl;
+    sn      = 0.5*(sn_peak[1] + sn_peak[0]);
+    delta_f = 0.5*( f_peak[1] +  f_peak[0]);
+    baud    =     ( f_peak[1] -  f_peak[0]);
+    // std::cout << "detect_msk " << f_peak[0] << " " << f_peak[1] << " " << sn_peak[0] << " " << sn_peak[1] << std::endl;
     return true;
   }
 private:
   fft_type fftw_;
-  Filter::Cascaded<frequency_vector<double> > filter_plus_;
-  Filter::Cascaded<frequency_vector<double> > filter_minus_;
+  ptime    last_time_;
+  fft_power_spectrum::sptr ps_;
+  fft_power_spectrum::sptr ps_filtered_;
   const std::string name_;
   double            fc_Hz_;     // center frequency
   const double      fm_Hz_;     // baud

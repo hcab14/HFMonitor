@@ -19,7 +19,9 @@ public:
     , _center_freq(center_freq)
     , _freq_correction(1. - 1e-9*offset_ppb)
     , _f_min(_center_freq - 0.5*_sample_rate)
-    , _f_max(_center_freq + 0.5*_sample_rate) {}
+    , _f_max(_center_freq + 0.5*_sample_rate) {
+    ASSERT_THROW(size > 0);
+  }
 
   virtual ~fft_data_base() {}
 
@@ -28,12 +30,14 @@ public:
   double sample_rate() const { return _sample_rate*_freq_correction; }
   double f_min() const { return _f_min*_freq_correction; }
   double f_max() const { return _f_max*_freq_correction; }
+  double delta_f() const { return f_max()-f_min(); }
 
   size_t freq2index(double freq) const {
-    return size_t(0.5 + size() * (freq-f_min()) / (f_max()-f_min()));
+    const double df = std::max(0.0, freq-f_min());
+    return std::min(size()-1, size_t(0.5 + size() * df/delta_f()));
   }
   double index2freq(size_t index) const {
-    return f_min() + double(index)/double(size()) * (f_max()-f_min());
+    return f_min() + double(index)/double(size()) * delta_f();
   }
 
   void update(double sample_rate,
@@ -45,8 +49,11 @@ public:
   }
 protected:
   // this is used in derived classes
-  void update_size(size_t n) { _size = n; }
-
+  void update_size(size_t n) {
+    ASSERT_THROW(n > 0);
+    _size = n;
+  }
+  double freq_corr() const { return _freq_correction; }
 private:
   size_t _size;
   double _sample_rate;     // Hz
@@ -92,6 +99,36 @@ public:
   
   float operator[](size_t i) const { return _ps[i]; }
   float& operator[](size_t i) { return _ps[i]; }
+
+  int find_peak(float f0, float f1) const {
+    int i0 = freq2index(f0);
+    int i1 = freq2index(f1);
+    ASSERT_THROW(i0 < i1);
+    uint16_t i_max=0;
+    volk_32f_index_max_16u(&i_max, &begin()[0]+i0, i1-i0);
+    return i0 + i_max;
+  }
+  float estimate_peak_freq(int i_max) const {
+    const int i0 = std::max(       i_max-3, 0);
+    const int i1 = std::min(size_t(i_max+4), size()-1);
+
+    float sum_w(0), sum_wx(0);
+    for (const_iterator i=begin()+i0, iend=begin()+i1; i!=iend; ++i) {
+      const float f = index2freq(std::distance(begin(), i));
+      const float w = std::pow(10.0f, *i*0.1);
+      sum_w  += w;
+      sum_wx += w*f;
+    }
+    return sum_wx/sum_w;
+  }
+  float get_noise_floor(float f0, float f1, float exclusion_value) const {
+    const int i0 = freq2index(f0);
+    const int i1 = freq2index(f1);
+    ASSERT_THROW(i0 < i1);
+    float noise_floor=0;
+    volk_32f_s32f_calc_spectral_noise_floor_32f(&noise_floor, &begin()[0]+i0, exclusion_value, i1-i0);
+    return noise_floor;
+  }
 
 protected:
   void resize(size_t n) {
