@@ -114,8 +114,8 @@ public:
 
     popupText_[0] = 0;
 
-    sMin_.step(1,1); sMin_.range(-140,0); sMin_.value(-70);
-    sMax_.step(1,1); sMax_.range(-140,0); sMax_.value(-40);
+    sMin_.step(1,1); sMin_.range(-180,0); sMin_.value(-70);
+    sMax_.step(1,1); sMax_.range(-180,0); sMax_.value(-40);
 
     fMin_.value( 0); fMax_.value(40e3);
     fCur_.value(-1); fCur_.precision(1); fCur_.range(0, 40e3);
@@ -166,16 +166,16 @@ public:
     s->damage(FL_DAMAGE_ALL);
   }
   
-  template<typename T>
-  void insert_spec(const frequency_vector<T>& spec,
-                   const frequency_vector<T>& spec_filtered,
+  template<typename SPEC>
+  void insert_spec(const SPEC& spec,
+                   const SPEC& spec_filtered,
                    processor::service_iq::sptr sp,
                    bool update_window=true) {
 
-    spec_fMin_ = spec.fmin();
-    spec_fMax_ = spec.fmax();
-    set_fMin(std::min(std::max(get_fMin(), spec.fmin()), spec.fmax()));
-    set_fMax(std::max(std::min(get_fMax(), spec.fmax()), get_fMin()+20));
+    spec_fMin_ = spec.f_min();
+    spec_fMax_ = spec.f_max();
+    set_fMin(std::min(std::max(get_fMin(), spec.f_min()), spec.f_max()));
+    set_fMax(std::max(std::min(get_fMax(), spec.f_max()), get_fMin()+20));
 
     if (sp) {
       fStreamName_.value(sp->stream_name().c_str());
@@ -190,50 +190,50 @@ public:
       if (xPushPeak_ != -1) {
         const double fPush = xInputFromSpec(xPushPeak_);
         const int    iPush = spec_filtered.freq2index(fPush);
-        const double sPush = spec_filtered[iPush].second;
+        const double sPush = spec_filtered[iPush];
         const int    sfSize = spec_filtered.size();
         if (iPush > 0 && iPush+1 < sfSize) {
           bool dir[3] =  {
-            sPush > spec_filtered[iPush+1].second,
-            sPush > spec_filtered[iPush-1].second,
+            sPush > spec_filtered[iPush+1],
+            sPush > spec_filtered[iPush-1],
             false
           };
 #if 0
           std::cout << "=== ["
-                    << spec_filtered[iPush-1].second << " "
-                    << spec_filtered[iPush  ].second << " "
-                    << spec_filtered[iPush+1].second << "] dir="
+                    << spec_filtered[iPush-1] << " "
+                    << spec_filtered[iPush  ] << " "
+                    << spec_filtered[iPush+1] << "] dir="
                     << dir[0] << dir[1] << std::endl;
 #endif
           int ip[3] = { -1, -1, -1 };
           for (int i=iPush; i+1<sfSize; ++i) {
             ip[0] = i;
-            if (dir[0] != (spec_filtered[i].second > spec_filtered[i+1].second))
+            if (dir[0] != (spec_filtered[i] > spec_filtered[i+1]))
               break;            
           }
           // ++ip[0];
           for (int i=iPush; i>1; --i) {
             ip[1] = i;
-            if (dir[1] != (spec_filtered[i].second > spec_filtered[i-1].second))
+            if (dir[1] != (spec_filtered[i] > spec_filtered[i-1]))
               break;
           }
           // --ip[1];
           // sort
-          if (spec_filtered[ip[0]].second < spec_filtered[ip[1]].second) {
+          if (spec_filtered[ip[0]] < spec_filtered[ip[1]]) {
             std::swap(ip[0],  ip[1]);
             std::swap(dir[0], dir[1]);
           }
           if (ip[0] < ip[1]) {
             for (int i=ip[0]; i>1; --i) {
               ip[2] = i;
-              if (spec_filtered[i].second < spec_filtered[i-1].second)
+              if (spec_filtered[i] < spec_filtered[i-1])
                 break;
             }
             // --ip[2];
           } else {
             for (int i=ip[0]; i<sfSize-1; ++i) {
               ip[2] = i;
-              if (spec_filtered[i].second < spec_filtered[i+1].second)
+              if (spec_filtered[i] < spec_filtered[i+1])
                 break;
             }
             // ++ip[2];
@@ -247,10 +247,10 @@ public:
           };
           double sum_w=0, sum_wx=0;
           for (int i=range[0]; i<=range[1]; ++i) {
-            const double w = std::pow(10.0, 0.1*spec_filtered[i].second);
+            const double w = std::pow(10.0, 0.1*spec_filtered[i]);
             sum_w  += w ;
-            sum_wx += w*spec_filtered[i].first;
-            // std::cout << "--- " << i << " " << spec_filtered[i].first << " " << spec_filtered[i].second << " " << w << std::endl;
+            sum_wx += w*spec_filtered.index2freq(i);
+            // std::cout << "--- " << i << " " << spec_filtered[i].first << " " << spec_filtered[i] << " " << w << std::endl;
           }
 #if 0
           std::cout << "fPush= " << fPush << " " << spec_filtered[iPush].first
@@ -259,9 +259,9 @@ public:
                     << spec_filtered[ip[0]].first << " "
                     << spec_filtered[ip[1]].first << " "
                     << spec_filtered[ip[2]].first << " s="
-                    << spec_filtered[ip[0]].second << " "
-                    << spec_filtered[ip[1]].second << " "
-                    << spec_filtered[ip[2]].second << " ===> " << sum_wx/sum_w
+                    << spec_filtered[ip[0]] << " "
+                    << spec_filtered[ip[1]] << " "
+                    << spec_filtered[ip[2]] << " ===> " << sum_wx/sum_w
                     << std::endl;
 #endif
           sprintf(popupText_, "%.1f (%d)", sum_wx/sum_w, dist);
@@ -275,13 +275,13 @@ public:
         }
       }
     }
-    std::vector<T> s(specN(),  0);
-    std::vector<T> sf(specN(), 0);
+    std::vector<float> s(specN(),  0);
+    std::vector<float> sf(specN(), 0);
     std::vector<int> counters(specN(), 0);
-    for (size_t i(0), n(spec.size()); i<n; ++i) {
-      const int j(xSpecFromInput(spec[i].first)-xSpecBeg());
-      s[j]  = (0 == counters[j]) ? spec[i].second          : std::max(s[j],  spec[i].second);
-      sf[j] = (0 == counters[j]) ? spec_filtered[i].second : std::max(sf[j], spec_filtered[i].second);
+    for (size_t i(spec.freq2index(get_fMin())), n(spec.freq2index(get_fMax())); i<n; ++i) {
+      const int j(xSpecFromInput(spec.index2freq(i))-xSpecBeg());
+      s[j]  = (0 == counters[j]) ? spec[i]          : std::max(s[j],  spec[i]);
+      sf[j] = (0 == counters[j]) ? spec_filtered[i] : std::max(sf[j], spec_filtered[i]);
       ++counters[j];
     }
     const double dfn(delta_f() / double(specN()));
@@ -289,8 +289,8 @@ public:
       if (counters[j] != 0) 
         continue;
       const int i(spec.freq2index(get_fMin() + dfn*j));
-      s[j]  = spec         [i].second;
-      sf[j] = spec_filtered[i].second;
+      s[j]  = spec         [i];
+      sf[j] = spec_filtered[i];
     }
     insert_spec(s, sf, update_window);
   }

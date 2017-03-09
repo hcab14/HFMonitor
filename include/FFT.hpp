@@ -227,6 +227,8 @@ namespace FFT {
     /// size of the FFT transform
     size_t size() const { return in_.size(); }
 
+    float normalization_factor() const { return normalizationFactor_; }
+
     /// get the result of a single bin
     /// amplitude is corrected for the spread due to the used window function
     complex_type getBin(size_t u) const {

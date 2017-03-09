@@ -22,9 +22,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "FFT.hpp"
+#ifdef USE_OPENCL
+#  include "cl/fft.hpp"
+#endif
 #include "FFTProcessor/Filter.hpp"
 #include "gui/spectrum_display.hpp"
 #include "network.hpp"
@@ -36,6 +39,8 @@
 #include "Spectrum.hpp"
 
 #include "filter/iir.hpp"
+
+#include "fft_data.hpp"
 
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
@@ -118,20 +123,19 @@ private:
 } ;
 
 /// processor for computing FFT and inserting the data into @ref MyWindow
+template<typename SETUP_FFT_TYPE>
 class test_proc : public processor::base_iq {
 public:
-#ifdef USE_CUDA
-  typedef FFT::CUFFTTransform fft_type;
-#else
-  typedef FFT::FFTWTransform<float> fft_type;
-#endif
-
+  typedef typename SETUP_FFT_TYPE::sptr fft_type;
   typedef boost::posix_time::ptime ptime;
 
   test_proc(const boost::property_tree::ptree& config)
     : base_iq(config)
     , w_(1200,400)
-    , fftw_(1024, FFTW_BACKWARD, FFTW_ESTIMATE)
+    , fft_setup_()
+    , fft_()
+    , fps_()
+    , fpsf_()
     , host_(config.get<std::string>("server.<xmlattr>.host"))
     , port_(config.get<std::string>("server.<xmlattr>.port"))
     , last_update_time_(boost::date_time::not_a_date_time)
@@ -158,9 +162,8 @@ public:
 	      << " " << filter_nb_.get()
               << std::endl;
 #endif
-    const bool isFirst = (length != fftw_.size());
-    if (isFirst) {
-      fftw_.resize(length);
+    if (!fft_) {
+      fft_ = fft_setup_.make(length, SETUP_FFT_TYPE::BACKWARD);
       filter_nb_.init(0.05, sp->sample_rate_Hz());
       s_last_ = 0.1;
     }
@@ -168,41 +171,58 @@ public:
       filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
     }
 
-    std::vector<std::complex<float> > sf(length);
-    std::vector<std::complex<float> >::iterator is=sf.begin();
-    const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
-    const bool  filter_on        = w_.filter_on();
-    const float filter_threshold = w_.filter_threshold();
-    const int maxBlanker         = 0.005*sp->sample_rate_Hz();
-    // std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
-    for (const_iterator i=i0; i!=i1; ++i, ++is) {
-      bool b = abs(*i) < filter_threshold*s_last_;
-      b = (b ? b : counterBlanker_ >= maxBlanker);
-      counterBlanker_ = (b ? 0 : 1+counterBlanker_);
-      s_last_ = (counterBlanker_ < maxBlanker
-                 ? (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_
-                 : 1e-3);
-      *is = ((b || !filter_on) ? *i  : std::complex<float>(0));
+    const_iterator& iBeg = i0;
+    const_iterator& iEnd = i1;
+    aligned_vector<std::complex<float> > sf(length);
+    const bool filter_on = w_.filter_on();
+    if (filter_on) {
+      aligned_vector<std::complex<float> >::iterator is=sf.begin();
+      const float filter_alpha     = 1./(1.+sp->sample_rate_Hz() * w_.filter_alpha());
+      const float filter_threshold = w_.filter_threshold();
+      const int maxBlanker         = 0.005*sp->sample_rate_Hz();
+      // std::cout << "filter " << filter_on << " " << filter_alpha << " " << w_.filter_alpha() << " "  << filter_threshold << std::endl;
+      for (const_iterator i=i0; i!=i1; ++i, ++is) {
+	bool b = abs(*i) < filter_threshold*s_last_;
+	b = (b ? b : counterBlanker_ >= maxBlanker);
+	counterBlanker_ = (b ? 0 : 1+counterBlanker_);
+	s_last_ = (counterBlanker_ < maxBlanker
+		   ? (1.-filter_alpha)*s_last_ + b*filter_alpha*std::abs(*i) + (1-b)*filter_alpha*s_last_
+		   : 1e-3);
+	*is = ((b || !filter_on) ? *i  : std::complex<float>(0));
+      }
+      iBeg = sf.begin();
+      iEnd = sf.end();
     }
 
-    fftw_.transformRange(sf.begin(), sf.end(), FFT::WindowFunction::Blackman<float>(length));
-    const FFTSpectrum<fft_type> s(fftw_, sp->sample_rate_Hz(), sp->center_frequency_Hz());
-    const double f_min(sp->center_frequency_Hz() - sp->sample_rate_Hz());
-    const double f_max(sp->center_frequency_Hz() + sp->sample_rate_Hz());
-    frequency_vector<float> ps(f_min, f_max, s, std::abs<float>, sp->offset_ppb());
-    if (filter_.x().empty())
-      filter_.init(sp->approx_ptime(), ps);
-    else
-      filter_.update(sp->approx_ptime(), ps);
+    fft_->transformRange(iBeg, iEnd, FFT::WindowFunction::Blackman<float>(length));
 
-    frequency_vector<float> xf(filter_.x());
+    const bool is_first = !fps_;
+    if (is_first)  {
+      fps_  = boost::make_shared<fft_power_spectrum>(fft_->size(), sp->sample_rate_Hz(), sp->center_frequency_Hz(), 0.0);
+      fpsf_ = boost::make_shared<fft_power_spectrum>(fft_->size(), sp->sample_rate_Hz(), sp->center_frequency_Hz(), 0.0);
+    }
+    fps_->update(sp->sample_rate_Hz(), sp->center_frequency_Hz(), 0.0);
+    fpsf_->update(sp->sample_rate_Hz(), sp->center_frequency_Hz(), 0.0);
+    fps_->insert(*fft_);
+
+    if (is_first) {
+      std::copy(fps_->begin(), fps_->end(), fpsf_->begin());
+    } else {
+      using namespace boost::posix_time;
+      const double dt(double((sp->approx_ptime() - last_time_).ticks()) / double(time_duration::ticks_per_second()));
+      const float alpha = dt/30.0;
+      for (auto i=fpsf_->begin(), j=fps_->begin(); j!=fps_->end(); ++i, ++j)
+	*i = *i*(1-alpha) + *j*alpha;
+    }
+    last_time_ = sp->approx_ptime();
 
     Fl::lock();
     const std::string window_title(str(boost::format("%s @%s:%s") % sp->stream_name() % host_ % port_));
     w_.label(window_title.c_str());
     const bool update_window(last_update_time_ == boost::date_time::not_a_date_time ||
 			     sp->approx_ptime() - last_update_time_ > boost::posix_time::time_duration(0,0,2));
-    w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
+    // w_.get_spec_display().insert_spec(ps.apply(s2db()), xf.apply(s2db()), sp, update_window);
+    w_.get_spec_display().insert_spec(*fps_, *fpsf_, sp, update_window);
     if (update_window)
       last_update_time_ = sp->approx_ptime();
     static char msg[1024];
@@ -216,16 +236,19 @@ private:
       return 10*std::log10(c);
     }
   } ;
-  MyWindow w_;
-  fft_type fftw_;
+  MyWindow       w_;
+  SETUP_FFT_TYPE fft_setup_;
+  fft_type       fft_;
+  fft_power_spectrum::sptr fps_;
+  fft_power_spectrum::sptr fpsf_;
   Filter::Cascaded<frequency_vector<float> > filter_;
   std::string host_;
   std::string port_;
   boost::posix_time::ptime last_update_time_;
-//   boost::mutex mutex_;
   filter::iir_lowpass_1pole<double, double> filter_nb_;
   float s_last_;
   int   counterBlanker_;
+  ptime last_time_;
 } ;
 
 int main(int argc, char* argv[])
@@ -283,10 +306,17 @@ int main(int argc, char* argv[])
     // FLTK initialization
     Fl::visual(FL_RGB);
     Fl::lock();
+#undef USE_OPENCL
+#ifdef USE_OPENCL
+    cl::fft::setup cl_fft_setup;
+    typedef cl::fft::clfft_setup fft_setup_type;
+#else
+    typedef FFT::fftw_setup fft_setup_type;
+#endif
 
     // connect to server
     const std::string stream_name(vm["stream"].as<std::string>());
-    network::client::client<network::iq_adapter<repack_processor<test_proc> > > c(config);
+    network::client::client<network::iq_adapter<repack_processor<test_proc<fft_setup_type> > > > c(config);
 
     const std::set<std::string> streams(c.ls());
     if (streams.find(stream_name) != streams.end())

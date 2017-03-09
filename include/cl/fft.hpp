@@ -33,6 +33,7 @@ namespace cl {
       typedef boost::shared_ptr<clfft> sptr;
       typedef float value_type;
       typedef std::complex<float> complex_type;
+      typedef array<complex_type>::vector_type vector_type;
 
       clfft(::size_t n,
 	    clfftDirection direction,
@@ -113,6 +114,8 @@ namespace cl {
 
       const array<complex_type>& in () const { return  _in; }
       const array<complex_type>& out() const { return _out; }
+
+      float normalization_factor() const { return _normalization_factor; }
 
       complex_type getBin(::size_t i) const {
 	return _normalization_factor*out(i);
