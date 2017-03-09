@@ -57,7 +57,7 @@
               name="MSK_NLK" fc_Hz="24.80e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_TBB"
-              name="MSK_TBB" fc_Hz="22687e3" fm_Hz="200.0"
+              name="MSK_TBB" fc_Hz="26.7e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NRK"
               name="MSK_NRK" fc_Hz="37.5e3" fm_Hz="200.0"
