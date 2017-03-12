@@ -89,11 +89,11 @@ namespace cl {
       }
 
       cl::Event enqueue_transform(std::vector<cl::Event> &events_wait) {
-	cl::Event event;
+	cl_event tmp;
 	ASSERT_THROW_CL(clfftEnqueueTransform(_plan_handle, _direction, 1, &_queue(),
-					      events_wait.size(), events_wait.empty() ? NULL : &events_wait[0](), &event(),
+					      events_wait.size(), events_wait.empty() ? NULL : (cl_event*)&events_wait.front(), &tmp,
 					      &_in.get_device_buffer()(), &_out.get_device_buffer()(), NULL));
-	return event;
+	return cl::Event(tmp);
       }
 
       void host_to_device(const std::vector<cl::Event>* events_wait=NULL, cl::Event* event_finished=NULL) {

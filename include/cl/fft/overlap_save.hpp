@@ -45,6 +45,8 @@ namespace cl {
 	  , clfft_(n_/d_, CLFFT_BACKWARD, queue)
 	  , h_  (queue, n_)
 	  , kernel_(program, "convolve")
+	  , event1_(1, cl::Event())
+	  , event2_(1, cl::Event())
 	{
 	  verify_arguments();
           ASSERT_THROW(b.size() < n());
@@ -99,18 +101,17 @@ namespace cl {
 	  for (; work_group_size && (nd%work_group_size); --work_group_size)
 	    ;
 
-	  std::vector<cl::Event> event1(1, cl::Event());;
 	  q.enqueueNDRangeKernel(kernel_,
 				 cl::NullRange,                // offset
 				 cl::NDRange(nd),              // global
 				 cl::NDRange(work_group_size), // local
 				 &waitFor,
-				 &event1[0]);
+				 &event1_[0]);
 
-	  std::vector<cl::Event> event2(1, clfft_.enqueue_transform(event1));
+	  event2_[0] = clfft_.enqueue_transform(event1_);
 
 	  cl::Event event3;
-	  clfft_.device_to_host(&event2, &event3);
+	  clfft_.device_to_host(&event2_, &event3);
 
 	  return event3;
         }
@@ -132,6 +133,7 @@ namespace cl {
 	cl::fft::clfft      clfft_;
 	array<complex_type> h_;
 	cl::Kernel          kernel_;
+	std::vector<cl::Event> event1_, event2_;
       } ;
 
     public:
@@ -203,6 +205,7 @@ namespace cl {
 	clfft_.host_to_device(NULL, &event0[0]);
 
 	std::vector<cl::Event> event1(1, clfft_.enqueue_transform(event0));
+	queue_.flush();
 
         // for each filter
 	std::vector<cl::Event> events_wait;

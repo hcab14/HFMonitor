@@ -61,27 +61,6 @@ namespace cl {
       q.enqueueReadBuffer (_v_device, blocking, 0, size()*sizeof(value_type), &_v_host[0], events_wait, event_finished);
     }
 
-#if 0
-    template<typename V, typename W>
-    float fill(const V& v,
-	       const W& window_fcn) {
-      return fill(v.begin(), v.end(), window_fcn);
-    }
-
-    template<typename IT, typename W>
-    float fill(IT i0, IT i1, W window_fcn) {
-      const ssize_t length(std::distance(i0, i1));
-      if (length != _v_host.size())
-	resize(length);
-      _norm= 0;
-      for (::size_t u(0), n(_v_host.size()); u<n; ++u, ++i0) {
-	const float w(window_fcn(u));
-	_norm += w;
-	_v_host[u]  = w* (*i0);
-      }
-      return _norm;
-    }
-#endif
   protected:
   private:
     cl::Buffer  _v_device;
