@@ -68,7 +68,7 @@ public:
 
   virtual ~test_cb() { }
 
-  bool  operator()(unsigned char* data, size_t length) throw () {
+  bool operator()(unsigned char* data, size_t length) noexcept {
     if (i_ == BUFFER_SIZE) { // buffer is full
       std::string s(reinterpret_cast<char*>(data_), BUFFER_SIZE);
       buffer_->insert(t_, s);
@@ -156,10 +156,10 @@ protected:
                 receiver_->get_center_frequency_hz(),
                 'I', 3, 0);
     const std::string stream_name("DataIQ");
-    std::string d(sizeof(header_iq)+data_.second.size(), 0);
-    std::copy(header_iq.begin(),    header_iq.end(),    d.begin());
-    std::copy(data_.second.begin(), data_.second.end(), d.begin()+sizeof(header_iq));
-    broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", d);
+    data_for_bc_.resize(sizeof(header_iq)+data_.second.size());
+    std::copy(header_iq.begin(),    header_iq.end(),    data_for_bc_.begin());
+    std::copy(data_.second.begin(), data_.second.end(), data_for_bc_.begin()+sizeof(header_iq));
+    broadcaster_->bc_data(data_.first, stream_name, "IQ__0000", data_for_bc_);
     cond_->notify_one();
   }
 
@@ -172,6 +172,7 @@ private:
   buffer<std::string>::ptime_data_pair data_;   // current to be broadcaster data
   boost::shared_ptr<boost::mutex>      mutex_;  // mutex
   boost::shared_ptr<boost::condition>  cond_;   // condition used to signal new data
+  std::string data_for_bc_;
 } ;
 
 /// for debugging
