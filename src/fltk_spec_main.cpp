@@ -36,7 +36,6 @@
 #include "processor.hpp"
 #include "repack_processor.hpp"
 #include "run.hpp"
-#include "Spectrum.hpp"
 
 #include "filter/iir.hpp"
 
@@ -167,9 +166,6 @@ public:
       filter_nb_.init(0.05, sp->sample_rate_Hz());
       s_last_ = 0.1;
     }
-    if (filter_.empty()) {
-      filter_.add(Filter::LowPass<frequency_vector<float> >::make(length/double(sp->sample_rate_Hz())/4., 30.0));
-    }
 
     const_iterator& iBeg = i0;
     const_iterator& iEnd = i1;
@@ -240,7 +236,6 @@ private:
   fft_type       fft_;
   fft_power_spectrum::sptr fps_;
   fft_power_spectrum::sptr fpsf_;
-  Filter::Cascaded<frequency_vector<float> > filter_;
   std::string host_;
   std::string port_;
   boost::posix_time::ptime last_update_time_;
