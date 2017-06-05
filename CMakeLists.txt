@@ -64,22 +64,13 @@ IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
   SET(ENV{VOLK_DIR} "${CMAKE_HOME_DIRECTORY}/software/install/")
 
   SET(PYTHON_EXECUTABLE /opt/rh/python27/root/usr/bin/python)
+   LIST(APPEND _libs " -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama")
 ENDIF()
 
 IF(LSB_RELEASE_ID_SHORT STREQUAL "Gentoo")
+  SET(CMAKE_MODULE_PATH   "${CMAKE_HOME_DIRECTORY}/CMake/modules")
   SET(PYTHON_EXECUTABLE /usr/bin/python)
 ENDIF()
-
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_HOME_DIRECTORY}/get_simd_compiler_flags.sh"
-  OUTPUT_VARIABLE EXTRA_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}  ${EXTRA_CFLAGS}")
-
-# List of libraries
-SET(_libs)
 
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.62 REQUIRED COMPONENTS python program_options thread coroutine iostreams locale unit_test_framework system filesystem regex date_time log)
@@ -95,8 +86,8 @@ LIST(APPEND   _libs ${FFTW3_LIBRARIES})
 INCLUDE_DIRECTORIES(${FFTW3_INCLUDE_DIR})
 
 # find python  libraries
+FIND_PACKAGE(PythonLibs REQUIRED)
 FIND_PACKAGE(PythonInterp REQUIRED)
-FIND_PACKAGE(PythonLibs   REQUIRED)
 LIST(APPEND   _libs ${PYTHON_LIBRARIES})
 INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
 
@@ -118,11 +109,12 @@ IF (USE_OPENCL)
 ENDIF (USE_OPENCL)
 
 # Setup FLTK
-SET(FLTK_PATH "${CMAKE_HOME_DIRECTORY}/software/install/bin")
+SET(FLTK_SKIP_OPENGL true)
+SET(FLTK_SKIP_FLUID true)
 FIND_PACKAGE(FLTK REQUIRED)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${FLTK_INCLUCDE_DIR}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${FLTK_INCLUDE_DIR}")
 IF (APPLE)
-  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  ${FLTK_LDFLAGS}")
+  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  ${FLTK_LIBRARIES}")
 ELSE (APPE)
   LIST(APPEND _libs ${FLTK_LIBRARIES})
 ENDIF (APPLE)
@@ -173,7 +165,7 @@ ENDIF(CLFFT_FOUND)
 
 # used by cuda_mutex
 IF (NOT APPLE)
-   LIST(APPEND _libs "-lrt -lpthread -ldl -lutil -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama")
+   LIST(APPEND _libs "-lrt -lpthread -ldl -lutil")
 ENDIF (NOT APPLE)
 
 MESSAGE("CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
