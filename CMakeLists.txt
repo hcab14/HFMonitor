@@ -39,6 +39,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DSVN_VERSION_STRING='\"${SVN_VERS
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 
+SET(_libs)
+
 IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
   SET(SOFTWARE_MAKE_ARGS)
   IF (USE_OPENCL)
@@ -64,7 +66,7 @@ IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
   SET(ENV{VOLK_DIR} "${CMAKE_HOME_DIRECTORY}/software/install/")
 
   SET(PYTHON_EXECUTABLE /opt/rh/python27/root/usr/bin/python)
-   LIST(APPEND _libs "-lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama")
+  LIST(APPEND _libs -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama)
 ENDIF()
 
 IF(LSB_RELEASE_ID_SHORT STREQUAL "Gentoo")
@@ -165,9 +167,10 @@ ENDIF(CLFFT_FOUND)
 
 # used by cuda_mutex
 IF (NOT APPLE)
-   LIST(APPEND _libs "-lrt -lpthread -ldl -lutil")
+   LIST(APPEND _libs -lrt -lpthread -ldl -lutil)
 ENDIF (NOT APPLE)
 
+LIST(REMOVE_DUPLICATES _libs)
 MESSAGE("CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 INCLUDE_DIRECTORIES("./include")
