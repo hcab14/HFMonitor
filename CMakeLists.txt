@@ -64,7 +64,7 @@ IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
   SET(ENV{VOLK_DIR} "${CMAKE_HOME_DIRECTORY}/software/install/")
 
   SET(PYTHON_EXECUTABLE /opt/rh/python27/root/usr/bin/python)
-   LIST(APPEND _libs " -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama")
+   LIST(APPEND _libs "-lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama")
 ENDIF()
 
 IF(LSB_RELEASE_ID_SHORT STREQUAL "Gentoo")
