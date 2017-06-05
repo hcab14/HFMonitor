@@ -16,13 +16,13 @@ endif
 ALL: ${targets}
 
 install/share/clFFT/examples: clFFT install/lib/libboost_log.a
-	cd clFFT && mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} -DBOOST_ROOT=${INSTALL_PATH} ../src && make -j4 install
+	cd clFFT && mkdir -p build && cd build && cmake3 -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} -DBOOST_ROOT=${INSTALL_PATH} ../src && make -j4 install
 
 clFFT:
 	git clone https://github.com/clMathLibraries/clFFT.git
 
 install/bin/volk_modtool: volk install/lib/libboost_log.a
-	cd volk && mkdir -p build && cd build && cmake -DBOOST_ROOT=${INSTALL_PATH} -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} ../ && make -j4 install
+	cd volk && mkdir -p build && cd build && cmake3 -DCMAKE_C_FLAGS="--std=gnu99" -DBOOST_ROOT=${INSTALL_PATH} -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PATH} ../ && make -j4 install
 volk:
 	git clone https://github.com/gnuradio/volk.git volk
 
