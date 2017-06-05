@@ -2,7 +2,9 @@
 # $Id$
 
 ADD_SUBDIRECTORY(libportaudio)
+LIST(REVERSE _libs)
 ADD_SUBDIRECTORY(libusb1.0)
+LIST(REVERSE _libs)
 ADD_SUBDIRECTORY(sdr)
 
 ADD_LIBRARY(logging_cpp logging.cpp)
