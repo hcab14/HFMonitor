@@ -2,5 +2,4 @@
 # $Id$
 
 NAME="multi_client_to_file"
-LD_LIBRARY_PATH=/opt/local/lib
-CMD="./bin/$NAME -c config/multi_client_writer_BOS.xml"
+CMD="$NAME -c config/multi_client_writer_BOS.xml"

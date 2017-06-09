@@ -8,7 +8,7 @@ SUDO=`which sudo`
 [ X`whoami` == Xroot ] && SUDO=""
 
 source setup.sh
-source /opt/rh/python27/enable
+[ -d /opt/rh/python27 ] && source /opt/rh/python27/enable
 
 trap "exit" SIGINT SIGQUIT SIGTERM
 
