@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="0b-cuda_mutex"
-CMD="./bin/cuda_mutex"
+CMD="cuda_mutex"

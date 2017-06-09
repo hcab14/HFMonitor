@@ -2,4 +2,4 @@
 # $Id: 2a-multi_client_to_bc.in 462 2016-02-04 08:25:49Z gifds $
 
 NAME="multi_client_to_broadcaster"
-CMD="./bin/$NAME -c config/multi_client_TWN.xml"
+CMD="$NAME -c config/multi_client_TWN.xml"

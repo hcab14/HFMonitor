@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="4a-multi_client_to_file"
-CMD="./bin/multi_client_to_file -c config/multi_client_writer_KRK.xml"
+CMD="multi_client_to_file -c config/multi_client_writer_KRK.xml"

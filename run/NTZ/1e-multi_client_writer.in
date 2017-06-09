@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="multi_client_writer_TWN"
-CMD="./bin/multi_client_to_file -c config/multi_client_writer_NTZ_fromTWN.xml"
+CMD="multi_client_to_file -c config/multi_client_writer_NTZ_fromTWN.xml"

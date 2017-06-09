@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="0a-perseus_server"
-CMD="./bin/perseus_server -c config/perseus_server_KRK.xml"
+CMD="sudo env PATH=$PATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH perseus_server -c config/perseus_server_KRK.xml"

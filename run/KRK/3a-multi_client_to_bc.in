@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="3a-multi_client_to_broadcaster"
-CMD="./bin/multi_client_to_broadcaster -c config/multi_client_KRK.xml"
+CMD="multi_client_to_broadcaster -c config/multi_client_KRK.xml"

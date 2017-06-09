@@ -2,4 +2,4 @@
 # $Id$
 
 NAME="client_multi_downconvert"
-CMD="./bin/$NAME -c config/multi_downconvert_NTZ.xml"
+CMD="$NAME -c config/multi_downconvert_NTZ.xml"

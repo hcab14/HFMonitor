@@ -2,5 +2,5 @@
 # $Id$
 
 NAME="2a-client_multi_downconvert"
-CMD="./bin/client_multi_downconvert -c config/multi_downconvert_KRK.xml"
+CMD="client_multi_downconvert -c config/multi_downconvert_KRK.xml"
 
