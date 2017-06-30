@@ -32,9 +32,11 @@
   </Processors>
   <Filters>
     <FIR name="DC_016400_JXN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 16.40e3" decim="100"/>
+    <FIR name="DC_018300_HWU"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 18.30e3" decim="100"/>
     <FIR name="DC_019600_GQD"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.60e3" decim="100"/>
     <FIR name="DC_019800_NWC"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 19.80e3" decim="100"/>
     <FIR name="DC_020270_ICV"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 20.27e3" decim="100"/>
+    <FIR name="DC_021400_NPM"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 21.40e3" decim="100"/>
     <FIR name="DC_021750_HWU"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 21.75e3" decim="100"/>
     <FIR name="DC_022100_GQD"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 22.10e3" decim="100"/>
     <FIR name="DC_023400_DHO"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 23.40e3" decim="100"/>
