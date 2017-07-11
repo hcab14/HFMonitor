@@ -16,9 +16,11 @@
   <Streams>
     <Stream pattern="TGF.*">WriterText</Stream>
     <Stream pattern="DC_016400_JXN">DemodMSK_JXN</Stream>
+    <Stream pattern="DC_018300_HWU">DemodMSK_HWU2</Stream>
     <Stream pattern="DC_019600_GQD">DemodMSK_GQ2</Stream>
     <Stream pattern="DC_019800_NWC">DemodMSK_NWC</Stream>
     <Stream pattern="DC_020270_ICV">DemodMSK_ICV</Stream>
+    <Stream pattern="DC_021400_NPM">DemodMSK_NPM</Stream>
     <Stream pattern="DC_021750_HWU">DemodMSK_HWU</Stream>
     <Stream pattern="DC_022100_GQD">DemodMSK_GQD</Stream>
     <Stream pattern="DC_023400_DHO">DemodMSK_DHO</Stream>
@@ -44,6 +46,9 @@
     <DemodMSK proc_name="DemodMSK_JXN"
               name="MSK_JXN" fc_Hz="16.40e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_HWU2"
+              name="MSK_HWU2" fc_Hz="18.30e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_GQ2"
               name="MSK_GQ2" fc_Hz="19.60e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
@@ -51,11 +56,14 @@
               name="MSK_NWC" fc_Hz="19.80e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_ICV"
-           name="MSK_ICV" fc_Hz="20269.9998465" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_ICV" fc_Hz="20269.9998465" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_NPM"
+              name="MSK_NPM" fc_Hz="21.4e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_HWU"
-           name="MSK_HWU" fc_Hz="21750.0005863" fm_Hz="200.0"
-           dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+              name="MSK_HWU" fc_Hz="21750.0005863" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_GQD"
               name="MSK_GQD" fc_Hz="22.10e3" fm_Hz="100.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
