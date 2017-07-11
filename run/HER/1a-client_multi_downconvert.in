@@ -1,0 +1,6 @@
+#!/bin/bash
+# $Id: 1a-client_multi_downconvert.in 462 2016-02-04 08:25:49Z gifds $
+
+NAME="client_multi_downconvert"
+CMD="env DISPLAY= $NAME -c config/multi_downconvert_HER.xml"
+

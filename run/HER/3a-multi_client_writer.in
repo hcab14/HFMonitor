@@ -1,0 +1,5 @@
+#!/bin/bash
+# $Id: 3a-multi_client_writer.in 462 2016-02-04 08:25:49Z gifds $
+
+NAME="multi_client_to_file"
+CMD="$NAME -c config/multi_client_writer_HER.xml"

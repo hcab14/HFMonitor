@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE MultiClient SYSTEM "DTD/multi_client.dtd"> 
+<!-- $Id: multi_client_writer_NTZ_fromSTA.xml 399 2014-05-14 20:43:43Z cmayer $ -->
+<MultiClient>
+  <StationInfo>
+    Station  = NTZ
+    Computer = Latitude E6440 : N-Series Base
+  </StationInfo>
+  <server host="cpcfcmd.evn.np.kn.nz.dlrx.de" port="40044"/>
+  <FileSink filePath="DataHER" filePeriod="1d"/>
+  <Streams>
+    <Stream pattern="A.*">Writer</Stream>
+    <Stream pattern="L.*">Writer</Stream>
+    <Stream pattern="M.*">Writer</Stream>
+  </Streams>
+  <Clients>
+    <WriterTXT proc_name="Writer" filePath="DataHER" filePeriod="1d"/>
+  </Clients>
+</MultiClient>
