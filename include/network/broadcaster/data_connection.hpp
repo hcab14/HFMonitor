@@ -300,8 +300,9 @@ namespace network {
                              % stream_name));
               } else { // stream not available
                 LOG_ERROR(str(boost::format("handle_receive_command: stream '%s' is not available") % stream_name));
-                send_reply(str(boost::format("ERROR stream '%s' is not available aborting") % stream_name), status_);
-                break;
+                // send_reply(str(boost::format("ERROR stream '%s' is not available aborting") % stream_name), status_);
+                stream_names_.insert(stream_regex);
+                // break;
               }
             }
             if (stream_names_.empty()) {
