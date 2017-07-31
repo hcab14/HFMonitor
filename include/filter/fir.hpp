@@ -37,23 +37,27 @@ namespace filter {
         typedef typename std::vector<complex_type> complex_vector_type;
 
         FFTWindowDesign(size_t n)
-          : b_(n,0) {
-          if ((n % 2) == 0) throw std::runtime_error("FFTWindowDesign::FFTWindowDesign n is even");
-        }
+          : b_(n,0) {}
         virtual ~FFTWindowDesign() {}
 
         const real_vector_type& coeff() const { return b_; }
 
       protected:
         template<typename win_function_type>
-        void design_(const complex_vector_type& f_pos,        // 0 and positive frequencies
-                     const complex_vector_type& f_neg,        // 0 and negative frequencies
-                     const win_function_type& win_function) { // window function
+        void design(const complex_vector_type& f_pos,        // 0 and positive frequencies
+                    const complex_vector_type& f_neg,        // 0 and negative frequencies
+                    const win_function_type& win_function) { // window function
           if (f_pos.size() != f_neg.size())
             throw std::runtime_error("f_pos.size() != f_neg.size()");
 
+          const bool is_even((b_.size() % 2)==0);
+
           // arrange positive and negative frequencies
           complex_vector_type f(f_pos);
+          if (is_even) { // interpolation
+            for (int i=0; i<2*(f_pos.size()-1); ++i)
+              f.push_back(0);
+          }
           std::reverse_copy(f_neg.begin()+1, f_neg.end()-1, std::back_inserter(f));
           const size_t m(f.size());
 
@@ -64,11 +68,11 @@ namespace filter {
           // multiply with window function
           const size_t n(b_.size());
           float_t sum(0);
-          float_t max_value(0);
           for (size_t i(0); i<n; ++i) {
-            b_[i] = ifft.out((m+ i - n/2) % m).real() * win_function(i);
+            b_[i] = (is_even
+                     ? 2*ifft.out((m + 2*i+1 - n  ) % m).real()
+                     :   ifft.out((m +   i   - n/2) % m).real()) * win_function(i);
             sum += b_[i];
-            max_value = (b_[i] > max_value) ? b_[i] : max_value;
           }
 
           // normalize
@@ -91,11 +95,12 @@ namespace filter {
       typedef typename base_type::complex_vector_type complex_vector_type;
 
       using base_type::coeff;
-      using base_type::design_;
+      using base_type::design;
 
       lowpass(size_t n)
-        : base_type(n) {
-      }
+        : base_type(n) {}
+
+      virtual ~lowpass() {}
 
       // f0 is normalized frequency (f0=f/fs)
       virtual void design(double f0, double f_ramp=0.) {
@@ -113,18 +118,18 @@ namespace filter {
           if (j<0 || j>int(m)) continue;
           v[j] = double(i)/k;
         }
-        FFT::WindowFunction::Hamming<float_type> win_fcn(v.size());
-        base_type::design_(v, v, win_fcn);
+        FFT::WindowFunction::Hamming<float_type> win_fcn(coeff().size());
+        base_type::design(v, v, win_fcn);
       }
 
     protected:
     private:
       static size_t compute_m(size_t n) {
-        size_t m(0);
-        for (m=2; 2*m < n+1; m*=2) ;
+        size_t m(2);
+        for (; 2*m < n+1; m<<=1)
+          ;
         return m+1;
       }
-      // real_vector_type b_;
     } ;
   } // namespace fir
 } // namespace filter
