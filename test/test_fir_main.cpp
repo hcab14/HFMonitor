@@ -16,14 +16,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include <iostream>
 #include <fstream>
 
-#include "filter/fir.hpp"
-#include "filter/fir/overlap_save.hpp"
+#include "filter/fir/polyphase_filter.hpp"
 
 int main()
 {
+#if 1
+  // typedef float float_type;
+  // typedef filter::fir::lowpass<float_type> fir_type;
+  // fir_type fir_odd(21);
+  // fir_odd.design(0.2, 0.0);
+  // fir_type fir_even(20);
+  // fir_even.design(0.2, 0.0);
+
+  // std::cout << "odd:\n";
+  // for (int i=0; i<21; ++i)
+  //   std::cout << i << " " << fir_odd.coeff()[i] << std::endl;
+
+  // std::cout << "even:\n";
+  // for (int i=0; i<20; ++i)
+  //   std::cout << i << " " << fir_even.coeff()[i] << std::endl;
+
+  polyphase_filter plp_filter(1, 10, 1000);
+
+  aligned_vector<std::complex<float> > x(100*1000, 0);
+  for (int i=0; i<100*1000; ++i) {
+    x[i]  =  0.5f*std::complex<float>(drand48()-0.5, drand48()-0.5);
+    x[i] += 10.0f*std::exp(std::complex<float>(0., 2*M_PI*0.145742*i));
+    if (i && !(i%(plp_filter.num_blocks()*plp_filter.num_channels()))) {
+      plp_filter.process(x.begin()+i-plp_filter.num_blocks()*plp_filter.num_channels(),
+                         x.begin()+i);
+      for (int k=0; k<plp_filter.num_blocks(); ++k) {
+        for (int j=0; j<plp_filter.num_channels(); ++j) {
+          const std::complex<float>& y = plp_filter.out()[k*plp_filter.num_channels()+j];
+          std::cout << "A" << j << " " << std::scientific << y.real() << " " << y.imag() << std::endl;
+        }
+      }
+    }
+  }
+#else
   typedef float float_type;
   typedef filter::fir::lowpass<float_type> fir_type;
   typedef filter::fir::overlap_save os_type;
@@ -79,4 +113,5 @@ int main()
   // std::cerr << "do " << 5000 << " " << ols::design_optimal(5000) << std::endl;
   // std::cerr << "do " << 10000 << " " << ols::design_optimal(10000) << std::endl;
   // std::cerr << "do " << 50000 << " " << ols::design_optimal(50000) << std::endl;
+#endif
 }
