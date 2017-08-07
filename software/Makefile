@@ -3,9 +3,9 @@
 
 INSTALL_PATH = $(shell echo `pwd`/install)
 
-targets = install/lib/libboost_log.a install/bin/volk_modtool install/bin/fltk-config
 
 ifndef APPLE
+targets = install/lib/libboost_log.a install/bin/volk_modtool install/bin/fltk-config
 targets += install/bin/sqlite3
 endif
 

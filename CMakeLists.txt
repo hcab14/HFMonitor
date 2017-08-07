@@ -55,9 +55,10 @@ IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
     COMMAND "make" ${SOFTWARE_MAKE_ARGS}
     WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}/software)
 
-  SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
-  SET(Boost_NO_SYSTEM_PATHS ON)
-
+  if (!APPLE)
+    SET(BOOSTROOT ${CMAKE_HOME_DIRECTORY}/software/install)
+    SET(Boost_NO_SYSTEM_PATHS ON)
+  ENDIF()
   # where to look first for cmake modules
   SET(CMAKE_MODULE_PATH   "${CMAKE_HOME_DIRECTORY}/CMake/modules;${CMAKE_HOME_DIRECTORY}/software/install/lib/cmake/volk")
   SET(CMAKE_PREFIX_PATH   "${CMAKE_HOME_DIRECTORY}/software/install/")
@@ -66,7 +67,11 @@ IF(LSB_RELEASE_ID_SHORT STREQUAL "Scientific" OR APPLE)
   SET(ENV{VOLK_DIR} "${CMAKE_HOME_DIRECTORY}/software/install/")
 
   SET(PYTHON_EXECUTABLE /opt/rh/python27/root/usr/bin/python)
-  LIST(APPEND _libs -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama)
+  IF (!APPLE)
+    LIST(APPEND _libs -lXrender -lXcursor -lXfixes -lXext -lXft -lfontconfig -lXinerama)
+  ELSE()
+    LIST(APPEND _libs -lpython)
+  ENDIF()
 ENDIF()
 
 IF(LSB_RELEASE_ID_SHORT STREQUAL "Gentoo")
@@ -104,7 +109,7 @@ LIST(APPEND _libs ${portaudio_LIBRARY})
 
 #Setup OpenCL
 IF (USE_OPENCL STREQUAL "ON")
-  # Setup Opencl 
+  # Setup Opencl
   FIND_PACKAGE(OpenCL REQUIRED)
   LIST(APPEND _libs ${OPENCL_LIBRARIES})
   INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
@@ -122,8 +127,7 @@ IF (USE_OPENCL STREQUAL "ON")
       #    LIST(APPEND _libs OpenCL)
     ENDIF(APPLE)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CLFFT")
-ENDIF(CLFFT_FOUND)
-
+  ENDIF(CLFFT_FOUND)
 ENDIF ()
 
 # Setup FLTK
@@ -132,8 +136,7 @@ SET(FLTK_SKIP_FLUID true)
 FIND_PACKAGE(FLTK REQUIRED)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${FLTK_INCLUDE_DIR}")
 IF (APPLE)
-  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  ${FLTK_LIBRARIES}")
-ELSE (APPE)
+  MESSAGE("FLTK_LIBRARIES=${FLTK_LIBRARIES}")
   LIST(APPEND _libs ${FLTK_LIBRARIES})
 ENDIF (APPLE)
 
