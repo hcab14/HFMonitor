@@ -25,7 +25,7 @@ public:
     , num_channels_(num_channels)
     , num_taps_(num_taps)
     , num_taps_decim_(num_taps_/num_channels_)
-    , counter_(num_taps_decim_-1)
+    , counter_(0)
     , b_(num_taps_, 0)
     , x_(num_taps_decim_, 0)
     , history_(2*num_taps_, 0)
@@ -62,13 +62,13 @@ public:
                                               aligned_vector<complex_type>::const_iterator i1) {
     assert(std::distance(i0,i1) == num_blocks() * decim());
 
-    for (int i=0; i0!=i1; ++i0) {
+    for (int fft_idx=0; i0!=i1; ++i0) {
       history_[counter_] = history_[counter_+num_taps()] = *i0;
       counter_ = ((1+counter_) % num_taps());
       if (!(counter_ % decim())) {
         process(history_.begin()+counter_,
                 history_.begin()+counter_+num_taps(),
-                i++,
+                fft_idx++,
                 counter_ % num_channels());
       }
     }
