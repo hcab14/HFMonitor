@@ -17,9 +17,7 @@
   <server host="127.0.0.1"
 	  port="18001"/>
   <Calibration>
-    <Algorithm type="WeightedMean">
-      <Key>TGF_WWVB</Key>
-    </Algorithm>
+    <FixedOffset offset="-1.41e-10"/>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_WWVB"
