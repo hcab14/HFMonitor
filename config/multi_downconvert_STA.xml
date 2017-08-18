@@ -17,7 +17,7 @@
   <server host="127.0.0.1"
 	  port="18001"/>
   <Calibration>
-    <FixedOffset offset="1.4e-9"/>
+    <FixedOffset offset="8.6e-11"/>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_JJY"
