@@ -143,17 +143,32 @@ namespace wave {
       , read_data_(false)
       , buffer_length_sec_(config.get<double>("<xmlattr>.buffer_length_sec", 1.0))
       , overlap_(config.get<double>("<xmlattr>.overlap", 0.0))
-      , iq_reversed_(config.get<int>("<xmlattr>.iq_reversed", 0)==1)
+      , iq_reversed_(config.get<int>("<xmlattr>.iq_reversed"))//, 0)==1)
       , iq_buffer_(config)
       , start_time_(boost::date_time::not_a_date_time)
-      , sample_number_(0) {}
+      , sample_number_(0) { std::cout << "iq_reversed=" << iq_reversed_ << std::endl; }
     virtual ~reader_iq_base() {}
+
+    virtual void set_center_frequency(double) {}
 
     bool process_file(std::string filename) {
       std::ifstream ifs(filename.c_str());
       if (start_time_ == boost::date_time::not_a_date_time)
         start_time_ = boost::posix_time::from_time_t(boost::filesystem::last_write_time(filename));
 
+      // parse filenames like this: "/Users/chm/AirSpy_20170803_122448Z_92100kHz_IQ.wav"
+      const int idx_airspy(filename.find("AirSpy"));
+      const int idx_khz   (filename.find("kHz_IQ"));
+      if (idx_airspy != std::string::npos &&
+          idx_khz    != std::string::npos) {
+        int idx = idx_airspy+7;
+        const std::string date(filename, idx, 8); idx += 9;
+        const std::string time(filename, idx, 6); idx += 8;
+        const std::string f0  (filename, idx, idx_khz-idx);
+        start_time_ = boost::posix_time::from_iso_string(date+"T"+time);
+        std::cout << "date,time,f0= '" << date << "' '" << time << "' '" << f0 << "' " << start_time_ << " " << iq_reversed_ << std::endl;
+        set_center_frequency(1e3*std::stod(f0)); // kHz -> Hz
+      }
       if (sample_number_) {
         using namespace boost::posix_time;
         const time_duration dt(0, 0, 0,
@@ -320,11 +335,14 @@ namespace wave {
 
     typedef typename reader_iq_base<PROCESSOR>::service service;
     using reader_iq_base<PROCESSOR>::get_service;
+    using reader_iq_base<PROCESSOR>::set_center_frequency;
     using reader_iq_base<PROCESSOR>::format;
     using reader_iq_base<PROCESSOR>::start_time;
     using reader_iq_base<PROCESSOR>::update_start_time;
     using reader_iq_base<PROCESSOR>::read_rcvr_;
     using reader_iq_base<PROCESSOR>::rcvr_;
+
+    virtual void set_center_frequency(double f0) { center_frequency_hz_ = f0; }
 
     virtual typename service::sptr get_service(size_t number_of_samples) const {
       typedef boost::posix_time::time_duration time_duration;

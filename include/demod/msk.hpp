@@ -26,11 +26,11 @@
 #include "filter/pll.hpp"
 #include "filter/goertzel.hpp"
 
-namespace demod {  
+namespace demod {
   class msk : public boost::noncopyable {
   public:
     typedef boost::shared_ptr<msk> sptr;
-        
+
     typedef filter::loop_filter_2nd<double> loop_filter;
     typedef filter::integrator_modulo<double> integrator;
     typedef filter::pll<double, loop_filter, integrator> pll_type;
@@ -86,7 +86,7 @@ namespace demod {
       gf_minus_.update(s2);
       pll_plus_.process(s2);
       pll_minus_.process(s2);
-      
+
       // bit stream
       //  (1) 4*carrier phase
       const double theta0(pll_plus_.theta() + pll_minus_.theta());
@@ -112,7 +112,7 @@ namespace demod {
       }
       //  (3b)
       const double st(sin(0.25*(pll_plus_.theta() - pll_minus_.theta()))); // baud/4
-      const int    sign_st(st > 0 ? 1 : -1);      
+      const int    sign_st(st > 0 ? 1 : -1);
       const double xO(x.imag() * st);
       signO_ = (signO_ == 0) ? sign_st : signO_; // init
       if (signO_ == sign_st) { // no change in sign
@@ -140,7 +140,7 @@ namespace demod {
       }
     }
   protected:
-  private: 
+  private:
     static pll_type make_pll(double fs_Hz,
                              double fc_Hz,
                              double dwl_Hz,

@@ -131,7 +131,55 @@ namespace filter {
         return m+1;
       }
     } ;
-  } // namespace fir
+
+    template<typename T>
+    class raised_cosine : public detail::FFTWindowDesign<T> {
+    public:
+      typedef detail::FFTWindowDesign<T> base_type;
+      typedef typename base_type::float_type float_type;
+      typedef typename base_type::complex_type complex_type;
+      typedef typename base_type::real_vector_type real_vector_type;
+      typedef typename base_type::complex_vector_type complex_vector_type;
+
+      using base_type::coeff;
+      using base_type::design;
+
+      raised_cosine(size_t n)
+        : base_type(n) {}
+
+      virtual ~raised_cosine() {}
+
+      //  fT=1/T/fs beta\in[0,1]
+      virtual void design(double period, double beta) {
+        const size_t n(coeff().size());
+        const size_t m(compute_m(n));
+        complex_vector_type v(m);
+        const double f0 = 0.5*(1-beta)/period;
+        const double f1 = 0.5*(1+beta)/period;
+        for (size_t i(0); i<m; ++i) {
+          const double f = 0.5*double(i)/double(m-1);
+          if (f <= f0)
+            v[i] = 1.0;
+          else if (f <= f1)
+            v[i] = sqrt((0.5*(1 + cos(M_PI/beta*period*(f - 0.5*(1-beta)/period)))));
+          else
+            v[i] = 0;
+          std::cout << "rcos[" << i << "] " << v[i].real() << " " << f << std::endl;
+        }
+        FFT::WindowFunction::Rectangular<float_type> win_fcn(coeff().size());
+        base_type::design(v, v, win_fcn);
+      }
+
+    protected:
+    private:
+      static size_t compute_m(size_t n) {
+        size_t m(2);
+        for (; 2*m < n+1; m<<=1)
+          ;
+        return m+1;
+      }
+    } ;
+} // namespace fir
 } // namespace filter
 
 #endif // _FIR_HPP_cm110527_

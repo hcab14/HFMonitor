@@ -19,7 +19,8 @@ public:
   polyphase_filter(int num_blocks,    //
                    int decim,         //
                    int num_channels,  //
-                   int num_taps)      // (num_taps % num_channels) == 0
+                   int num_taps,      // (num_taps % num_channels) == 0
+                   float cutoff=0.9f)
     : num_blocks_(num_blocks)
     , decim_(decim)
     , num_channels_(num_channels)
@@ -39,7 +40,7 @@ public:
     typedef filter::fir::lowpass<float> fir_type;
     fir_type fir(num_taps);
     //    fir.design(1.0f/num_channels_, 0.1f/num_channels_);
-    fir.design(0.9f/decim_, 0.1f/decim_);
+    fir.design(cutoff/decim_, 0.1f/decim_);
     const fir_type::real_vector_type& b(fir.coeff());
     for (int i=0; i<num_channels_; ++i)
       for (int j=0; j<num_taps_decim_; ++j)

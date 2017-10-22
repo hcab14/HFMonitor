@@ -40,12 +40,13 @@ int main()
   // for (int i=0; i<20; ++i)
   //   std::cout << i << " " << fir_even.coeff()[i] << std::endl;
 
-  polyphase_filter plp_filter(1, 10, 10, 1000);
+  polyphase_filter plp_filter(10, 8, 10, 550);
 
   aligned_vector<std::complex<float> > x(100*1000, 0);
   for (int i=0; i<100*1000; ++i) {
-    x[i]  =  1.0f*std::complex<float>(drand48()-0.5, drand48()-0.5);
-    x[i] += 10.0f*std::exp(std::complex<float>(0., 2*M_PI*0.11*i));
+    x[i]  =  0.1f*std::complex<float>(drand48()-0.5, drand48()-0.5);
+    x[i] += 10.0f*std::exp(std::complex<float>(0., 2*M_PI*0.16*i));
+    x[i] +=  5.0f*std::exp(std::complex<float>(0., 2*M_PI*0.24*i));
     if (i && !(i%(plp_filter.num_blocks()*plp_filter.decim()))) {
       plp_filter.process(x.begin()+i-plp_filter.num_blocks()*plp_filter.decim(),
                          x.begin()+i);
