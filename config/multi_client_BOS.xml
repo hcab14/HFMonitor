@@ -30,12 +30,13 @@
     <Stream pattern="DC_026000_XXX">DemodMSK_XXX</Stream>
     <Stream pattern="DC_026700_TBB">DemodMSK_TBB</Stream>
     <Stream pattern="DC_037500_NRK">DemodMSK_NRK</Stream>
-    <Stream pattern="DC_040800_NAU">DemodMSK_NAU</Stream>
+    <Stream pattern="DC_040750_NAU">DemodMSK_NAU</Stream>
     <Stream pattern="DC_045900_NSY">DemodMSK_NSY</Stream>
     <Stream pattern="DC_049000_SXA">DemodMSK_SXA</Stream>
     <Stream pattern="DC_057400_GXH">DemodMSK_GXH</Stream>
     <Stream pattern="DC_063850_FTA">DemodMSK_FTA</Stream>
     <Stream pattern="DC_065800_FUE">DemodMSK_FUE</Stream>
+    <Stream pattern="DC_073600_CFH">DemodMSK_CFH</Stream>
     <Stream pattern="DC_081000_GYN">DemodMSK_GYN</Stream>
     <Stream pattern="DataIQ">FFT_Processor</Stream>
   </Streams>
@@ -89,7 +90,7 @@
               name="MSK_NRK" fc_Hz="37.50e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NAU"
-              name="MSK_NAU" fc_Hz="40.80e3" fm_Hz="200.0"
+              name="MSK_NAU" fc_Hz="40.75e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="2" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_NSY"
               name="MSK_NSY" fc_Hz="45.90e3" fm_Hz="200.0"
@@ -105,6 +106,9 @@
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_FUE"
               name="MSK_FUE" fc_Hz="65.80e3" fm_Hz="200.0"
+              dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
+    <DemodMSK proc_name="DemodMSK_CFH"
+              name="MSK_CFH" fc_Hz="73.60e3" fm_Hz="200.0"
               dwl_Hz=".05" period_Sec="1" min_SN_db="1" max_offset_ppb_rms="15" ampl_lowpass_tc_Sec="60"/>
     <DemodMSK proc_name="DemodMSK_GYN"
               name="MSK_GYN" fc_Hz="81.00e3" fm_Hz="100.0"

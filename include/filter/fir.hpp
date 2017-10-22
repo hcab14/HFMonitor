@@ -55,7 +55,7 @@ namespace filter {
           // arrange positive and negative frequencies
           complex_vector_type f(f_pos);
           if (is_even) { // interpolation
-            for (int i=0; i<2*(f_pos.size()-1); ++i)
+            for (int i=0, n=2*(f_pos.size()-1); i<n; ++i)
               f.push_back(0);
           }
           std::reverse_copy(f_neg.begin()+1, f_neg.end()-1, std::back_inserter(f));

@@ -17,9 +17,7 @@
   <server host="127.0.0.1"
 	  port="18001"/>
   <Calibration>
-    <Algorithm type="WeightedMean">
-      <Key>TGF_WWVB</Key>
-    </Algorithm>
+    <FixedOffset offset="-1.41e-10"/>
   </Calibration>
   <Processors>
     <TrackingGoertzel name="TGF_WWVB"
@@ -46,13 +44,14 @@
     <FIR name="DC_026000_XXX"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 26.00e3" decim="100"/>
     <FIR name="DC_026700_TBB"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 26.70e3" decim="100"/>
     <FIR name="DC_037500_NRK"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 37.50e3" decim="100"/>
-    <FIR name="DC_040800_NAU"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 40.80e3" decim="100"/>
+    <FIR name="DC_040750_NAU"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 40.75e3" decim="100"/>
     <FIR name="DC_045900_NSY"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 45.90e3" decim="100"/>
     <FIR name="DC_049000_SXA"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 49.00e3" decim="100"/>
     <FIR name="DC_057400_GXH"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 57.40e3" decim="100"/>
     <FIR name="DC_060000_WWVB" type="lowpass" cutoff="0.009" centerFrequency_Hz=" 60.00e3" decim="100"/>
     <FIR name="DC_063850_FTA"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 63.85e3" decim="100"/>
     <FIR name="DC_065800_FUE"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 65.80e3" decim="100"/>
+    <FIR name="DC_073600_CFH"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 73.60e3" decim="100"/>
     <FIR name="DC_077500_DCF"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 77.50e3" decim="100"/>
     <FIR name="DC_081000_GYN"  type="lowpass" cutoff="0.009" centerFrequency_Hz=" 81.00e3" decim="100"/>
     <FIR name="DC_022000_MSKs" type="lowpass" cutoff="0.018" centerFrequency_Hz=" 22.00e3" decim=" 50"/>
